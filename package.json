@@ -5,8 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "test": "mocha --ui tdd --colors --timeout 999999  lib/test/**.test.js",
-    "compile": "tsc -p tsconfig.json",
-    "test-dev": "mocha --inspect-brk=5858 --ui tdd --colors --timeout 999999  lib/test/**.test.js",
+    "compile": "tsc -p tsconfig.json"
   },
   "repository": {
     "type": "git",
@@ -22,5 +21,7 @@
     "@types/node": "^9.3.0",
     "mocha": "^4.1.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "vscode-languageserver": "^3.5.0"
+  }
 }
