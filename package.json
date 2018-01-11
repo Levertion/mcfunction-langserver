@@ -1,0 +1,26 @@
+{
+  "name": "mcfunction-langserver",
+  "version": "0.0.1",
+  "description": "Language Server for Minecraft Functions",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "mocha --ui tdd --colors --timeout 999999  lib/test/**.test.js",
+    "compile": "tsc -p tsconfig.json",
+    "test-dev": "mocha --inspect-brk=5858 --ui tdd --colors --timeout 999999  lib/test/**.test.js",
+  },
+  "repository": {
+    "type": "git",
+    "url": "tba"
+  },
+  "keywords": [
+    "Minecraft"
+  ],
+  "author": "Levertion",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/mocha": "^2.2.46",
+    "@types/node": "^9.3.0",
+    "mocha": "^4.1.0"
+  },
+  "dependencies": {}
+}

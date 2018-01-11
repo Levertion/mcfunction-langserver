@@ -1,0 +1,14 @@
+cache:
+  directories:
+    - node_modules
+sudo: false
+language: node_js
+node_js:
+- 'stable'
+- '8'
+before_script:
+  - npm i -g typescript
+install:
+  - npm install
+script:
+ - npm test
