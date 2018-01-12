@@ -1,4 +1,4 @@
-## Minecraft Function Language Server  
+## Minecraft Function Language Server  [![Build Status](https://travis-ci.org/Levertion/mcfunction-langserver.svg?branch=master)](https://travis-ci.org/Levertion/mcfunction-langserver)
 This is a language server which provides support for Minecraft function (`.mcfunction`) files.
 
 ## Contributing
