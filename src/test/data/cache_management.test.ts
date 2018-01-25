@@ -19,10 +19,7 @@ const testData: GlobalData = {
 describe("Cache Management", () => {
     describe("cacheData", () => {
         it("should cache the data in the folder", async () => {
-            assert.doesNotThrow(async () => {
-                await cache.cacheData(testData);
-            });
-
+            await cache.cacheData(testData);
             const files = await promisify(fs.readdir)
                 (cacheFolder);
             assert.deepEqual(files, ["commands.json"]);
@@ -30,7 +27,7 @@ describe("Cache Management", () => {
     });
     describe("readCache", () => {
         it("should be consistent with cacheData", async () => {
-            assert.doesNotThrow(async () => await cache.cacheData(testData));
+            await cache.cacheData(testData);
             const data = await cache.readCache();
             assert.deepEqual(data, testData);
         });

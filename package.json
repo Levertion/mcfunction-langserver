@@ -4,7 +4,7 @@
   "description": "Language Server for Minecraft Functions",
   "main": "lib/index.js",
   "scripts": {
-    "test": "mocha --ui tdd --colors --timeout 999999  lib/test/**.test.js",
+    "test": "mocha --opts ./mocha.opts",
     "compile": "tsc -p tsconfig.json",
     "lint": "tslint --project ."
   },
