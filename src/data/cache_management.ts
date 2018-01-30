@@ -42,15 +42,14 @@ export async function cacheData(data: GlobalData) {
 }
 
 //#region Helper Functions
+const readFileAsync = promisify(fs.readFile);
 async function readJSON<T>(filePath: string): Promise<T> {
-    const buffer = await readFilePromisified(filePath);
+    const buffer = await readFileAsync(filePath);
     return JSON.parse(buffer.toString());
 }
-const readFilePromisified = promisify(fs.readFile);
-
+const saveFileAsync = promisify(fs.writeFile);
 async function writeJSON(filepath: string, o: object) {
-    await saveFilePromisified(filepath, JSON.stringify(o));
+    await saveFileAsync(filepath, JSON.stringify(o));
 }
-const saveFilePromisified = promisify(fs.writeFile);
 
 //#endregion
