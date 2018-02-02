@@ -1,20 +1,26 @@
 import {
-    Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams,
-    Range,
+    Diagnostic, DidChangeTextDocumentParams, Range,
 } from "vscode-languageserver/lib/main";
 import { CommandError } from "./brigadier_components/errors";
-import { singleStringLineToCommandLines } from "./function_utils";
+import { shouldTranslate, singleStringLineToCommandLines } from "./function_utils";
 import { FunctionInfo } from "./types";
 
 export function commandErrorToDiagnostic(error: CommandError, line: number): Diagnostic {
     const range: Range = { start: { line, character: error.range.start }, end: { line, character: error.range.end } };
     // Run Translation stuff on the error?
-    return Diagnostic.create(range, "hello", error.severity || DiagnosticSeverity.Error, error.code, "mcfunction");
+    let text: string;
+    if (shouldTranslate()) {
+        text = `'${error.text}': Your Translation settings are not supported yet.`;
+    } else {
+        text = error.text;
+    }
+    return Diagnostic.create(range, text,
+        error.severity, error.code, "mcfunction");
 }
 export function runChanges(changes: DidChangeTextDocumentParams, functionInfo: FunctionInfo): number[] {
     const changed: number[] = [];
     for (const change of changes.contentChanges) {
-        if (!!change.range) { // Appease the compiler, as the change seems to have a
+        if (!!change.range) { // Appease the compiler, as the change interface seems to have range optional
             const { start, end } = change.range;
             const newLineContent = functionInfo.lines[start.line].text.substring(0, start.character).concat(
                 change.text, functionInfo.lines[end.line].text.substring(end.character));

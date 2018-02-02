@@ -27,6 +27,22 @@ interface McFunctionSettings {
         internalLogging: boolean;
     };
     /**
+     * Settings related to translating the server errors.
+     */
+    translation: {
+        /**
+         * Whether or not the translations are enabled.
+         * If the lang setting is en-us, then this is assummed to be 
+        */
+        enabled: boolean;
+        /**
+         * The code for the language to be used.
+         * This will be used as the filename from the Minecraft root assets folder
+         * (with `.json` added to the end)
+         */
+        lang: string;
+    }
+    /**
      * Settings related to the collection of data.
      */
     data: {

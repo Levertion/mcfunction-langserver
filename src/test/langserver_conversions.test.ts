@@ -9,12 +9,13 @@ import { } from "./logging_setup";
 describe("Language Server Conversions", () => {
     describe("commandErrorToDiagnostic()", () => {
         it("should convert a CommandError into a valid Diagnostics", () => {
+            global.mcLangSettings = { translation: { enabled: false } } as McFunctionSettings;
             assert.deepStrictEqual(commandErrorToDiagnostic({
                 code: "mcfunction.test", range: { start: 10, end: 100 },
-                text: "hello",
+                severity: DiagnosticSeverity.Error, text: "test1",
             }, 1),
                 {
-                    code: "mcfunction.test", message: "hello",
+                    code: "mcfunction.test", message: "test1",
                     range: {
                         end: { line: 1, character: 100 },
                         start: { line: 1, character: 10 },
