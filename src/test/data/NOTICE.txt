@@ -1,3 +1,2 @@
 The Data Folder is the only folder which should contains references to accessing the file system.
-Because of this, it is limited in its testing ability. However, this means that the rest of the server
-can be tested properly, by providing dummy data.
+Because of this, the `resources` folder contains example data for use with testing
