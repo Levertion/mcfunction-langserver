@@ -75,14 +75,19 @@ connection.onDidChangeConfiguration((params) => {
     global.mcLangSettings = mergeDeep(settings, params.settings.mcfunction) as DeepReadonly<McFunctionSettings>;
 });
 
-connection.onDidOpenTextDocument(async (params) => {
+connection.onDidOpenTextDocument((params) => {
     const datapackRoot = calculateDataFolder(params.textDocument.uri, rootFolder);
     documents[params.textDocument.uri] = {
         data: { local_pack_data: {} },
-        datapack_root: datapackRoot,
+        datapack_root: (datapackRoot.fallback) ? "" : datapackRoot.folder,
         lines: singleStringLineToCommandLines(params.textDocument.text),
     };
-    // await Get Data from the dataManager for this datapacks folder.
+    if (!datapackRoot.fallback) {
+        // await Get Data from the dataManager for this datapacks folder.
+    } else {
+        // get data from the manager based on the fallback. Need to look into other clues
+        // (maybe finding a functions folder)
+    }
     if (started === true) {
         // ParseDocument,documents[params.textdocument.uri]
         sendDiagnostics(params.textDocument.uri);
