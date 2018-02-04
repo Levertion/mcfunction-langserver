@@ -15,7 +15,7 @@ describe("Datapack Resource Testing", () => {
                         blocks: [],
                         functions: [
                             {
-                                real_uri: "ExampleDatapack\\data\\minecraft\\tags\\functions\\tick.json",
+                                real_uri: "ExampleDatapack/data/minecraft/tags/functions/tick.json",
                                 resource_path: "minecraft:tick",
                             },
                         ],
@@ -26,11 +26,11 @@ describe("Datapack Resource Testing", () => {
                     advancements: [],
                     functions: [
                         {
-                            real_uri: "ExampleDatapack\\data\\mryurihi\\functions\\function.mcfunction",
+                            real_uri: "ExampleDatapack/data/mryurihi/functions/function.mcfunction",
                             resource_path: "mryurihi:function",
                         },
                         {
-                            real_uri: "ExampleDatapack2\\data\\mryurihi\\functions\\function.mcfunction",
+                            real_uri: "ExampleDatapack2/data/mryurihi/functions/function.mcfunction",
                             resource_path: "mryurihi:function",
                         },
                     ],
@@ -55,6 +55,6 @@ describe("Datapack Resource Testing", () => {
                 },
             ],
         };
-        assert.deepEqual(getDatapackResources("src\\test\\data\\resources\\test_world\\datapacks"), expected);
+        assert.deepEqual(getDatapackResources("src/test/data/resources/test_world/datapacks"), expected);
     });
 });

@@ -80,11 +80,12 @@ export function getDatapackResources(dataLocation: string): Resources {
                 resourceTypes[resType](
                     files.map<NamespacedResource>((v) => {
                         return {
-                            real_uri: path.relative(dataLocation, v),
+                            real_uri: path.relative(dataLocation, v).replace(/[\\/]/g, "/"),
                             resource_path:
                                 namespace +
                                 ":" +
-                                path.relative(absLoc, v).slice(0, -path.extname(v).length),
+                                path.relative(absLoc, v).slice(0, -path.extname(v).length)
+                                    .replace(/[\\/]/g, "/"),
                         };
                     }),
                     data,
