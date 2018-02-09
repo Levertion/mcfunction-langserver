@@ -1,60 +1,56 @@
 import * as assert from "assert";
-import { getDatapackResources, Resources } from "../../data/datapack_resources";
+import * as path from "path";
+import { getDatapacksResources, Resources } from "../../data/datapack_resources";
+const logger = (message: string) => {
+    // tslint:disable-next-line:no-console
+    console.log(message);
+};
 
+global.mcLangLog = Object.assign(logger,
+    { internal: (message: string) => logger(`[McFunctionInternal] ${message}`) });
+
+// Tests are run from within the lib folder, but data is in the root
+const rootFolder = path.join(__dirname, "..", "..", "..", "test_data");
 describe("Datapack Resource Testing", () => {
-    it("should return the correct data", () => {
+    it("should return the correct data", async () => {
         const expected: Resources = {
             data: {
                 minecraft: {
-                    advancements: [],
-                    functions: [],
-                    loot_tables: [],
-                    recipes: [],
-                    structures: [],
-                    tags: {
-                        blocks: [],
-                        functions: [
-                            {
-                                real_uri: "ExampleDatapack/data/minecraft/tags/functions/tick.json",
-                                resource_path: "minecraft:tick",
-                            },
-                        ],
-                        items: [],
-                    },
+                    function_tags: [
+                        {
+                            real_uri: path.normalize("tags/functions/tick.json"),
+                            resource_path: "minecraft:tick",
+                        },
+                    ],
                 },
                 mryurihi: {
-                    advancements: [],
                     functions: [
                         {
-                            real_uri: "ExampleDatapack/data/mryurihi/functions/function.mcfunction",
+                            real_uri: path.normalize("functions/function.mcfunction"),
                             resource_path: "mryurihi:function",
                         },
                         {
-                            real_uri: "ExampleDatapack2/data/mryurihi/functions/function.mcfunction",
+                            real_uri: path.normalize("functions/function.mcfunction"),
                             resource_path: "mryurihi:function",
                         },
                     ],
-                    loot_tables: [],
-                    recipes: [],
-                    structures: [],
-                    tags: {
-                        blocks: [],
-                        functions: [],
-                        items: [],
-                    },
                 },
             },
             datapacks: [
                 {
                     name: "ExampleDatapack",
                     namespaces: ["minecraft", "mryurihi"],
+                    packs_folder: path.join(rootFolder, "test_world", "datapacks"),
                 },
                 {
                     name: "ExampleDatapack2",
                     namespaces: ["mryurihi"],
+                    packs_folder: path.join(rootFolder, "test_world", "datapacks"),
                 },
             ],
         };
-        assert.deepEqual(getDatapackResources("src/test/data/resources/test_world/datapacks"), expected);
+        assert.deepEqual(await getDatapacksResources(
+            path.join(rootFolder, "test_world",
+                "datapacks")), expected);
     });
 });
