@@ -51,12 +51,18 @@ export interface CommandNode extends MCNode<CommandNode> {
      * Where this node redirects to.
      */
     redirect?: CommandNodePath;
+    /**
+     * The properties of this node.
+     */
+    properties?: {
+        [key: string]: any,
+    };
 }
 
 /**
  * A node with Children.
  */
-interface MCNode<T> {
+export interface MCNode<T> {
     children?: { [id: string]: T };
 }
 //#endregion Command Tree

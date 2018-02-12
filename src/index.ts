@@ -78,7 +78,6 @@ connection.onDidChangeConfiguration((params) => {
 connection.onDidOpenTextDocument(async (params) => {
     const datapackRoot = calculateDataFolder(params.textDocument.uri, rootFolder);
     documents[params.textDocument.uri] = {
-        data: { local_pack_data: {} },
         datapack_root: datapackRoot,
         lines: singleStringLineToCommandLines(params.textDocument.text),
     };
@@ -94,8 +93,8 @@ function sendDiagnostics(uri: string) {
     const diagnostics: Diagnostic[] = [];
     for (let line = 0; line < doc.lines.length; line++) {
         const lineContent = doc.lines[line];
-        if (!!lineContent.error) {
-            diagnostics.push(commandErrorToDiagnostic(lineContent.error, line));
+        if (!!lineContent.errors) {
+            diagnostics.push(...lineContent.errors.map((error) => commandErrorToDiagnostic(error, line)));
         }
     }
     connection.sendDiagnostics({ uri, diagnostics: [] }); // Clear all diagnostics.

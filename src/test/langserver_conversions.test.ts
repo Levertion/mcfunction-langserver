@@ -11,6 +11,7 @@ describe("Language Server Conversions", () => {
         it("should convert a CommandError into a valid Diagnostics", () => {
             global.mcLangSettings = { translation: { enabled: false } } as McFunctionSettings;
             assert.deepStrictEqual(commandErrorToDiagnostic({
+                _e: "1",
                 code: "mcfunction.test", range: { start: 10, end: 100 },
                 severity: DiagnosticSeverity.Error, text: "test1",
             }, 1),
@@ -29,6 +30,7 @@ describe("Language Server Conversions", () => {
         const dummyFunctionInfo = {
             data: { local_pack_data: {} },
             datapack_root: "test",
+            errors: [],
         };
         const dummyDoc: VersionedTextDocumentIdentifier = { uri: "test", version: 1 };
         describe("Changing One Line", () => {

@@ -28,6 +28,10 @@ export interface CommandError {
      * The severity of this error.
      */
     severity: DiagnosticSeverity;
+    /**
+     * Signifies that the error is a command error.
+     */
+    _e: "1";
 }
 
 export class CommandErrorBuilder {
@@ -43,6 +47,7 @@ export class CommandErrorBuilder {
 
     public create(start: number, end: number, ...substitutions: string[]): CommandError {
         const diagnosis: CommandError = {
+            _e: "1",
             code: this.code,
             range: { start, end },
             severity: this.severity, substitutions,
@@ -50,4 +55,8 @@ export class CommandErrorBuilder {
         };
         return diagnosis;
     }
+}
+
+export function isCommandError(T: any): T is CommandError {
+    return T._e === "1";
 }
