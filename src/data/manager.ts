@@ -3,10 +3,10 @@ import { GlobalData, PackFolderData } from "./types";
 
 export class DataManager {
     //#region Data Management
-    private globalDataInternal: GlobalData;
+    private globalDataInternal?: GlobalData;
     private packDataInternal: {
         [root: string]: PackFolderData,
-    };
+    } = {};
     /**
      * Get the information for the data packs.
      */
@@ -16,7 +16,7 @@ export class DataManager {
     /**
      * The Global Data from this data Manager
      */
-    public get globalData(): GlobalData {
+    public get globalData(): GlobalData | undefined {
         return this.globalDataInternal;
     }
     //#endregion
