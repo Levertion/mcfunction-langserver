@@ -17,7 +17,9 @@ const parser: Parser = {
             const end = begin + literal.length;
             if (reader.string.substring(begin, end) === literal) {
                 reader.cursor = end;
-                return { successful: true };
+                if (reader.peek() === " " || !reader.canRead()) {
+                    return { successful: true };
+                }
             }
         }
         return { successful: false };
