@@ -75,13 +75,15 @@ connection.onDidChangeConfiguration((params) => {
     global.mcLangSettings = mergeDeep(settings, params.settings.mcfunction) as DeepReadonly<McFunctionSettings>;
 });
 
-connection.onDidOpenTextDocument(async (params) => {
+connection.onDidOpenTextDocument((params) => {
     const datapackRoot = calculateDataFolder(params.textDocument.uri, rootFolder);
     documents[params.textDocument.uri] = {
         datapack_root: datapackRoot,
         lines: singleStringLineToCommandLines(params.textDocument.text),
     };
-    // await Get Data from the dataManager for this datapacks folder.
+    if (datapackRoot.length > 0) {
+        // Get Data from the dataManager for this datapacks folder, then reload it.
+    }
     if (started === true) {
         // ParseDocument,documents[params.textdocument.uri]
         sendDiagnostics(params.textDocument.uri);

@@ -1,5 +1,6 @@
 import * as path from "path";
 import { format } from "util";
+import { isChildOf } from "./imported_utils/child_dir";
 import { CommandLine } from "./types";
 
 /**
@@ -8,14 +9,18 @@ import { CommandLine } from "./types";
  * @param fallback The URI to fall back on (such as the workspace root).
  * @param seperator The path seperator to use (allows for testing).
  */
-export function calculateDataFolder(fileLocation: string, fallback: string, seperator: string = path.sep): string {
+export function calculateDataFolder(fileLocation: string, parent: string, seperator: string = path.sep): string {
     const packToSearch = seperator + "datapacks" + seperator;
     let packsFolderIndex = fileLocation.lastIndexOf(packToSearch);
     if (packsFolderIndex !== -1) {
         packsFolderIndex += packToSearch.length; // lastIndexOf returns the position of the start.
         return fileLocation.substring(0, packsFolderIndex);
     } else {
-        return fallback;
+        if (isChildOf(fileLocation, parent, seperator)) {
+            return parent;
+        } else {
+            return "";
+        }
     }
 }
 /**
