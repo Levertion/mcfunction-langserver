@@ -15,9 +15,9 @@ export type DeepReadonly<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
  */
 export interface CommandLine {
     /**
-     * The errors of this line.
+     * The information from parsing this line..
      */
-    errors?: CommandError[];
+    parseInfo?: ParsedInfo;
     /**
      * The text of this line.
      */
@@ -113,6 +113,10 @@ export interface ParseResult {
 
 export interface ParseNode extends Interval {
     path: CommandNodePath;
+}
+
+export interface ParsedInfo {
+    nodes: ParseNode[]; errors: CommandError[]; actions: SubAction[];
 }
 
 interface SubNode<U extends string, T> extends DataInterval<T> {

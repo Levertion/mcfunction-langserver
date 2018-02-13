@@ -95,8 +95,8 @@ function sendDiagnostics(uri: string) {
     const diagnostics: Diagnostic[] = [];
     for (let line = 0; line < doc.lines.length; line++) {
         const lineContent = doc.lines[line];
-        if (!!lineContent.errors) {
-            diagnostics.push(...lineContent.errors.map((error) => commandErrorToDiagnostic(error, line)));
+        if (!!lineContent.parseInfo && lineContent.parseInfo.errors) {
+            diagnostics.push(...lineContent.parseInfo.errors.map((error) => commandErrorToDiagnostic(error, line)));
         }
     }
     connection.sendDiagnostics({ uri, diagnostics: [] }); // Clear all diagnostics.
