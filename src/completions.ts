@@ -4,14 +4,18 @@ import { CommandNodePath, CommandTree } from "./data/types";
 import { getNextNode } from "./parse";
 import { buildInfoForParsers, getNodeAlongPath } from "./parse/node_management";
 import { getParser } from "./parse/parsers/get_parser";
-import { CommandLine, CommmandData, ParseNode, SuggestResult } from "./types";
+import { CommmandData, FunctionInfo, ParseNode, SuggestResult } from "./types";
 
 export function ComputeCompletions(linenum: number,
-    line: CommandLine, character: number, data: DataManager): CompletionList {
+    document: FunctionInfo, character: number, data: DataManager): CompletionList {
+    const line = document.lines[linenum];
     if (line.text.startsWith("#") || !line.parseInfo) {
         return CompletionList.create([], true);
     }
-    const commandData: CommmandData = { globalData: data.globalData, localData: data.packData };
+    const commandData: CommmandData = {
+        globalData: data.globalData,
+        localData: data.getPackFolderData(document.datapack_root),
+    };
     const nodes: ParseNode[] = line.parseInfo ? line.parseInfo.nodes : [];
     const finals: ParseNode[] = [];
     const internals: ParseNode[] = [];

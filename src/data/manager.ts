@@ -1,11 +1,12 @@
 import { readCache } from "./cache_management";
-import { GlobalData, PackFolderData } from "./types";
+import { getDatapacksResources, Resources } from "./datapack_resources";
+import { GlobalData } from "./types";
 
 export class DataManager {
     //#region Data Management
     private globalDataInternal: GlobalData = {} as GlobalData;
     private packDataInternal: {
-        [root: string]: PackFolderData,
+        [root: string]: Resources,
     } = {};
     /**
      * Get the information for the data packs.
@@ -44,6 +45,16 @@ export class DataManager {
         } else {
             // Todo - try and get data from JAR.
             return false;
+        }
+    }
+
+    public getPackFolderData(folder: string): Resources | undefined {
+        return this.packDataInternal[folder];
+    }
+
+    public async aquirePackFolderData(folder: string) {
+        if (!this.packDataInternal.hasOwnProperty(folder)) {
+            this.packDataInternal[folder] = await getDatapacksResources(folder);
         }
     }
 

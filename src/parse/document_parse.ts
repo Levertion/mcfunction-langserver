@@ -11,7 +11,7 @@ export function parseLines(document: FunctionInfo, data: DataManager,
 
     for (const lineNo of lines) {
         const line = document.lines[lineNo];
-        const result = parseCommand(line.text, data.globalData, data.packData);
+        const result = parseCommand(line.text, data.globalData, data.getPackFolderData(document.datapack_root));
         line.parseInfo = result;
         emitter.emit(`${documentUri}:${lineNo}`);
     }

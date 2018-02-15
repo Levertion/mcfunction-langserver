@@ -2,6 +2,7 @@ import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
 import { CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
+import { Resources } from "./data/datapack_resources";
 import { DataManager } from "./data/manager";
 import { CommandNodePath, GlobalData } from "./data/types";
 
@@ -56,11 +57,11 @@ export interface CommmandData {
     /**
      * The locally available data.
      */
-    readonly localData?: DeepReadonly<DataManager["packData"]>; // TODO, implement MrYurihi's content.
+    readonly localData?: Resources;
     /**
      * GlobalData accessable
      */
-    readonly globalData: DeepReadonly<GlobalData>;
+    readonly globalData: GlobalData;
 }
 
 export interface Suggestion {

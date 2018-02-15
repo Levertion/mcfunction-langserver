@@ -4,20 +4,6 @@
 export interface GlobalData {
     commands: CommandTree;
 }
-/**
- * Information about the data in a pack folder.
- */
-export interface PackFolderData {
-    [name: string]: SinglePackInfo;
-}
-
-interface SinglePackInfo {
-    /**
-     * Empty Property temporarily. TODO.
-     */
-    mcmeta: {};
-}
-
 //#region Command Tree
 /**
  * The base Command Tree.
