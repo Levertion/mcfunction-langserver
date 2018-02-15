@@ -7,11 +7,14 @@ import { CommandLine } from "../types";
 describe("ComputeCompletions()", () => {
     it("should replace an internal node", () => {
         const result = ComputeCompletions(0, {
-            parseInfo: {
-                nodes: [{ low: 0, high: 9, path: ["test1"] }],
-            },
-            text: "longhello",
-        } as any as CommandLine, 9,
+            datapack_root: "",
+            lines: [{
+                parseInfo: {
+                    nodes: [{ low: 0, high: 9, path: ["test1"] }],
+                },
+                text: "longhello",
+            } as any as CommandLine],
+        }, 9,
             new DataManager({
                 DummyGlobal: {
                     commands: {
@@ -55,11 +58,14 @@ describe("ComputeCompletions()", () => {
     });
     it("should do completions from after a final node", () => {
         const result = ComputeCompletions(0, {
-            parseInfo: {
-                nodes: [{ low: 0, high: 3, path: ["test1"], final: true }],
-            },
-            text: "lon ghello",
-        } as any as CommandLine, 9,
+            datapack_root: "",
+            lines: [{
+                parseInfo: {
+                    nodes: [{ low: 0, high: 3, path: ["test1"], final: true }],
+                },
+                text: "lon ghello",
+            } as any as CommandLine],
+        }, 9,
             new DataManager({
                 DummyGlobal: {
                     commands: {
