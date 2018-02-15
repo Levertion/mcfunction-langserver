@@ -1,3 +1,4 @@
+import { CompletionItemKind } from "vscode-languageserver/lib/main";
 import { Parser } from "../../../types";
 
 /**
@@ -5,7 +6,10 @@ import { Parser } from "../../../types";
  * Do not attempt to use an actual command tree using this.
  */
 const parser: Parser = {
-    getSuggestions: () => [],
+    getSuggestions: () => [
+        "hello",
+        { start: 2, value: "test", kind: CompletionItemKind.Constructor },
+    ],
     parse: (reader, node) => {
         let num: number = 3;
         if (node.node_properties.number) {

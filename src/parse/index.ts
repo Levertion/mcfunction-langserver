@@ -42,14 +42,19 @@ function recursiveParse(reader: StringReader, node: MCNode<CommandNode>,
             };
             if (checkCanRead()) {
                 if (reader.peek() === " ") {
-                    nodes.push(success);
                     reader.skip();
+                    let successCount = 0;
                     if (checkCanRead()) {
                         const recursiveResult = recursiveParse(reader, child, success.path, data);
                         actions.push(...recursiveResult.actions);
                         nodes.push(...recursiveResult.nodes);
                         errors.push(...recursiveResult.errors);
+                        successCount = recursiveResult.nodes.length;
                     }
+                    if (successCount === 0) {
+                        success.final = true;
+                    }
+                    nodes.push(success);
                 } else {
                     spaceissue = { start: reader.cursor, character: reader.peek() };
                 }
@@ -132,7 +137,7 @@ export function parseCommand(command: string, globalData: GlobalData, localData?
     }
 }
 //#region GetNextNode
-function getNextNode(node: CommandNode |
+export function getNextNode(node: CommandNode |
     MCNode<CommandNode>, nodePath: CommandNodePath, tree: CommandTree): GetNodeResult {
     // @ts-ignore The compiler complains oddly that McNode<CommandNode> doesn't have redirect defined.
     if (!!node.redirect) {

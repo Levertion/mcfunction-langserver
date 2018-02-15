@@ -31,10 +31,8 @@ export class DataManager {
         DummyGlobal?: DataManager["globalDataInternal"],
         DummyPack?: DataManager["packDataInternal"],
     } = {}) {
-        if (!!DummyGlobal && !!DummyPack) {
-            this.globalDataInternal = DummyGlobal;
-            this.packDataInternal = DummyPack;
-        }
+        this.globalDataInternal = DummyGlobal || this.globalDataInternal;
+        this.packDataInternal = DummyPack || this.packDataInternal;
     }
     //#endregion
     public async acquireData(): Promise<boolean> {
