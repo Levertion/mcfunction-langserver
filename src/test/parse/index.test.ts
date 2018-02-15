@@ -117,6 +117,7 @@ describe("parseCommand()", () => {
                     high: 7, low: 4, path: ["test1", "testchild1"],
                 }],
             };
+            result.nodes.sort((a, b) => a.low - b.low);
             const newResult: any = Object.assign({}, result);
             delete newResult.errors; // Errors are complicated to predict exactly.
             assert.deepEqual(newResult, expected);
@@ -124,11 +125,14 @@ describe("parseCommand()", () => {
             assert.equal(result.errors[0].code, "parsing.command.executable");
         });
 
-        it("should not add a node when the node fails.", () => {
+        it("should not add a node when the node fails", () => {
             const result = parseCommand("hel hel1", multiArgData);
             const expected = {
                 actions: [],
-                nodes: [{ high: 3, low: 0, path: ["test1"] }],
+                nodes: [{
+                    final: true,
+                    high: 3, low: 0, path: ["test1"],
+                }],
             };
             const newResult: any = Object.assign({}, result);
             delete newResult.errors; // Errors are complicated to predict exactly.

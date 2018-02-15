@@ -1,12 +1,17 @@
+import { EventEmitter } from "events";
+import { promisify } from "util";
 import {
-    createConnection, Diagnostic, IPCMessageReader,
+    CompletionList, createConnection, Diagnostic,
+    IPCMessageReader,
     IPCMessageWriter,
     TextDocumentSyncKind,
 } from "vscode-languageserver";
+import { ComputeCompletions } from "./completions";
 import { DataManager } from "./data/manager";
 import { calculateDataFolder, singleStringLineToCommandLines } from "./function_utils";
 import { mergeDeep } from "./imported_utils/merge_deep";
 import { commandErrorToDiagnostic, runChanges } from "./langserver_conversions";
+import { parseLines } from "./parse/document_parse";
 import { DeepReadonly, FunctionInfo } from "./types";
 
 const connection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
@@ -17,6 +22,7 @@ let data: DataManager;
 const documents: {
     [url: string]: FunctionInfo;
 } = {};
+const parseCompleteEmitter = new EventEmitter();
 /**
  * The settings for this server. Local Copy inside index.
  * Are readonly when distributed
@@ -51,7 +57,7 @@ connection.onInitialize((params) => {
             started = true;
             for (const docUri in documents) {
                 if (documents.hasOwnProperty(docUri)) {
-                    // ParseDocument documents[docUri];
+                    parseLines(documents[docUri], data, parseCompleteEmitter, docUri);
                 }
             }
         } else {
@@ -63,6 +69,9 @@ connection.onInitialize((params) => {
     });
     return {
         capabilities: {
+            completionProvider: {
+                resolveProvider: false,
+            },
             textDocumentSync: {
                 change: TextDocumentSyncKind.Incremental,
                 openClose: true,
@@ -110,4 +119,18 @@ connection.onDidCloseTextDocument((params) => {
 
 connection.onDidChangeTextDocument((params) => {
     runChanges(params, documents[params.textDocument.uri]);
+});
+
+connection.onCompletion((params) => {
+    const computeCompletionsLocal = () => ComputeCompletions(params.position.line,
+        line, params.position.character, data);
+    const doc = documents[params.textDocument.uri];
+    const line = doc.lines[params.position.line];
+    if (!!line.parseInfo) {
+        return computeCompletionsLocal();
+    } else {
+        return promisify((cb) =>
+            parseCompleteEmitter.once(`${params.textDocument.uri}:${params.position.line}`, cb))().
+            then<CompletionList, never>(() => computeCompletionsLocal());
+    }
 });

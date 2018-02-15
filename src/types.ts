@@ -1,4 +1,4 @@
-import { DataInterval, Interval } from "node-interval-tree";
+import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
 import { CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
@@ -23,9 +23,9 @@ export interface CommandLine {
      */
     text: string;
     /**
-     * TODO - look into most efficient way of implementing this.
+     * A cache of the tree of actions
      */
-    // sections?
+    actions?: IntervalTree<SubAction>;
 }
 
 export interface FunctionInfo {
@@ -78,6 +78,7 @@ export interface Suggestion {
      * The kind of the suggestion in the Completion List
      */
     kind?: CompletionItemKind;
+    description?: string;
 }
 
 export type SuggestResult = Suggestion | string;
@@ -113,6 +114,7 @@ export interface ParseResult {
 
 export interface ParseNode extends Interval {
     path: CommandNodePath;
+    final?: boolean;
 }
 
 export interface ParsedInfo {
