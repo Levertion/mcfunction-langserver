@@ -14,3 +14,7 @@ To test, either run the launch task Mocha Tests in vscode, or run `npm test`. No
 Copyright (c) 2018 Levertion  
 
 Licensed under the [MIT](LICENSE) License.
+
+## Contributors  
+This software has been contributed to by the following people:  
+- [MrYurihi](https://github.com/MrYurihi)

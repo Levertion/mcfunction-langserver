@@ -1,7 +1,7 @@
 import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
 import { CommandError, CommandErrorBuilder, isCommandError } from "../brigadier_components/errors";
 import { StringReader } from "../brigadier_components/string_reader";
-import { DataManager } from "../data/manager";
+import { Resources } from "../data/datapack_resources";
 import { CommandNode, CommandNodePath, CommandTree, GlobalData, MCNode } from "../data/types";
 import { CommmandData, ParsedInfo, ParseNode, ParseResult, SubAction } from "../types";
 import { buildInfoForParsers, getNodeAlongPath } from "./node_management";
@@ -127,7 +127,7 @@ function parseAgainstNode(reader: StringReader, node: CommandNode, data: Commman
     }
 }
 
-export function parseCommand(command: string, globalData: GlobalData, localData?: DataManager["packData"]): ParsedInfo {
+export function parseCommand(command: string, globalData: GlobalData, localData?: Resources): ParsedInfo {
     if (command.length > 0 && !command.startsWith("#")) {
         const reader = new StringReader(command);
         const data: CommmandData = { globalData, localData };

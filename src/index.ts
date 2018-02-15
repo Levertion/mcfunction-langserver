@@ -85,17 +85,25 @@ connection.onDidChangeConfiguration((params) => {
 });
 
 connection.onDidOpenTextDocument((params) => {
-    const datapackRoot = calculateDataFolder(params.textDocument.uri, rootFolder);
-    documents[params.textDocument.uri] = {
+    const uri = params.textDocument.uri;
+    const datapackRoot = calculateDataFolder(uri, rootFolder);
+    documents[uri] = {
         datapack_root: datapackRoot,
         lines: singleStringLineToCommandLines(params.textDocument.text),
     };
     if (datapackRoot.length > 0) {
-        // Get Data from the dataManager for this datapacks folder, then reload it.
+        data.aquirePackFolderData(documents[uri].datapack_root).then(() => {
+            if (started === true && documents.hasOwnProperty(uri)) {
+                parseLines(documents[uri],
+                    data, parseCompleteEmitter, uri);
+                sendDiagnostics(uri);
+            }
+        });
     }
     if (started === true) {
-        // ParseDocument,documents[params.textdocument.uri]
-        sendDiagnostics(params.textDocument.uri);
+        parseLines(documents[uri],
+            data, parseCompleteEmitter, uri);
+        sendDiagnostics(uri);
     }
 });
 
@@ -118,14 +126,16 @@ connection.onDidCloseTextDocument((params) => {
 });
 
 connection.onDidChangeTextDocument((params) => {
-    runChanges(params, documents[params.textDocument.uri]);
+    const uri = params.textDocument.uri;
+    runChanges(params, documents[uri]);
+    parseLines(documents[uri], data, parseCompleteEmitter, uri);
 });
 
 connection.onCompletion((params) => {
-    const computeCompletionsLocal = () => ComputeCompletions(params.position.line,
-        line, params.position.character, data);
     const doc = documents[params.textDocument.uri];
     const line = doc.lines[params.position.line];
+    const computeCompletionsLocal = () => ComputeCompletions(params.position.line,
+        doc, params.position.character, data);
     if (!!line.parseInfo) {
         return computeCompletionsLocal();
     } else {
