@@ -51,7 +51,7 @@ interface McFunctionSettings {
          * 
          * This does not affect the customJar setting.
          * 
-         * Disabled by default as potentially resource intensive.
+         * Enabled by default, but the collector is disabled.
          */
         download: boolean;
         /**
@@ -59,7 +59,7 @@ interface McFunctionSettings {
          * 
          * This DOES affect the customJar setting.
          * 
-         * Enabled by default.
+         * Disabled by default.
          */
         enabled: boolean;
         /**
@@ -74,6 +74,8 @@ interface McFunctionSettings {
          */
         customJar: string;
         /**
+         * __Advanced Users Only__
+         * 
          * An optional custom path to the java executable (`java`/`java.exe`).
          * 
          * Should be left blank to use the default `java` in PATH.
@@ -81,8 +83,6 @@ interface McFunctionSettings {
         javaPath: string; // Should be fine if points to javaw, stout is unused insofar.
         /**
          * Whether or not to use snapshot versions when collecting data.
-         * 
-         * 
          */
         snapshots: boolean;
     }
