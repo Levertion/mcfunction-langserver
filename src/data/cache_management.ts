@@ -6,7 +6,11 @@ import { GlobalData } from "./types";
 const cacheFolder = path.join(__dirname, "cache");
 
 const cacheFileNames: {[K in keyof GlobalData]: string; } = {
+    blocks: "blocks.json",
     commands: "commands.json",
+    items: "items.json",
+    meta_info: "meta_info.json",
+    resources: "resources.json",
 };
 
 export async function readCache(): Promise<GlobalData> {

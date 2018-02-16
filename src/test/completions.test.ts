@@ -2,6 +2,7 @@ import * as assert from "assert";
 import { CompletionItemKind, CompletionList } from "vscode-languageserver/lib/main";
 import { ComputeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
+import { GlobalData } from "../data/types";
 import { CommandLine } from "../types";
 
 describe("ComputeCompletions()", () => {
@@ -26,7 +27,7 @@ describe("ComputeCompletions()", () => {
                         },
                         type: "root",
                     },
-                },
+                } as any as GlobalData,
             }));
         const expected: CompletionList = {
             isIncomplete: true,
@@ -83,7 +84,7 @@ describe("ComputeCompletions()", () => {
                         },
                         type: "root",
                     },
-                },
+                } as any as GlobalData,
             }));
         const expected: CompletionList = {
             isIncomplete: true,

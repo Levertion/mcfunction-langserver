@@ -1,8 +1,20 @@
+import { NamespaceResources } from "./datapack_resources";
+
 /**
  * Data which is useful no matter where the function is.
  */
 export interface GlobalData {
     commands: CommandTree;
+    resources: NamespaceResources;
+    meta_info: { version: string };
+    blocks: BlockStateInfo;
+    items: string[];
+}
+
+export interface BlockStateInfo {
+    [id: string]: {
+        [state: string]: string[],
+    };
 }
 //#region Command Tree
 /**

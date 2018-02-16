@@ -7,6 +7,9 @@ import { GlobalData } from "../../data/types";
 import { } from "../logging_setup";
 const cacheFolder = path.join(__dirname, "..", "..", "data", "cache");
 const testData: GlobalData = {
+    blocks: {
+        "minecraft:chocolate": {},
+    },
     commands: {
         children: {
             hello: {
@@ -15,6 +18,9 @@ const testData: GlobalData = {
         },
         type: "root",
     },
+    items: ["minecraft:not_chocolate"],
+    meta_info: { version: "1.13" },
+    resources: {},
 };
 describe("Cache Management", () => {
     describe("cacheData", () => {
@@ -22,7 +28,8 @@ describe("Cache Management", () => {
             await cache.cacheData(testData);
             const files = await promisify(fs.readdir)
                 (cacheFolder);
-            assert.deepEqual(files, ["commands.json"]);
+            assert.deepEqual(files.sort(),
+                ["commands.json", "blocks.json", "items.json", "meta_info.json", "resources.json"].sort());
         });
     });
     describe("readCache", () => {

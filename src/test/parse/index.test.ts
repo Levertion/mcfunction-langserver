@@ -31,7 +31,7 @@ describe("parseCommand()", () => {
                 },
                 type: "root",
             },
-        };
+        } as any;
 
         it("should parse an executable, valid, command as such", () => {
             const result = parseCommand("hel", singleArgData);
@@ -107,7 +107,7 @@ describe("parseCommand()", () => {
                 },
                 type: "root",
             },
-        };
+        } as any;
 
         it("should only add a space between nodes", () => {
             const result = parseCommand("hel hel", multiArgData);
