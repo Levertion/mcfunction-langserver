@@ -4,7 +4,7 @@
  This notification should make the client send the server a shutdown and exit request.
 
 ## To be implemented protocol commands
- - `mcfunction/shutdown` (c <- s) (required): Client should call `shutdown` and `exit`
+ - `mcfunction/shutdown` (c <- s) (required): Client should call `shutdown` and `exit`. The argument is the error message to be shown.
  - `mcfunction/highlight` (c <-> s) (optional): Request to get highlighting scopes. Request Data: 
 ```ts
 export interface HighlightParams {

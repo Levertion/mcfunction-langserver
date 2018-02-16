@@ -50,18 +50,31 @@ connection.onInitialize((params) => {
         },
     });
     data = new DataManager();
-    // To stop Typescript complaining that it is never read.
-    mcLangLog(JSON.stringify(data));
-    data.acquireData().then((successful) => {
+    const reparseAll = () => {
+        for (const docUri in documents) {
+            if (documents.hasOwnProperty(docUri)) {
+                parseLines(documents[docUri], data, parseCompleteEmitter, docUri);
+            }
+        }
+    };
+    data.acquireData().then(async (successful) => {
         if (successful === true) {
             started = true;
-            for (const docUri in documents) {
-                if (documents.hasOwnProperty(docUri)) {
-                    parseLines(documents[docUri], data, parseCompleteEmitter, docUri);
-                }
+            reparseAll();
+            const result = await data.getGlobalData();
+            if (result === true) {
+                reparseAll();
+            } else {
+                mcLangLog(result);
             }
         } else {
-            connection.sendNotification("mcfunction/shutdown");
+            const result = await data.getGlobalData();
+            if (result === true) {
+                reparseAll();
+            } else {
+                mcLangLog(result);
+                connection.sendNotification("mcfunction/shutdown", result);
+            }
         }
     }).catch((e) => {
         mcLangLog.internal(`Aquiring data had uncaught error: ${JSON.stringify(e)}`);
