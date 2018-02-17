@@ -13,7 +13,12 @@ const EXCEPTIONS = {
 export class NBTTagIntArray extends NBTTag {
     public tagType: "int_array" = "int_array";
 
-    private val: number[] = [];
+    private val: number[];
+
+    constructor(val: number[] = []) {
+        super();
+        this.val = val;
+    }
 
     public getVal() {
         return this.val;

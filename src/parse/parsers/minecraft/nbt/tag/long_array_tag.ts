@@ -13,7 +13,12 @@ const EXCEPTIONS = {
 export class NBTTagLongArray extends NBTTag {
     public tagType: "long_array" = "long_array";
 
-    private val: number[] = [];
+    private val: number[];
+
+    constructor(val: number[] = []) {
+        super();
+        this.val = val;
+    }
 
     public getVal() {
         return this.val;

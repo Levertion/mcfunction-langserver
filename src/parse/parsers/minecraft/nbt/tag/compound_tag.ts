@@ -15,9 +15,15 @@ export const KEYVAL_SEP = ":";
 export const SEP = ",";
 
 export class NBTTagCompound extends NBTTag {
+
     public tagType: "compound" = "compound";
 
-    private val: { [key: string]: NBTTag } = {};
+    private val: { [key: string]: NBTTag };
+
+    constructor(val: { [key: string]: NBTTag } = {}) {
+        super();
+        this.val = val;
+    }
 
     public getVal() {
         return this.val;

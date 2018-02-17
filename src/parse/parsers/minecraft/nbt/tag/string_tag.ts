@@ -5,7 +5,12 @@ import { NBTTag } from "./nbt_tag";
 export class NBTTagString extends NBTTag {
     public tagType: "string" = "string";
 
-    private val: string = "";
+    private val: string;
+
+    constructor(val: string = "") {
+        super();
+        this.val = val;
+    }
 
     public getVal() {
         return this.val;

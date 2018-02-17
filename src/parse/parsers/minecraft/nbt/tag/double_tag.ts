@@ -8,7 +8,12 @@ export class NBTTagDouble extends NBTTag {
 
     protected tagType: "double" = "double";
 
-    private val: number = 0;
+    private val: number;
+
+    constructor(val: number = 0) {
+        super();
+        this.val = val;
+    }
 
     public getVal() {
         return this.val;

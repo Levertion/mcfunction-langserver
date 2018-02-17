@@ -11,9 +11,15 @@ const EXCEPTIONS = {
 };
 
 export class NBTTagByteArray extends NBTTag {
+
     public tagType: "byte_array" = "byte_array";
 
-    private val: number[] = [];
+    private val: number[];
+
+    constructor(val: number[] = []) {
+        super();
+        this.val = val;
+    }
 
     public getVal() {
         return this.val;

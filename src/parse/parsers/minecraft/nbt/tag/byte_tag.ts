@@ -8,7 +8,12 @@ export class NBTTagByte extends NBTTag {
 
     public tagType: "byte" = "byte";
 
-    private val: number = 0;
+    private val: number;
+
+    constructor(val: number = 0) {
+        super();
+        this.val = val;
+    }
 
     public getVal() {
         return this.val;

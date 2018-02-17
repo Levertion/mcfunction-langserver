@@ -17,7 +17,12 @@ export class NBTTagInt extends NBTTag {
 
     protected tagType: "int" = "int";
 
-    private val: NBTTag[] = [];
+    private val: NBTTag[];
+
+    constructor(val: NBTTag[] = []) {
+        super();
+        this.val = val;
+    }
 
     public getVal() {
         return this.val;
