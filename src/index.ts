@@ -59,8 +59,10 @@ connection.onInitialize((params) => {
             }
         }
     };
+    mcLangLog("Getting data");
     data.acquireData().then(async (successful) => {
         if (successful === true) {
+            mcLangLog("Reading cache successful");
             started = true;
             reparseAll();
             const result = await data.getGlobalData();
@@ -70,7 +72,9 @@ connection.onInitialize((params) => {
                 mcLangLog(result);
             }
         } else {
+            mcLangLog("Reading cache failed");
             const result = await data.getGlobalData();
+            mcLangLog("Finished getting globaldata");
             if (result === true) {
                 reparseAll();
             } else {
@@ -143,7 +147,9 @@ connection.onDidCloseTextDocument((params) => {
 connection.onDidChangeTextDocument((params) => {
     const uri = params.textDocument.uri;
     runChanges(params, documents[uri]);
-    parseLines(documents[uri], data, parseCompleteEmitter, uri);
+    if (started) {
+        parseLines(documents[uri], data, parseCompleteEmitter, uri);
+    }
 });
 
 connection.onCompletion((params) => {
