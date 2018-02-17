@@ -1,6 +1,8 @@
 import { execFile } from "child_process";
 import * as path from "path";
 import { promisify } from "util";
+import { shim } from "util.promisify";
+shim();
 
 /**
  * Get the command used to execute a java version

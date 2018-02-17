@@ -2,6 +2,8 @@ import * as fs from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
 import { promisify } from "util";
+import { shim } from "util.promisify";
+shim();
 import { cacheData } from "../cache_management";
 import { GlobalData } from "../types";
 import { collectData } from "./collect_data";

@@ -1,6 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
+import { shim } from "util.promisify";
+shim();
 import { GlobalData } from "./types";
 
 const cacheFolder = path.join(__dirname, "cache");

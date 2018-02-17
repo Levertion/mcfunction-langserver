@@ -2,6 +2,8 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
+import { shim } from "util.promisify";
+shim();
 import * as cache from "../../data/cache_management";
 import { GlobalData } from "../../data/types";
 import { } from "../logging_setup";

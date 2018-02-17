@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
+import { shim } from "util.promisify";
+shim();
 import { getNamespaceResources } from "../datapack_resources";
 import { BlockStateInfo, CommandTree, GlobalData } from "../types";
-
 type DataSaveResult<T extends keyof GlobalData> = [T, GlobalData[T]];
 
 export async function collectData(version: string, dataDir: string): Promise<GlobalData> {

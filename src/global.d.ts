@@ -107,3 +107,29 @@ interface McLogger {
  * An internal logging type to allow proper typing information to be used for mcLangLog.
  */
 type InternalLog = (message: string) => void
+
+// Type definitions for util.promisify 1.0
+// Project: https://github.com/ljharb/util.promisify#readme
+// Definitions by: Adam Voss <https://github.com/adamvoss>
+// Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
+
+// Modified to exclude the redeclaration of util.promisify for this project
+declare module "util.promisify" {
+    export = promisify;
+
+    function promisify(f: (...args: any[]) => void): (...args: any[]) => Promise<any>;
+
+    namespace promisify {
+        interface implementation {
+            (fn: (...args: any[]) => void): (...args: any[]) => Promise<any>;
+            custom: symbol;
+            customPromisifyArgs: symbol | undefined;
+        }
+
+        const custom: symbol;
+        const customPromisifyArgs: symbol;
+        function getPolyfill(): implementation;
+        const implementation: implementation;
+        function shim(): implementation;
+    }
+}

@@ -1,6 +1,8 @@
 import fs = require("fs");
 import path = require("path");
 import { promisify } from "util";
+import { shim } from "util.promisify";
+shim();
 import { keys } from "../imported_utils/typed_keys";
 export interface Resources {
     datapacks: Array<{
