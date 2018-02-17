@@ -5,6 +5,7 @@
             true,
             "never-prefix"
         ],
-        "align": false
+        "align": false,
+        "no-floating-promises": true
     }
 }

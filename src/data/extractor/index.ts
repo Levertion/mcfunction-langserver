@@ -37,7 +37,7 @@ export async function collectGlobalData(currentversion?: string): Promise<Global
         const datadir = await runGenerator(javaPath, dir, jarInfo.jarPath);
         mcLangLog("Generator Finished");
         const data = await collectData(jarInfo.version, datadir);
-        cacheData(data);
+        await cacheData(data);
         return data;
     } else {
         throw new Error("Data Obtainer disabled in settings. To obtain data automatically, please enable it.");
