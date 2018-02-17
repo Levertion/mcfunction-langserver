@@ -31,14 +31,7 @@ interface McFunctionSettings {
      */
     translation: {
         /**
-         * Whether or not the translations are enabled.
-         * If the lang setting is en-us, then this is assummed to be 
-        */
-        enabled: boolean;
-        /**
          * The code for the language to be used.
-         * This will be used as the filename from the Minecraft root assets folder
-         * (with `.json` added to the end)
          */
         lang: string;
     }
@@ -51,7 +44,7 @@ interface McFunctionSettings {
          * 
          * This does not affect the customJar setting.
          * 
-         * Disabled by default as potentially resource intensive.
+         * Enabled by default, but the collector is disabled.
          */
         download: boolean;
         /**
@@ -59,7 +52,7 @@ interface McFunctionSettings {
          * 
          * This DOES affect the customJar setting.
          * 
-         * Enabled by default.
+         * Disabled by default.
          */
         enabled: boolean;
         /**
@@ -74,6 +67,8 @@ interface McFunctionSettings {
          */
         customJar: string;
         /**
+         * __Advanced Users Only__
+         * 
          * An optional custom path to the java executable (`java`/`java.exe`).
          * 
          * Should be left blank to use the default `java` in PATH.
@@ -81,8 +76,6 @@ interface McFunctionSettings {
         javaPath: string; // Should be fine if points to javaw, stout is unused insofar.
         /**
          * Whether or not to use snapshot versions when collecting data.
-         * 
-         * 
          */
         snapshots: boolean;
     }
@@ -107,3 +100,29 @@ interface McLogger {
  * An internal logging type to allow proper typing information to be used for mcLangLog.
  */
 type InternalLog = (message: string) => void
+
+// Type definitions for util.promisify 1.0
+// Project: https://github.com/ljharb/util.promisify#readme
+// Definitions by: Adam Voss <https://github.com/adamvoss>
+// Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
+
+// Modified to exclude the redeclaration of util.promisify for this project
+declare module "util.promisify" {
+    export = promisify;
+
+    function promisify(f: (...args: any[]) => void): (...args: any[]) => Promise<any>;
+
+    namespace promisify {
+        interface implementation {
+            (fn: (...args: any[]) => void): (...args: any[]) => Promise<any>;
+            custom: symbol;
+            customPromisifyArgs: symbol | undefined;
+        }
+
+        const custom: symbol;
+        const customPromisifyArgs: symbol;
+        function getPolyfill(): implementation;
+        const implementation: implementation;
+        function shim(): implementation;
+    }
+}

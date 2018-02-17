@@ -1,5 +1,7 @@
 import { EventEmitter } from "events";
 import { promisify } from "util";
+import { shim } from "util.promisify";
+shim();
 import {
     CompletionList, createConnection, Diagnostic,
     IPCMessageReader,
@@ -50,18 +52,35 @@ connection.onInitialize((params) => {
         },
     });
     data = new DataManager();
-    // To stop Typescript complaining that it is never read.
-    mcLangLog(JSON.stringify(data));
-    data.acquireData().then((successful) => {
+    const reparseAll = () => {
+        for (const docUri in documents) {
+            if (documents.hasOwnProperty(docUri)) {
+                parseLines(documents[docUri], data, parseCompleteEmitter, docUri);
+            }
+        }
+    };
+    mcLangLog("Getting data");
+    data.acquireData().then(async (successful) => {
         if (successful === true) {
+            mcLangLog("Reading cache successful");
             started = true;
-            for (const docUri in documents) {
-                if (documents.hasOwnProperty(docUri)) {
-                    parseLines(documents[docUri], data, parseCompleteEmitter, docUri);
-                }
+            reparseAll();
+            const result = await data.getGlobalData();
+            if (result === true) {
+                reparseAll();
+            } else {
+                mcLangLog(result);
             }
         } else {
-            connection.sendNotification("mcfunction/shutdown");
+            mcLangLog("Reading cache failed");
+            const result = await data.getGlobalData();
+            mcLangLog("Finished getting globaldata");
+            if (result === true) {
+                reparseAll();
+            } else {
+                mcLangLog(result);
+                connection.sendNotification("mcfunction/shutdown", result);
+            }
         }
     }).catch((e) => {
         mcLangLog.internal(`Aquiring data had uncaught error: ${JSON.stringify(e)}`);
@@ -127,8 +146,10 @@ connection.onDidCloseTextDocument((params) => {
 
 connection.onDidChangeTextDocument((params) => {
     const uri = params.textDocument.uri;
-    runChanges(params, documents[uri]);
-    parseLines(documents[uri], data, parseCompleteEmitter, uri);
+    const changed = runChanges(params, documents[uri]);
+    if (started) {
+        parseLines(documents[uri], data, parseCompleteEmitter, uri, changed);
+    }
 });
 
 connection.onCompletion((params) => {

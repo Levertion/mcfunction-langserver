@@ -45,7 +45,7 @@ export function stringsToCommandLine(lines: string[]): CommandLine[] {
 }
 
 export function shouldTranslate(): boolean {
-    return mcLangSettings.translation.enabled === true && mcLangSettings.translation.lang.toLowerCase() !== "en-us";
+    return mcLangSettings.translation.lang.toLowerCase() !== "en-us";
 }
 export function MCFormat(base: string, ...substitutions: string[]): string {
     return format(base, substitutions);

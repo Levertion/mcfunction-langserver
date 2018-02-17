@@ -1,5 +1,6 @@
 import { readCache } from "./cache_management";
 import { getDatapacksResources, Resources } from "./datapack_resources";
+import { collectGlobalData } from "./extractor";
 import { GlobalData } from "./types";
 
 export class DataManager {
@@ -43,8 +44,21 @@ export class DataManager {
             mcLangLog("Cache Successfully read");
             return true;
         } else {
-            // Todo - try and get data from JAR.
             return false;
+        }
+    }
+
+    public async getGlobalData(): Promise<true | string> {
+        let version: string | undefined;
+        if (!!this.globalData.meta_info) {
+            version = this.globalData.meta_info.version;
+        }
+        try {
+            const data = await collectGlobalData(version);
+            this.globalDataInternal = data;
+            return true;
+        } catch (error) {
+            return error.toString();
         }
     }
 

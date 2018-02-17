@@ -1,6 +1,8 @@
 import fs = require("fs");
 import path = require("path");
 import { promisify } from "util";
+import { shim } from "util.promisify";
+shim();
 import { keys } from "../imported_utils/typed_keys";
 export interface Resources {
     datapacks: Array<{
@@ -9,10 +11,10 @@ export interface Resources {
         packs_folder: string;
     }>;
     data: {
-        [namespace: string]: NamespaceResource,
+        [namespace: string]: NamespaceResources,
     };
 }
-interface NamespaceResource {
+export interface NamespaceResources {
     functions?: MinecraftResource[];
     recipes?: MinecraftResource[];
     advancements?: MinecraftResource[];
@@ -28,7 +30,7 @@ interface MinecraftResource {
     resource_path: string;
 }
 
-const resourceTypes: {[T in keyof NamespaceResource]: (string[] |
+const resourceTypes: {[T in keyof NamespaceResources]: (string[] |
     [string, T]) } = { // [string, T] improves autocomplete.
         advancements: [".json", "advancements"],
         block_tags: [".json", "tags", "blocks"],
@@ -40,9 +42,9 @@ const resourceTypes: {[T in keyof NamespaceResource]: (string[] |
         structures: [".nbt", "structures"],
     };
 
-async function getNamespaceResources(namespace: string, location: string):
-    Promise<NamespaceResource> {
-    const result: NamespaceResource = {};
+export async function getNamespaceResources(namespace: string, location: string):
+    Promise<NamespaceResources> {
+    const result: NamespaceResources = {};
     const namespaceFolder = path.join(location, namespace);
     const subDirs = await subDirectories(namespaceFolder);
     for (const type of keys(resourceTypes)) {
@@ -60,12 +62,11 @@ async function getNamespaceResources(namespace: string, location: string):
             const realExtension = path.extname(file);
             if (realExtension === resourceInfo[0]) {
                 const internalUri = path.relative(dataContents, file);
-
                 nameSpaceContents.push({
                     real_uri: path.relative(namespaceFolder, file),
                     resource_path: namespace + ":" +
                         internalUri
-                            .slice(0, -realExtension.length).replace(path.sep, "/"),
+                            .slice(0, -realExtension.length).replace(new RegExp(`\\${path.sep}`, "g"), "/"),
                 });
             } else {
                 mcLangLog(`File '${file}' has the wrong extension: Expected ${resourceInfo[0]}, got ${realExtension}.`);
@@ -159,5 +160,6 @@ async function subDirectories(baseFolder: string): Promise<string[]> {
 //#region Promisifed Functions
 const readDirAsync = promisify(fs.readdir);
 const statAsync = promisify(fs.stat);
-const existsAsync = promisify(fs.exists);
+const existsAsync = promisify<string, boolean>((location, cb) =>
+    fs.exists(location, (result) => cb(undefined as any, result)));
 //#endregion

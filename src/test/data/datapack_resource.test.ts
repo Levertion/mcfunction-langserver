@@ -49,8 +49,8 @@ describe("Datapack Resource Testing", () => {
                 },
             ],
         };
-        assert.deepEqual(await getDatapacksResources(
-            path.join(rootFolder, "test_world",
-                "datapacks")), expected);
+        const result = await getDatapacksResources(path.join(rootFolder, "test_world", "datapacks"));
+        result.datapacks.sort((a, b) => a.name.length - b.name.length);
+        assert.deepEqual(result, expected);
     });
 });
