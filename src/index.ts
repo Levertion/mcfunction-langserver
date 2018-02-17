@@ -146,9 +146,9 @@ connection.onDidCloseTextDocument((params) => {
 
 connection.onDidChangeTextDocument((params) => {
     const uri = params.textDocument.uri;
-    runChanges(params, documents[uri]);
+    const changed = runChanges(params, documents[uri]);
     if (started) {
-        parseLines(documents[uri], data, parseCompleteEmitter, uri);
+        parseLines(documents[uri], data, parseCompleteEmitter, uri, changed);
     }
 });
 
