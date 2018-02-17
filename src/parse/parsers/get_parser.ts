@@ -2,6 +2,10 @@ import { CommandNode } from "../../data/types";
 import { Parser } from "../../types";
 
 const implementedParsers: { [id: string]: string } = {
+    "brigadier:bool": "./brigadier/bool",
+    "brigadier:float": "./brigadier/float",
+    "brigadier:integer": "./brigadier/integer",
+    "brigadier:string": "./brigadier/string",
     "langserver:dummy1": "./tests/dummy1",
 };
 
