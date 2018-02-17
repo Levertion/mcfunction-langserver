@@ -56,5 +56,6 @@ export class NBTTagCompound extends NBTTag {
                 throw new NBTError(NO_END.create(start, reader.cursor), { parsed: this, keys, part: "value" }, 2);
             }
         }
+        this.correct = 2;
     }
 }

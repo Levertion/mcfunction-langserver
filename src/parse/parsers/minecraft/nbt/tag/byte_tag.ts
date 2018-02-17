@@ -21,5 +21,6 @@ export class NBTTagByte extends NBTTag {
         } catch (e) {
             throw new NBTError(e);
         }
+        this.correct = 2;
     }
 }

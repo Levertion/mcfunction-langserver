@@ -33,7 +33,9 @@ export function parseTag(reader: StringReader): NBTTag {
     for (const p of parsers.slice(0)) {
         try {
             p.parse(reader);
-            correctTag = p;
+            if (correctTag === null || p.isCorrect() >= correctTag.isCorrect()) {
+                correctTag = p;
+            }
         } catch (e) {
             const ex = e as NBTError;
             if (lastErr === null || ex.correct >= lastErr.correct) {

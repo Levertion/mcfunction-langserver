@@ -25,5 +25,6 @@ export class NBTTagInt extends NBTTag {
         if (reader.canRead() && /[bslfd]/.test(reader.peek())) {
             throw new NBTError(NO_SUFIX.create(start, reader.cursor));
         }
+        this.correct = 1;
     }
 }

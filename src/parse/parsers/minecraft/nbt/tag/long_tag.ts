@@ -21,5 +21,6 @@ export class NBTTagLong extends NBTTag {
         } catch (e) {
             throw new NBTError(e);
         }
+        this.correct = 2;
     }
 }

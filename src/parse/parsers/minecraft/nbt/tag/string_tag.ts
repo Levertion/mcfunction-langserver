@@ -13,5 +13,6 @@ export class NBTTagString extends NBTTag {
 
     public parse(reader: StringReader) {
         tryWithData(() => this.val = reader.readString(), {}, 1);
+        this.correct = 1;
     }
 }

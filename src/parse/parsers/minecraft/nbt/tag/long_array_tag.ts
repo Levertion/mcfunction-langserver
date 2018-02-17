@@ -38,5 +38,6 @@ export class NBTTagLongArray extends NBTTag {
             }
             next = reader.read();
         }
+        this.correct = 2;
     }
 }
