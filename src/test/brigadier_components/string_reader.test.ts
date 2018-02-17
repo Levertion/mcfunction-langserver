@@ -185,7 +185,7 @@ describe("string-reader", () => {
         });
         it("should throw an error when there is a decimal place", () => {
             const reader = new StringReader("1000.");
-            assert.throws(reader.readInt);
+            assert.throws(() => reader.readInt());
         });
         it("should read an integer until the first non-integer value", () => {
             const reader = new StringReader("1000test");
@@ -194,7 +194,7 @@ describe("string-reader", () => {
         });
         it("should throw an error when there is no integer under the cursor", () => {
             const reader = new StringReader("noint");
-            assert.throws(reader.readInt);
+            assert.throws(() => reader.readInt());
         });
     });
     describe("readFloat()", () => {
@@ -228,7 +228,7 @@ describe("string-reader", () => {
         });
         it("should throw an error when there is no integer under the cursor", () => {
             const reader = new StringReader("noint");
-            assert.throws(reader.readFloat);
+            assert.throws(() => reader.readFloat());
         });
     });
     describe("readUnquotedString()", () => {
@@ -256,7 +256,7 @@ describe("string-reader", () => {
         });
         it("should throw an error if there is no opening quote", () => {
             const reader = new StringReader("test");
-            assert.throws(reader.readQuotedString);
+            assert.throws(() => reader.readQuotedString());
         });
         it("should read a full quoted string, giving a result without the quotes", () => {
             const reader = new StringReader("\"hello\"");
@@ -264,7 +264,8 @@ describe("string-reader", () => {
         });
         it("should not jump into a quoted string", () => {
             const reader = new StringReader("t\"hello\"");
-            assert.throws(reader.readUnquotedString);
+            reader.readUnquotedString();
+            assert.equal(reader.cursor, 1);
         });
         it("should return an empty string when there is an empty quoted string", () => {
             const reader = new StringReader("\"\"");
@@ -279,12 +280,12 @@ describe("string-reader", () => {
             assert.equal(reader.readQuotedString(), "backslash\\here");
         });
         it("should not allow surplus escapes", () => {
-            const reader = new StringReader("\"oop\s\"");
-            assert.throws(reader.readQuotedString);
+            const reader = new StringReader("\"oop\\s\"");
+            assert.throws(() => reader.readQuotedString());
         });
         it("should throw an error when there is no closing quote", () => {
             const reader = new StringReader("\"trailing");
-            assert.throws(reader.readQuotedString);
+            assert.throws(() => reader.readQuotedString());
         });
     });
     describe("readString()", () => {
@@ -308,7 +309,7 @@ describe("string-reader", () => {
         });
         it("should throw an error otherwise", () => {
             const reader = new StringReader("nonBoolean");
-            assert.throws(reader.readBoolean);
+            assert.throws(() => reader.readBoolean());
         });
     });
     describe("expect()", () => {
