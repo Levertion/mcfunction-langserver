@@ -9,7 +9,6 @@ import { } from "./logging_setup";
 describe("Language Server Conversions", () => {
     describe("commandErrorToDiagnostic()", () => {
         it("should convert a CommandError into a valid Diagnostics", () => {
-            global.mcLangSettings = { translation: { enabled: false } } as McFunctionSettings;
             assert.deepStrictEqual(commandErrorToDiagnostic({
                 _e: "1",
                 code: "mcfunction.test", range: { start: 10, end: 100 },
