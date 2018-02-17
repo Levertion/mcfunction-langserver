@@ -160,5 +160,6 @@ async function subDirectories(baseFolder: string): Promise<string[]> {
 //#region Promisifed Functions
 const readDirAsync = promisify(fs.readdir);
 const statAsync = promisify(fs.stat);
-const existsAsync = promisify(fs.exists);
+const existsAsync = promisify<string, boolean>((location, cb) =>
+    fs.exists(location, (result) => cb(undefined as any, result)));
 //#endregion
