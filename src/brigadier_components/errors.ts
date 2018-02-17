@@ -45,7 +45,7 @@ export class CommandErrorBuilder {
         this.severity = severity;
     }
 
-    public create(start: number, end: number, ...substitutions: string[]): CommandError {
+    public create(start: number, end: number, ...substitutions: any[]): CommandError {
         const diagnosis: CommandError = {
             _e: "1",
             code: this.code,
