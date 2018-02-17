@@ -37,17 +37,6 @@ export class DataManager {
         this.packDataInternal = DummyPack || this.packDataInternal;
     }
     //#endregion
-    public async acquireData(): Promise<boolean> {
-        const cache = await this.readCache();
-        if (cache !== undefined) {
-            this.globalDataInternal = cache;
-            mcLangLog("Cache Successfully read");
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     public async getGlobalData(): Promise<true | string> {
         let version: string | undefined;
         if (!!this.globalData.meta_info) {
@@ -72,12 +61,15 @@ export class DataManager {
         }
     }
 
-    private async readCache(): Promise<GlobalData | void> {
+    public async readCache(): Promise<boolean> {
         try {
-            return readCache();
+            const cache = await readCache();
+            this.globalDataInternal = cache;
+            mcLangLog("Cache Successfully read");
+            return true;
         } catch (error) {
             mcLangLog(`Reading cache failed with error ${JSON.stringify(error)}`);
-            return;
+            return false;
         }
     }
 }

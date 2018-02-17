@@ -6,7 +6,7 @@ export async function getPathToJar(tempdir: string, currentversion: string): Pro
     if (!!mcLangSettings.data.customJar) {
         return { jarPath: mcLangSettings.data.customJar, version: "" };
     } else {
-        return await downloadJar(currentversion, tempdir);
+        return downloadJar(currentversion, tempdir);
     }
 }
 

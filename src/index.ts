@@ -24,7 +24,7 @@ let data: DataManager;
 const documents: {
     [url: string]: FunctionInfo;
 } = {};
-const parseCompleteEmitter = new EventEmitter();
+const eventManager = new EventEmitter();
 /**
  * The settings for this server. Local Copy inside index.
  * Are readonly when distributed
@@ -55,12 +55,16 @@ connection.onInitialize((params) => {
     const reparseAll = () => {
         for (const docUri in documents) {
             if (documents.hasOwnProperty(docUri)) {
-                parseLines(documents[docUri], data, parseCompleteEmitter, docUri);
+                parseLines(documents[docUri], data, eventManager, docUri);
+                sendDiagnostics(docUri);
             }
         }
     };
     mcLangLog("Getting data");
-    data.acquireData().then(async (successful) => {
+    promisify((cb) => {
+        eventManager.once("settingscomplete", cb);
+    })().then(async () => {
+        const successful = await data.readCache();
         if (successful === true) {
             mcLangLog("Reading cache successful");
             started = true;
@@ -76,6 +80,7 @@ connection.onInitialize((params) => {
             const result = await data.getGlobalData();
             mcLangLog("Finished getting globaldata");
             if (result === true) {
+                started = true;
                 reparseAll();
             } else {
                 mcLangLog(result);
@@ -84,7 +89,7 @@ connection.onInitialize((params) => {
         }
     }).catch((e) => {
         mcLangLog.internal(`Aquiring data had uncaught error: ${JSON.stringify(e)}`);
-        connection.sendNotification("mcfunction/shutdown");
+        connection.sendNotification("mcfunction/shutdown", JSON.stringify(e));
     });
     return {
         capabilities: {
@@ -100,7 +105,9 @@ connection.onInitialize((params) => {
 });
 
 connection.onDidChangeConfiguration((params) => {
+    mcLangLog(`${JSON.stringify(params)}`);
     global.mcLangSettings = mergeDeep(settings, params.settings.mcfunction) as DeepReadonly<McFunctionSettings>;
+    eventManager.emit("settingscomplete");
 });
 
 connection.onDidOpenTextDocument((params) => {
@@ -114,14 +121,16 @@ connection.onDidOpenTextDocument((params) => {
         data.aquirePackFolderData(documents[uri].datapack_root).then(() => {
             if (started === true && documents.hasOwnProperty(uri)) {
                 parseLines(documents[uri],
-                    data, parseCompleteEmitter, uri);
+                    data, eventManager, uri);
                 sendDiagnostics(uri);
             }
+        }).catch((e) => {
+            mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
         });
     }
     if (started === true) {
         parseLines(documents[uri],
-            data, parseCompleteEmitter, uri);
+            data, eventManager, uri);
         sendDiagnostics(uri);
     }
 });
@@ -147,8 +156,9 @@ connection.onDidCloseTextDocument((params) => {
 connection.onDidChangeTextDocument((params) => {
     const uri = params.textDocument.uri;
     const changed = runChanges(params, documents[uri]);
-    if (started) {
-        parseLines(documents[uri], data, parseCompleteEmitter, uri, changed);
+    if (started === true) {
+        parseLines(documents[uri], data, eventManager, uri, changed);
+        sendDiagnostics(uri);
     }
 });
 
@@ -161,7 +171,7 @@ connection.onCompletion((params) => {
         return computeCompletionsLocal();
     } else {
         return promisify((cb) =>
-            parseCompleteEmitter.once(`${params.textDocument.uri}:${params.position.line}`, cb))().
+            eventManager.once(`${params.textDocument.uri}:${params.position.line}`, cb))().
             then<CompletionList, never>(() => computeCompletionsLocal());
     }
 });
