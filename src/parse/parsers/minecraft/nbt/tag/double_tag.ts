@@ -3,7 +3,7 @@ import { NBTError } from "../util/nbt_error";
 import { parseFloatNBT } from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
-export const DOUBLE_TAG_SUFFIX = "f";
+export const DOUBLE_TAG_SUFFIX = "d";
 
 export class NBTTagDouble extends NBTTag {
 

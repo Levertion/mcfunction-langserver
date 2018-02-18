@@ -60,6 +60,7 @@ export function parseFloatNBT(reader: StringReader): number {
         if (reader.peek() !== "e" && reader.peek() !== "E") {
             throw {};
         }
+        reader.skip();
         const exp = reader.readInt();
         out = f * Math.pow(10, exp);
     } catch (e) {
