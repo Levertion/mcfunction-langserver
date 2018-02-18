@@ -12,11 +12,15 @@ export class NBTTagString extends NBTTag {
         this.val = val;
     }
 
+    public getActions() {
+        return [];
+    }
+
     public getVal() {
         return this.val;
     }
 
-    public parse(reader: StringReader) {
+    public _parse(reader: StringReader) {
         tryWithData(() => this.val = reader.readString(), {}, 1);
         this.correct = 1;
     }

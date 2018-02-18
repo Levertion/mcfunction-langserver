@@ -28,16 +28,13 @@ export class NBTTagDouble extends NBTTag {
         return this.val;
     }
 
-    public parse(reader: StringReader): void {
-        const start = reader.cursor;
+    public _parse(reader: StringReader): void {
         try {
             this.val = reader.readFloat();
             reader.expect(DOUBLE_TAG_SUFFIX);
         } catch (e) {
-            this.strVal = reader.string.slice(start, reader.cursor);
             throw new NBTError(e);
         }
-        this.strVal = reader.string.slice(start, reader.cursor);
         this.correct = 2;
     }
 }

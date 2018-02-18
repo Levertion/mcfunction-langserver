@@ -19,9 +19,6 @@ export class NBTTagList extends NBTTag {
     public tagType: "int" = "int";
 
     private val: NBTTag[];
-    private strVal: string = "";
-    private start = 0;
-    private end = 0;
 
     constructor(val: NBTTag[] = []) {
         super();
@@ -42,16 +39,11 @@ export class NBTTagList extends NBTTag {
         );
         return val;
     }
-
-    public getStringValue() {
-        return this.strVal;
-    }
-
     public getVal() {
         return this.val;
     }
 
-    public parse(reader: StringReader): void {
+    public _parse(reader: StringReader): void {
         const start = reader.cursor;
         tryWithData(() => reader.expect(LIST_OPEN), {}, 0);
         let type: NBTTag;

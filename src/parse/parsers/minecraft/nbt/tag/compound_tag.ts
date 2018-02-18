@@ -1,5 +1,6 @@
 import { CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
+import { SubAction } from "../../../../../types";
 import { parseTag } from "../tag_parser";
 import { NBTError } from "../util/nbt_error";
 import { throwIfFalse, tryWithData } from "../util/nbt_util";
@@ -20,16 +21,34 @@ export class NBTTagCompound extends NBTTag {
 
     private val: { [key: string]: NBTTag };
 
+    private keyPos: number[][] = [];
+
     constructor(val: { [key: string]: NBTTag } = {}) {
         super();
         this.val = val;
+    }
+
+    public getActions() {
+        const out: SubAction[] = [];
+        for (const pos of this.keyPos) {
+            out.push({
+                data: this.getStringValue().slice(pos[0], pos[1]),
+                high: pos[1],
+                low: pos[0],
+                type: "hover",
+            });
+        }
+        Object.keys(this.val).forEach(
+            (v) => out.push(...this.val[v].getActions()),
+        );
+        return out;
     }
 
     public getVal() {
         return this.val;
     }
 
-    public parse(reader: StringReader) {
+    public _parse(reader: StringReader) {
         const start = reader.cursor;
         tryWithData(() => reader.expect(COMPOUND_OPEN), {}, 0);
         let next = ",";
@@ -41,8 +60,10 @@ export class NBTTagCompound extends NBTTag {
                 { parsed: this, keys, part: "key" },
                 2,
             );
+            const keyS = reader.cursor;
             const key = reader.readString();
             keys.push(key);
+            this.keyPos.push([keyS, reader.cursor]);
             tryWithData(() => reader.expect(KEYVAL_SEP), { parsed: this, keys, completions: [KEYVAL_SEP] }, 2);
             throwIfFalse(
                 reader.canRead(),

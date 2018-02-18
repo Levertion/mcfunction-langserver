@@ -9,14 +9,33 @@ export abstract class NBTTag {
         "string" | "list" | "compound";
 
     protected correct: CorrectLevel = 0;
+    protected start = 0;
+    protected end = 0;
+    private stringValue = "";
 
     public abstract getActions(): SubAction[];
 
-    public abstract getStringValue(): string;
+    public getStringValue() {
+        return this.stringValue;
+    }
 
     public isCorrect() {
         return this.correct;
     }
 
-    public abstract parse(reader: StringReader): void;
+    public parse(reader: StringReader) {
+        const start = reader.cursor;
+        this.start = start;
+        try {
+            this._parse(reader);
+        } catch (e) {
+            this.end = reader.cursor;
+            this.stringValue = reader.string.slice(this.start, this.end);
+            throw e;
+        }
+        this.end = reader.cursor;
+        this.stringValue = reader.string.slice(this.start, this.end);
+    }
+
+    protected abstract _parse(reader: StringReader): void;
 }

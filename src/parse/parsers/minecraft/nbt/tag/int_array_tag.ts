@@ -16,9 +16,6 @@ export class NBTTagIntArray extends NBTTag {
     public tagType: "int_array" = "int_array";
 
     private val: number[];
-    private strVal: string = "";
-    private start = 0;
-    private end = 0;
 
     constructor(val: number[] = []) {
         super();
@@ -34,42 +31,29 @@ export class NBTTagIntArray extends NBTTag {
         }];
     }
 
-    public getStringValue() {
-        return this.strVal;
-    }
-
     public getVal() {
         return this.val;
     }
 
-    public parse(reader: StringReader) {
+    public _parse(reader: StringReader) {
         const start = reader.cursor;
-        this.start = start;
-        try {
-            tryWithData(() => reader.expect("["), {}, 0);
-            tryWithData(() => reader.expect(INT_ARRAY_PREFIX), {}, 0);
-            tryWithData(() => reader.expect(";"), {}, 0);
+        tryWithData(() => reader.expect("["), {}, 0);
+        tryWithData(() => reader.expect(INT_ARRAY_PREFIX), {}, 0);
+        tryWithData(() => reader.expect(";"), {}, 0);
+        if (!reader.canRead()) {
+            throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
+        }
+        let next = reader.peek();
+        while (next !== "]") {
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
-            let next = reader.peek();
-            while (next !== "]") {
-                if (!reader.canRead()) {
-                    throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
-                }
-                tryWithData(() => reader.readInt(), {}, 2);
-                if (!reader.canRead()) {
-                    throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
-                }
-                next = reader.read();
+            tryWithData(() => reader.readInt(), {}, 2);
+            if (!reader.canRead()) {
+                throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
-            this.correct = 2;
-            this.strVal = reader.string.slice(start, reader.cursor);
-            this.end = reader.cursor;
-        } catch (e) {
-            this.strVal = reader.string.slice(start, reader.cursor);
-            this.end = reader.cursor;
-            throw e;
+            next = reader.read();
         }
+        this.correct = 2;
     }
 }

@@ -9,7 +9,6 @@ export class NBTTagByte extends NBTTag {
     public tagType: "byte" = "byte";
 
     private val: number;
-    private strVal = "";
 
     constructor(val: number = 0) {
         super();
@@ -20,24 +19,13 @@ export class NBTTagByte extends NBTTag {
         return [];
     }
 
-    public getStringValue() {
-        return this.strVal;
-    }
-
     public getVal() {
         return this.val;
     }
 
-    public parse(reader: StringReader): void {
-        const start = reader.cursor;
-        try {
-            this.val = reader.readInt();
-            reader.expect(BYTE_TAG_SUFFIX);
-        } catch (e) {
-            this.strVal = reader.string.slice(start, reader.cursor);
-            throw new NBTError(e);
-        }
-        this.strVal = reader.string.slice(start, reader.cursor);
+    public _parse(reader: StringReader): void {
+        this.val = reader.readInt();
+        reader.expect(BYTE_TAG_SUFFIX);
         this.correct = 2;
     }
 }
