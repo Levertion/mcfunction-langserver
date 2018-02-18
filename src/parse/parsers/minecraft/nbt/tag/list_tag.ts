@@ -1,5 +1,6 @@
 import { CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
+import { SubAction } from "../../../../../types";
 import { parseTag } from "../tag_parser";
 import { NBTError } from "../util/nbt_error";
 import { throwIfFalse, tryWithData } from "../util/nbt_util";
@@ -13,15 +14,37 @@ export const LIST_OPEN = "[";
 export const LIST_CLOSE = "]";
 export const VAL_SEP = ",";
 
-export class NBTTagInt extends NBTTag {
+export class NBTTagList extends NBTTag {
 
-    protected tagType: "int" = "int";
+    public tagType: "int" = "int";
 
     private val: NBTTag[];
+    private strVal: string = "";
+    private start = 0;
+    private end = 0;
 
     constructor(val: NBTTag[] = []) {
         super();
         this.val = val;
+    }
+
+    public getActions(): SubAction[] {
+        const val: SubAction[] = [
+            {
+                data: this.val[0] === undefined ? "" : this.val[0].tagType,
+                high: this.end,
+                low: this.start,
+                type: "hover",
+            },
+        ];
+        this.val.forEach(
+            (v) => val.push(...v.getActions()),
+        );
+        return val;
+    }
+
+    public getStringValue() {
+        return this.strVal;
     }
 
     public getVal() {
@@ -62,7 +85,7 @@ export class NBTTagInt extends NBTTag {
             // @ts-ignore
             if (type === undefined) {
                 type = value;
-            } else if (type.getTagType() !== value.getTagType()) {
+            } else if (type.tagType !== value.tagType) {
                 throw new NBTError(MIXED.create(start, reader.cursor), { parsed: this }, 1);
             }
 

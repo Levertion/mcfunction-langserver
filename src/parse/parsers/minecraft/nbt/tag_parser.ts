@@ -6,6 +6,7 @@ import { NBTTagDouble } from "./tag/double_tag";
 import { NBTTagFloat } from "./tag/float_tag";
 import { NBTTagIntArray } from "./tag/int_array_tag";
 import { NBTTagInt } from "./tag/int_tag";
+import { NBTTagList } from "./tag/list_tag";
 import { NBTTagLongArray } from "./tag/long_array_tag";
 import { NBTTagLong } from "./tag/long_tag";
 import { NBTTag } from "./tag/nbt_tag";
@@ -25,6 +26,7 @@ const parsers: NBTTag[] = [
     new NBTTagLongArray(),
     new NBTTagCompound(),
     new NBTTagString(),
+    new NBTTagList(),
 ];
 
 export function parseTag(reader: StringReader): NBTTag {

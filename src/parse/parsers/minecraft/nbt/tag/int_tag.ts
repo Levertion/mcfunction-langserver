@@ -1,19 +1,25 @@
-import { CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
 import { NBTError } from "../util/nbt_error";
 import { NBTTag } from "./nbt_tag";
 
-const NO_SUFIX = new CommandErrorBuilder("argument.nbt.int.sufix", "Sufix %s after value");
-
 export class NBTTagInt extends NBTTag {
 
-    protected tagType: "int" = "int";
+    public tagType: "int" = "int";
 
     private val: number;
+    private strVal = "";
 
     constructor(val: number = 0) {
         super();
         this.val = val;
+    }
+
+    public getActions() {
+        return [];
+    }
+
+    public getStringValue() {
+        return this.strVal;
     }
 
     public getVal() {
@@ -25,11 +31,10 @@ export class NBTTagInt extends NBTTag {
         try {
             this.val = reader.readInt();
         } catch (e) {
+            this.strVal = reader.string.slice(start, reader.cursor);
             throw new NBTError(e);
         }
-        if (reader.canRead() && /[bslfd]/.test(reader.peek())) {
-            throw new NBTError(NO_SUFIX.create(start, reader.cursor));
-        }
+        this.strVal = reader.string.slice(start, reader.cursor);
         this.correct = 1;
     }
 }
