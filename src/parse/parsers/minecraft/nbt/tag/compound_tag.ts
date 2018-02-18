@@ -3,7 +3,7 @@ import { StringReader } from "../../../../../brigadier_components/string_reader"
 import { SubAction } from "../../../../../types";
 import { parseTag } from "../tag_parser";
 import { NBTError } from "../util/nbt_error";
-import { throwIfFalse, tryWithData } from "../util/nbt_util";
+import { parseStringNBT, throwIfFalse, tryWithData } from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
 const NO_KEY = new CommandErrorBuilder("argument.nbt.compound.nokey", "Expected key");
@@ -61,7 +61,7 @@ export class NBTTagCompound extends NBTTag {
                 2,
             );
             const keyS = reader.cursor;
-            const key = reader.readString();
+            const key = parseStringNBT(reader);
             keys.push(key);
             this.keyPos.push([keyS, reader.cursor]);
             tryWithData(() => reader.expect(KEYVAL_SEP), { parsed: this, keys, completions: [KEYVAL_SEP] }, 2);

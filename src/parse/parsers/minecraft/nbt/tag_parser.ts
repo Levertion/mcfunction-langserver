@@ -32,8 +32,10 @@ const parsers: NBTTag[] = [
 export function parseTag(reader: StringReader): NBTTag {
     let correctTag: NBTTag | null = null;
     let lastErr: NBTError | null = null;
+    const start = reader.cursor;
     for (const p of parsers.slice(0)) {
         try {
+            reader.cursor = start;
             p.parse(reader);
             if (correctTag === null || p.isCorrect() >= correctTag.isCorrect()) {
                 correctTag = p;

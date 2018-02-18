@@ -1,5 +1,5 @@
 import { StringReader } from "../../../../../brigadier_components/string_reader";
-import { tryWithData } from "../util/nbt_util";
+import { parseStringNBT, tryWithData } from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
 export class NBTTagString extends NBTTag {
@@ -21,7 +21,7 @@ export class NBTTagString extends NBTTag {
     }
 
     public _parse(reader: StringReader) {
-        tryWithData(() => this.val = reader.readString(), {}, 1);
+        tryWithData(() => this.val = parseStringNBT(reader), {}, 1);
         this.correct = 1;
     }
 }

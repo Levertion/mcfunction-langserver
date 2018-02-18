@@ -2,7 +2,7 @@ import { CommandErrorBuilder } from "../../../../../brigadier_components/errors"
 import { StringReader } from "../../../../../brigadier_components/string_reader";
 import { SubAction } from "../../../../../types";
 import { NBTError } from "../util/nbt_error";
-import { tryWithData } from "../util/nbt_util";
+import { parseIntNBT, tryWithData } from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
 export const BYTE_ARRAY_PREFIX = "B";
@@ -48,7 +48,7 @@ export class NBTTagByteArray extends NBTTag {
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
-            tryWithData(() => reader.readInt(), {}, 2);
+            tryWithData(() => this.val.push(parseIntNBT(reader)), {}, 2);
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }

@@ -6,6 +6,7 @@ import { NBTError } from "./util/nbt_error";
 export class NBTParser implements Parser {
     public parse(reader: StringReader): ParseResult {
         try {
+            // @ts-ignore
             const tag = parseTag(reader);
         } catch (e) {
             const ex = e as NBTError;
