@@ -29,7 +29,7 @@ export enum CorrectLevel {
 export interface Data {
     part?: "key" | "value";
     completions?: string[];
-    parsed?: NBTTag;
+    parsed?: NBTTag<any>;
     path?: string[];
     keys?: string[];
     pos?: number;

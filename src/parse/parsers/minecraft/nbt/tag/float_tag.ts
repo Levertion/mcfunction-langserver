@@ -5,23 +5,12 @@ import { NBTTag } from "./nbt_tag";
 
 export const FLOAT_TAG_SUFFIX = "f";
 
-export class NBTTagFloat extends NBTTag {
+export class NBTTagFloat extends NBTTag<number> {
 
     public tagType: "float" = "float";
 
-    private val: number;
-
-    constructor(val: number = 0) {
-        super();
-        this.val = val;
-    }
-
     public getActions() {
         return [];
-    }
-
-    public getVal() {
-        return this.val;
     }
 
     public _parse(reader: StringReader): void {

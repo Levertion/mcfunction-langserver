@@ -15,18 +15,11 @@ export const COMPOUND_CLOSE = "}";
 export const KEYVAL_SEP = ":";
 export const SEP = ",";
 
-export class NBTTagCompound extends NBTTag {
+export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
 
     public tagType: "compound" = "compound";
 
-    private val: { [key: string]: NBTTag };
-
     private keyPos: number[][] = [];
-
-    constructor(val: { [key: string]: NBTTag } = {}) {
-        super();
-        this.val = val;
-    }
 
     public getActions() {
         const out: SubAction[] = [];
@@ -71,7 +64,7 @@ export class NBTTagCompound extends NBTTag {
                 { parsed: this, keys, part: "value" },
                 2,
             );
-            let val: NBTTag;
+            let val: NBTTag<any>;
             try {
                 val = parseTag(reader);
             } catch (e) {

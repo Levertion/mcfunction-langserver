@@ -5,28 +5,12 @@ import { NBTTag } from "./nbt_tag";
 
 export const DOUBLE_TAG_SUFFIX = "d";
 
-export class NBTTagDouble extends NBTTag {
+export class NBTTagDouble extends NBTTag<number> {
 
     public tagType: "double" = "double";
 
-    private val: number;
-    private strVal = "";
-
-    constructor(val: number = 0) {
-        super();
-        this.val = val;
-    }
-
     public getActions() {
         return [];
-    }
-
-    public getStringValue() {
-        return this.strVal;
-    }
-
-    public getVal() {
-        return this.val;
     }
 
     public _parse(reader: StringReader): void {

@@ -14,31 +14,34 @@ import { NBTTagShort } from "./tag/short_tag";
 import { NBTTagString } from "./tag/string_tag";
 import { NBTError } from "./util/nbt_error";
 
-const parsers: NBTTag[] = [
-    new NBTTagByte(),
-    new NBTTagShort(),
-    new NBTTagLong(),
-    new NBTTagFloat(),
-    new NBTTagDouble(),
-    new NBTTagInt(),
-    new NBTTagByteArray(),
-    new NBTTagIntArray(),
-    new NBTTagLongArray(),
-    new NBTTagCompound(),
-    new NBTTagString(),
-    new NBTTagList(),
+const parsers: Array<() => NBTTag<any>> = [
+    () => new NBTTagByte(0),
+    () => new NBTTagShort(0),
+    () => new NBTTagLong(0),
+    () => new NBTTagFloat(0),
+    () => new NBTTagDouble(0),
+    () => new NBTTagInt(0),
+    () => new NBTTagByteArray([]),
+    () => new NBTTagIntArray([]),
+    () => new NBTTagLongArray([]),
+    () => new NBTTagCompound({}),
+    () => new NBTTagString(""),
+    () => new NBTTagList([]),
 ];
 
-export function parseTag(reader: StringReader): NBTTag {
-    let correctTag: NBTTag | null = null;
+export function parseTag(reader: StringReader): NBTTag<any> {
+    let correctTag: NBTTag<any> | null = null;
+    let correctPlace: number = reader.cursor;
     let lastErr: NBTError | null = null;
     const start = reader.cursor;
-    for (const p of parsers.slice(0)) {
+    for (const pf of parsers.slice(0)) {
         try {
+            const p = pf();
             reader.cursor = start;
             p.parse(reader);
             if (correctTag === null || p.isCorrect() >= correctTag.isCorrect()) {
                 correctTag = p;
+                correctPlace = reader.cursor;
             }
         } catch (e) {
             const ex = e as NBTError;
@@ -48,6 +51,7 @@ export function parseTag(reader: StringReader): NBTTag {
         }
     }
     if (correctTag !== null) {
+        reader.cursor = correctPlace;
         return correctTag;
     }
     throw lastErr;

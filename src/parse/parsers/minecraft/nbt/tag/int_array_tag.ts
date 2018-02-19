@@ -5,22 +5,15 @@ import { NBTError } from "../util/nbt_error";
 import { parseIntNBT, tryWithData } from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
-export const INT_ARRAY_PREFIX = "B";
+export const INT_ARRAY_PREFIX = "I";
 
 const EXCEPTIONS = {
     NO_VALUE: new CommandErrorBuilder("argument.nbt.intarray.value", "Expected value"),
 };
 
-export class NBTTagIntArray extends NBTTag {
+export class NBTTagIntArray extends NBTTag<number[]> {
 
     public tagType: "int_array" = "int_array";
-
-    private val: number[];
-
-    constructor(val: number[] = []) {
-        super();
-        this.val = val;
-    }
 
     public getActions(): SubAction[] {
         return [{
@@ -29,10 +22,6 @@ export class NBTTagIntArray extends NBTTag {
             low: this.start,
             type: "hover",
         }];
-    }
-
-    public getVal() {
-        return this.val;
     }
 
     public _parse(reader: StringReader) {

@@ -14,16 +14,9 @@ export const LIST_OPEN = "[";
 export const LIST_CLOSE = "]";
 export const VAL_SEP = ",";
 
-export class NBTTagList extends NBTTag {
+export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
 
-    public tagType: "int" = "int";
-
-    private val: NBTTag[];
-
-    constructor(val: NBTTag[] = []) {
-        super();
-        this.val = val;
-    }
+    public tagType: "list" = "list";
 
     public getActions(): SubAction[] {
         const val: SubAction[] = [
@@ -39,23 +32,20 @@ export class NBTTagList extends NBTTag {
         );
         return val;
     }
-    public getVal() {
-        return this.val;
-    }
 
     public _parse(reader: StringReader): void {
         const start = reader.cursor;
         tryWithData(() => reader.expect(LIST_OPEN), {}, 0);
-        let type: NBTTag;
+        let type: NBTTag<any>;
         let next = "";
         while (next !== LIST_CLOSE) {
-            let value: NBTTag;
+            let value: NBTTag<any>;
 
             throwIfFalse(
                 reader.canRead(),
                 NOVAL.create(start, reader.cursor),
                 { parsed: this, completions: [LIST_CLOSE] },
-                1,
+                2,
             );
 
             try {
@@ -68,7 +58,7 @@ export class NBTTagList extends NBTTag {
                         path: [this.val.length.toString(), ...(ex.data.path || [])],
                     },
                     true,
-                    1,
+                    2,
                 );
             }
 
@@ -78,7 +68,7 @@ export class NBTTagList extends NBTTag {
             if (type === undefined) {
                 type = value;
             } else if (type.tagType !== value.tagType) {
-                throw new NBTError(MIXED.create(start, reader.cursor), { parsed: this }, 1);
+                throw new NBTError(MIXED.create(start, reader.cursor), { parsed: this }, 2);
             }
 
             next = reader.read();
@@ -90,5 +80,6 @@ export class NBTTagList extends NBTTag {
                 );
             }
         }
+        this.correct = 2;
     }
 }

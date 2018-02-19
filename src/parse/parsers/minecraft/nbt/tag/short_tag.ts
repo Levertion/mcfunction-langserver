@@ -5,28 +5,12 @@ import { NBTTag } from "./nbt_tag";
 
 export const SHORT_TAG_SUFFIX = "s";
 
-export class NBTTagShort extends NBTTag {
+export class NBTTagShort extends NBTTag<number> {
 
     public tagType: "short" = "short";
 
-    private val: number;
-    private strVal = "";
-
-    constructor(val: number = 0) {
-        super();
-        this.val = val;
-    }
-
     public getActions() {
         return [];
-    }
-
-    public getStringValue() {
-        return this.strVal;
-    }
-
-    public getVal() {
-        return this.val;
     }
 
     public _parse(reader: StringReader): void {

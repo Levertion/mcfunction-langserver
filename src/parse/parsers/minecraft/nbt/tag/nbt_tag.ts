@@ -2,21 +2,30 @@ import { StringReader } from "../../../../../brigadier_components/string_reader"
 import { SubAction } from "../../../../../types";
 import { CorrectLevel } from "../util/nbt_error";
 
-export abstract class NBTTag {
+export abstract class NBTTag<L> {
     public abstract readonly tagType: "byte" | "short" | "int" | "long" |
         "float" | "double" |
         "byte_array" | "int_array" | "long_array" |
         "string" | "list" | "compound";
 
+    protected val: L;
     protected correct: CorrectLevel = 0;
     protected start = 0;
     protected end = 0;
     private stringValue = "";
 
+    constructor(val: L) {
+        this.val = val;
+    }
+
     public abstract getActions(): SubAction[];
 
     public getStringValue() {
         return this.stringValue;
+    }
+
+    public getVal(): L {
+        return this.val;
     }
 
     public isCorrect() {

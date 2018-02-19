@@ -11,16 +11,9 @@ const EXCEPTIONS = {
     NO_VALUE: new CommandErrorBuilder("argument.nbt.bytearray.value", "Expected value"),
 };
 
-export class NBTTagByteArray extends NBTTag {
+export class NBTTagByteArray extends NBTTag<number[]> {
 
     public tagType: "byte_array" = "byte_array";
-
-    private val: number[];
-
-    constructor(val: number[] = []) {
-        super();
-        this.val = val;
-    }
 
     public getActions(): SubAction[] {
         return [{
@@ -29,10 +22,6 @@ export class NBTTagByteArray extends NBTTag {
             low: this.start,
             type: "hover",
         }];
-    }
-
-    public getVal() {
-        return this.val;
     }
 
     public _parse(reader: StringReader) {
