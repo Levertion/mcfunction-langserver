@@ -27,6 +27,7 @@
     "vscode-languageserver-types": "^3.5.0"
   },
   "dependencies": {
+    "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git",
     "node-interval-tree": "^1.3.3",
     "request": "^2.83.0",
     "request-promise-native": "^1.0.5",

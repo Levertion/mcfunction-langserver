@@ -53,7 +53,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             throwIfFalse(
                 reader.canRead(),
                 NO_KEY.create(reader.cursor, reader.cursor),
-                { parsed: this, keys, part: "key" },
+                { parsed: this, keys, part: "key", path: [] },
                 2,
             );
             const keyS = reader.cursor;
@@ -63,14 +63,18 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
 
             reader.skipWhitespace();
 
-            tryWithData(() => reader.expect(KEYVAL_SEP), { parsed: this, keys, completions: [KEYVAL_SEP] }, 2);
+            tryWithData(
+                () => reader.expect(KEYVAL_SEP),
+                { completions: [KEYVAL_SEP], keys, parsed: this, part: "key", path: [key] },
+                2,
+            );
 
             reader.skipWhitespace();
 
             throwIfFalse(
                 reader.canRead(),
                 NO_VAL.create(reader.cursor, reader.cursor),
-                { parsed: this, keys, part: "value" },
+                { parsed: this, keys, part: "value", path: [key] },
                 2,
             );
             let val: NBTTag<any>;
@@ -80,7 +84,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             try {
                 val = parseTag(reader);
             } catch (e) {
-                throw new NBTError(e, { parsed: this, keys, part: "value" }, 2);
+                throw new NBTError(e, { parsed: this, keys, part: "value", path: [key, ...e] }, 2);
             }
             this.val[key] = val;
 
@@ -88,7 +92,11 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
 
             next = reader.peek();
             if (next !== SEP && next !== COMPOUND_CLOSE) {
-                throw new NBTError(NO_END.create(start, reader.cursor), { parsed: this, keys, part: "value" }, 2);
+                throw new NBTError(
+                    NO_END.create(start, reader.cursor),
+                    { parsed: this, keys, part: "value", completions: [SEP, COMPOUND_CLOSE], path: [key] },
+                    2,
+                );
             }
         }
         this.correct = 2;
