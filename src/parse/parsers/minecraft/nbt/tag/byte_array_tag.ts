@@ -3,6 +3,7 @@ import { StringReader } from "../../../../../brigadier_components/string_reader"
 import { SubAction } from "../../../../../types";
 import { NBTError } from "../util/nbt_error";
 import { parseIntNBT, tryWithData } from "../util/nbt_util";
+import { BYTE_TAG_SUFFIX } from "./byte_tag";
 import { NBTTag } from "./nbt_tag";
 
 export const BYTE_ARRAY_PREFIX = "B";
@@ -34,15 +35,35 @@ export class NBTTagByteArray extends NBTTag<number[]> {
         }
         let next = reader.peek();
         while (next !== "]") {
+
+            reader.skipWhitespace();
+
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
+
+            reader.skipWhitespace();
+
             tryWithData(() => this.val.push(parseIntNBT(reader)), {}, 2);
+            tryWithData(() => reader.expect(BYTE_TAG_SUFFIX), {}, 2);
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
+
+            reader.skipWhitespace();
+
             next = reader.read();
         }
         this.correct = 2;
+    }
+
+    public tagEq(tag: NBTTag<any>) {
+        if (tag.tagType !== this.tagType) {
+            return false;
+        }
+        const taga: NBTTagByteArray = tag as NBTTagByteArray;
+        return this.val.length === taga.getVal().length && this.val.every(
+            (v, i) => v === taga.val[i],
+        );
     }
 }

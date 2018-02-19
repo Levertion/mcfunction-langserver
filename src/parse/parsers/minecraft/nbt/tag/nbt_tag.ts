@@ -46,5 +46,14 @@ export abstract class NBTTag<L> {
         this.stringValue = reader.string.slice(this.start, this.end);
     }
 
+    /**
+     * Test if two NBT tags are equivalent in value
+     * @param tag The NBT tag to test against
+     */
+    public tagEq(tag: NBTTag<any>): boolean {
+        return tag.tagType === this.tagType
+            && tag.getVal() === this.getVal();
+    }
+
     protected abstract _parse(reader: StringReader): void;
 }

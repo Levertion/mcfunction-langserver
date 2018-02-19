@@ -45,4 +45,14 @@ export class NBTTagIntArray extends NBTTag<number[]> {
         }
         this.correct = 2;
     }
+
+    public tagEq(tag: NBTTag<any>) {
+        if (tag.tagType !== this.tagType) {
+            return false;
+        }
+        const taga: NBTTagIntArray = tag as NBTTagIntArray;
+        return this.val.length === taga.getVal().length && this.val.every(
+            (v, i) => v === taga.val[i],
+        );
+    }
 }

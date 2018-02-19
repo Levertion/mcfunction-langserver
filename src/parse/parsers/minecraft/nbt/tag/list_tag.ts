@@ -39,6 +39,9 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
         let type: NBTTag<any>;
         let next = "";
         while (next !== LIST_CLOSE) {
+
+            reader.skipWhitespace();
+
             let value: NBTTag<any>;
 
             throwIfFalse(
@@ -47,6 +50,8 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 { parsed: this, completions: [LIST_CLOSE] },
                 2,
             );
+
+            reader.skipWhitespace();
 
             try {
                 value = parseTag(reader);
@@ -71,6 +76,8 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 throw new NBTError(MIXED.create(start, reader.cursor), { parsed: this }, 2);
             }
 
+            reader.skipWhitespace();
+
             next = reader.read();
             if (next !== VAL_SEP && next !== LIST_CLOSE) {
                 throw new NBTError(
@@ -81,5 +88,14 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             }
         }
         this.correct = 2;
+    }
+
+    public tagEq(tag: NBTTag<any>): boolean {
+        if (tag.tagType !== this.tagType) {
+            return false;
+        }
+        return this.val.length === (tag as NBTTagList).val.length && this.val.every(
+            (v, i) => v.tagEq((tag as NBTTagList).getVal()[i]),
+        );
     }
 }

@@ -47,6 +47,9 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
         let next = ",";
         const keys = [];
         while (next !== COMPOUND_CLOSE) {
+
+            reader.skipWhitespace();
+
             throwIfFalse(
                 reader.canRead(),
                 NO_KEY.create(reader.cursor, reader.cursor),
@@ -57,7 +60,13 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             const key = parseStringNBT(reader);
             keys.push(key);
             this.keyPos.push([keyS, reader.cursor]);
+
+            reader.skipWhitespace();
+
             tryWithData(() => reader.expect(KEYVAL_SEP), { parsed: this, keys, completions: [KEYVAL_SEP] }, 2);
+
+            reader.skipWhitespace();
+
             throwIfFalse(
                 reader.canRead(),
                 NO_VAL.create(reader.cursor, reader.cursor),
@@ -65,17 +74,33 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 2,
             );
             let val: NBTTag<any>;
+
+            reader.skipWhitespace();
+
             try {
                 val = parseTag(reader);
             } catch (e) {
                 throw new NBTError(e, { parsed: this, keys, part: "value" }, 2);
             }
             this.val[key] = val;
+
+            reader.skipWhitespace();
+
             next = reader.peek();
             if (next !== SEP && next !== COMPOUND_CLOSE) {
                 throw new NBTError(NO_END.create(start, reader.cursor), { parsed: this, keys, part: "value" }, 2);
             }
         }
         this.correct = 2;
+    }
+
+    public tagEq(tag: NBTTag<any>): boolean {
+        if (tag.tagType !== this.tagType) {
+            return false;
+        }
+        return Object.keys(this.val).length === Object.keys(tag.getVal()).length &&
+            Object.keys(this.val).every(
+                (v) => this.val[v].tagEq(((tag as NBTTagCompound).val)[v]),
+            );
     }
 }
