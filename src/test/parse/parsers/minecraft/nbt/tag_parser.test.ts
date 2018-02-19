@@ -107,8 +107,8 @@ describe("Tag parser tests", () => {
         });
         describe("byte array", () => {
             [
-                ["[B;0,1,2,3]", [0, 1, 2, 3]],
-                ["[B;112,3,7,8,234,5,32,5]", [112, 3, 7, 8, 234, 5, 32, 5]],
+                ["[B;0b,1b,2b,3b]", [0, 1, 2, 3]],
+                ["[B;112b,3b,7b,8b,234b,5b,32b,5b]", [112, 3, 7, 8, 234, 5, 32, 5]],
             ].forEach((v) =>
                 it(v[0].toString() +
                     " should return as a byte array tag with a value of [" +

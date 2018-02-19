@@ -39,7 +39,7 @@ export function parseTag(reader: StringReader): NBTTag<any> {
             const p = pf();
             reader.cursor = start;
             p.parse(reader);
-            if (correctTag === null || p.isCorrect() >= correctTag.isCorrect()) {
+            if (correctTag === null || p.isCorrect() > correctTag.isCorrect()) {
                 correctTag = p;
                 correctPlace = reader.cursor;
             }
