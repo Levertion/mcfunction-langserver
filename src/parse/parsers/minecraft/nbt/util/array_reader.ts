@@ -11,6 +11,10 @@ export class ArrayReader {
         return this.index;
     }
 
+    public setIndex(val: number) {
+        this.index = val;
+    }
+
     public read() {
         return this.arr[this.index++];
     }
@@ -33,5 +37,9 @@ export class ArrayReader {
 
     public end() {
         return this.index === this.arr.length;
+    }
+
+    public getRead() {
+        return this.arr.slice(0, this.index);
     }
 }

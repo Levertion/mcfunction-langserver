@@ -8,16 +8,18 @@ export class NBTParser implements Parser {
         try {
             // @ts-ignore
             const tag = parseTag(reader);
+            return {
+                actions: tag.getActions(),
+                successful: true,
+            };
         } catch (e) {
             const ex = e as NBTError;
             return {
+                actions: ex.data.parsed ? ex.data.parsed.getActions() : undefined,
                 errors: [ex.error],
                 successful: false,
             };
         }
-        return {
-            successful: true,
-        };
     }
 
     public getSuggestions(): SuggestResult[] {
