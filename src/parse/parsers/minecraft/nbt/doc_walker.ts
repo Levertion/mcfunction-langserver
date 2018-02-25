@@ -7,7 +7,6 @@ import { NBTTagList } from "./tag/list_tag";
 import { NBTTag } from "./tag/nbt_tag";
 import { ArrayReader } from "./util/array_reader";
 
-// @ts-ignore
 type ValueList = string[];
 
 interface NodeBase {

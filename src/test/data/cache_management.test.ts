@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
+import * as rimraf from "rimraf";
 import { promisify } from "util";
 import { shim } from "util.promisify";
 shim();
@@ -25,6 +26,9 @@ const testData: GlobalData = {
     resources: {},
 };
 describe("Cache Management", () => {
+    after(() => {
+        return rimrafAsync(cacheFolder);
+    });
     describe("cacheData", () => {
         it("should cache the data in the folder", async () => {
             await cache.cacheData(testData);
@@ -42,3 +46,4 @@ describe("Cache Management", () => {
         });
     });
 });
+const rimrafAsync = promisify(rimraf);

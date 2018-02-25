@@ -16,7 +16,10 @@ export function ComputeCompletions(linenum: number,
         globalData: data.globalData,
         localData: data.getPackFolderData(document.datapack_root),
     };
-    const nodes: ParseNode[] = line.parseInfo ? line.parseInfo.nodes : [];
+    const nodes: ParseNode[] = line.parseInfo.nodes;
+    if (nodes.length === 0) {
+        return CompletionList.create(getCompletionsFromNode(linenum, 0, character, line.text, [], commandData), true);
+    }
     const finals: ParseNode[] = [];
     const internals: ParseNode[] = [];
     for (const node of nodes) {
@@ -53,7 +56,7 @@ function getCompletionsFromNode(line: number, start: number, end: number,
         for (const childKey in parent.children) {
             if (parent.children.hasOwnProperty(childKey)) {
                 const child = parent.children[childKey];
-                const info = buildInfoForParsers(child, data, nodepath[nodepath.length - 1]);
+                const info = buildInfoForParsers(child, data, childKey);
                 const parser = getParser(child);
                 if (!!parser) {
                     result.push(...SuggestionsToCompletions(

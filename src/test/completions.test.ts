@@ -114,4 +114,55 @@ describe("ComputeCompletions()", () => {
         result.items.sort((a, b) => b.label.length - a.label.length);
         assert.deepEqual(result, expected);
     });
+    it("should give completions from the start", () => {
+        const result = ComputeCompletions(0, {
+            datapack_root: "",
+            lines: [{
+                parseInfo: {
+                    nodes: [],
+                },
+                text: "starting",
+            } as any as CommandLine],
+        }, 2,
+            new DataManager({
+                DummyGlobal: {
+                    commands: {
+                        children: {
+                            test1: {
+                                parser: "langserver:dummy1",
+                                type: "argument",
+                            },
+                        },
+                        type: "root",
+                    },
+                } as any as GlobalData,
+            }));
+        const expected: CompletionList = {
+            isIncomplete: true,
+            items: [{
+                kind: CompletionItemKind.Keyword,
+                label: "hello",
+                textEdit: {
+                    newText: "hello",
+                    range: {
+                        end: { line: 0, character: 2 },
+                        start: { line: 0, character: 0 },
+                    },
+                },
+            }, {
+                detail: undefined, // Quirk of the system.
+                kind: CompletionItemKind.Constructor,
+                label: "test",
+                textEdit: {
+                    newText: "test",
+                    range: {
+                        end: { line: 0, character: 2 },
+                        start: { line: 0, character: 2 },
+                    },
+                },
+            }],
+        };
+        result.items.sort((a, b) => b.label.length - a.label.length);
+        assert.deepEqual(result, expected);
+    });
 });
