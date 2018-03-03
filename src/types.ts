@@ -123,6 +123,7 @@ export interface ParsedInfo {
 
 interface SubNode<U extends string, T> extends DataInterval<T> {
     type: U;
+    resolve?: () => T;
 }
 
 export type SubAction = SubNode<"hover", string>;
