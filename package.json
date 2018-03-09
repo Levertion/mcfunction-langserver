@@ -33,6 +33,6 @@
     "request": "^2.83.0",
     "request-promise-native": "^1.0.5",
     "util.promisify": "^1.0.0",
-    "vscode-languageserver": "^3.5.0"
+    "vscode-languageserver": "^4.0.0"
   }
 }
