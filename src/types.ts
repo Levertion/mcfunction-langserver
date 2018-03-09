@@ -83,6 +83,14 @@ export interface Suggestion {
 
 export type SuggestResult = Suggestion | string;
 
+/**
+ * A way to allow a single parser to handle both suggestions and parsing
+ * to use, use `Parser & Suggester`
+ */
+export interface Suggester {
+    suggestions?: SuggestResult[];
+}
+
 export interface Parser {
     /**
      * Parse the argument as described in NodeProperties against this parser in the reader.
@@ -126,4 +134,4 @@ interface SubNode<U extends string, T> extends DataInterval<T> {
 }
 
 export type SubAction = SubNode<"hover", string>;
- // | SubNode<"rename", RenameRequest>;
+// | SubNode<"rename", RenameRequest>;

@@ -74,9 +74,11 @@ export interface MCNode<T> {
  * The Inner Index Signature is property names, with a string array of valid values.
  */
 export interface BlockPropertyInfo {
-    [blockID: string]: {
+    [blockID: string]: SinglePropertyInfo;
+}
+
+export interface SinglePropertyInfo {
         [property: string]: string[];
-    };
 }
 //#endregion
 

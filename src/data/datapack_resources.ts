@@ -25,21 +25,16 @@ export interface NamespaceResources {
     function_tags?: MinecraftResource[];
 }
 
-interface MinecraftResource {
+export interface MinecraftResource {
     real_uri: string;
-    resource_path: string;
+    resource_name: NamespacedName;
 }
 
-const resourceTypes: {[T in keyof NamespaceResources]: (string[] |
-    [string, T]) } = { // [string, T] improves autocomplete.
-        advancements: [".json", "advancements"],
-        block_tags: [".json", "tags", "blocks"],
-        function_tags: [".json", "tags", "functions"],
-        functions: [".mcfunction", "functions"],
-        item_tags: [".json", "tags", "items"],
-        loot_tables: [".json", "loot_tables"],
-        recipes: [".json", "recipes"],
-        structures: [".nbt", "structures"],
+export interface NamespacedName {
+    namespace: string;
+    path: string;
+}
+
     };
 
 export async function getNamespaceResources(namespace: string, location: string):
@@ -64,9 +59,10 @@ export async function getNamespaceResources(namespace: string, location: string)
                 const internalUri = path.relative(dataContents, file);
                 nameSpaceContents.push({
                     real_uri: path.relative(namespaceFolder, file),
-                    resource_path: namespace + ":" +
-                        internalUri
+                    resource_name: {
+                        namespace, path: internalUri
                             .slice(0, -realExtension.length).replace(new RegExp(`\\${path.sep}`, "g"), "/"),
+                    },
                 });
             } else {
                 mcLangLog(`File '${file}' has the wrong extension: Expected ${resourceInfo[0]}, got ${realExtension}.`);

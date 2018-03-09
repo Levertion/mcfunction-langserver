@@ -19,7 +19,7 @@ describe("Datapack Resource Testing", () => {
                     function_tags: [
                         {
                             real_uri: path.normalize("tags/functions/tick.json"),
-                            resource_path: "minecraft:tick",
+                            resource_name: { namespace: "minecraft", path: "tick" },
                         },
                     ],
                 },
@@ -27,11 +27,13 @@ describe("Datapack Resource Testing", () => {
                     functions: [
                         {
                             real_uri: path.normalize("functions/function.mcfunction"),
-                            resource_path: "mryurihi:function",
+                            resource_name: { namespace: "mryurihi", path: "function" },
                         },
+                        // Included in both datapacks so repeated.
+                        // Maybe worth changing?
                         {
                             real_uri: path.normalize("functions/function.mcfunction"),
-                            resource_path: "mryurihi:function",
+                            resource_name: { namespace: "mryurihi", path: "function" },
                         },
                     ],
                 },
