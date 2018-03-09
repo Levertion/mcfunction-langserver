@@ -82,22 +82,23 @@ export async function getNamespaceResources(namespace: string, location: string)
             const realExtension = path.extname(file);
             if (realExtension === resourceInfo.extension) {
                 const internalUri = path.relative(dataContents, file);
-                let data: any;
-                try {
-                    data = resourceInfo.readJson ? JSON.parse(file) : undefined;
-                } catch (error) {
-                    mcLangLog(`File '${file}' has invalid json structure: '${JSON.stringify(error)}'`);
-                }
-                nameSpaceContents.push({
-                    // However, they are cast to DataResources at a later time if applicable.
-                    // @ts-ignore The resources are only officially allowed to be MinecraftResources.
-                    data,
+                const newResource: MinecraftResource = {
                     real_uri: path.relative(namespaceFolder, file),
                     resource_name: {
                         namespace, path: internalUri
                             .slice(0, -realExtension.length).replace(new RegExp(`\\${path.sep}`, "g"), "/"),
                     },
-                });
+                };
+                try {
+                    if (!!resourceInfo.readJson) {
+                        // @ts-ignore The resources are only officially allowed to be MinecraftResources.
+                        // However, they are cast to DataResources at a later time if applicable.
+                        newResource.data = JSON.parse(await readFileAsync(file));
+                    }
+                } catch (error) {
+                    mcLangLog(`File '${file}' has invalid json structure: '${JSON.stringify(error)}'`);
+                }
+                nameSpaceContents.push(newResource);
             } else {
                 mcLangLog(`File '${file}' has the wrong extension: Expected ${
                     resourceInfo.extension}, got ${realExtension}.`);
@@ -190,6 +191,7 @@ async function subDirectories(baseFolder: string): Promise<string[]> {
 }
 //#region Promisifed Functions
 const readDirAsync = promisify(fs.readdir);
+const readFileAsync = promisify(fs.readFile);
 const statAsync = promisify(fs.stat);
 const existsAsync = promisify<string, boolean>((location, cb) =>
     fs.exists(location, (result) => cb(undefined as any, result)));
