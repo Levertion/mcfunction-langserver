@@ -11,10 +11,16 @@ export interface Resources {
         packs_folder: string;
     }>;
     data: {
-        [namespace: string]: NamespaceResources,
+        [namespace: string]: NamespaceData,
     };
 }
-export interface NamespaceResources {
+
+export interface Tag {
+    replace?: boolean;
+    values: string[];
+}
+
+export interface NamespaceData {
     functions?: MinecraftResource[];
     recipes?: MinecraftResource[];
     advancements?: MinecraftResource[];
@@ -23,6 +29,10 @@ export interface NamespaceResources {
     block_tags?: MinecraftResource[];
     item_tags?: MinecraftResource[];
     function_tags?: MinecraftResource[];
+}
+
+export interface DataResource<T> extends MinecraftResource {
+    data?: T;
 }
 
 export interface MinecraftResource {
@@ -35,29 +45,53 @@ export interface NamespacedName {
     path: string;
 }
 
-    };
+interface ResourceInfo<U = string> {
+    extension: string;
+    pathfromroot: [U] | string[]; // Custom tuple allows autocomplete mostly.
+    readJson?: boolean;
+}
+
+const resourceTypes: {[T in keyof NamespaceData]: ResourceInfo<T>} = {
+    advancements: { extension: ".json", pathfromroot: ["advancements"] },
+    block_tags: { extension: ".json", pathfromroot: ["tags", "blocks"], readJson: true },
+    function_tags: { extension: ".json", pathfromroot: ["tags", "functions"] },
+    functions: { extension: ".mcfunction", pathfromroot: ["functions"] },
+    item_tags: { extension: ".json", pathfromroot: ["tags", "items"] },
+    loot_tables: { extension: ".json", pathfromroot: ["loot_tables"] },
+    recipes: { extension: ".json", pathfromroot: ["recipes"] },
+    structures: { extension: ".nbt", pathfromroot: ["structures"] },
+};
 
 export async function getNamespaceResources(namespace: string, location: string):
-    Promise<NamespaceResources> {
-    const result: NamespaceResources = {};
+    Promise<NamespaceData> {
+    const result: NamespaceData = {};
     const namespaceFolder = path.join(location, namespace);
     const subDirs = await subDirectories(namespaceFolder);
     for (const type of keys(resourceTypes)) {
         const resourceInfo = resourceTypes[type];
-        if (subDirs.indexOf(resourceInfo[1]) === -1) {
+        if (subDirs.indexOf(resourceInfo.pathfromroot[0]) === -1) {
             continue;
         }
-        const dataContents = path.join(namespaceFolder, ...resourceInfo.slice(1));
-        if (resourceInfo.length > 2 && !(await existsAsync(dataContents))) {
+        const dataContents = path.join(namespaceFolder, ...resourceInfo.pathfromroot);
+        if (resourceInfo.pathfromroot.length > 1 && !(await existsAsync(dataContents))) {
             continue;
         }
         const files = await walkDir(dataContents);
         const nameSpaceContents = result[type] || [];
         for (const file of files) {
             const realExtension = path.extname(file);
-            if (realExtension === resourceInfo[0]) {
+            if (realExtension === resourceInfo.extension) {
                 const internalUri = path.relative(dataContents, file);
+                let data: any;
+                try {
+                    data = resourceInfo.readJson ? JSON.parse(file) : undefined;
+                } catch (error) {
+                    mcLangLog(`File '${file}' has invalid json structure: '${JSON.stringify(error)}'`);
+                }
                 nameSpaceContents.push({
+                    // However, they are cast to DataResources at a later time if applicable.
+                    // @ts-ignore The resources are only officially allowed to be MinecraftResources.
+                    data,
                     real_uri: path.relative(namespaceFolder, file),
                     resource_name: {
                         namespace, path: internalUri
@@ -65,7 +99,8 @@ export async function getNamespaceResources(namespace: string, location: string)
                     },
                 });
             } else {
-                mcLangLog(`File '${file}' has the wrong extension: Expected ${resourceInfo[0]}, got ${realExtension}.`);
+                mcLangLog(`File '${file}' has the wrong extension: Expected ${
+                    resourceInfo.extension}, got ${realExtension}.`);
                 continue;
             }
         }
