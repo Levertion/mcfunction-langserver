@@ -1,11 +1,11 @@
-import { NamespaceResources } from "./datapack_resources";
+import { NamespaceData } from "./datapack_resources";
 
 /**
  * Data which is useful no matter where the function is.
  */
 export interface GlobalData {
     commands: CommandTree;
-    resources: NamespaceResources;
+    resources: NamespaceData;
     meta_info: { version: string };
     blocks: BlockStateInfo;
     items: string[];
@@ -78,7 +78,7 @@ export interface BlockPropertyInfo {
 }
 
 export interface SinglePropertyInfo {
-        [property: string]: string[];
+    [property: string]: string[];
 }
 //#endregion
 
