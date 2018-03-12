@@ -1,9 +1,8 @@
 import { CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
-import { SubAction } from "../../../../../types";
 import { parseTag } from "../tag_parser";
 import { NBTError } from "../util/nbt_error";
-import { throwIfFalse, tryWithData } from "../util/nbt_util";
+import { NBTHoverAction, throwIfFalse, tryWithData } from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
 const MIXED = new CommandErrorBuilder("argument.nbt.list.mixed", "Mixed value types");
@@ -18,17 +17,23 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
 
     public tagType: "list" = "list";
 
-    public getActions(): SubAction[] {
-        const val: SubAction[] = [
+    public getHover(): NBTHoverAction[] {
+        const val: NBTHoverAction[] = [
             {
                 data: this.val[0] === undefined ? "" : this.val[0].tagType,
-                high: this.end,
-                low: this.start,
-                type: "hover",
+                end: this.end,
+                start: this.start,
             },
         ];
         this.val.forEach(
-            (v) => val.push(...v.getActions()),
+            (v, i) => val.push(...v.getHover().map(
+                (v1) => ({
+                    data: v1.data,
+                    end: v1.end,
+                    path: [i.toString(), ...(v1.path || [])],
+                    start: v1.start,
+                } as NBTHoverAction),
+            )),
         );
         return val;
     }

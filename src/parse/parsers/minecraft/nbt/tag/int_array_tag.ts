@@ -1,8 +1,16 @@
 import { CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
-import { SubAction } from "../../../../../types";
 import { NBTError } from "../util/nbt_error";
-import { parseIntNBT, tryWithData } from "../util/nbt_util";
+import {
+    ARRAY_END,
+    ARRAY_PREFIX_SEP,
+    ARRAY_START,
+    expectAndScope,
+    NBTHighlightAction,
+    NBTHoverAction,
+    tryWithData,
+} from "../util/nbt_util";
+import { NBTTagInt } from "./int_tag";
 import { NBTTag } from "./nbt_tag";
 
 export const INT_ARRAY_PREFIX = "I";
@@ -11,38 +19,70 @@ const EXCEPTIONS = {
     NO_VALUE: new CommandErrorBuilder("argument.nbt.intarray.value", "Expected value"),
 };
 
-export class NBTTagIntArray extends NBTTag<number[]> {
+export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
 
     public tagType: "int_array" = "int_array";
 
-    public getActions(): SubAction[] {
+    private scopes: NBTHighlightAction[] = [];
+
+    public getHover(): NBTHoverAction[] {
         return [{
             data: "integer array",
-            high: this.end,
-            low: this.start,
-            type: "hover",
+            end: this.end,
+            start: this.start,
         }];
     }
 
+    public getHighlight(): NBTHighlightAction[] {
+        return this.scopes.concat({
+            end: this.end,
+            scopes: ["int_array", "array"],
+            start: this.start,
+        });
+    }
+
     public _parse(reader: StringReader) {
+        this.scopes = [];
         const start = reader.cursor;
-        tryWithData(() => reader.expect("["), {}, 0);
-        tryWithData(() => reader.expect(INT_ARRAY_PREFIX), {}, 0);
-        tryWithData(() => reader.expect(";"), {}, 0);
+        this.scopes.push(
+            expectAndScope(reader, ARRAY_START, ["array", "start"], {}, 0),
+            expectAndScope(reader, INT_ARRAY_PREFIX, ["array", "prefix"], {}, 0),
+            expectAndScope(reader, ARRAY_PREFIX_SEP, ["array", "prefix", "seperator"], {}, 0),
+        );
         if (!reader.canRead()) {
             throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
         }
         let next = reader.peek();
-        while (next !== "]") {
+        while (next !== ARRAY_END) {
+
+            reader.skipWhitespace();
+
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
-            tryWithData(() => this.val.push(parseIntNBT(reader)), {}, 2);
+
+            reader.skipWhitespace();
+
+            const val = new NBTTagInt(0);
+            val.parse(reader);
+
+            tryWithData(() => this.val.push(val), {}, 2);
+
+            this.scopes.push(...val.getHighlight());
+
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
+
+            reader.skipWhitespace();
+
             next = reader.read();
         }
+        this.scopes.push({
+            end: reader.cursor,
+            scopes: ["array", "end"],
+            start: reader.cursor - 1,
+        });
         this.correct = 2;
     }
 

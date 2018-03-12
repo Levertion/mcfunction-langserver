@@ -1,9 +1,16 @@
 import { CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
-import { SubAction } from "../../../../../types";
 import { NBTError } from "../util/nbt_error";
-import { parseIntNBT, tryWithData } from "../util/nbt_util";
-import { LONG_TAG_SUFFIX } from "./long_tag";
+import {
+    ARRAY_END,
+    ARRAY_PREFIX_SEP,
+    ARRAY_START,
+    expectAndScope,
+    NBTHighlightAction,
+    NBTHoverAction,
+    tryWithData,
+} from "../util/nbt_util";
+import { NBTTagLong } from "./long_tag";
 import { NBTTag } from "./nbt_tag";
 
 export const LONG_ARRAY_PREFIX = "L";
@@ -12,29 +19,41 @@ const EXCEPTIONS = {
     NO_VALUE: new CommandErrorBuilder("argument.nbt.longarray.value", "Expected value"),
 };
 
-export class NBTTagLongArray extends NBTTag<number[]> {
+export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
 
     public tagType: "long_array" = "long_array";
 
-    public getActions(): SubAction[] {
+    public scopes: NBTHighlightAction[] = [];
+
+    public getHover(): NBTHoverAction[] {
         return [{
             data: "long array",
-            high: this.end,
-            low: this.start,
-            type: "hover",
+            end: this.end,
+            start: this.start,
         }];
     }
 
+    public getHighlight(): NBTHighlightAction[] {
+        return this.scopes.concat({
+            end: this.end,
+            scopes: ["long_array", "array"],
+            start: this.start,
+        });
+    }
+
     public _parse(reader: StringReader) {
+        this.scopes = [];
         const start = reader.cursor;
-        tryWithData(() => reader.expect("["), {}, 0);
-        tryWithData(() => reader.expect(LONG_ARRAY_PREFIX), {}, 0);
-        tryWithData(() => reader.expect(";"), {}, 0);
+        this.scopes.push(
+            expectAndScope(reader, ARRAY_START, ["array", "start"], {}, 0),
+            expectAndScope(reader, LONG_ARRAY_PREFIX, ["array", "prefix"], {}, 0),
+            expectAndScope(reader, ARRAY_PREFIX_SEP, ["array", "prefix", "seperator"], {}, 0),
+        );
         if (!reader.canRead()) {
             throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
         }
         let next = reader.peek();
-        while (next !== "]") {
+        while (next !== ARRAY_END) {
 
             reader.skipWhitespace();
 
@@ -44,8 +63,13 @@ export class NBTTagLongArray extends NBTTag<number[]> {
 
             reader.skipWhitespace();
 
-            tryWithData(() => this.val.push(parseIntNBT(reader)), {}, 2);
-            tryWithData(() => reader.expect(LONG_TAG_SUFFIX), {}, 2);
+            const val = new NBTTagLong(0);
+            val.parse(reader);
+
+            tryWithData(() => this.val.push(val), {}, 2);
+
+            this.scopes.push(...val.getHighlight());
+
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
@@ -54,6 +78,11 @@ export class NBTTagLongArray extends NBTTag<number[]> {
 
             next = reader.read();
         }
+        this.scopes.push({
+            end: reader.cursor,
+            scopes: ["array", "end"],
+            start: reader.cursor - 1,
+        });
         this.correct = 2;
     }
 

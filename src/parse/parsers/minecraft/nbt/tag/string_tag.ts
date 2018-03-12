@@ -5,7 +5,7 @@ import { NBTTag } from "./nbt_tag";
 export class NBTTagString extends NBTTag<string> {
     public tagType: "string" = "string";
 
-    public getActions() {
+    public getHover() {
         return [];
     }
 

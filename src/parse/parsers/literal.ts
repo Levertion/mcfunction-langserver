@@ -18,7 +18,17 @@ const parser: Parser = {
             if (reader.string.substring(begin, end) === literal) {
                 reader.cursor = end;
                 if (reader.peek() === " " || !reader.canRead()) {
-                    return { successful: true };
+                    return {
+                        actions: [
+                            {
+                                data: [{ start: begin, end, scopeId: "argument.literal" }],
+                                high: end,
+                                low: begin,
+                                type: "highlight",
+                            },
+                        ],
+                        successful: true,
+                    };
                 }
             }
         }

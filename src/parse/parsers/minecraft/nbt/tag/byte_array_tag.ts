@@ -1,9 +1,16 @@
 import { CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
-import { SubAction } from "../../../../../types";
 import { NBTError } from "../util/nbt_error";
-import { parseIntNBT, tryWithData } from "../util/nbt_util";
-import { BYTE_TAG_SUFFIX } from "./byte_tag";
+import {
+    ARRAY_END,
+    ARRAY_PREFIX_SEP,
+    ARRAY_START,
+    expectAndScope,
+    NBTHighlightAction,
+    NBTHoverAction,
+    tryWithData,
+} from "../util/nbt_util";
+import { NBTTagByte } from "./byte_tag";
 import { NBTTag } from "./nbt_tag";
 
 export const BYTE_ARRAY_PREFIX = "B";
@@ -12,29 +19,41 @@ const EXCEPTIONS = {
     NO_VALUE: new CommandErrorBuilder("argument.nbt.bytearray.value", "Expected value"),
 };
 
-export class NBTTagByteArray extends NBTTag<number[]> {
+export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
 
     public tagType: "byte_array" = "byte_array";
 
-    public getActions(): SubAction[] {
+    private scopes: NBTHighlightAction[] = [];
+
+    public getHover(): NBTHoverAction[] {
         return [{
             data: "byte array",
-            high: this.end,
-            low: this.start,
-            type: "hover",
+            end: this.end,
+            start: this.start,
         }];
     }
 
+    public getHighlight(): NBTHighlightAction[] {
+        return this.scopes.concat({
+            end: this.end,
+            scopes: ["byte_array", "array"],
+            start: this.start,
+        });
+    }
+
     public _parse(reader: StringReader) {
+        this.scopes = [];
         const start = reader.cursor;
-        tryWithData(() => reader.expect("["), {}, 0);
-        tryWithData(() => reader.expect(BYTE_ARRAY_PREFIX), {}, 0);
-        tryWithData(() => reader.expect(";"), {}, 0);
+        this.scopes.push(
+            expectAndScope(reader, ARRAY_START, ["array", "start"], {}, 0),
+            expectAndScope(reader, BYTE_ARRAY_PREFIX, ["array", "prefix"], {}, 0),
+            expectAndScope(reader, ARRAY_PREFIX_SEP, ["array", "prefix", "seperator"], {}, 0),
+        );
         if (!reader.canRead()) {
             throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
         }
         let next = reader.peek();
-        while (next !== "]") {
+        while (next !== ARRAY_END) {
 
             reader.skipWhitespace();
 
@@ -44,8 +63,13 @@ export class NBTTagByteArray extends NBTTag<number[]> {
 
             reader.skipWhitespace();
 
-            tryWithData(() => this.val.push(parseIntNBT(reader)), {}, 2);
-            tryWithData(() => reader.expect(BYTE_TAG_SUFFIX), {}, 2);
+            const val = new NBTTagByte(0);
+            val.parse(reader);
+
+            tryWithData(() => this.val.push(val), {}, 2);
+
+            this.scopes.push(...val.getHighlight());
+
             if (!reader.canRead()) {
                 throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
             }
@@ -54,6 +78,11 @@ export class NBTTagByteArray extends NBTTag<number[]> {
 
             next = reader.read();
         }
+        this.scopes.push({
+            end: reader.cursor,
+            scopes: ["array", "end"],
+            start: reader.cursor - 1,
+        });
         this.correct = 2;
     }
 

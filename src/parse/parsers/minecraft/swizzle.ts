@@ -1,7 +1,7 @@
 import { power } from "js-combinatorics";
 import { CommandErrorBuilder } from "../../../brigadier_components/errors";
 import { StringReader } from "../../../brigadier_components/string_reader";
-import { Parser, Suggestion } from "../../../types";
+import { Parser, ParseResult, Suggestion } from "../../../types";
 
 const values = ["x", "y", "z"];
 
@@ -22,6 +22,14 @@ export class SwizzleParser implements Parser {
                 throw DUPLICATE.create(start, reader.cursor, v);
             }
         }
+        return {
+            actions: [{
+                data: [{ end: reader.cursor, scopeId: "argument.swizzle", start }],
+                high: reader.cursor,
+                low: start,
+                type: "highlight",
+            }],
+        } as ParseResult;
     }
 
     public getSuggestions(text: string): Suggestion[] {

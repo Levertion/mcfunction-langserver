@@ -1,6 +1,6 @@
 import { StringReader } from "../../../../../brigadier_components/string_reader";
-import { SubAction } from "../../../../../types";
 import { CorrectLevel } from "../util/nbt_error";
+import { NBTHighlightAction, NBTHoverAction } from "../util/nbt_util";
 
 export abstract class NBTTag<L> {
     public abstract readonly tagType: "byte" | "short" | "int" | "long" |
@@ -18,7 +18,8 @@ export abstract class NBTTag<L> {
         this.val = val;
     }
 
-    public abstract getActions(): SubAction[];
+    public abstract getHover(): NBTHoverAction[];
+    public abstract getHighlight(): NBTHighlightAction[];
 
     public getStringValue() {
         return this.stringValue;

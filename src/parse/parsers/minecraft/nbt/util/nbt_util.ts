@@ -1,6 +1,49 @@
 import { CommandError, CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
+import { NBTTag } from "../tag/nbt_tag";
 import { CorrectLevel, Data, NBTError } from "./nbt_error";
+
+export const ARRAY_START = "[";
+export const ARRAY_END = "]";
+export const ARRAY_PREFIX_SEP = ";";
+export const ARRAY_VALUE_SEP = ",";
+
+export const LIST_START = "[";
+export const LIST_END = "]";
+export const LIST_VALUE_SEP = ",";
+
+export const COMPOUND_START = "{";
+export const COMPOUND_END = "}";
+export const COMPOUND_KEY_VALUE_SEP = ":";
+export const COMPOUND_PAIR_SEP = ",";
+
+export interface NBTHoverAction {
+    start: number;
+    end: number;
+    data: string | ((path: string[], root: NBTTag<any>) => () => string);
+    path?: string[];
+}
+
+export interface NBTHighlightAction {
+    start: number;
+    end: number;
+    scopes: string[] | string;
+}
+
+export function expectAndScope(
+    reader: StringReader,
+    char: string,
+    scopes: string[],
+    data: Data,
+    correct: CorrectLevel,
+) {
+    tryWithData(() => reader.expect(char), data, correct);
+    return {
+        end: reader.cursor,
+        scopes,
+        start: reader.cursor - 1,
+    };
+}
 
 export function tryWithData(func: () => void, data: Data, correct: CorrectLevel): void {
     try {
@@ -34,38 +77,46 @@ export function parseStringNBT(reader: StringReader): string {
     }
 }
 
-export function parseIntNBT(reader: StringReader): number {
-    const start = reader.cursor;
-    let out = 0;
+export function parseIntNBT(reader: StringReader, data: Data = {}, correct: CorrectLevel = 0): number {
     try {
-        const f = reader.readFloat();
-        if (reader.peek() !== "e" && reader.peek() !== "E") {
-            throw {};
+        const start = reader.cursor;
+        let out = 0;
+        try {
+            const f = reader.readFloat();
+            if (reader.peek() !== "e" && reader.peek() !== "E") {
+                throw {};
+            }
+            reader.skip();
+            const exp = reader.readInt();
+            out = f * Math.pow(10, exp);
+        } catch (e) {
+            reader.cursor = start;
+            out = reader.readInt();
         }
-        reader.skip();
-        const exp = reader.readInt();
-        out = f * Math.pow(10, exp);
+        return out;
     } catch (e) {
-        reader.cursor = start;
-        out = reader.readInt();
+        throw new NBTError(e, data, correct);
     }
-    return out;
 }
 
-export function parseFloatNBT(reader: StringReader): number {
-    const start = reader.cursor;
-    let out = 0;
+export function parseFloatNBT(reader: StringReader, data: Data = {}, correct: CorrectLevel = 0): number {
     try {
-        const f = reader.readFloat();
-        if (reader.peek() !== "e" && reader.peek() !== "E") {
-            throw {};
+        const start = reader.cursor;
+        let out = 0;
+        try {
+            const f = reader.readFloat();
+            if (reader.peek() !== "e" && reader.peek() !== "E") {
+                throw {};
+            }
+            reader.skip();
+            const exp = reader.readInt();
+            out = f * Math.pow(10, exp);
+        } catch (e) {
+            reader.cursor = start;
+            out = reader.readFloat();
         }
-        reader.skip();
-        const exp = reader.readInt();
-        out = f * Math.pow(10, exp);
+        return out;
     } catch (e) {
-        reader.cursor = start;
-        out = reader.readFloat();
+        throw new NBTError(e, data, correct);
     }
-    return out;
 }
