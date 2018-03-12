@@ -121,7 +121,7 @@ export interface ParsedInfo {
     nodes: ParseNode[]; errors: CommandError[]; actions: SubAction[];
 }
 
-interface SubNode<U extends string, T> extends DataInterval<T> {
+interface SubNode<U extends string, T> extends DataInterval<T | (() => T)> {
     type: U;
 }
 
