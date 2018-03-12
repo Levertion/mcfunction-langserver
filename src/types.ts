@@ -4,11 +4,8 @@ import { CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
 import { Resources } from "./data/datapack_resources";
 import { CommandNodePath, GlobalData } from "./data/types";
-<<<<<<< HEAD
-=======
 import { HighlightScope } from "./highlight/highlight_util";
 import { ContextInformation } from "./parse/context";
->>>>>>> afb6f75... Work on command context
 
 /**
  * A deeply readonly version of the given type.
