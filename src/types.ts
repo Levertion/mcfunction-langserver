@@ -5,7 +5,10 @@ import { StringReader } from "./brigadier_components/string_reader";
 import { Resources } from "./data/datapack_resources";
 import { CommandNodePath, GlobalData } from "./data/types";
 import { HighlightScope } from "./highlight/highlight_util";
+<<<<<<< HEAD
 import { ContextInformation } from "./parse/context";
+=======
+>>>>>>> 7553b9a... Work on highlighting
 
 /**
  * A deeply readonly version of the given type.
@@ -111,7 +114,14 @@ export interface ParseResult {
      * The error if parsing was not successful.
      */
     errors?: CommandError[];
+    /**
+     * The actions for the line
+     */
     actions?: SubAction[];
+    /**
+     * The highlight scopes for a line
+     */
+    highlight?: HighlightScope[];
 }
 
 export interface ParseNode extends Interval {
@@ -127,5 +137,7 @@ interface SubNode<U extends string, T> extends DataInterval<T> {
     type: U;
 }
 
-export type SubAction = SubNode<"hover", string>;
+type HoverAction = SubNode<"hover", string>;
+
+export type SubAction = HoverAction;
  // | SubNode<"rename", RenameRequest>;
