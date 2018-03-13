@@ -5,10 +5,10 @@ import {
     ARRAY_END,
     ARRAY_PREFIX_SEP,
     ARRAY_START,
+    ARRAY_VALUE_SEP,
     expectAndScope,
     NBTHighlightAction,
     NBTHoverAction,
-    tryWithData,
 } from "../util/nbt_util";
 import { NBTTagByte } from "./byte_tag";
 import { NBTTag } from "./nbt_tag";
@@ -16,6 +16,7 @@ import { NBTTag } from "./nbt_tag";
 export const BYTE_ARRAY_PREFIX = "B";
 
 const EXCEPTIONS = {
+    BAD_CHAR: new CommandErrorBuilder("argument.nbt.bytearray.badchar", "Expected ',' or ']', got '%s'"),
     NO_VALUE: new CommandErrorBuilder("argument.nbt.bytearray.value", "Expected value"),
 };
 
@@ -45,10 +46,15 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
         this.scopes = [];
         const start = reader.cursor;
         this.scopes.push(
-            expectAndScope(reader, ARRAY_START, ["array", "start"], {}, 0),
-            expectAndScope(reader, BYTE_ARRAY_PREFIX, ["array", "prefix"], {}, 0),
-            expectAndScope(reader, ARRAY_PREFIX_SEP, ["array", "prefix", "seperator"], {}, 0),
+            expectAndScope(reader, ARRAY_START, ["array-start"], {}, 0),
+            expectAndScope(reader, BYTE_ARRAY_PREFIX, ["prefix"], {}, 0),
+            expectAndScope(reader, ARRAY_PREFIX_SEP, [
+                "prefix",
+                "prefix-values-seperator",
+                "seperator",
+            ], {}, 0),
         );
+        const valsStart = reader.cursor;
         if (!reader.canRead()) {
             throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);
         }
@@ -63,10 +69,17 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
 
             reader.skipWhitespace();
 
+            const valStart = reader.cursor;
             const val = new NBTTagByte(0);
             val.parse(reader);
 
-            tryWithData(() => this.val.push(val), {}, 2);
+            this.scopes.push({
+                end: reader.cursor,
+                scopes: ["value"],
+                start: valStart,
+            });
+
+            this.val.push(val);
 
             this.scopes.push(...val.getHighlight());
 
@@ -77,7 +90,16 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
             reader.skipWhitespace();
 
             next = reader.read();
+
+            if (next !== ARRAY_VALUE_SEP && next !== ARRAY_END) {
+                throw new NBTError(EXCEPTIONS.BAD_CHAR.create(start, reader.cursor, next), { parsed: this }, 2);
+            }
         }
+        this.scopes.push({
+            end: reader.cursor - 1,
+            scopes: ["values"],
+            start: valsStart,
+        });
         this.scopes.push({
             end: reader.cursor,
             scopes: ["array", "end"],
