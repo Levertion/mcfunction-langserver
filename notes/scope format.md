@@ -20,13 +20,13 @@ When getting a highlight from a parser, the end & start should be relative to th
 }
 ```
 
-Various scopes:
-
-`"kvpair"`: A key-value pair, like `foo:bar` or `foo=bar`
-`"*x*-seperator"`: A seperator between scopes, like `"kvpair-seperator"` would be `,` for NBT
-`"argument"`: A command argument. This shouldn't be used anywhere else
-`"key"`: A key, like foo in `foo:bar` and `foo=bar`
-`"value"`: A value, like bar in `foor:bar` and `foo=bar`
-`"start"`: Start of a closable symbol, like `{` or `[`
-`"end"`: End of a closeable symbol, like `}` or `]`
-`"quote"`: A quote character, IE `"`
+Various scopes:  
+  
+`"kvpair"`: A key-value pair, like `foo:bar` or `foo=bar`  
+`"*x*-seperator"`: A seperator between scopes, like `"kvpair-seperator"` would be `,` for NBT  
+`"argument"`: A command argument. This shouldn't be used anywhere else  
+`"key"`: A key, like foo in `foo:bar` and `foo=bar`  
+`"value"`: A value, like bar in `foor:bar` and `foo=bar`  
+`"start"`: Start of a closable symbol, like `{` or `[`  
+`"end"`: End of a closeable symbol, like `}` or `]`  
+`"quote"`: A quote character, IE `"`  
