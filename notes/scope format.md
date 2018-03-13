@@ -15,7 +15,7 @@ When getting a highlight from a parser, the end & start should be relative to th
 ```ts
 {
     end: 14,
-    scopes: ["kvpair-seperator"],
+    scopes: ["kvpair-seperator", "seperator"],
     start: 13
 }
 ```
@@ -31,3 +31,4 @@ Various scopes:
 `"start"`: Start of a closable symbol, like `{` or `[`  
 `"end"`: End of a closeable symbol, like `}` or `]`  
 `"quote"`: A quote character, IE `"`  
+`"seperator"`: Should accompany `*x*-seperator` and `*x*-*y*-seperator*`
