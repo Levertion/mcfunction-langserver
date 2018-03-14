@@ -38,6 +38,6 @@
     "request-promise-native": "^1.0.5",
     "sprintfjs": "^1.2.7",
     "util.promisify": "^1.0.0",
-    "vscode-languageserver": "^3.5.0"
+    "vscode-languageserver": "^4.0.0"
   }
 }
