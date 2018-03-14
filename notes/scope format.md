@@ -17,12 +17,12 @@ You *generally* should not have multiple of the same scopes inside one another (
 }
 ```
 * Scopes of multiple names should be separated by `-`
-    * Example: in `@e[name="foo",tag=bar]` there should be
+    * Example: in `say @e[name="foo",tag=bar]` there should be
 ```ts
 {
-    end: 14,
+    end: 18,
     scopes: ["kvpair-seperator", "seperator"],
-    start: 13
+    start: 17
 }
 ```
 
@@ -35,6 +35,6 @@ You *generally* should not have multiple of the same scopes inside one another (
 `"key"`: A key, like foo in `foo:bar` and `foo=bar`  
 `"value"`: A value, like bar in `foor:bar` and `foo=bar` 
 `"quote"`: A quote character, IE `"`  
-`"seperator"`: Should accompany `*x*-seperator` and `*x*-*y*-seperator*`
-`"*x*-start"`: Start of a value. An accompanying `"start"` should also exist
-`"*x*-end"`: Same as `"*x*-start"`
+`"seperator"`: Should accompany `*x*-seperator` and `*x*-*y*-seperator*`  
+`"*x*-start"`: Start of a value with characters as start and end markers (like `{` and `[`). An accompanying `"start"` should also exist  
+`"*x*-end"`: Same as `"*x*-start"`  
