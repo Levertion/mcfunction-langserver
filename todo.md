@@ -5,20 +5,4 @@
 
 ## To be implemented protocol commands
  - `mcfunction/shutdown` (c <- s) (required): Client should call `shutdown` and `exit`. The argument is the error message to be shown.
- - `mcfunction/highlight` (c <-> s) (optional): Request to get highlighting scopes. Request Data: 
-```ts
-export interface HighlightParams {
-    textDocument: TextDocumentIdentifier;
-}
-```  
-Response Data: 
-```ts
-export interface HighlightResponseParams {
-    highlights: HighlightScope[];
-}
-
-interface HighlightScope {
-    ids: string[];
-    range: Range;
-}
-```
+ - `mcfunction/highlightRange`: See `./notes/highlight request.md`
