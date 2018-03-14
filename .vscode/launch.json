@@ -13,8 +13,11 @@
                 "--opts",
                 "${workspaceFolder}/mocha.opts"
             ],
+            "outFiles": [
+                "${workspaceFolder}/bin/**/*.js"
+            ],
             "internalConsoleOptions": "openOnSessionStart",
-            "preLaunchTask": "Compile"
+            "preLaunchTask": "Compile",
         }
     ]
 }
