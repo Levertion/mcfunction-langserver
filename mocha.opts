@@ -1,5 +1,4 @@
 --ui tdd
 --colors
 --timeout 999999 
---inspect-brk
 bin/test/**/*.test.js
