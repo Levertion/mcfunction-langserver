@@ -47,6 +47,9 @@ export class NBTParser implements Parser {
         }
         const walker = new NBTWalker(parsed);
         const node = walker.getFinalNode([]);
+        if (node !== undefined) {
+            //
+        }
         return [];
     }
 }

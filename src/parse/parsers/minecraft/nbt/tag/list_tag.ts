@@ -38,6 +38,10 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
         return val;
     }
 
+    public getHighlight() {
+        return [];
+    }
+
     public _parse(reader: StringReader): void {
         const start = reader.cursor;
         tryWithData(() => reader.expect(LIST_OPEN), {}, 0);

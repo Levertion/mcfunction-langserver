@@ -19,12 +19,11 @@ const parser: Parser = {
                 reader.cursor = end;
                 if (reader.peek() === " " || !reader.canRead()) {
                     return {
-                        actions: [
+                        highlight: [
                             {
-                                data: [{ start: begin, end, scopeId: "argument.literal" }],
-                                high: end,
-                                low: begin,
-                                type: "highlight",
+                                end,
+                                scopes: ["literal"],
+                                start: begin,
                             },
                         ],
                         successful: true,

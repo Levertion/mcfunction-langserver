@@ -9,6 +9,10 @@ export class NBTTagString extends NBTTag<string> {
         return [];
     }
 
+    public getHighlight() {
+        return [];
+    }
+
     public _parse(reader: StringReader) {
         tryWithData(() => this.val = parseStringNBT(reader), {}, 1);
         this.correct = 1;

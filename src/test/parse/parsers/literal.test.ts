@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { StringReader } from "../../../brigadier_components/string_reader";
 import * as literalArgumentParser from "../../../parse/parsers/literal";
-import { ParserInfo } from "../../../types";
+import { ParseResult, ParserInfo } from "../../../types";
 
 describe("literalArgumentParser", () => {
     const properties: ParserInfo = { key: "test", node_properties: {} } as any as ParserInfo;
@@ -9,7 +9,16 @@ describe("literalArgumentParser", () => {
         describe("literal correct", () => {
             it("should suceed", () => {
                 const reader = new StringReader("test");
-                assert.deepEqual(literalArgumentParser.parse(reader, properties), { successful: true });
+                assert.deepEqual(literalArgumentParser.parse(reader, properties), {
+                    highlight: [
+                        {
+                            end: 4,
+                            scopes: ["literal"],
+                            start: 0,
+                        },
+                    ],
+                    successful: true,
+                } as ParseResult);
             });
             it("should set the cursor to end of the string when the literal goes to the end of the string", () => {
                 const reader = new StringReader("test");

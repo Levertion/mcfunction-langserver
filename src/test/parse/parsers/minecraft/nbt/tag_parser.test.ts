@@ -117,7 +117,9 @@ describe("Tag parser tests", () => {
                         const reader = new StringReader(v[0].toString());
                         const out = parseTag(reader);
                         assert.strictEqual(out.tagType, "byte_array");
-                        assert.ok(out.tagEq(new NBTTagByteArray(v[1] as number[])));
+                        assert.ok(out.tagEq(new NBTTagByteArray((v[1] as number[]).map(
+                            (v1) => new NBTTagByte(v1),
+                        ))));
                     }),
             );
         });

@@ -23,12 +23,14 @@ export class SwizzleParser implements Parser {
             }
         }
         return {
-            actions: [{
-                data: [{ end: reader.cursor, scopeId: "argument.swizzle", start }],
-                high: reader.cursor,
-                low: start,
-                type: "highlight",
-            }],
+            highlight: [
+                {
+                    end: reader.cursor,
+                    scopes: ["argument", "minecraft:swizzle"],
+                    start,
+                },
+            ],
+            successful: true,
         } as ParseResult;
     }
 

@@ -114,7 +114,7 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
         }
         const taga: NBTTagByteArray = tag as NBTTagByteArray;
         return this.val.length === taga.getVal().length && this.val.every(
-            (v, i) => v === taga.val[i],
+            (v, i) => v.getVal() === taga.val[i].getVal(),
         );
     }
 }
