@@ -38,3 +38,4 @@ You *generally* should not have multiple of the same scopes inside one another (
 `"seperator"`: Should accompany `*x*-seperator` and `*x*-*y*-seperator*`  
 `"*x*-start"`: Start of a value with characters as start and end markers (like `{` and `[`). An accompanying `"start"` should also exist  
 `"*x*-end"`: Same as `"*x*-start"`  
+`"punctuation"`: Should exist on all characters used as a seperator or start/end
