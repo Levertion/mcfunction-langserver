@@ -21,7 +21,7 @@ You *generally* should not have multiple of the same scopes inside one another (
 ```ts
 {
     end: 18,
-    scopes: ["kvpair-seperator", "seperator"],
+    scopes: ["kvpair-separator", "separator"],
     start: 17
 }
 ```
@@ -29,13 +29,13 @@ You *generally* should not have multiple of the same scopes inside one another (
 ## Various scopes
   
 `"kvpair"`: A key-value pair, like `foo:bar` or `foo=bar`  
-`"*x*-seperator"`: A seperator between same scopes, like `"kvpair-seperator"` would be `,` for NBT  
-`"*x*-*y*-seperator"`: A seperator between different scopes, like `"key-value-seperator"` would be `:` for NBT  
+`"*x*-separator"`: A separator between same scopes, like `"kvpair-separator"` would be `,` for NBT  
+`"*x*-*y*-separator"`: A separator between different scopes, like `"key-value-separator"` would be `:` for NBT  
 `"argument"`: A command argument. This shouldn't be used anywhere else  
 `"key"`: A key, like foo in `foo:bar` and `foo=bar`  
 `"value"`: A value, like bar in `foor:bar` and `foo=bar` 
 `"quote"`: A quote character, IE `"`  
-`"seperator"`: Should accompany `*x*-seperator` and `*x*-*y*-seperator*`  
+`"separator"`: Should accompany `*x*-separator` and `*x*-*y*-separator*`  
 `"*x*-start"`: Start of a value with characters as start and end markers (like `{` and `[`). An accompanying `"start"` should also exist  
 `"*x*-end"`: Same as `"*x*-start"`  
-`"punctuation"`: Should exist on all characters used as a seperator or start/end
+`"punctuation"`: Should exist on all characters used as a separator or start/end
