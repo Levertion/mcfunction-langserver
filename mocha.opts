@@ -1,4 +1,4 @@
 --ui tdd
 --colors
 --timeout 999999 
-lib/test/**/*.test.js
+out/test/**/*.test.js
