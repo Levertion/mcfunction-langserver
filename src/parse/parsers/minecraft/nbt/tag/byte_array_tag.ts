@@ -50,8 +50,8 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
             expectAndScope(reader, BYTE_ARRAY_PREFIX, ["prefix"], {}, 0),
             expectAndScope(reader, ARRAY_PREFIX_SEP, [
                 "prefix",
-                "prefix-values-seperator",
-                "seperator",
+                "prefix-values-separator",
+                "separator",
             ], {}, 0),
         );
         const valsStart = reader.cursor;

@@ -47,7 +47,7 @@ export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
         this.scopes.push(
             expectAndScope(reader, ARRAY_START, ["array", "start"], {}, 0),
             expectAndScope(reader, LONG_ARRAY_PREFIX, ["array", "prefix"], {}, 0),
-            expectAndScope(reader, ARRAY_PREFIX_SEP, ["array", "prefix", "seperator"], {}, 0),
+            expectAndScope(reader, ARRAY_PREFIX_SEP, ["array", "prefix", "separator"], {}, 0),
         );
         if (!reader.canRead()) {
             throw new NBTError(EXCEPTIONS.NO_VALUE.create(start, reader.cursor), { parsed: this }, 2);

@@ -90,7 +90,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             expectAndScope(
                 reader,
                 COMPOUND_KEY_VALUE_SEP,
-                ["compound", "key-value", "seperator"],
+                ["compound", "key-value", "separator"],
                 { completions: [COMPOUND_KEY_VALUE_SEP], keys, parsed: this, part: "key", path: [key] },
                 2,
             );
