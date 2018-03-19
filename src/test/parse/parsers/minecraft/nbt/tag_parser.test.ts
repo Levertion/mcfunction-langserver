@@ -159,6 +159,7 @@ describe("Tag parser tests", () => {
         describe("compound", () => {
             [
                 ["{foo :bar }", { foo: new NBTTagString("bar") }],
+                ["{foo:{bar:baz}}", { foo: new NBTTagCompound({ bar: new NBTTagString("baz") }) }],
             ].forEach((v) =>
                 it(v[0].toString() + " should return as a compound tag with the correct value", () => {
                     const reader = new StringReader(v[0].toString());

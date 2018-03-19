@@ -68,7 +68,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
 
     public _parse(reader: StringReader) {
         const start = reader.cursor;
-        expectAndScope(reader, COMPOUND_START, ["compound", "start"], {}, 0);
+        this.scopes.push(expectAndScope(reader, COMPOUND_START, ["compound-start", "start"], {}, 0));
         let next = ",";
         const keys = [];
         while (next !== COMPOUND_END) {
@@ -110,13 +110,13 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
 
             reader.skipWhitespace();
 
-            expectAndScope(
+            this.scopes.push(expectAndScope(
                 reader,
                 COMPOUND_KEY_VALUE_SEP,
                 ["compound", "key-value", "separator"],
                 { completions: [COMPOUND_KEY_VALUE_SEP], keys, parsed: this, part: "key", path: [key] },
                 2,
-            );
+            ));
 
             reader.skipWhitespace();
 
@@ -126,12 +126,23 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 { parsed: this, keys, part: "value", path: [key] },
                 2,
             );
+
+            const vStart = reader.cursor;
+
             let val: NBTTag<any>;
 
             reader.skipWhitespace();
 
             try {
                 val = parseTag(reader);
+                this.scopes.push(
+                    ...val.getHighlight(),
+                    {
+                        end: reader.cursor,
+                        scopes: ["value"],
+                        start: vStart,
+                    },
+                );
             } catch (e) {
                 throw new NBTError(e, { parsed: this, keys, part: "value", path: [key, ...e] }, 2);
             }
@@ -152,6 +163,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             }
         }
         this.correct = 2;
+        this.scopes.push(scopeChar(reader.cursor, ["compound-end", "end"]));
     }
 
     public tagEq(tag: NBTTag<any>): boolean {
