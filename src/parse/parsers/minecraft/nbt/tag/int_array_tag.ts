@@ -92,7 +92,7 @@ export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
         }
         const taga: NBTTagIntArray = tag as NBTTagIntArray;
         return this.val.length === taga.getVal().length && this.val.every(
-            (v, i) => v === taga.val[i],
+            (v, i) => v.getVal() === taga.val[i].getVal(),
         );
     }
 }

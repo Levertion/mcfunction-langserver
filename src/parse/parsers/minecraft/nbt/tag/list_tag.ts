@@ -2,20 +2,27 @@ import { CommandErrorBuilder } from "../../../../../brigadier_components/errors"
 import { StringReader } from "../../../../../brigadier_components/string_reader";
 import { parseTag } from "../tag_parser";
 import { NBTError } from "../util/nbt_error";
-import { NBTHoverAction, throwIfFalse, tryWithData } from "../util/nbt_util";
+import {
+    expectAndScope,
+    LIST_END,
+    LIST_START,
+    LIST_VALUE_SEP,
+    NBTHighlightAction,
+    NBTHoverAction,
+    scopeChar,
+    throwIfFalse,
+} from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
 const MIXED = new CommandErrorBuilder("argument.nbt.list.mixed", "Mixed value types");
 const NOVAL = new CommandErrorBuilder("argument.nbt.list.noval", "Expected ']'");
 const EXCLOSE = new CommandErrorBuilder("argument.nbt.list.notclosed", "Expected ',' or ']'");
 
-export const LIST_OPEN = "[";
-export const LIST_CLOSE = "]";
-export const VAL_SEP = ",";
-
 export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
 
     public tagType: "list" = "list";
+
+    private scopes: NBTHighlightAction[] = [];
 
     public getHover(): NBTHoverAction[] {
         const val: NBTHoverAction[] = [
@@ -39,15 +46,19 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
     }
 
     public getHighlight() {
-        return [];
+        return this.scopes.concat({
+            end: this.end,
+            scopes: ["list"],
+            start: this.start,
+        });
     }
 
     public _parse(reader: StringReader): void {
         const start = reader.cursor;
-        tryWithData(() => reader.expect(LIST_OPEN), {}, 0);
+        this.scopes.push(expectAndScope(reader, LIST_START, ["list-start", "start"], {}, 0));
         let type: NBTTag<any>;
         let next = "";
-        while (next !== LIST_CLOSE) {
+        while (next !== LIST_END) {
 
             reader.skipWhitespace();
 
@@ -56,7 +67,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             throwIfFalse(
                 reader.canRead(),
                 NOVAL.create(start, reader.cursor),
-                { parsed: this, completions: [LIST_CLOSE] },
+                { parsed: this, completions: [LIST_END] },
                 2,
             );
 
@@ -88,12 +99,15 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             reader.skipWhitespace();
 
             next = reader.read();
-            if (next !== VAL_SEP && next !== LIST_CLOSE) {
+            if (next !== LIST_VALUE_SEP && next !== LIST_END) {
                 throw new NBTError(
                     EXCLOSE.create(start, reader.cursor),
-                    { parsed: this, completions: [LIST_CLOSE, VAL_SEP] },
+                    { parsed: this, completions: [LIST_END, LIST_VALUE_SEP] },
                     1,
                 );
+            }
+            if (next === LIST_VALUE_SEP) {
+                this.scopes.push(scopeChar(reader.cursor, ["value-key-separator", "separator"]));
             }
         }
         this.correct = 2;

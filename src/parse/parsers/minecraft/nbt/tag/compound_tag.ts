@@ -12,6 +12,7 @@ import {
     NBTHighlightAction,
     NBTHoverAction,
     parseStringNBT,
+    scopeChar,
     throwIfFalse,
 } from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
@@ -81,9 +82,31 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 2,
             );
             const keyS = reader.cursor;
+            const quoted = reader.peek() === "\"";
             const key = parseStringNBT(reader);
             keys.push(key);
             this.keyPos.push([keyS, reader.cursor]);
+
+            this.scopes.push({
+                end: reader.cursor,
+                scopes: ["string", quoted ? "quoted" : "unquoted", "key"],
+                start: keyS,
+            });
+
+            if (quoted) {
+                this.scopes.push(
+                    {
+                        end: keyS + 1,
+                        scopes: ["string-start", "start"],
+                        start: keyS,
+                    },
+                    {
+                        end: reader.cursor,
+                        scopes: ["string-end", "end"],
+                        start: reader.cursor - 1,
+                    },
+                );
+            }
 
             reader.skipWhitespace();
 
@@ -116,13 +139,16 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
 
             reader.skipWhitespace();
 
-            next = reader.peek();
+            next = reader.read();
             if (next !== COMPOUND_PAIR_SEP && next !== COMPOUND_END) {
                 throw new NBTError(
                     NO_END.create(start, reader.cursor),
                     { parsed: this, keys, part: "value", completions: [COMPOUND_PAIR_SEP, COMPOUND_END], path: [key] },
                     2,
                 );
+            }
+            if (next === COMPOUND_PAIR_SEP) {
+                this.scopes.push(scopeChar(reader.cursor, ["value-key-separator", "separator"]));
             }
         }
         this.correct = 2;

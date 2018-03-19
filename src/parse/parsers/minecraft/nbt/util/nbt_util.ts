@@ -38,11 +38,7 @@ export function expectAndScope(
     correct: CorrectLevel,
 ) {
     tryWithData(() => reader.expect(char), data, correct);
-    return {
-        end: reader.cursor,
-        scopes,
-        start: reader.cursor - 1,
-    };
+    return scopeChar(reader.cursor, scopes);
 }
 
 export function tryWithData(func: () => void, data: Data, correct: CorrectLevel): void {
@@ -120,3 +116,9 @@ export function parseFloatNBT(reader: StringReader, data: Data = {}, correct: Co
         throw new NBTError(e, data, correct);
     }
 }
+
+export const scopeChar = (end: number, scopes: string[]) => ({
+    end,
+    scopes,
+    start: end - 1,
+});

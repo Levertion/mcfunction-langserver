@@ -92,7 +92,7 @@ export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
         }
         const taga: NBTTagLongArray = tag as NBTTagLongArray;
         return this.val.length === taga.getVal().length && this.val.every(
-            (v, i) => v === taga.val[i],
+            (v, i) => v.getVal() === taga.val[i].getVal(),
         );
     }
 }

@@ -39,3 +39,6 @@ You *generally* should not have multiple of the same scopes inside one another (
 `"*x*-start"`: Start of a value with characters as start and end markers (like `{` and `[`). An accompanying `"start"` should also exist  
 `"*x*-end"`: Same as `"*x*-start"`  
 `"punctuation"`: Should exist on all characters used as a separator or start/end
+`"string"`: If the scoped value is a string
+`"quoted"`: If the string is quoted
+`"unquoted"`: If the string is unquoted
