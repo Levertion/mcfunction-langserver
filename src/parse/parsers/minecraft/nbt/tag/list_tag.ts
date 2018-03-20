@@ -107,7 +107,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 );
             }
             if (next === LIST_VALUE_SEP) {
-                this.scopes.push(scopeChar(reader.cursor, ["value-key-separator", "separator"]));
+                this.scopes.push(scopeChar(reader.cursor, ["value-separator", "separator"]));
             }
         }
         this.correct = 2;
