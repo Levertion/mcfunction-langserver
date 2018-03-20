@@ -1,4 +1,5 @@
 import { StringReader } from "../../../../brigadier_components/string_reader";
+import { HighlightScope } from "../../../../highlight/highlight_util";
 import { Parser, ParseResult, SubAction, SuggestResult } from "../../../../types";
 import { NBTWalker } from "./doc_walker";
 import { NBTTagCompound } from "./tag/compound_tag";
@@ -19,10 +20,16 @@ function getRealActions(actions: NBTHoverAction[], root: NBTTag<any>): SubAction
 export class NBTParser implements Parser {
     public parse(reader: StringReader): ParseResult {
         try {
-            // @ts-ignore
             const tag = parseTag(reader);
             return {
                 actions: getRealActions(tag.getHover(), tag),
+                highlight: tag.getHighlight().map(
+                    (v) => ({
+                        end: v.end,
+                        scopes: typeof v.scopes === "string" ? [v.scopes] : v.scopes,
+                        start: v.start,
+                    }) as HighlightScope,
+                ),
                 successful: true,
             };
         } catch (e) {
