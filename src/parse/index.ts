@@ -4,6 +4,7 @@ import { StringReader } from "../brigadier_components/string_reader";
 import { Resources } from "../data/datapack_resources";
 import { CommandNode, CommandNodePath, CommandTree, GlobalData, MCNode } from "../data/types";
 import { CommmandData, ParsedInfo, ParseNode, ParseResult, SubAction } from "../types";
+import { ContextInformation, runContextHandlers, shouldChangeContext } from "./context";
 import { buildInfoForParsers, getNodeAlongPath } from "./node_management";
 import { getParser } from "./parsers/get_parser";
 
@@ -87,7 +88,7 @@ function parseAgainstChildren(reader: StringReader, node: MCNode<CommandNode>,
             reader.cursor = start;
             const newPath = nodePath.slice(); newPath.push(childName);
             const childNode = parent.children[childName];
-            const result = parseAgainstNode(reader, childNode, data, childName);
+            const result = parseAgainstNode(reader, childNode, data, childName, nodePath, nodes);
             if (!!result.errors) {
                 errors.push(...result.errors);
             }
@@ -104,14 +105,30 @@ function parseAgainstChildren(reader: StringReader, node: MCNode<CommandNode>,
     }
 }
 
-function parseAgainstNode(reader: StringReader, node: CommandNode, data: CommmandData, key: string): ParseResult {
+function parseAgainstNode(
+    reader: StringReader,
+    node: CommandNode,
+    data: CommmandData,
+    key: string, path: string[],
+    nodes: ParseNode[],
+): ParseResult {
     const nodeInfo = buildInfoForParsers(node, data, key);
     const parser = getParser(node);
     if (!parser) {
         return { successful: false };
     }
     try {
-        const result = parser.parse(reader, nodeInfo);
+        const contextInfo: ContextInformation = { changeContext: false, handlerInfo: undefined };
+
+        const lineStr = reader.string;
+
+        contextInfo.changeContext = shouldChangeContext(path);
+        contextInfo.handlerInfo = runContextHandlers(
+            path,
+            nodes.map((v) => lineStr.substring(v.low, v.high)),
+        );
+
+        const result = parser.parse(reader, nodeInfo, contextInfo);
         if (result === undefined) {
             return { successful: true };
         } else {
