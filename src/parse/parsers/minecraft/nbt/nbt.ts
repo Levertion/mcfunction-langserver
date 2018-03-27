@@ -4,7 +4,6 @@ import { Parser, ParseResult, SubAction, SuggestResult } from "../../../../types
 import { NBTWalker } from "./doc_walker";
 import { NBTTagCompound } from "./tag/compound_tag";
 import { NBTTag } from "./tag/nbt_tag";
-import { parseTag } from "./tag_parser";
 import { NBTError } from "./util/nbt_error";
 import { NBTHoverAction } from "./util/nbt_util";
 
@@ -20,7 +19,8 @@ function getRealActions(actions: NBTHoverAction[], root: NBTTag<any>): SubAction
 export class NBTParser implements Parser {
     public parse(reader: StringReader): ParseResult {
         try {
-            const tag = parseTag(reader);
+            const tag = new NBTTagCompound({});
+            tag.parse(reader);
             return {
                 actions: getRealActions(tag.getHover(), tag),
                 highlight: tag.getHighlight().map(
@@ -45,12 +45,11 @@ export class NBTParser implements Parser {
 
     public getSuggestions(text: string): SuggestResult[] {
         const reader = new StringReader(text);
-        let parsed: NBTTag<any>;
+        const parsed = new NBTTagCompound({});
         try {
-            parsed = parseTag(reader);
+            parsed.parse(reader);
         } catch (e) {
-            const ex = e as NBTError;
-            parsed = ex.data.parsed || new NBTTagCompound({});
+            // Eat NBT erorr
         }
         const walker = new NBTWalker(parsed);
         const node = walker.getFinalNode([]);
