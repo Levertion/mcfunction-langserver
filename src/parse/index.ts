@@ -88,7 +88,7 @@ function parseAgainstChildren(reader: StringReader, node: MCNode<CommandNode>,
             reader.cursor = start;
             const newPath = nodePath.slice(); newPath.push(childName);
             const childNode = parent.children[childName];
-            const result = parseAgainstNode(reader, childNode, data, childName, nodePath, nodes);
+            const result = parseAgainstNode(reader, childNode, data, childName, nodes);
             if (!!result.errors) {
                 errors.push(...result.errors);
             }
@@ -109,7 +109,7 @@ function parseAgainstNode(
     reader: StringReader,
     node: CommandNode,
     data: CommmandData,
-    key: string, path: string[],
+    key: string,
     nodes: ParseNode[],
 ): ParseResult {
     const nodeInfo = buildInfoForParsers(node, data, key);
@@ -121,6 +121,8 @@ function parseAgainstNode(
         const contextInfo: ContextInformation = { changeContext: false, handlerInfo: undefined };
 
         const lineStr = reader.string;
+
+        const path = nodes[nodes.length - 1].path;
 
         contextInfo.changeContext = shouldChangeContext(path);
         contextInfo.handlerInfo = runContextHandlers(
