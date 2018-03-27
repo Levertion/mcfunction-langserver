@@ -5,10 +5,7 @@ import { StringReader } from "./brigadier_components/string_reader";
 import { Resources } from "./data/datapack_resources";
 import { CommandNodePath, GlobalData } from "./data/types";
 import { HighlightScope } from "./highlight/highlight_util";
-<<<<<<< HEAD
 import { ContextInformation } from "./parse/context";
-=======
->>>>>>> 7553b9a... Work on highlighting
 
 /**
  * A deeply readonly version of the given type.
