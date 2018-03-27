@@ -122,7 +122,7 @@ function parseAgainstNode(
 
         const lineStr = reader.string;
 
-        const path = nodes[nodes.length - 1].path;
+        const path = nodes.length === 0 ? [] : nodes[nodes.length - 1].path;
 
         contextInfo.changeContext = shouldChangeContext(path);
         contextInfo.handlerInfo = runContextHandlers(
