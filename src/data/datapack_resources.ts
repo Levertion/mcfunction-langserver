@@ -45,6 +45,14 @@ export interface NamespacedName {
     path: string;
 }
 
+export interface ExactNamespaceName extends NamespacedName {
+    exact: boolean;
+}
+
+export function exactifyNamespace(originalName: NamespacedName): ExactNamespaceName {
+    return Object.assign(originalName, { exact: true });
+}
+
 interface ResourceInfo<U = string> {
     extension: string;
     pathfromroot: [U] | string[]; // Custom tuple allows autocomplete mostly.

@@ -85,7 +85,7 @@ export type SuggestResult = Suggestion | string;
 
 /**
  * A way to allow a single parser to handle both suggestions and parsing
- * to use, use `Parser & Suggester`
+ * to use, use `ParseResult & Suggester`
  */
 export interface Suggester {
     suggestions?: SuggestResult[];
@@ -117,6 +117,9 @@ export interface ParseResult {
      * The error is parsing was not successful.
      */
     errors?: CommandError[];
+    /**
+     * Actions identified in parsing
+     */
     actions?: SubAction[];
 }
 

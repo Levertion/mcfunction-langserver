@@ -1,3 +1,4 @@
+import { BlankCommandError, CommandError, fillBlankError } from "../brigadier_components/errors";
 import { NamespaceData } from "./datapack_resources";
 
 /**
@@ -7,15 +8,10 @@ export interface GlobalData {
     commands: CommandTree;
     resources: NamespaceData;
     meta_info: { version: string };
-    blocks: BlockStateInfo;
+    blocks: BlockPropertyInfo;
     items: string[];
 }
 
-export interface BlockStateInfo {
-    [id: string]: {
-        [state: string]: string[],
-    };
-}
 //#region Command Tree
 /**
  * The base Command Tree.
@@ -89,3 +85,16 @@ export interface SinglePropertyInfo {
  */
 export type AvailableItems = string[];
 //#endregion
+
+export interface ErrorableSubFunctionReturn<T> {
+    result: T;
+    errors: BlankCommandError[];
+}
+
+export function getErrors(ret: ErrorableSubFunctionReturn<any>, start: number, end: number): CommandError[] {
+    const errors: CommandError[] = [];
+    for (const err of ret.errors) {
+        errors.push(fillBlankError(err, start, end));
+    }
+    return errors;
+}
