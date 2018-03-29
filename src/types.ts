@@ -5,6 +5,7 @@ import { StringReader } from "./brigadier_components/string_reader";
 import { Resources } from "./data/datapack_resources";
 import { CommandNodePath, GlobalData } from "./data/types";
 import { HighlightScope } from "./highlight/highlight_util";
+import { ContextInformation } from "./parse/context";
 
 /**
  * A deeply readonly version of the given type.
@@ -89,12 +90,12 @@ export interface Parser {
      * Parse the argument as described in NodeProperties against this parser in the reader.
      * The context is optional for tests
      */
-    parse: (reader: StringReader, properties: ParserInfo) => ParseResult | void;
+    parse: (reader: StringReader, properties: ParserInfo, context?: ContextInformation) => ParseResult | void;
     /**
      * List the suggestions at the end of the starting text described in `text`.
      * @returns an array of Suggestions, either strings or a Suggestion objection
      */
-    getSuggestions: (text: string, context: ParserInfo) => SuggestResult[];
+    getSuggestions: (text: string, properties: ParserInfo, context?: ContextInformation) => SuggestResult[];
     /**
      * The kind of the suggestion in the Completion List
      */
@@ -107,7 +108,7 @@ export interface ParseResult {
      */
     successful: boolean;
     /**
-     * The error is parsing was not successful.
+     * The error if parsing was not successful.
      */
     errors?: CommandError[];
     /**
