@@ -3,11 +3,13 @@ export interface ContextHandler {
     handle: (args: string[]) => any;
 }
 
+export type ContextChangePath = string[];
+
 const contextHandlers: ContextHandler[] = [
 
 ];
 
-const contextChangePaths: string[][] = [
+const contextChangePaths: ContextChangePath[] = [
 
 ];
 

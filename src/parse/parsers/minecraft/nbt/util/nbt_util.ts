@@ -1,5 +1,6 @@
 import { CommandError, CommandErrorBuilder } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
+import { NBTContextData } from "../nbt";
 import { NBTTag } from "../tag/nbt_tag";
 import { CorrectLevel, Data, NBTError } from "./nbt_error";
 
@@ -20,7 +21,7 @@ export const COMPOUND_PAIR_SEP = ",";
 export interface NBTHoverAction {
     start: number;
     end: number;
-    data: string | ((path: string[], root: NBTTag<any>) => () => string);
+    data: string | ((path: string[], root: NBTTag<any>, context?: NBTContextData) => () => string);
     path?: string[];
 }
 

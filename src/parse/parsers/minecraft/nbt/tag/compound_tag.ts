@@ -32,9 +32,12 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
         const out: NBTHoverAction[] = [];
         this.keyPos.forEach(
             (pos) => out.push({
-                data: (path, root) => {
+                data: (path, root, context) => {
+                    if (!context) {
+                        return () => "";
+                    }
                     const walk = new NBTWalker(root);
-                    const node = walk.getFinalNode(path);
+                    const node = walk.getFinalNode(context.type, context.id, path);
                     return () => node !== undefined ? node.description || "" : "";
                 },
                 end: pos[1],
