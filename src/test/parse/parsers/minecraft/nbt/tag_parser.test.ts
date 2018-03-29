@@ -163,7 +163,7 @@ describe("Tag parser tests", () => {
             ].forEach((v) =>
                 it(v[0].toString() + " should return as a compound tag with the correct value", () => {
                     const reader = new StringReader(v[0].toString());
-                    const out = parseTag(reader) as NBTTagList;
+                    const out = parseTag(reader) as NBTTagCompound;
                     assert.strictEqual(out.tagType, "compound");
                     assert.ok(out.tagEq(new NBTTagCompound(v[1] as { [key: string]: NBTTag<any> })));
                 }),

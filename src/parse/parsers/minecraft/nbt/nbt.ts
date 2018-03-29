@@ -40,7 +40,7 @@ export class NBTParser implements Parser {
             const tag = new NBTTagCompound({});
             tag.parse(reader);
             return {
-                actions: getRealActions(tag.getHover(), tag),
+                actions: getRealActions(tag.getHover(), tag, contData),
                 highlight: tag.getHighlight().map(
                     (v) => ({
                         end: v.end,
