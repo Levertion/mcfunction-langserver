@@ -11,7 +11,6 @@ import {
     expectAndScope,
     NBTHighlightAction,
     NBTHoverAction,
-    parseStringNBT,
     scopeChar,
     throwIfFalse,
 } from "../util/nbt_util";
@@ -86,7 +85,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             );
             const keyS = reader.cursor;
             const quoted = reader.peek() === "\"";
-            const key = parseStringNBT(reader);
+            const key = reader.readString();
             keys.push(key);
             this.keyPos.push([keyS, reader.cursor]);
 

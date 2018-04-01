@@ -1,4 +1,4 @@
-import { CommandError, CommandErrorBuilder } from "../../../../../brigadier_components/errors";
+import { CommandError } from "../../../../../brigadier_components/errors";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
 import { NBTContextData } from "../nbt";
 import { NBTTag } from "../tag/nbt_tag";
@@ -53,24 +53,6 @@ export function tryWithData(func: () => void, data: Data, correct: CorrectLevel)
 export function throwIfFalse(arg: boolean, err: CommandError, data: Data, correct: CorrectLevel): void {
     if (!arg) {
         throw new NBTError(err, data, correct);
-    }
-}
-
-export function parseStringNBT(reader: StringReader): string {
-    const start = reader.cursor;
-    if (reader.canRead() && reader.peek() === "\"") {
-        return reader.readQuotedString();
-    } else {
-        if (!reader.canRead()) {
-            return "";
-        }
-        if (!/[A-Za-z_]/.test(reader.peek())) {
-            throw new CommandErrorBuilder(
-                "argument.nbt.unquoted",
-                "Expected one of [A-Za-z_]",
-            ).create(start, reader.cursor);
-        }
-        return reader.readUnquotedString();
     }
 }
 
