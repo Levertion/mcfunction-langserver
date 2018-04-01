@@ -8,7 +8,7 @@ export interface GlobalData {
     commands: CommandTree;
     resources: NamespaceData;
     meta_info: { version: string };
-    blocks: BlockPropertyInfo;
+    blocks: BlocksPropertyInfo;
     items: string[];
 }
 
@@ -69,11 +69,11 @@ export interface MCNode<T> {
  *
  * The Inner Index Signature is property names, with a string array of valid values.
  */
-export interface BlockPropertyInfo {
-    [blockID: string]: SinglePropertyInfo;
+export interface BlocksPropertyInfo {
+    [blockID: string]: SingleBlockPropertyInfo;
 }
 
-export interface SinglePropertyInfo {
+export interface SingleBlockPropertyInfo {
     [property: string]: string[];
 }
 //#endregion
