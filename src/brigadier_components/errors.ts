@@ -53,13 +53,7 @@ export class CommandErrorBuilder {
     }
 
     public create(start: number, end: number, ...substitutions: any[]): CommandError {
-        const diagnosis: CommandError = {
-            _e: "1",
-            code: this.code,
-            range: { start, end },
-            severity: this.severity, substitutions,
-            text: MCFormat(this.default, ...substitutions),
-        };
+        const diagnosis: CommandError = Object.assign(this.createBlank(...substitutions), { range: { start, end } });
         return diagnosis;
     }
 
