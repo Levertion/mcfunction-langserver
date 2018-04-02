@@ -6,8 +6,8 @@ const JAVAMINFLOAT = -2139095039;
 const JAVAMAXFLOAT = 2139095039;
 
 const FLOATEXCEPTIONS = {
-    TOOBIG: new CommandErrorBuilder("float must not be more than %i, found %i", "argument.float.big"),
-    TOOSMALL: new CommandErrorBuilder("float must not be less than %i, found %i", "argument.float.low"),
+    TOOBIG: new CommandErrorBuilder("argument.float.big", "Float must not be more than %s, found %s"),
+    TOOSMALL: new CommandErrorBuilder("argument.float.low", "Float must not be less than %s, found %s"),
 };
 
 const parser: Parser = {

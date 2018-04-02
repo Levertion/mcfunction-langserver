@@ -1,8 +1,8 @@
 import * as assert from "assert";
-import { isCommandError } from "../../../../brigadier_components/errors";
 import { StringReader } from "../../../../brigadier_components/string_reader";
 import * as floatArgumentParser from "../../../../parse/parsers/brigadier/float";
 import { CommmandData, ParserInfo } from "../../../../types";
+import { thrownErrorAssertion } from "../utils/parser_test_utils";
 
 describe("Float Argument Parser", () => {
     describe("parse()", () => {
@@ -21,7 +21,7 @@ describe("Float Argument Parser", () => {
                 };
                 assert.throws(() => {
                     floatArgumentParser.parse(reader, properties);
-                }, (error: any) => isCommandError(error));
+                }, thrownErrorAssertion({ code: "argument.float.low", range: { start: 0, end: numEnd } }));
             });
             it("should throw a valid command error when it is more than the maximum", () => {
                 const reader = new StringReader(s);
@@ -29,7 +29,7 @@ describe("Float Argument Parser", () => {
                     data: {} as CommmandData, key: "test", node_properties: { max: expectedNum - 1 },
                 };
                 assert.throws(() => { floatArgumentParser.parse(reader, properties); },
-                    (error: any) => isCommandError(error));
+                    thrownErrorAssertion({ code: "argument.float.big", range: { start: 0, end: numEnd } }));
             });
         }
         describe("valid integer", () => {
@@ -51,7 +51,7 @@ describe("Float Argument Parser", () => {
             };
             assert.throws(() => {
                 floatArgumentParser.parse(reader, properties);
-            }, (error: any) => isCommandError(error));
+            }, thrownErrorAssertion({ code: "argument.float.big", range: { start: 0, end: 16 } }));
         });
         it("should fail when the number is less than the java minimum float", () => {
             const reader = new StringReader("-1000000000000000");
@@ -60,7 +60,7 @@ describe("Float Argument Parser", () => {
             };
             assert.throws(() => {
                 floatArgumentParser.parse(reader, properties);
-            }, (error: any) => isCommandError(error));
+            }, thrownErrorAssertion({ code: "argument.float.low", range: { start: 0, end: 17 } }));
         });
     });
     describe("getSuggestions()", () => {

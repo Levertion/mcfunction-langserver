@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import { StringReader } from "../../brigadier_components/string_reader";
 import { } from "../logging_setup";
+import { thrownErrorAssertion } from "../parse/parsers/utils/parser_test_utils";
 
 describe("string-reader", () => {
     describe("constructor()", () => {
@@ -185,7 +186,8 @@ describe("string-reader", () => {
         });
         it("should throw an error when there is a decimal place", () => {
             const reader = new StringReader("1000.");
-            assert.throws(() => reader.readInt());
+            assert.throws(() => reader.readInt(),
+                thrownErrorAssertion({ code: "parsing.int.invalid", range: { start: 0, end: 5 } }));
         });
         it("should read an integer until the first non-integer value", () => {
             const reader = new StringReader("1000test");
@@ -194,7 +196,8 @@ describe("string-reader", () => {
         });
         it("should throw an error when there is no integer under the cursor", () => {
             const reader = new StringReader("noint");
-            assert.throws(() => reader.readInt());
+            assert.throws(() => reader.readInt(),
+                thrownErrorAssertion({ code: "parsing.int.expected", range: { start: 0, end: 5 } }));
         });
     });
     describe("readFloat()", () => {
@@ -227,8 +230,9 @@ describe("string-reader", () => {
             assert.equal(reader.cursor, 8);
         });
         it("should throw an error when there is no integer under the cursor", () => {
-            const reader = new StringReader("noint");
-            assert.throws(() => reader.readFloat());
+            const reader = new StringReader("nofloat");
+            assert.throws(() => reader.readFloat(),
+                thrownErrorAssertion({ code: "parsing.float.expected", range: { start: 0, end: 7 } }));
         });
     });
     describe("readUnquotedString()", () => {
@@ -256,7 +260,8 @@ describe("string-reader", () => {
         });
         it("should throw an error if there is no opening quote", () => {
             const reader = new StringReader("test");
-            assert.throws(() => reader.readQuotedString());
+            assert.throws(() => reader.readQuotedString(),
+                thrownErrorAssertion({ code: "parsing.quote.expected.start", range: { start: 0, end: 4 } }));
         });
         it("should read a full quoted string, giving a result without the quotes", () => {
             const reader = new StringReader("\"hello\"");
@@ -281,11 +286,16 @@ describe("string-reader", () => {
         });
         it("should not allow surplus escapes", () => {
             const reader = new StringReader("\"oop\\s\"");
-            assert.throws(() => reader.readQuotedString());
+            assert.throws(() => reader.readQuotedString(),
+                thrownErrorAssertion({
+                    code: "parsing.quote.expected.end", // Repeat of what Brigadier does?
+                    range: { start: 4, end: 7 },
+                }));
         });
         it("should throw an error when there is no closing quote", () => {
             const reader = new StringReader("\"trailing");
-            assert.throws(() => reader.readQuotedString());
+            assert.throws(() => reader.readQuotedString(),
+                thrownErrorAssertion({ code: "parsing.quote.expected.end", range: { start: 0, end: 9 } }));
         });
     });
     describe("readString()", () => {
@@ -307,9 +317,10 @@ describe("string-reader", () => {
             const reader = new StringReader("false");
             assert.equal(reader.readBoolean(), false);
         });
-        it("should throw an error otherwise", () => {
+        it("should throw an error if not a boolean", () => {
             const reader = new StringReader("nonBoolean");
-            assert.throws(() => reader.readBoolean());
+            assert.throws(() => reader.readBoolean(),
+                thrownErrorAssertion({ code: "parsing.bool.invalid", range: { start: 0, end: 10 } }));
         });
     });
     describe("expect()", () => {
@@ -319,7 +330,9 @@ describe("string-reader", () => {
         });
         it("should not allow any other character", () => {
             const reader = new StringReader("test");
-            assert.throws(() => reader.expect("n"));
+            assert.throws(() => reader.expect("n"),
+                thrownErrorAssertion({ code: "parsing.expected", range: { start: 0, end: 0 } }),
+            );
         });
     });
     describe("readWhileFunction()", () => {

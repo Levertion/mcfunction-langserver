@@ -5,8 +5,8 @@ const JAVAMAXINT = 2147483647;
 const JAVAMININT = -2147483648;
 
 const INTEGEREXCEPTIONS = {
-    TOOBIG: new CommandErrorBuilder("Integer must not be more than %s, found %s", "argument.integer.big"),
-    TOOSMALL: new CommandErrorBuilder("Integer must not be less than %s, found %s", "argument.integer.low"),
+    TOOBIG: new CommandErrorBuilder("argument.integer.big", "Integer must not be more than %s, found %s"),
+    TOOSMALL: new CommandErrorBuilder("argument.integer.low", "Integer must not be less than %s, found %s"),
 };
 
 const parser: Parser = {

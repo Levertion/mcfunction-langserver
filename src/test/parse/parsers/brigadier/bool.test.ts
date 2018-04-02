@@ -2,6 +2,7 @@ import * as assert from "assert";
 import { StringReader } from "../../../../brigadier_components/string_reader";
 import * as boolArgumentParser from "../../../../parse/parsers/brigadier/bool";
 import { CommmandData, ParserInfo } from "../../../../types";
+import { thrownErrorAssertion } from "../utils/parser_test_utils";
 
 describe("Boolean Argument Parser", () => {
     const properties: ParserInfo = { key: "test", node_properties: {}, data: {} as CommmandData };
@@ -16,7 +17,8 @@ describe("Boolean Argument Parser", () => {
         });
         it("should throw an error if it is not reading true or false", () => {
             const reader = new StringReader("notbool");
-            assert.throws(() => boolArgumentParser.parse(reader, properties));
+            assert.throws(() => boolArgumentParser.parse(reader, properties),
+                thrownErrorAssertion({ code: "parsing.bool.invalid", range: { start: 0, end: 7 } }));
         });
     });
     describe("getSuggestions()", () => {
