@@ -4,7 +4,21 @@ import { MCFormat } from "../function_utils";
 /**
  * An error inside a command.
  */
-export interface CommandError {
+export interface CommandError extends BlankCommandError {
+    /**
+     * The range of this error.
+     */
+    range: {
+        start: number,
+        end: number,
+    };
+
+}
+
+/**
+ * A blank command error
+ */
+export interface BlankCommandError {
     /**
      * The code of this error, usable for translation?
      */
@@ -17,13 +31,6 @@ export interface CommandError {
      * The cached text of this error.
      */
     text: string;
-    /**
-     * The range of this error.
-     */
-    range: {
-        start: number,
-        end: number,
-    };
     /**
      * The severity of this error.
      */
@@ -45,18 +52,25 @@ export class CommandErrorBuilder {
         this.severity = severity;
     }
 
-    public create(start: number, end: number, ...substitutions: string[]): CommandError {
-        const diagnosis: CommandError = {
+    public create(start: number, end: number, ...substitutions: any[]): CommandError {
+        const diagnosis: CommandError = Object.assign(this.createBlank(...substitutions), { range: { start, end } });
+        return diagnosis;
+    }
+
+    public createBlank(...substitutions: any[]): BlankCommandError {
+        return {
             _e: "1",
             code: this.code,
-            range: { start, end },
             severity: this.severity, substitutions,
             text: MCFormat(this.default, ...substitutions),
         };
-        return diagnosis;
     }
 }
 
 export function isCommandError(T: any): T is CommandError {
     return T._e === "1";
+}
+
+export function fillBlankError(err: BlankCommandError, start: number, end: number): CommandError {
+    return Object.assign(err, { range: { start, end } });
 }

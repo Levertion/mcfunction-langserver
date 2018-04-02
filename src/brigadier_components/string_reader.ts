@@ -70,7 +70,7 @@ export class StringReader implements ImmutableStringReader {
         if (readToTest.length === 0) {
             throw EXCEPTIONS.EXPECTED_INT.create(start, this.string.length);
         }
-        // The Java readInt crashes upon a `.`, but the regex includes on in brigadier
+        // The Java readInt crashes upon a `.`, but the regex includes one in brigadier
         if (readToTest.indexOf(".") !== -1) {
             throw EXCEPTIONS.INVALID_INT.create(start, this.cursor, this.string.substring(start, this.cursor));
         }

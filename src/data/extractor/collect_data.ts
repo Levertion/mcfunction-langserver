@@ -4,7 +4,7 @@ import { promisify } from "util";
 import { shim } from "util.promisify";
 shim();
 import { getNamespaceResources } from "../datapack_resources";
-import { BlockStateInfo, CommandTree, GlobalData } from "../types";
+import { BlocksPropertyInfo, CommandTree, GlobalData } from "../types";
 type DataSaveResult<T extends keyof GlobalData> = [T, GlobalData[T]];
 
 export async function collectData(version: string, dataDir: string): Promise<GlobalData> {
@@ -49,8 +49,8 @@ async function getBlocks(dataDir: string): Promise<DataSaveResult<"blocks">> {
     return ["blocks", cleanBlocks(blocksData)];
 }
 
-function cleanBlocks(blocks: BlocksJson): BlockStateInfo {
-    const result: BlockStateInfo = {};
+function cleanBlocks(blocks: BlocksJson): BlocksPropertyInfo {
+    const result: BlocksPropertyInfo = {};
     for (const blockName in blocks) {
         if (blocks.hasOwnProperty(blockName)) {
             const blockInfo = blocks[blockName];

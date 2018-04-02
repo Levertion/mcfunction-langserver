@@ -1,7 +1,44 @@
 import { CommandNode } from "../../data/types";
 import { Parser } from "../../types";
 
+/**
+ * Incomplete
+ * "minecraft:block_pos"
+ * "minecraft:block_predicate"
+ * "minecraft:block_state"
+ * "minecraft:color"
+ * "minecraft:component"
+ * "minecraft:entity"
+ * "minecraft:entity_anchor"
+ * "minecraft:function"
+ * "minecraft:game_profile"
+ * "minecraft:item_enchantment"
+ * "minecraft:item_predicate"
+ * "minecraft:item_slot"
+ * "minecraft:item_stack"
+ * "minecraft:message"
+ * "minecraft:mob_effect"
+ * "minecraft:nbt"
+ * "minecraft:nbt_path"
+ * "minecraft:objective"
+ * "minecraft:objective_criteria"
+ * "minecraft:operation"
+ * "minecraft:particle"
+ * "minecraft:range"
+ * "minecraft:resource_location"
+ * "minecraft:rotation"
+ * "minecraft:score_holder"
+ * "minecraft:scoreboard_slot"
+ * "minecraft:swizzle"
+ * "minecraft:team"
+ * "minecraft:vec2"
+ * "minecraft:vec3"
+ */
 const implementedParsers: { [id: string]: string } = {
+    "brigadier:bool": "./brigadier/bool",
+    "brigadier:float": "./brigadier/float",
+    "brigadier:integer": "./brigadier/integer",
+    "brigadier:string": "./brigadier/string",
     "langserver:dummy1": "./tests/dummy1",
 };
 
