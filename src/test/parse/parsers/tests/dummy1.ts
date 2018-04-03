@@ -1,5 +1,5 @@
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
-import { Parser } from "../../../types";
+import { Parser } from "../../../../types";
 
 /**
  * Used for testing.
