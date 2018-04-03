@@ -1,8 +1,8 @@
 import * as assert from "assert";
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import * as dummyparser from "../../../../parse/parsers/tests/dummy1";
 import { ParserInfo } from "../../../../types";
+import * as dummyparser from "./dummy1";
 
 describe("dummyParser1", () => {
     describe("parse", () => {
