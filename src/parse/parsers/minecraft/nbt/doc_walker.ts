@@ -92,7 +92,7 @@ function isListNode(node: NBTNode): node is ListNode {
     return isTypedNode(node) && node.type === "list";
 }
 
-const rootNodePath = "../../../../../node_modules/mc-nbt-paths/root.json";
+const rootNodePath = path.resolve(__dirname, "../../../../../node_modules/mc-nbt-paths/root.json");
 export class NBTWalker {
 
     private parsed: NBTTag<any>;
