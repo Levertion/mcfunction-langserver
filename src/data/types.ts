@@ -5,11 +5,11 @@ import { NamespaceData } from "./datapack_resources";
  * Data which is useful no matter where the function is.
  */
 export interface GlobalData {
+    blocks: BlocksPropertyInfo;
     commands: CommandTree;
     resources: NamespaceData;
-    meta_info: { version: string };
-    blocks: BlocksPropertyInfo;
     items: string[];
+    meta_info: { version: string };
 }
 
 //#region Command Tree
