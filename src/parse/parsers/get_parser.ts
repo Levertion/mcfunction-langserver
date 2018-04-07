@@ -1,7 +1,15 @@
 import { CommandNode } from "../../data/types";
 import { Parser } from "../../types";
 
+/**
+ * Incomplete
+ * https://github.com/Levertion/mcfunction-langserver/issues/11
+ */
 const implementedParsers: { [id: string]: string } = {
+    "brigadier:bool": "./brigadier/bool",
+    "brigadier:float": "./brigadier/float",
+    "brigadier:integer": "./brigadier/integer",
+    "brigadier:string": "./brigadier/string",
     "langserver:dummy1": "./tests/dummy1",
 };
 

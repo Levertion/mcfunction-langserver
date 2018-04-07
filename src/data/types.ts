@@ -1,21 +1,17 @@
-import { NamespaceResources } from "./datapack_resources";
+import { BlankCommandError, CommandError, fillBlankError } from "../brigadier_components/errors";
+import { NamespaceData } from "./datapack_resources";
 
 /**
  * Data which is useful no matter where the function is.
  */
 export interface GlobalData {
     commands: CommandTree;
-    resources: NamespaceResources;
+    resources: NamespaceData;
     meta_info: { version: string };
-    blocks: BlockStateInfo;
+    blocks: BlocksPropertyInfo;
     items: string[];
 }
 
-export interface BlockStateInfo {
-    [id: string]: {
-        [state: string]: string[],
-    };
-}
 //#region Command Tree
 /**
  * The base Command Tree.
@@ -73,10 +69,12 @@ export interface MCNode<T> {
  *
  * The Inner Index Signature is property names, with a string array of valid values.
  */
-export interface BlockPropertyInfo {
-    [blockID: string]: {
-        [property: string]: string[];
-    };
+export interface BlocksPropertyInfo {
+    [blockID: string]: SingleBlockPropertyInfo;
+}
+
+export interface SingleBlockPropertyInfo {
+    [property: string]: string[];
 }
 //#endregion
 
@@ -87,3 +85,16 @@ export interface BlockPropertyInfo {
  */
 export type AvailableItems = string[];
 //#endregion
+
+export interface ErrorableSubFunctionReturn<T> {
+    result: T;
+    errors: BlankCommandError[];
+}
+
+export function getErrors(ret: ErrorableSubFunctionReturn<any>, start: number, end: number): CommandError[] {
+    const errors: CommandError[] = [];
+    for (const err of ret.errors) {
+        errors.push(fillBlankError(err, start, end));
+    }
+    return errors;
+}

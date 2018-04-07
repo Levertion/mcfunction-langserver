@@ -11,10 +11,16 @@ export interface Resources {
         packs_folder: string;
     }>;
     data: {
-        [namespace: string]: NamespaceResources,
+        [namespace: string]: NamespaceData,
     };
 }
-export interface NamespaceResources {
+
+export interface Tag {
+    replace?: boolean;
+    values: string[];
+}
+
+export interface NamespaceData {
     functions?: MinecraftResource[];
     recipes?: MinecraftResource[];
     advancements?: MinecraftResource[];
@@ -25,51 +31,85 @@ export interface NamespaceResources {
     function_tags?: MinecraftResource[];
 }
 
-interface MinecraftResource {
-    real_uri: string;
-    resource_path: string;
+export interface DataResource<T> extends MinecraftResource {
+    data?: T;
 }
 
-const resourceTypes: {[T in keyof NamespaceResources]: (string[] |
-    [string, T]) } = { // [string, T] improves autocomplete.
-        advancements: [".json", "advancements"],
-        block_tags: [".json", "tags", "blocks"],
-        function_tags: [".json", "tags", "functions"],
-        functions: [".mcfunction", "functions"],
-        item_tags: [".json", "tags", "items"],
-        loot_tables: [".json", "loot_tables"],
-        recipes: [".json", "recipes"],
-        structures: [".nbt", "structures"],
-    };
+export interface MinecraftResource {
+    real_uri: string;
+    resource_name: NamespacedName;
+}
+
+export interface NamespacedName {
+    namespace: string;
+    path: string;
+}
+
+export interface ExactNamespaceName extends NamespacedName {
+    exact: boolean;
+}
+
+export function exactifyNamespace(originalName: NamespacedName): ExactNamespaceName {
+    return Object.assign(originalName, { exact: true });
+}
+
+interface ResourceInfo<U = string> {
+    extension: string;
+    pathfromroot: [U] | string[]; // Custom tuple allows autocomplete mostly.
+    readJson?: boolean;
+}
+
+const resourceTypes: {[T in keyof NamespaceData]: ResourceInfo<T>} = {
+    advancements: { extension: ".json", pathfromroot: ["advancements"] },
+    block_tags: { extension: ".json", pathfromroot: ["tags", "blocks"], readJson: true },
+    function_tags: { extension: ".json", pathfromroot: ["tags", "functions"] },
+    functions: { extension: ".mcfunction", pathfromroot: ["functions"] },
+    item_tags: { extension: ".json", pathfromroot: ["tags", "items"] },
+    loot_tables: { extension: ".json", pathfromroot: ["loot_tables"] },
+    recipes: { extension: ".json", pathfromroot: ["recipes"] },
+    structures: { extension: ".nbt", pathfromroot: ["structures"] },
+};
 
 export async function getNamespaceResources(namespace: string, location: string):
-    Promise<NamespaceResources> {
-    const result: NamespaceResources = {};
+    Promise<NamespaceData> {
+    const result: NamespaceData = {};
     const namespaceFolder = path.join(location, namespace);
     const subDirs = await subDirectories(namespaceFolder);
     for (const type of keys(resourceTypes)) {
         const resourceInfo = resourceTypes[type];
-        if (subDirs.indexOf(resourceInfo[1]) === -1) {
+        if (subDirs.indexOf(resourceInfo.pathfromroot[0]) === -1) {
             continue;
         }
-        const dataContents = path.join(namespaceFolder, ...resourceInfo.slice(1));
-        if (resourceInfo.length > 2 && !(await existsAsync(dataContents))) {
+        const dataContents = path.join(namespaceFolder, ...resourceInfo.pathfromroot);
+        if (resourceInfo.pathfromroot.length > 1 && !(await existsAsync(dataContents))) {
             continue;
         }
         const files = await walkDir(dataContents);
         const nameSpaceContents = result[type] || [];
         for (const file of files) {
             const realExtension = path.extname(file);
-            if (realExtension === resourceInfo[0]) {
+            if (realExtension === resourceInfo.extension) {
                 const internalUri = path.relative(dataContents, file);
-                nameSpaceContents.push({
+                const newResource: MinecraftResource = {
                     real_uri: path.relative(namespaceFolder, file),
-                    resource_path: namespace + ":" +
-                        internalUri
+                    resource_name: {
+                        namespace, path: internalUri
                             .slice(0, -realExtension.length).replace(new RegExp(`\\${path.sep}`, "g"), "/"),
-                });
+                    },
+                };
+                try {
+                    if (!!resourceInfo.readJson) {
+                        // @ts-ignore The resources are only officially allowed to be MinecraftResources.
+                        // However, they are cast to DataResources at a later time if applicable.
+                        newResource.data = JSON.parse(await readFileAsync(file));
+                    }
+                } catch (error) {
+                    mcLangLog(`File '${file}' has invalid json structure: '${JSON.stringify(error)}'`);
+                }
+                nameSpaceContents.push(newResource);
             } else {
-                mcLangLog(`File '${file}' has the wrong extension: Expected ${resourceInfo[0]}, got ${realExtension}.`);
+                mcLangLog(`File '${file}' has the wrong extension: Expected ${
+                    resourceInfo.extension}, got ${realExtension}.`);
                 continue;
             }
         }
@@ -159,6 +199,7 @@ async function subDirectories(baseFolder: string): Promise<string[]> {
 }
 //#region Promisifed Functions
 const readDirAsync = promisify(fs.readdir);
+const readFileAsync = promisify(fs.readFile);
 const statAsync = promisify(fs.stat);
 const existsAsync = promisify<string, boolean>((location, cb) =>
     fs.exists(location, (result) => cb(undefined as any, result)));
