@@ -1,7 +1,7 @@
 import fs = require("fs");
 import path = require("path");
-import sprintf = require("sprintf-js");
 import url = require("url");
+import { runFunction } from "./doc_walker_func";
 import { NBTTagCompound } from "./tag/compound_tag";
 import { NBTTagList } from "./tag/list_tag";
 import { NBTTag } from "./tag/nbt_tag";
@@ -9,16 +9,22 @@ import { ArrayReader } from "./util/array_reader";
 
 type ValueList = string[];
 
-interface NodeBase {
+export interface NBTFunction {
+    id: string;
+    params: any;
+}
+
+export interface NodeBase {
     currentPath: string;
     description?: string;
     suggestions?: Array<string |
     { value: string, description: string } |
-    { values: string }
+    { values: string } |
+    { function: NBTFunction }
     >;
 }
 
-interface NoPropertyNode extends NodeBase {
+export interface NoPropertyNode extends NodeBase {
     type: "no-nbt" |
     "byte" | "short" | "int" | "long" | "float" | "double" |
     "byte_array" | "string" | "int_array" | "long_array";
@@ -28,31 +34,24 @@ interface RefNode extends NodeBase {
     ref: string;
 }
 
-interface ContextNode extends NodeBase {
-    context: {
-        ref_dict: Array<
-        { name: string, nbt_ref: string } |
-        { name: string, info_name: "id" | "type" }
-        >;
-        ref: string;
-        default: string;
-    };
+export interface FunctionNode extends NodeBase {
+    function: NBTFunction;
 }
 
-interface ListNode extends NodeBase {
+export interface ListNode extends NodeBase {
     type: "list";
     item: NBTNode;
 }
 
-interface CompoundNode extends NodeBase {
+export interface CompoundNode extends NodeBase {
     type: "compound" | "root";
     child_ref: string[];
     children: { [key: string]: NBTNode };
 }
 
-type NBTNode = NoPropertyNode | CompoundNode | ListNode | RefNode | ContextNode;
+export type NBTNode = NoPropertyNode | CompoundNode | ListNode | RefNode | FunctionNode;
 
-function getNBTTagFromTree(tag: NBTTag<any>, nbtPath: string[]) {
+export function getNBTTagFromTree(tag: NBTTag<any>, nbtPath: string[]) {
     let lastTag = tag;
     for (const s of nbtPath) {
         if (lastTag === undefined) {
@@ -72,8 +71,8 @@ function isRefNode(node: NBTNode): node is RefNode {
     return "ref" in node;
 }
 
-function isContextNode(node: NBTNode): node is ContextNode {
-    return "context" in node;
+function isFunctionNode(node: NBTNode): node is FunctionNode {
+    return "function" in node;
 }
 
 function isTypedNode(node: NBTNode): node is NoPropertyNode | CompoundNode | ListNode {
@@ -114,8 +113,8 @@ export class NBTWalker {
         const next = arr.peek();
         if (isRefNode(node)) {
             return this.getNextNode(this.evalRef(node), arr);
-        } else if (isContextNode(node)) {
-            return this.getNextNode(this.evalContext(node, arr), arr);
+        } else if (isFunctionNode(node)) {
+            return this.getNextNode(this.evalFunction(node, arr), arr);
         } else if (isCompoundNode(node)) {
             const evalNode = this.evalChildRef(node);
             evalNode.currentPath = node.currentPath;
@@ -153,63 +152,48 @@ export class NBTWalker {
         return undefined;
     }
 
-    private evalRef(node: RefNode) {
-        const refUrl = url.parse(node.ref);
-        const fragPath = (refUrl.hash || "#").slice(1).split("/");
-        const fragReader = new ArrayReader(fragPath);
-        const newNode = JSON.parse(fs.readFileSync(path.resolve(node.currentPath, node.ref)).toString()) as NBTNode;
-        const evalNode = this.getNextNode(newNode, fragReader);
-        if (evalNode === undefined) {
-            return undefined;
+    private evalRef(node: NBTNode): NBTNode | undefined {
+        if (isRefNode(node)) {
+            const refUrl = url.parse(node.ref);
+            const fragPath = (refUrl.hash || "#").slice(1).split("/");
+            const fragReader = new ArrayReader(fragPath);
+            const newNode = JSON.parse(fs.readFileSync(path.resolve(node.currentPath, node.ref)).toString()) as NBTNode;
+            const evalNode = this.getNextNode(newNode, fragReader);
+            if (evalNode === undefined) {
+                return undefined;
+            }
+            evalNode.suggestions = node.suggestions;
+            evalNode.description = node.description;
+            return this.evalRef(evalNode);
+        } else {
+            return node;
         }
-        evalNode.suggestions = node.suggestions;
-        evalNode.description = node.description;
-        return evalNode;
     }
 
-    private evalContext(node: ContextNode, arr: ArrayReader) {
-        const formatDict: { [key: string]: string } = {};
-        let i = 0;
-        let useRef = true;
-        for (const e of node.context.ref_dict) {
-            if ("nbt_ref" in node.context.ref_dict[i]) {
-                const read = arr.getRead();
-                // @ts-ignore It says that there nbt_ref is not on node.context.ref_dict[i] for some reason (╯°□°）╯︵ ┻━┻
-                const newPath = path.posix.resolve(read.join("/"), node.context.ref_dict[i].nbt_ref).split("/");
-                const tag = getNBTTagFromTree(this.parsed, newPath);
-                if (tag === undefined) {
-                    useRef = false;
-                    break;
-                } else {
-                    formatDict[e.name] = tag.getVal().toString();
-                }
-            } else {
-                // info_name
-            }
-            i++;
-        }
-        if (useRef) {
-            const formatString = sprintf.sprintf(node.context.ref, formatDict);
-            if (fs.existsSync(formatString)) {
-                const refNodeData: RefNode = {
-                    currentPath: node.currentPath,
-                    description: node.description,
-                    ref: formatString,
-                    suggestions: node.suggestions,
-                };
-                return this.evalRef(refNodeData);
-            }
-        }
-        const refDataNode: RefNode = {
+    private evalFunction(node: FunctionNode, arr: ArrayReader) {
+        const newNode: RefNode = {
             currentPath: node.currentPath,
             description: node.description,
-            ref: node.context.default,
+            ref: runFunction(this.parsed, arr.getRead(), node, node.function.params),
             suggestions: node.suggestions,
         };
-        return this.evalRef(refDataNode);
+        return this.evalRef(newNode);
     }
 
     private evalChildRef(node: CompoundNode): CompoundNode {
+        if (!node.child_ref) {
+            return node;
+        }
+        const copyNode = JSON.parse(JSON.stringify(node));
+        for (const s of node.child_ref) {
+            const refNode = this.evalRef({
+                currentPath: node.currentPath,
+                ref: s,
+            });
+            if (!refNode) {
+                continue;
+            }
+        }
         return node;
     }
 
