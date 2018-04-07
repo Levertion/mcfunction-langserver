@@ -59,7 +59,7 @@ export class StringReader implements ImmutableStringReader {
         this.cursor++;
     }
     public skipWhitespace() {
-        this.readWhileRegexp(/\W/);
+        this.readWhileRegexp(/\s/); // Whitespace
     }
     /**
      * Read an integer from the string
