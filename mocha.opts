@@ -1,5 +1,4 @@
 --ui tdd
 --colors
 --timeout 999999 
--r out/test/setup.js
 out/test/**/*.test.js

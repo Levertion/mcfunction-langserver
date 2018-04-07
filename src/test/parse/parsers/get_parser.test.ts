@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { getParser } from "../../../parse/parsers/get_parser";
 import * as literal from "../../../parse/parsers/literal";
-import * as dummy1 from "./tests/dummy1";
+import * as dummy1 from "../../../parse/parsers/tests/dummy1";
 
 describe("getParser()", () => {
     it("should give the literal parser for a literal node", () => {
