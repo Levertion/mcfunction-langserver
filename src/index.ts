@@ -9,6 +9,7 @@ import {
     TextDocumentSyncKind,
 } from "vscode-languageserver";
 import { ComputeCompletions } from "./completions";
+import { readSecurity } from "./data/cache_management";
 import { DataManager } from "./data/manager";
 import { calculateDataFolder, singleStringLineToCommandLines } from "./function_utils";
 import { mergeDeep } from "./imported_utils/merge_deep";
@@ -25,6 +26,7 @@ const documents: {
     [url: string]: FunctionInfo;
 } = {};
 const eventManager = new EventEmitter();
+let security: { [workspace: string]: true };
 /**
  * The settings for this server. Local Copy inside index.
  * Are readonly when distributed
@@ -104,10 +106,31 @@ connection.onInitialize((params) => {
     };
 });
 
-connection.onDidChangeConfiguration((params) => {
+connection.onDidChangeConfiguration(async (params) => {
     mcLangLog(`${JSON.stringify(params)}`);
-    global.mcLangSettings = mergeDeep(settings, params.settings.mcfunction) as DeepReadonly<McFunctionSettings>;
-    eventManager.emit("settingscomplete");
+    function completeSettings() {
+        global.mcLangSettings = mergeDeep(settings, params.settings.mcfunction) as DeepReadonly<McFunctionSettings>;
+        eventManager.emit("settingscomplete");
+    }
+    if (started === false) {
+        security = await readSecurity();
+    }
+    if (security[rootFolder] === true) {
+        const checkresult = requiresSecurityCheck(params.settings.mcfunction);
+        if (checkresult === false) {
+            completeSettings();
+        } else {
+            const result = await connection.window.showWarningMessage(
+                `Preventing loading because of potentially insecure settings: ${
+                checkresult.join()}`, { title: "Allow (workspace)" }, { title: "Block" });
+            if (!result || result.title === "Block") {
+                connection.sendNotification("mcfunction/shutdown", "Security Shutdown");
+            } else {
+                security[rootFolder] = true;
+                completeSettings();
+            }
+        }
+    }
 });
 
 connection.onDidOpenTextDocument((params) => {
