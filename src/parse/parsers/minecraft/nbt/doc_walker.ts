@@ -152,30 +152,22 @@ export class NBTWalker {
         return undefined;
     }
 
-    private evalRef(node: NBTNode): NBTNode | undefined {
-        if (isRefNode(node)) {
-            const refUrl = url.parse(node.ref);
-            const fragPath = (refUrl.hash || "#").slice(1).split("/");
-            const fragReader = new ArrayReader(fragPath);
-            const newNode = JSON.parse(fs.readFileSync(path.resolve(node.currentPath, node.ref)).toString()) as NBTNode;
-            const evalNode = this.getNextNode(newNode, fragReader);
-            if (evalNode === undefined) {
-                return undefined;
-            }
-            evalNode.suggestions = node.suggestions;
-            evalNode.description = node.description;
-            return this.evalRef(evalNode);
-        } else {
-            return node;
+    private evalRef(node: RefNode): NBTNode | undefined {
+        const refUrl = url.parse(node.ref);
+        const fragPath = (refUrl.hash || "#").slice(1).split("/");
+        const fragReader = new ArrayReader(fragPath);
+        const newNode = JSON.parse(fs.readFileSync(path.resolve(node.currentPath, node.ref)).toString()) as NBTNode;
+        const evalNode = this.getNextNode(newNode, fragReader);
+        if (evalNode === undefined) {
+            return undefined;
         }
+        return evalNode;
     }
 
     private evalFunction(node: FunctionNode, arr: ArrayReader) {
         const newNode: RefNode = {
             currentPath: node.currentPath,
-            description: node.description,
             ref: runFunction(this.parsed, arr.getRead(), node, node.function.params),
-            suggestions: node.suggestions,
         };
         return this.evalRef(newNode);
     }
@@ -194,7 +186,7 @@ export class NBTWalker {
                 continue;
             }
         }
-        return node;
+        return copyNode;
     }
 
 }
