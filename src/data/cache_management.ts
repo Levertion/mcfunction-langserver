@@ -47,6 +47,14 @@ export async function cacheData(data: GlobalData) {
     return;
 }
 
+export async function storeSecurity(security: { [workspace: string]: true }) {
+    await saveFileAsync(path.join(cacheFolder, "security.json"), JSON.stringify(security));
+}
+
+export async function readSecurity(): Promise<{ [workspace: string]: true }> {
+    return JSON.parse((await readFileAsync(path.join(cacheFolder, "security.json"))).toString());
+}
+
 //#region Helper Functions
 const readFileAsync = promisify(fs.readFile);
 async function readJSON<T>(filePath: string): Promise<T> {

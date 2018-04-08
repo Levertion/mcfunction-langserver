@@ -1,8 +1,9 @@
+import * as path from "path";
 import { CommandNode } from "../../data/types";
 import { Parser } from "../../types";
 
 /**
- * Incomplete
+ * Incomplete:
  * https://github.com/Levertion/mcfunction-langserver/issues/11
  */
 const implementedParsers: { [id: string]: string } = {
@@ -42,8 +43,11 @@ along with: '${JSON.stringify(error)}'.`);
 }
 
 function getArgParserPath(id: string): string {
-    if (implementedParsers.hasOwnProperty(id)) {
-        return implementedParsers[id];
+    if (!!global.mcLangSettings && // Protection for tests when settings are undefined
+        !!global.mcLangSettings.parsers && global.mcLangSettings.parsers.hasOwnProperty(id)) {
+        return global.mcLangSettings.parsers[id];
+    } else if (implementedParsers.hasOwnProperty(id)) {
+        return path.join(__dirname, implementedParsers[id]);
     } else {
         mcLangLog(`Argument with parser id ${id} has no associated parser.
 Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
