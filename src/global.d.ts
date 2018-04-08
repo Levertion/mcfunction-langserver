@@ -79,6 +79,12 @@ interface McFunctionSettings {
          */
         snapshots: boolean;
     }
+    /**
+     * Custom parsers to be used
+     */
+    parsers: {
+        [name: string]: string;
+    }
 }
 /**
  * Log a message to the console.

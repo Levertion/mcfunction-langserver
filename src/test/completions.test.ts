@@ -4,8 +4,12 @@ import { ComputeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
 import { GlobalData } from "../data/types";
 import { CommandLine } from "../types";
+import { setup_test } from "./logging_setup";
 
 describe("ComputeCompletions()", () => {
+    before(() => {
+        setup_test();
+    });
     it("should replace an internal node", () => {
         const result = ComputeCompletions(0, {
             datapack_root: "",

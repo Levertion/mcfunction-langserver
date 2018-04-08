@@ -8,6 +8,12 @@ function requiresSecurityCheck(change: McFunctionSettings): string[] | false {
             results.push("Custom java path (mcfunction.data.javaPath)");
         }
     }
+    if (!!change.parsers) {
+        const names = Object.keys(change.parsers);
+        if (names.length > 0) {
+            results.push(`Custom parsers for '${names.join()}'`);
+        }
+    }
     if (results.length === 0) {
         return false;
     } else {
