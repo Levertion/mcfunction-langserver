@@ -103,10 +103,10 @@ export class NBTWalker {
         this.root = root;
     }
 
-    public getFinalNode(type: string, id: string, nbtpath: string[]) {
+    public getFinalNode(nbtpath: string[]) {
         const rootNode = JSON.parse(fs.readFileSync(this.root).toString()) as NBTNode;
         rootNode.currentPath = this.root;
-        return this.getNextNode(rootNode, new ArrayReader([type, id].concat(nbtpath)));
+        return this.getNextNode(rootNode, new ArrayReader(nbtpath));
     }
 
     private getNextNode(node: NBTNode | undefined, arr: ArrayReader): NBTNode | undefined {

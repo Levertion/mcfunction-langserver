@@ -54,9 +54,9 @@ export class NBTParser implements Parser {
             const ex = e as NBTError;
 
             return {
-                actions: ex.data.parsed ?
+                actions: !!ex.data ? (ex.data.parsed ?
                     getRealActions(ex.data.parsed.getHover(), ex.data.parsed, contData)
-                    : undefined,
+                    : undefined) : [],
                 errors: [ex.error],
                 successful: false,
             };
@@ -80,7 +80,7 @@ export class NBTParser implements Parser {
             return [];
         }
         const walker = new NBTWalker(parsed);
-        const node = walker.getFinalNode(contData.type, contData.id, ex.data.path || []);
+        const node = walker.getFinalNode([contData.type, contData.id].concat(ex.data.path || []));
         if (node !== undefined) {
             //
         }

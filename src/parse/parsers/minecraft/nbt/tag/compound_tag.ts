@@ -36,7 +36,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                         return () => "";
                     }
                     const walk = new NBTWalker(root);
-                    const node = walk.getFinalNode(context.type, context.id, path);
+                    const node = walk.getFinalNode([context.type, context.id].concat(path));
                     return () => node !== undefined ? node.description || "" : "";
                 },
                 end: pos[1],

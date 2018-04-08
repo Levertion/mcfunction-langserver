@@ -24,7 +24,7 @@ export class ArrayReader {
     }
 
     public peek() {
-        return this.arr[this.index + 1];
+        return this.arr[this.index];
     }
 
     public insert(val: string[], index = 0) {
