@@ -91,18 +91,21 @@ function isListNode(node: NBTNode): node is ListNode {
     return isTypedNode(node) && node.type === "list";
 }
 
-const rootNodePath = path.resolve(__dirname, "../../../../../node_modules/mc-nbt-paths/root.json");
+const rootNodePath = require.resolve("mc-nbt-paths/root.json");
+
 export class NBTWalker {
 
     private parsed: NBTTag<any>;
+    private root: string;
 
-    constructor(parsed: NBTTag<any>) {
+    constructor(parsed: NBTTag<any>, root: string = rootNodePath) {
         this.parsed = parsed;
+        this.root = root;
     }
 
     public getFinalNode(type: string, id: string, nbtpath: string[]) {
-        const rootNode = JSON.parse(fs.readFileSync(rootNodePath).toString()) as NBTNode;
-        rootNode.currentPath = rootNodePath;
+        const rootNode = JSON.parse(fs.readFileSync(this.root).toString()) as NBTNode;
+        rootNode.currentPath = this.root;
         return this.getNextNode(rootNode, new ArrayReader([type, id].concat(nbtpath)));
     }
 
