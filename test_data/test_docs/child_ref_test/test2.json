@@ -1,0 +1,6 @@
+{
+    "type": "compound",
+    "child_ref": [
+        "./test2_other.json"
+    ]
+}

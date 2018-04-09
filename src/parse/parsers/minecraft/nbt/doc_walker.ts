@@ -105,7 +105,7 @@ export class NBTWalker {
 
     public getFinalNode(nbtpath: string[]) {
         const rootNode = JSON.parse(fs.readFileSync(this.root).toString()) as NBTNode;
-        rootNode.currentPath = this.root;
+        rootNode.currentPath = path.dirname(this.root);
         return this.getNextNode(rootNode, new ArrayReader(nbtpath));
     }
 
@@ -160,7 +160,7 @@ export class NBTWalker {
         const fragPath = (refUrl.hash || "#").slice(1).split("/");
         const fragReader = new ArrayReader(fragPath);
         const newNode = JSON.parse(fs.readFileSync(path.resolve(node.currentPath, node.ref)).toString()) as NBTNode;
-        const evalNode = this.getNextNode(newNode, fragReader);
+        const evalNode = fragPath === [""] ? newNode : this.getNextNode(newNode, fragReader);
         if (evalNode === undefined) {
             return undefined;
         }
@@ -179,14 +179,19 @@ export class NBTWalker {
         if (!node.child_ref) {
             return node;
         }
-        const copyNode = JSON.parse(JSON.stringify(node));
+        const copyNode = JSON.parse(JSON.stringify(node)) as CompoundNode;
         for (const s of node.child_ref) {
+            const currentPath = path.resolve(node.currentPath, s);
             const refNode = this.evalRef({
                 currentPath: node.currentPath,
-                ref: s,
+                ref: currentPath,
             });
-            if (!refNode) {
-                continue;
+            if (!!refNode && isCompoundNode(refNode)) {
+                for (const c of Object.keys(refNode.children)) {
+                    const newChild = JSON.parse(JSON.stringify(refNode.children[c])) as NBTNode;
+                    newChild.currentPath = currentPath;
+                    copyNode.children[c] = newChild;
+                }
             }
         }
         return copyNode;
