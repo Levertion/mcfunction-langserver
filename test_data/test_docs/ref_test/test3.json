@@ -1,0 +1,8 @@
+{
+	"type": "compound",
+	"children": {
+		"key1": {
+			"ref": "./test3_other.json"
+		}
+	}
+}

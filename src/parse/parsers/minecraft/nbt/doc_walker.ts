@@ -110,8 +110,14 @@ export class NBTWalker {
     }
 
     private getNextNode(node: NBTNode | undefined, arr: ArrayReader): NBTNode | undefined {
-        if (arr.end() || node === undefined) {
+        if (arr.end() && node !== undefined) {
+            if (isRefNode(node)) {
+                return this.getNextNode(this.evalRef(node), arr);
+            }
             return node;
+        }
+        if (node === undefined) {
+            return undefined;
         }
         const next = arr.peek();
         if (isRefNode(node)) {
@@ -120,9 +126,12 @@ export class NBTWalker {
             return this.getNextNode(this.evalFunction(node, arr), arr);
         } else if (isCompoundNode(node)) {
             const evalNode = this.evalChildRef(node);
-            evalNode.currentPath = node.currentPath;
             if (next in evalNode.children) {
+                const nextNode = evalNode.children[next];
                 arr.skip();
+                if (!nextNode.currentPath) {
+                    nextNode.currentPath = node.currentPath;
+                }
                 return this.getNextNode(evalNode.children[next], arr);
             }
         } else if (isRootNode(node)) {
@@ -157,10 +166,10 @@ export class NBTWalker {
 
     private evalRef(node: RefNode): NBTNode | undefined {
         const refUrl = url.parse(node.ref);
-        const fragPath = (refUrl.hash || "#").slice(1).split("/");
+        const fragPath = (refUrl.hash || "#").slice(1).split("/").filter((v) => v !== "");
         const fragReader = new ArrayReader(fragPath);
         const newNode = JSON.parse(fs.readFileSync(path.resolve(node.currentPath, node.ref)).toString()) as NBTNode;
-        const evalNode = fragPath === [""] ? newNode : this.getNextNode(newNode, fragReader);
+        const evalNode = this.getNextNode(newNode, fragReader);
         if (evalNode === undefined) {
             return undefined;
         }
@@ -176,10 +185,13 @@ export class NBTWalker {
     }
 
     private evalChildRef(node: CompoundNode): CompoundNode {
-        if (!node.child_ref) {
+        if (!node.child_ref || node === undefined) {
             return node;
         }
         const copyNode = JSON.parse(JSON.stringify(node)) as CompoundNode;
+        if (!copyNode.children) {
+            copyNode.children = {};
+        }
         for (const s of node.child_ref) {
             const currentPath = path.resolve(node.currentPath, s);
             const refNode = this.evalRef({
