@@ -1,0 +1,8 @@
+{
+    "type": "compound",
+    "children": {
+        "key0": {
+            "description": "child_ref_test OK"
+        }
+    }
+}

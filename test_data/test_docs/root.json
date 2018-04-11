@@ -1,0 +1,50 @@
+{
+    "type": "compound",
+    "children": {
+        "basic_test": {
+            "description": "basic_test OK"
+        },
+        "nest_test": {
+            "type": "compound",
+            "children": {
+                "key0": {
+                    "description": "nest_test OK"
+                }
+            }
+        },
+        "ref_test": {
+            "ref": "./ref_test.json"
+        },
+        "alt_frag_test": {
+            "type": "compound",
+            "children": {
+                "key0": {
+                    "ref": "./alt_frag_test.json#key0"
+                }
+            }
+        },
+        "self_frag_test": {
+            "ref": "./root.json#self_frag_ok"
+        },
+        "self_frag_ok": {
+            "description": "self_frag_test OK"
+        },
+        "child_ref_test": {
+            "type": "compound",
+            "child_ref": [
+                "./child_ref_test.json"
+            ],
+            "children": {
+                "key1": {
+                    "description": "child_ref_self_test OK"
+                }
+            }
+        },
+        "list_test": {
+            "type": "list",
+            "item": {
+                "description": "list_test OK"
+            }
+        }
+    }
+}
