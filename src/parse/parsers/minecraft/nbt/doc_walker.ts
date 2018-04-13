@@ -113,6 +113,8 @@ export class NBTWalker {
         if (arr.end() && node !== undefined) {
             if (isRefNode(node)) {
                 return this.getNextNode(this.evalRef(node), arr);
+            } else if (isFunctionNode(node)) {
+                return this.getNextNode(this.evalFunction(node, arr), arr);
             }
             return node;
         }

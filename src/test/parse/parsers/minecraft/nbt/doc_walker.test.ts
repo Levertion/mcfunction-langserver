@@ -2,10 +2,11 @@ import assert = require("assert");
 import path = require("path");
 import { NBTWalker } from "../../../../../parse/parsers/minecraft/nbt/doc_walker";
 import { NBTTagCompound } from "../../../../../parse/parsers/minecraft/nbt/tag/compound_tag";
+import { NBTTagString } from "../../../../../parse/parsers/minecraft/nbt/tag/string_tag";
 
 describe("Documentation Walker Tests", () => {
     describe("getFinalNode()", () => {
-        const nbt = new NBTTagCompound({});
+        const nbt = new NBTTagCompound({ var1: new NBTTagString("func_test") });
         const walker = new NBTWalker(nbt, path.resolve(__dirname,
             "../../../../../../test_data/test_docs/root.json"));
 
@@ -67,6 +68,16 @@ describe("Documentation Walker Tests", () => {
             }
             assert.ok("description" in node);
             assert.ok(node.description === "list_test OK");
+        });
+
+        it("should return the correct node for funcs", () => {
+            const node = walker.getFinalNode(["func_test"]);
+            if (!node) {
+                assert.fail("node is undefined");
+                return;
+            }
+            assert.ok("description" in node);
+            assert.ok(node.description === "func_test OK");
         });
     });
 });

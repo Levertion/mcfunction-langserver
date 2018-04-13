@@ -45,6 +45,16 @@
             "item": {
                 "description": "list_test OK"
             }
+        },
+        "func_test": {
+            "function": {
+                "id": "insertStringNBT",
+                "params": {
+                    "ref": "./%s.json",
+                    "default": "./func_test_fail.json",
+                    "tag_path": "./var1"
+                }
+            }
         }
     }
 }
