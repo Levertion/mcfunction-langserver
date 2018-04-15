@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "js-combinatorics": "^0.5.3",
-    "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git",
+    "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git#18w15a",
     "node-interval-tree": "^1.3.3",
     "request": "^2.83.0",
     "request-promise-native": "^1.0.5",
