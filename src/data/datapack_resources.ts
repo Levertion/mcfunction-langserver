@@ -59,7 +59,7 @@ interface ResourceInfo<U = string> {
     readJson?: boolean;
 }
 
-const resourceTypes: {[T in keyof NamespaceData]: ResourceInfo<T>} = {
+const resourceTypes: { [T in keyof NamespaceData]-?: ResourceInfo<T> } = {
     advancements: { extension: ".json", pathfromroot: ["advancements"] },
     block_tags: { extension: ".json", pathfromroot: ["tags", "blocks"], readJson: true },
     function_tags: { extension: ".json", pathfromroot: ["tags", "functions"] },
