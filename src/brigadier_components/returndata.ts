@@ -1,5 +1,5 @@
 import { SubAction, SuggestResult } from "../types";
-import { BCE, CE, fillBlankError } from "./errors";
+import { BCE, BlankCommandError, CE, CommandError, fillBlankError } from "./errors";
 import { ImmutableStringReader } from "./string_reader";
 
 //#region Type definitions
@@ -40,14 +40,14 @@ export type ReturnedInfo<T, ErrorKind extends BCE = CE> =
 /**
  * A failing return
  */
-export interface ReturnFailure<ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
+interface ReturnFailure<ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
     kind: Failure;
 }
 
 /**
  * A succeeding return
  */
-export interface ReturnSuccess<T, ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
+interface ReturnSuccess<T, ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
     kind: Success;
     data: T;
 }
@@ -59,84 +59,10 @@ export interface ReturnSuccess<T, ErrorKind extends BCE = CE> extends ReturnData
 /**
  * Create an instance of the common return type
  */
-export function createReturn<ErrorKind extends BCE = CE>(): ReturnData<ErrorKind> {
+function createReturn<ErrorKind extends BCE = CE>(): ReturnData<ErrorKind> {
     return { actions: [], errors: [], suggestions: [] };
 }
 
-/**
- * Create a successful return from the common data
- *
- * MODIFIES shared
- * @param shared The shared return data
- * @param data The thing to return
- */
-export function succeed<T = undefined,
-    E extends BCE = CE>(shared: ReturnData<E>, data: T): ReturnSuccess<T, E> {
-    return Object.assign(shared, {
-        data,
-        kind: Success as Success,
-    });
-}
-
-/**
- * Create a failure for return
- *
- * MODIFIES shared
- * @param shared The shared return data
- * @param err The error that caused the failure
- */
-export function fail<E extends BCE = CE>(shared: ReturnData<E>, err?: E): ReturnFailure<E> {
-    if (!!err) {
-        shared.errors.push(err);
-    }
-    return Object.assign(shared, {
-        kind: Failure as Failure,
-    });
-}
-
-/**
- * Merge the suggestions if `reader` can't read
- * @param reader The reader which mustn't be able to read
- */
-export function mergeIfCantRead<T, E extends BCE = CE>(main: ReturnData<E>,
-    merge: ReturnedInfo<T, E>, reader: ImmutableStringReader): merge is ReturnSuccess<T, E> {
-    mergeInto(main, merge, !reader.canRead());
-    return isSuccessful(merge);
-}
-
-/**
- * Merge main and merge. Returns true if merge is successful, false otherwise
- * @param main The main data to return
- * @param merge The data to merge into it
- */
-export function testMerge<T, E extends BCE = CE>(main: ReturnData<E>,
-    merge: ReturnedInfo<T, E>, includeSuggestions = true): merge is ReturnSuccess<T, E> {
-    mergeInto(main, merge, includeSuggestions);
-    return isSuccessful(merge);
-}
-
-/**
- * Merge the contents of `merge` into `main`
- *
- * MODIFIES `main`
- * @param main The data to merge into
- * @param merge Merged content
- */
-export function mergeInto<E extends BCE = CE>(main: ReturnData<E>, merge: ReturnData<E>, includeSuggestions = true) {
-    mergeSafe(main, merge);
-    if (includeSuggestions) {
-        mergeSuggestions(main, merge);
-    }
-}
-
-function mergeSuggestions<E extends BCE = CE>(main: ReturnData<E>, merge: ReturnData<E>) {
-    main.suggestions.push(...merge.suggestions);
-}
-
-function mergeSafe<E extends BCE = CE>(main: ReturnData<E>, merge: ReturnData<E>) {
-    main.actions.push(...merge.actions);
-    main.errors.push(...merge.errors);
-}
 /**
  * Test if `input` is successful
  * @param input The info to test
@@ -162,3 +88,56 @@ export function fillBlanks(data: ReturnData<BCE>, start: number, end: number): R
 }
 
 //#endregion
+
+export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
+    private data = createReturn<Errorkind>();
+
+    public getShared(): ReturnData<Errorkind> {
+        return this.data;
+    }
+
+    public suceed<T = undefined>(data: T): ReturnSuccess<T, Errorkind> {
+        return Object.assign(this.getShared(), {
+            data,
+            kind: Success as Success,
+        });
+    }
+    public fail(err?: Errorkind): ReturnFailure<Errorkind> {
+        if (!!err) {
+            this.addErrors(err);
+        }
+        return Object.assign(this.getShared(), {
+            kind: Failure as Failure,
+        });
+    }
+    public addErrors(...errs: Errorkind[]) {
+        this.data.errors.push(...errs);
+    }
+    public addSuggestions(...suggestions: SuggestResult[]) {
+        this.data.suggestions.push(...suggestions);
+    }
+    public addActions(...actions: SubAction[]) {
+        this.data.actions.push(...actions);
+    }
+
+    public mergeIfCantRead<T>(merge: ReturnedInfo<T, Errorkind>,
+        reader: ImmutableStringReader): merge is ReturnSuccess<T, Errorkind> {
+        this.merge(merge, !reader.canRead());
+        return isSuccessful(merge);
+    }
+    public merge<T>(merge: ReturnedInfo<T, Errorkind>, suggest = true): merge is ReturnSuccess<T, Errorkind> {
+        if (suggest) {
+            this.mergeSuggestions(merge);
+        }
+        this.mergeSafe(merge);
+        return true;
+    }
+
+    private mergeSuggestions(merge: ReturnData<Errorkind>) {
+        this.addSuggestions(...merge.suggestions);
+    }
+    private mergeSafe(merge: ReturnData<Errorkind>) {
+        this.addActions(...merge.actions);
+        this.addErrors(...merge.errors);
+    }
+}
