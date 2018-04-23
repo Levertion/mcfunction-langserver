@@ -19,25 +19,25 @@
   "license": "MIT",
   "devDependencies": {
     "@types/js-combinatorics": "^0.5.29",
-    "@types/mocha": "^5.0.0",
-    "@types/node": "^9.3.0",
+    "@types/mocha": "^5.2.0",
+    "@types/node": "^9.6.6",
     "@types/request-promise-native": "^1.0.13",
-    "@types/sprintf-js": "^1.1.0",
     "@types/rimraf": "^2.0.2",
-    "mocha": "^5.0.0",
+    "@types/sprintf-js": "^1.1.0",
+    "mocha": "^5.1.1",
     "rimraf": "^2.6.2",
     "tslint": "^5.9.1",
-    "typescript": "^2.6.2",
-    "vscode-languageserver-types": "^3.5.0"
+    "typescript": "^2.8.3",
+    "vscode-languageserver-types": "^3.7.1"
   },
   "dependencies": {
     "js-combinatorics": "^0.5.3",
-    "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git#18w15a",
+    "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git#>=1.13.0-18w16a",
     "node-interval-tree": "^1.3.3",
-    "request": "^2.83.0",
+    "request": "^2.85.0",
     "request-promise-native": "^1.0.5",
-    "sprintfjs": "^1.2.7",
+    "sprintfjs": "^1.2.9",
     "util.promisify": "^1.0.0",
-    "vscode-languageserver": "^4.0.0"
+    "vscode-languageserver": "^4.1.2"
   }
 }
