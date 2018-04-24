@@ -77,6 +77,9 @@ export async function getNamespaceResources(namespace: string, location: string)
     const subDirs = await subDirectories(namespaceFolder);
     for (const type of keys(resourceTypes)) {
         const resourceInfo = resourceTypes[type];
+        if (resourceInfo === undefined) {
+            continue;
+        }
         if (subDirs.indexOf(resourceInfo.pathfromroot[0]) === -1) {
             continue;
         }
