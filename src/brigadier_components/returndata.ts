@@ -96,7 +96,7 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         return this.data;
     }
 
-    public suceed<T = undefined>(data: T): ReturnSuccess<T, Errorkind> {
+    public succeed<T = undefined>(data: T): ReturnSuccess<T, Errorkind> {
         return Object.assign(this.getShared(), {
             data,
             kind: Success as Success,
