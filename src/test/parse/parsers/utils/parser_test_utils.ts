@@ -74,7 +74,7 @@ export function assertSuggestions(expected: string[], start: number, actual: Sug
                 if (typeof v === "string") {
                     return start === 0 && v === expectation;
                 } else {
-                    return v.value === expectation && v.start === start;
+                    return v.text === expectation && v.start === start;
                 }
             });
             if (index === -1) {

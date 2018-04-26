@@ -1,60 +1,9 @@
-import { SubAction, SuggestResult } from "../types";
-import { BCE, BlankCommandError, CE, CommandError, fillBlankError } from "./errors";
-import { ImmutableStringReader } from "./string_reader";
-
-//#region Type definitions
-//#region Option
-enum Option {
-    Success,
-    Failure,
-}
-/**
- * A value representing a success
- */
-export type Success = Option.Success;
-export const Success: Success = Option.Success;
-
-/**
- * A value representing a failure
- */
-export const Failure: Failure = Option.Failure;
-export type Failure = Option.Failure;
-//#endregion
-
-//#region ReturnData
-/**
- * General return data. Can be expanded into a ReturnInfo
- */
-export interface ReturnData<ErrorKind extends BCE = CE> {
-    errors: ErrorKind[];
-    suggestions: SuggestResult[];
-    actions: SubAction[];
-}
-
-/**
- * A general return type which can either succeed or fail
- */
-export type ReturnedInfo<T, ErrorKind extends BCE = CE> =
-    ReturnSuccess<T, ErrorKind> | ReturnFailure<ErrorKind>;
-
-/**
- * A failing return
- */
-interface ReturnFailure<ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
-    kind: Failure;
-}
-
-/**
- * A succeeding return
- */
-interface ReturnSuccess<T, ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
-    kind: Success;
-    data: T;
-}
-//#endregion
-//#endregion
-
-//#region Helper functions
+import { BlankCommandError, CommandError, fillBlankError } from "../brigadier_components/errors";
+import { ImmutableStringReader } from "../brigadier_components/string_reader";
+import {
+    BCE, CE, Failure, ReturnData, ReturnedInfo, ReturnFailure, ReturnSuccess,
+    SubAction, Success, SuggestResult,
+} from "../types";
 
 /**
  * Create an instance of the common return type
@@ -86,8 +35,6 @@ export function fillBlanks(data: ReturnData<BCE>, start: number, end: number): R
     }
     return Object.assign(data, { errors });
 }
-
-//#endregion
 
 export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     private data = createReturn<Errorkind>();

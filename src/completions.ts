@@ -86,9 +86,9 @@ function SuggestionsToCompletions(suggestions: SuggestResult[], line: number, st
             result.push({
                 detail: suggestion.description,
                 kind: suggestion.kind || defaultKind,
-                label: suggestion.value,
+                label: suggestion.text,
                 textEdit: {
-                    newText: suggestion.value,
+                    newText: suggestion.text,
                     range: { start: { character: start + suggestion.start, line }, end: { character: end, line } },
                 },
             });

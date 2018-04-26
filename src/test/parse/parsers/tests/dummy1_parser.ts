@@ -8,7 +8,7 @@ import { Parser } from "../../../../types";
 const parser: Parser = {
     getSuggestions: () => [
         "hello",
-        { start: 2, value: "test", kind: CompletionItemKind.Constructor },
+        { start: 2, text: "test", kind: CompletionItemKind.Constructor },
     ],
     parse: (reader, node) => {
         let num: number = 3;

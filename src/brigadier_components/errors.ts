@@ -41,10 +41,6 @@ export interface BlankCommandError {
     _e: "1";
 }
 
-// Shorter names for Command errors. Useful when there is a lot of repition (e.g. in `./returndata.ts`)
-export type BCE = BlankCommandError;
-export type CE = CommandError;
-
 /**
  * Helper class to create command errors
  */

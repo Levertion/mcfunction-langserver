@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import { GlobalData } from "../../data/types";
 import { parseCommand } from "../../parse/index";
-import { ParsedInfo } from "../../types";
+import { StoredParseResult } from "../../types";
 import { setup_test } from "../logging_setup";
 import { assertErrors } from "./parsers/utils/parser_test_utils";
 
@@ -40,7 +40,7 @@ describe("parseCommand()", () => {
 
         it("should parse an executable, valid, command as such", () => {
             const result = parseCommand("hel", singleArgData);
-            const expected: ParsedInfo = { errors: [], actions: [], nodes: [{ low: 0, high: 3, path: ["test1"] }] };
+            const expected: StoredParseResult = { errors: [], actions: [], nodes: [{ low: 0, high: 3, path: ["test1"] }] };
             assert.deepEqual(result, expected);
         });
 

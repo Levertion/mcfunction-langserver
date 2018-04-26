@@ -1,4 +1,7 @@
-function requiresSecurityCheck(change: McFunctionSettings): string[] | false {
+/**
+ * Check if the given change requires security confirmation
+ */
+export function requiresSecurityCheck(change: McFunctionSettings): string[] | false {
     const results: string[] = [];
     if (!!change.data) {
         if (!!change.data.customJar) {

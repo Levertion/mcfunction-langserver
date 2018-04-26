@@ -1,9 +1,4 @@
-
-/*=====================================
-        Global Variable Setup
-=====================================*/
-
-// Global Declarations
+// Create global variables
 
 declare namespace NodeJS {
     interface Global {
@@ -14,8 +9,8 @@ declare namespace NodeJS {
 /**
  * The settings which this server has been run with.
  */
-declare const mcLangSettings: DeepReadonly<McFunctionSettings>; // Notice that these settings are only readonly at compile time.
-type DeepReadonly<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
+declare const mcLangSettings: McFunctionSettings;
+
 interface McFunctionSettings {
     /**
      * Settings related to information tracking

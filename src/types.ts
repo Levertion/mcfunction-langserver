@@ -1,94 +1,62 @@
 import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
-import { CommandError } from "./brigadier_components/errors";
+import { BlankCommandError, CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
 import { Resources } from "./data/datapack_resources";
 import { CommandNodePath, GlobalData } from "./data/types";
 
-/**
- * A deeply readonly version of the given type.
- */
-export type DeepReadonly<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
+//#region Document
+export interface FunctionInfo {
+    lines: CommandLine[];
+    /**
+     * The filesystem path to the `datapacks` folder this is part of - NOT the folder of the single datapack
+     */
+    datapack_root: string;
+}
 
-/**
- * A Single Line in a Document.
- */
 export interface CommandLine {
-    /**
-     * The information from parsing this line..
-     */
-    parseInfo?: ParsedInfo;
-    /**
-     * The text of this line.
-     */
+    parseInfo?: StoredParseResult;
     text: string;
     /**
      * A cache of the tree of actions
      */
     actions?: IntervalTree<SubAction>;
 }
-
-export interface FunctionInfo {
-    /**
-     * The lines of this Function.
-     */
-    lines: CommandLine[];
-    /**
-     * The filesystem path to the `datapacks` folder this is part of.
-     *
-     * This is NOT the folder of the datapack
-     */
-    datapack_root: string;
-}
-
-/**
- * Information available to a parser, including information about the current node.
- */
+//#endregion
+//#region Interaction with parsers
 export interface ParserInfo {
     node_properties: {
         [key: string]: any,
     };
     data: CommmandData;
-    key: string;
+    path: CommandNodePath;
 }
 
 export interface CommmandData {
     /**
-     * The locally available data.
+     * Data from the datapacks
      */
     readonly localData?: Resources;
-    /**
-     * GlobalData accessable
-     */
     readonly globalData: GlobalData;
 }
 
 export interface Suggestion {
-    /**
-     * The string to suggest.
-     */
-    value: string;
+    text: string;
     /**
      * The start from where value should be replaced. 0 indexed character gaps.
      * E.g. `@e[na` with the suggestion `{value:"name=",start:3}`
      * would make `@e[name=` when accepted.
      */
     start: number;
-    /**
-     * The kind of the suggestion in the Completion List
-     */
     kind?: CompletionItemKind;
     description?: string;
 }
 
 export type SuggestResult = Suggestion | string;
 
-/**
- * A way to allow a single parser to handle both suggestions and parsing
- * to use, use `ParseResult & Suggester`
- */
-export interface Suggester {
-    suggestions?: SuggestResult[];
+export interface ParseResult {
+    contextKey: string;
+    data: any;
 }
 
 export interface Parser {
@@ -96,7 +64,7 @@ export interface Parser {
      * Parse the argument as described in NodeProperties against this parser in the reader.
      * The context is optional for tests
      */
-    parse: (reader: StringReader, properties: ParserInfo) => ParseResult | void;
+    parse: (reader: StringReader, properties: ParserInfo) => ReturnedInfo<ParseResult>;
     /**
      * List the suggestions at the end of the starting text described in `text`.
      * @returns an array of Suggestions, either strings or a Suggestion objection
@@ -107,34 +75,51 @@ export interface Parser {
      */
     kind?: CompletionItemKind;
 }
-
-export interface ParseResult {
-    /**
-     * Whether or not parsing was successful.
-     */
-    successful: boolean;
-    /**
-     * The error is parsing was not successful.
-     */
-    errors?: CommandError[];
-    /**
-     * Actions identified in parsing
-     */
-    actions?: SubAction[];
-}
-
+//#endregion
+//#region ParsingData
 export interface ParseNode extends Interval {
     path: CommandNodePath;
     final?: boolean;
 }
 
-export interface ParsedInfo {
+export interface StoredParseResult {
     nodes: ParseNode[]; errors: CommandError[]; actions: SubAction[];
 }
 
-interface SubNode<U extends string, T> extends DataInterval<T> {
+interface SubActionBase<U extends string, T> extends DataInterval<T> {
     type: U;
 }
 
-export type SubAction = SubNode<"hover", string>;
+export type SubAction = SubActionBase<"hover", string>;
 // | SubNode<"rename", RenameRequest>;
+//#endregion
+export type Success = true;
+export const Success: Success = true;
+
+export const Failure: Failure = false;
+export type Failure = false;
+
+//#region ReturnData
+export interface ReturnData<ErrorKind extends BCE = CE> {
+    errors: ErrorKind[];
+    suggestions: SuggestResult[];
+    actions: SubAction[];
+}
+
+/**
+ * A general return type which can either succeed or fail, bringing other data
+ */
+export type ReturnedInfo<T, ErrorKind extends BCE = CE> = ReturnSuccess<T, ErrorKind> | ReturnFailure<ErrorKind>;
+
+export interface ReturnFailure<ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
+    kind: Failure;
+}
+
+export interface ReturnSuccess<T, ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
+    kind: Success;
+    data: T;
+}
+//#endregion
+// Helper types to lower the amount of repetition of the names
+export type BCE = BlankCommandError;
+export type CE = CommandError;

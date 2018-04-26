@@ -3,7 +3,7 @@ import { CommandError, CommandErrorBuilder, isCommandError } from "../brigadier_
 import { StringReader } from "../brigadier_components/string_reader";
 import { Resources } from "../data/datapack_resources";
 import { CommandNode, CommandNodePath, CommandTree, GlobalData, MCNode } from "../data/types";
-import { CommmandData, ParsedInfo, ParseNode, ParseResult, SubAction } from "../types";
+import { CommmandData, ParseNode, ParseResult, StoredParseResult, SubAction } from "../types";
 import { buildInfoForParsers, getNodeAlongPath } from "./node_management";
 import { getParser } from "./parsers/get_parser";
 
@@ -18,7 +18,7 @@ const ParseExceptions = {
 };
 
 function recursiveParse(reader: StringReader, node: MCNode<CommandNode>,
-    path: CommandNodePath, data: CommmandData): ParsedInfo {
+    path: CommandNodePath, data: CommmandData): StoredParseResult {
     const begin = reader.cursor;
     const result = parseAgainstChildren(reader, node, path, data);
     const actions: SubAction[] = result.actions;
@@ -75,7 +75,7 @@ function recursiveParse(reader: StringReader, node: MCNode<CommandNode>,
 }
 
 function parseAgainstChildren(reader: StringReader, node: MCNode<CommandNode>,
-    nodePath: CommandNodePath, data: CommmandData): ParsedInfo {
+    nodePath: CommandNodePath, data: CommmandData): StoredParseResult {
     const parent = getNextNode(node, nodePath, data.globalData.commands as CommandTree).node;
     if (!!parent.children) {
         const nodes: ParseNode[] = [];
@@ -127,7 +127,7 @@ function parseAgainstNode(reader: StringReader, node: CommandNode, data: Commman
     }
 }
 
-export function parseCommand(command: string, globalData: GlobalData, localData?: Resources): ParsedInfo {
+export function parseCommand(command: string, globalData: GlobalData, localData?: Resources): StoredParseResult {
     if (command.length > 0 && !command.startsWith("#")) {
         const reader = new StringReader(command);
         const data: CommmandData = { globalData, localData };
