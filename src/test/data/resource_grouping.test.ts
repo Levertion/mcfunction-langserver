@@ -8,7 +8,7 @@ const dummyData: CommmandData = {
         resources: {
             advancements: [
                 {
-                    real_uri: "advancements/test.json",
+                    uri: "advancements/test.json",
                     resource_name: { namespace: "minecraft", path: "test" },
                 },
             ],
@@ -18,11 +18,11 @@ const dummyData: CommmandData = {
         data: {
             test: {
                 advancements: [{
-                    real_uri: "advancements/test1.json",
+                    uri: "advancements/test1.json",
                     resource_name: { namespace: "test", path: "test1" },
                 }],
                 recipes: [{
-                    real_uri: "recipes/recipe.json",
+                    uri: "recipes/recipe.json",
                     resource_name: { namespace: "test", path: "recipe" },
                 }],
             },

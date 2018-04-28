@@ -2,8 +2,7 @@ import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
 import { BlankCommandError, CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
-import { Resources } from "./data/datapack_resources";
-import { CommandNodePath, GlobalData } from "./data/types";
+import { CommandNodePath, Datapack, GlobalData } from "./data/types";
 
 //#region Document
 export interface FunctionInfo {
@@ -30,13 +29,17 @@ export interface ParserInfo {
     };
     data: CommmandData;
     path: CommandNodePath;
+    /**
+     * The immutable context
+     */
+    context: CommandContext;
 }
 
 export interface CommmandData {
     /**
-     * Data from the datapacks
+     * Data from datapacks
      */
-    readonly localData?: Resources;
+    readonly localData?: Datapack[];
     readonly globalData: GlobalData;
 }
 
@@ -54,31 +57,36 @@ export interface Suggestion {
 
 export type SuggestResult = Suggestion | string;
 
-export interface ParseResult {
-    contextKey: string;
-    data: any;
+/**
+ * A change to the shared context
+ */
+export type ContextChange = Partial<CommandContext> | undefined;
+
+export interface CommandContext {
+    /**
+     * Whether the executor is definitely a player
+     */
+    isPlayer: boolean;
+    [key: string]: any;
 }
 
 export interface Parser {
     /**
      * Parse the argument as described in NodeProperties against this parser in the reader.
-     * The context is optional for tests
+     * Gets both suggestions and success
      */
-    parse: (reader: StringReader, properties: ParserInfo) => ReturnedInfo<ParseResult>;
+    parse: (reader: StringReader, properties: ParserInfo) => ReturnedInfo<ContextChange>;
     /**
-     * List the suggestions at the end of the starting text described in `text`.
-     * @returns an array of Suggestions, either strings or a Suggestion objection
-     */
-    getSuggestions: (text: string, context: ParserInfo) => SuggestResult[];
-    /**
-     * The kind of the suggestion in the Completion List
+     * The default suggestion kind for suggestions from this parser
      */
     kind?: CompletionItemKind;
 }
+
 //#endregion
 //#region ParsingData
 export interface ParseNode extends Interval {
     path: CommandNodePath;
+    context: CommandContext;
     final?: boolean;
 }
 

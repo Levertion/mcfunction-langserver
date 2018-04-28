@@ -2,86 +2,39 @@ import fs = require("fs");
 import path = require("path");
 import { promisify } from "util";
 import { shim } from "util.promisify";
+import { keys } from "../misc_functions/third_party/typed_keys";
+import { Datapack, MinecraftResource, NamespaceData } from "./types";
 shim();
-import { keys } from "../imported_utils/typed_keys";
-export interface Resources {
-    datapacks: Array<{
-        name: string;
-        namespaces: string[];
-        packs_folder: string;
-    }>;
-    data: {
-        [namespace: string]: NamespaceData,
-    };
-}
-
-export interface Tag {
-    replace?: boolean;
-    values: string[];
-}
-
-export interface NamespaceData {
-    functions?: MinecraftResource[];
-    recipes?: MinecraftResource[];
-    advancements?: MinecraftResource[];
-    loot_tables?: MinecraftResource[];
-    structures?: MinecraftResource[];
-    block_tags?: MinecraftResource[];
-    item_tags?: MinecraftResource[];
-    function_tags?: MinecraftResource[];
-}
-
-export interface DataResource<T> extends MinecraftResource {
-    data?: T;
-}
-
-export interface MinecraftResource {
-    real_uri: string;
-    resource_name: NamespacedName;
-}
-
-export interface NamespacedName {
-    namespace: string;
-    path: string;
-}
-
-export interface ExactNamespaceName extends NamespacedName {
-    exact: boolean;
-}
-
-export function exactifyNamespace(originalName: NamespacedName): ExactNamespaceName {
-    return Object.assign(originalName, { exact: true });
-}
 
 interface ResourceInfo<U = string> {
     extension: string;
-    pathfromroot: [U] | string[]; // Custom tuple allows autocomplete mostly.
+    path: [U] | string[]; // Custom tuple allows autocomplete mostly.
     readJson?: boolean;
 }
 
 const resourceTypes: { [T in keyof NamespaceData]-?: ResourceInfo<T> } = {
-    advancements: { extension: ".json", pathfromroot: ["advancements"] },
-    block_tags: { extension: ".json", pathfromroot: ["tags", "blocks"], readJson: true },
-    function_tags: { extension: ".json", pathfromroot: ["tags", "functions"] },
-    functions: { extension: ".mcfunction", pathfromroot: ["functions"] },
-    item_tags: { extension: ".json", pathfromroot: ["tags", "items"] },
-    loot_tables: { extension: ".json", pathfromroot: ["loot_tables"] },
-    recipes: { extension: ".json", pathfromroot: ["recipes"] },
-    structures: { extension: ".nbt", pathfromroot: ["structures"] },
+    advancements: { extension: ".json", path: ["advancements"] },
+    block_tags: { extension: ".json", path: ["tags", "blocks"], readJson: true },
+    function_tags: { extension: ".json", path: ["tags", "functions"] },
+    functions: { extension: ".mcfunction", path: ["functions"] },
+    item_tags: { extension: ".json", path: ["tags", "items"] },
+    loot_tables: { extension: ".json", path: ["loot_tables"] },
+    recipes: { extension: ".json", path: ["recipes"] },
+    structures: { extension: ".nbt", path: ["structures"] },
 };
 
 export async function getNamespaceResources(namespace: string, location: string):
     Promise<NamespaceData> {
     const result: NamespaceData = {};
-    const namespaceFolder = path.join(location, namespace);
+    const namespaceFolder = path.join(location, "data", namespace);
     const subDirs = await subDirectories(namespaceFolder);
     for (const type of keys(resourceTypes)) {
         const resourceInfo = resourceTypes[type];
-        if (subDirs.indexOf(resourceInfo.pathfromroot[0]) === -1) {
+        if (subDirs.indexOf(resourceInfo.path[0]) === -1) {
             continue;
         }
-        const dataContents = path.join(namespaceFolder, ...resourceInfo.pathfromroot);
-        if (resourceInfo.pathfromroot.length > 1 && !(await existsAsync(dataContents))) {
+        const dataContents = path.join(namespaceFolder, ...resourceInfo.path);
+        if (resourceInfo.path.length > 1 && !(await existsAsync(dataContents))) {
             continue;
         }
         const files = await walkDir(dataContents);
@@ -91,11 +44,11 @@ export async function getNamespaceResources(namespace: string, location: string)
             if (realExtension === resourceInfo.extension) {
                 const internalUri = path.relative(dataContents, file);
                 const newResource: MinecraftResource = {
-                    real_uri: path.relative(namespaceFolder, file),
                     resource_name: {
                         namespace, path: internalUri
                             .slice(0, -realExtension.length).replace(new RegExp(`\\${path.sep}`, "g"), "/"),
                     },
+                    uri: path.relative(location, file),
                 };
                 try {
                     if (!!resourceInfo.readJson) {
@@ -118,41 +71,18 @@ export async function getNamespaceResources(namespace: string, location: string)
     return result;
 }
 
-export async function getDatapacksResources(dataLocation: string): Promise<Resources> {
-    const datapacks: Resources["datapacks"] = [];
-    const data: Resources["data"] = {};
+export async function getDatapacksResources(dataLocation: string): Promise<Datapack[]> {
     const datapackNames = await subDirectories(dataLocation);
-    const promises: Array<Promise<Resources["data"]>> = datapackNames.map(async (packName) => {
-        const dataFolder = path.join(dataLocation, packName, "data");
+    const promises: Array<Promise<Datapack>> = datapackNames.map(async (packName) => {
+        const dataFolder = path.join(dataLocation, packName);
         const datapackNamespaces = await subDirectories(dataFolder);
-        datapacks.push({
-            name: packName,
-            namespaces: datapackNamespaces,
-            packs_folder: dataLocation,
-        });
-        const result: Resources["data"] = {};
+        const result: Datapack = { namespaces: {}, path: dataFolder };
         await Promise.all(datapackNamespaces.map(async (namespace) => {
-            result[namespace] = await getNamespaceResources(namespace, dataFolder);
+            result.namespaces[namespace] = await getNamespaceResources(namespace, dataFolder);
         }));
         return result;
     });
-    const results = await Promise.all(promises);
-    results.forEach((result) => {
-        for (const namespace of keys(result)) {
-            const namespaceContent = result[namespace];
-            for (const dataType of keys(namespaceContent)) {
-                data[namespace] = data[namespace] || {};
-                const dataDate = data[namespace][dataType] || [];
-                // @ts-ignore
-                dataDate.push(...namespaceContent[dataType]);
-                data[namespace][dataType] = dataDate;
-            }
-        }
-    });
-    return {
-        data,
-        datapacks,
-    };
+    return await Promise.all(promises);
 }
 
 async function walkDir(currentPath: string): Promise<string[]> {
