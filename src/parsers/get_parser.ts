@@ -1,6 +1,6 @@
 import * as path from "path";
-import { CommandNode } from "../../data/types";
-import { Parser } from "../../types";
+import { CommandNode } from "../data/types";
+import { Parser } from "../types";
 
 /**
  * Incomplete:

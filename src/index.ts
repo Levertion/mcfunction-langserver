@@ -3,96 +3,46 @@ import { promisify } from "util";
 import { shim } from "util.promisify";
 shim();
 import {
-    CompletionList, createConnection, Diagnostic,
-    IPCMessageReader,
-    IPCMessageWriter,
-    TextDocumentSyncKind,
+    CompletionList, createConnection, Diagnostic, IPCMessageReader,
+    IPCMessageWriter, TextDocumentSyncKind, WorkspaceFolder,
 } from "vscode-languageserver";
+
 import { ComputeCompletions } from "./completions";
 import { readSecurity } from "./data/cache_management";
 import { DataManager } from "./data/manager";
-import { calculateDataFolder, singleStringLineToCommandLines } from "./function_utils";
-import { mergeDeep } from "./imported_utils/merge_deep";
-import { commandErrorToDiagnostic, runChanges } from "./langserver_conversions";
-import { parseLines } from "./parse/document_parse";
-import { DeepReadonly, FunctionInfo } from "./types";
+import { splitLines } from "./misc_functions/creators";
+import { calculateDataFolder } from "./misc_functions/datapack_folder";
+import { commandErrorToDiagnostic, runChanges } from "./misc_functions/lsp_conversions";
+import { actOnSecurity, checkSecurity } from "./misc_functions/security";
+import { setup_logging } from "./misc_functions/setup";
+import { mergeDeep } from "./misc_functions/third_party/merge_deep";
+import { parseDocument, parseLines } from "./parse";
+import { FunctionInfo, WorkspaceSecurity } from "./types";
 
 const connection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
 connection.listen();
 
 //#region Data Storage
-let data: DataManager;
+let manager: DataManager;
 const documents: {
     [url: string]: FunctionInfo;
 } = {};
-const eventManager = new EventEmitter();
-let security: { [workspace: string]: true };
-/**
- * The settings for this server. Local Copy inside index.
- * Are readonly when distributed
- */
-const settings: McFunctionSettings = {} as McFunctionSettings;
-/**
- * The root workspace folder
- */
-let rootFolder: string;
+// Avoids race condition between parsing after change and getting completions
+const parseCompletionEvents = new EventEmitter();
+let security: Promise<WorkspaceSecurity>;
+
+let workspaces: WorkspaceFolder[];
+
+let started = false;
+let starting = false;
 //#endregion
 
 // For Server Startup logic, see:
 // https://github.com/Microsoft/language-server-protocol/issues/246
-let started = false;
 connection.onInitialize((params) => {
-    rootFolder = params.rootUri || "";
-    const log = (message: string) => {
-        connection.console.log(message);
-    };
-    global.mcLangLog = Object.assign<InternalLog, McLogger>(log, {
-        internal: (m: string) => {
-            if (settings.trace.internalLogging === true) {
-                log(`[McFunctionInternal] ${m}`);
-            }
-        },
-    });
-    data = new DataManager();
-    const reparseAll = () => {
-        for (const docUri in documents) {
-            if (documents.hasOwnProperty(docUri)) {
-                parseLines(documents[docUri], data, eventManager, docUri);
-                sendDiagnostics(docUri);
-            }
-        }
-    };
-    mcLangLog("Getting data");
-    promisify((cb) => {
-        eventManager.once("settingscomplete", cb);
-    })().then(async () => {
-        const successful = await data.readCache();
-        if (successful === true) {
-            mcLangLog("Reading cache successful");
-            started = true;
-            reparseAll();
-            const result = await data.getGlobalData();
-            if (result === true) {
-                reparseAll();
-            } else {
-                mcLangLog(result);
-            }
-        } else {
-            mcLangLog("Reading cache failed");
-            const result = await data.getGlobalData();
-            mcLangLog("Finished getting globaldata");
-            if (result === true) {
-                started = true;
-                reparseAll();
-            } else {
-                mcLangLog(result);
-                connection.sendNotification("mcfunction/shutdown", result);
-            }
-        }
-    }).catch((e) => {
-        mcLangLog.internal(`Aquiring data had uncaught error: ${JSON.stringify(e)}`);
-        connection.sendNotification("mcfunction/shutdown", JSON.stringify(e));
-    });
+    setup_logging(connection);
+    workspaces = params.workspaceFolders || [];
+    manager = new DataManager();
     return {
         capabilities: {
             completionProvider: {
@@ -102,49 +52,77 @@ connection.onInitialize((params) => {
                 change: TextDocumentSyncKind.Incremental,
                 openClose: true,
             },
+            workspace: {
+                workspaceFolders: { changeNotifications: true, supported: true },
+            },
         },
     };
 });
 
+// Handles the starting of the server
 connection.onDidChangeConfiguration(async (params) => {
-    mcLangLog(`${JSON.stringify(params)}`);
-    function completeSettings() {
-        global.mcLangSettings = mergeDeep(settings, params.settings.mcfunction) as DeepReadonly<McFunctionSettings>;
-        eventManager.emit("settingscomplete");
+    let startinglocal = false;
+    if (starting === false) {
+        starting = true;
+        startinglocal = true;
+        global.mcLangSettings = {} as McFunctionSettings;
+        security = readSecurity();
     }
-    if (started === false) {
-        security = await readSecurity();
-    }
-    if (security[rootFolder] === true) {
-        const checkresult = requiresSecurityCheck(params.settings.mcfunction);
-        if (checkresult === false) {
-            completeSettings();
-        } else {
-            const result = await connection.window.showWarningMessage(
-                `Preventing loading because of potentially insecure settings: ${
-                checkresult.join()}`, { title: "Allow (workspace)" }, { title: "Block" });
-            if (!result || result.title === "Block") {
-                connection.sendNotification("mcfunction/shutdown", "Security Shutdown");
-            } else {
-                security[rootFolder] = true;
-                completeSettings();
+    await ensureSecure(params.settings);
+    const reparseall = () => {
+        for (const uri in documents) {
+            if (documents.hasOwnProperty(uri)) {
+                const doc = documents[uri];
+                parseDocument(doc, manager, parseCompletionEvents, uri);
+                sendDiagnostics(uri);
             }
+        }
+    };
+    if (startinglocal === true) {
+        const cacheread = await manager.readCache();
+        if (cacheread === true) {
+            started = true;
+            reparseall();
+        }
+        const getDataResult = await manager.getGlobalData();
+        if (getDataResult === true) {
+            started = true;
+            reparseall();
+        } else if (cacheread === false) {
+            connection.sendNotification("mcfunction/shutdown", getDataResult);
+            return;
         }
     }
 });
 
+async function ensureSecure(settings: Partial<McFunctionSettings>) {
+    const secure = await security;
+    const newsettings = mergeDeep({}, global.mcLangSettings, settings) as McFunctionSettings;
+    const securityResult = checkSecurity(workspaces, secure, newsettings);
+    if (securityResult !== true) {
+        // Failed security checkup challenge
+        const safetocontinue = await actOnSecurity(securityResult, connection, secure);
+        if (!safetocontinue) {
+            connection.sendNotification("mcfunction/shutdown",
+                `Shutting down because of insecure settings: '${securityResult.issues.join("', '")}'`);
+            return;
+        }
+    }
+    global.mcLangSettings = newsettings;
+}
+
 connection.onDidOpenTextDocument((params) => {
     const uri = params.textDocument.uri;
-    const datapackRoot = calculateDataFolder(uri, rootFolder);
+    const dataPackRoot = calculateDataFolder(uri);
     documents[uri] = {
-        datapack_root: datapackRoot,
-        lines: singleStringLineToCommandLines(params.textDocument.text),
+        datapack_root: dataPackRoot,
+        lines: splitLines(params.textDocument.text),
     };
-    if (datapackRoot.length > 0) {
-        data.aquirePackFolderData(documents[uri].datapack_root).then(() => {
+    if (!!dataPackRoot) {
+        manager.readPackFolderData(dataPackRoot).then(() => {
             if (started === true && documents.hasOwnProperty(uri)) {
-                parseLines(documents[uri],
-                    data, eventManager, uri);
+                parseDocument(documents[uri],
+                    manager, parseCompletionEvents, uri);
                 sendDiagnostics(uri);
             }
         }).catch((e) => {
@@ -152,8 +130,17 @@ connection.onDidOpenTextDocument((params) => {
         });
     }
     if (started === true) {
-        parseLines(documents[uri],
-            data, eventManager, uri);
+        parseDocument(documents[uri],
+            manager, parseCompletionEvents, uri);
+        sendDiagnostics(uri);
+    }
+});
+
+connection.onDidChangeTextDocument((params) => {
+    const uri = params.textDocument.uri;
+    const changedlines = runChanges(params, documents[uri]);
+    if (started === true) {
+        parseLines(documents[uri], manager, parseCompletionEvents, uri, changedlines);
         sendDiagnostics(uri);
     }
 });
@@ -172,29 +159,37 @@ function sendDiagnostics(uri: string) {
 }
 
 connection.onDidCloseTextDocument((params) => {
-    connection.sendDiagnostics({ uri: params.textDocument.uri, diagnostics: [] }); // Clear all diagnostics.
+    // Clear diagnostics - might not be needed
+    connection.sendDiagnostics({ uri: params.textDocument.uri, diagnostics: [] });
     delete documents[params.textDocument.uri];
 });
 
-connection.onDidChangeTextDocument((params) => {
-    const uri = params.textDocument.uri;
-    const changed = runChanges(params, documents[uri]);
-    if (started === true) {
-        parseLines(documents[uri], data, eventManager, uri, changed);
-        sendDiagnostics(uri);
+connection.workspace.onDidChangeWorkspaceFolders(async (params) => {
+    for (const workspace of params.removed) {
+        for (let index = 0; index < workspaces.length; index++) {
+            if (workspaces[index].uri === workspace.uri) {
+                workspaces.splice(index, 1);
+            }
+        }
     }
+    workspaces.push(...params.added);
+    // Makes sure that this workspace doesn't have insecure settings disabled
+    await ensureSecure({});
 });
 
 connection.onCompletion((params) => {
     const doc = documents[params.textDocument.uri];
     const line = doc.lines[params.position.line];
     const computeCompletionsLocal = () => ComputeCompletions(params.position.line,
-        doc, params.position.character, data);
+        doc, params.position.character, manager);
+    if (!started) {
+        return [];
+    }
     if (!!line.parseInfo) {
         return computeCompletionsLocal();
     } else {
         return promisify((cb) =>
-            eventManager.once(`${params.textDocument.uri}:${params.position.line}`, cb))().
+            parseCompletionEvents.once(`${params.textDocument.uri}:${params.position.line}`, cb))().
             then<CompletionList, never>(() => computeCompletionsLocal());
     }
 });

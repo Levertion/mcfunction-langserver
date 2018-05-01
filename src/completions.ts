@@ -1,9 +1,9 @@
 import { CompletionItem, CompletionItemKind, CompletionList } from "vscode-languageserver/lib/main";
 import { DataManager } from "./data/manager";
 import { CommandNodePath, CommandTree } from "./data/types";
-import { getNextNode } from "./parse";
-import { buildInfoForParsers, getNodeAlongPath } from "./parse/node_management";
-import { getParser } from "./parse/parsers/get_parser";
+import { createParserInfo } from "./misc_functions/creators";
+import { followPath, getNextNode } from "./misc_functions/node_tree";
+import { getParser } from "./parsers/get_parser";
 import { CommmandData, FunctionInfo, ParseNode, SuggestResult } from "./types";
 
 export function ComputeCompletions(linenum: number,
@@ -49,14 +49,14 @@ export function ComputeCompletions(linenum: number,
 
 function getCompletionsFromNode(line: number, start: number, end: number,
     text: string, nodepath: CommandNodePath, data: CommmandData): CompletionItem[] {
-    const parent = getNextNode(getNodeAlongPath(data.globalData.commands as any as CommandTree,
+    const parent = getNextNode(followPath(data.globalData.commands as any as CommandTree,
         nodepath), nodepath, data.globalData.commands as any as CommandTree).node;
     const result: CompletionItem[] = [];
     if (!!parent.children) {
         for (const childKey in parent.children) {
             if (parent.children.hasOwnProperty(childKey)) {
                 const child = parent.children[childKey];
-                const info = buildInfoForParsers(child, data, childKey);
+                const info = createParserInfo(child, data, childKey);
                 const parser = getParser(child);
                 if (!!parser) {
                     result.push(...SuggestionsToCompletions(

@@ -1,23 +1,15 @@
 import { readCache } from "./cache_management";
-import { getDatapacksResources, Resources } from "./datapack_resources";
+import { getDatapacksResources } from "./datapack_resources";
 import { collectGlobalData } from "./extractor";
-import { GlobalData } from "./types";
+import { Datapack, GlobalData } from "./types";
 
 export class DataManager {
     //#region Data Management
     private globalDataInternal: GlobalData = {} as GlobalData;
-    private packDataInternal: {
-        [root: string]: Resources,
-    } = {};
-    /**
-     * Get the information for the data packs.
-     */
-    public get packData(): DataManager["packDataInternal"] {
-        return this.packDataInternal;
-    }
-    /**
-     * The Global Data from this data Manager
-     */
+
+    private packDataComplete: { [root: string]: Datapack[] } = {};
+    private packDataPromises: { [root: string]: Promise<Datapack[]> } = {};
+
     public get globalData(): GlobalData {
         return this.globalDataInternal;
     }
@@ -31,10 +23,10 @@ export class DataManager {
      */
     constructor({ DummyGlobal, DummyPack }: {
         DummyGlobal?: DataManager["globalDataInternal"],
-        DummyPack?: DataManager["packDataInternal"],
+        DummyPack?: DataManager["packDataComplete"],
     } = {}) {
         this.globalDataInternal = DummyGlobal || this.globalDataInternal;
-        this.packDataInternal = DummyPack || this.packDataInternal;
+        this.packDataComplete = DummyPack || this.packDataComplete;
     }
     //#endregion
     public async getGlobalData(): Promise<true | string> {
@@ -51,13 +43,19 @@ export class DataManager {
         }
     }
 
-    public getPackFolderData(folder: string): Resources | undefined {
-        return this.packDataInternal[folder];
+    public getPackFolderData(folder: string | undefined): Datapack[] | undefined {
+        if (!!folder && this.packDataComplete.hasOwnProperty(folder)) {
+            return this.packDataComplete[folder];
+        }
+        return;
     }
 
-    public async aquirePackFolderData(folder: string) {
-        if (!this.packDataInternal.hasOwnProperty(folder)) {
-            this.packDataInternal[folder] = await getDatapacksResources(folder);
+    public async readPackFolderData(folder: string) {
+        if (!this.packDataPromises.hasOwnProperty(folder)) {
+            this.packDataPromises[folder] = getDatapacksResources(folder);
+            this.packDataComplete[folder] = await this.packDataPromises[folder];
+        } else {
+            await this.packDataPromises[folder];
         }
     }
 

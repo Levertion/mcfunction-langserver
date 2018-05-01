@@ -2,9 +2,9 @@ import {
     Diagnostic, DidChangeTextDocumentParams, Range,
 } from "vscode-languageserver/lib/main";
 import { CommandError } from "../brigadier_components/errors";
-import { shouldTranslate } from "../function_utils";
 import { FunctionInfo } from "../types";
 import { splitLines } from "./creators";
+import { shouldTranslate } from "./translation";
 
 /**
  * Turn a command error into a language server diagnostic
@@ -15,7 +15,7 @@ export function commandErrorToDiagnostic(error: CommandError, line: number): Dia
     let text: string;
     if (shouldTranslate()) {
         // translate(error.code)
-        text = `'${error.text}': Your Translation settings are not supported yet.`;
+        text = `'${error.text}': Translation is not yet supported`;
     } else {
         text = error.text;
     }

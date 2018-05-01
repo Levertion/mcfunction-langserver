@@ -10,7 +10,11 @@ export interface FunctionInfo {
     /**
      * The filesystem path to the `datapacks` folder this is part of - NOT the folder of the single datapack
      */
-    datapack_root: string;
+    datapack_root: string | undefined;
+}
+
+export interface WorkspaceSecurity {
+    [workspace: string]: boolean;
 }
 
 export interface CommandLine {
@@ -75,7 +79,7 @@ export interface Parser {
      * Parse the argument as described in NodeProperties against this parser in the reader.
      * Gets both suggestions and success
      */
-    parse: (reader: StringReader, properties: ParserInfo) => ReturnedInfo<ContextChange>;
+    parse: (reader: StringReader, properties: ParserInfo) => ReturnedInfo<ContextChange> | undefined;
     /**
      * The default suggestion kind for suggestions from this parser
      */

@@ -2,7 +2,7 @@ import fs = require("fs");
 import path = require("path");
 import { promisify } from "util";
 import { shim } from "util.promisify";
-import { keys } from "../misc_functions/third_party/typed_keys";
+import { typed_keys } from "../misc_functions/third_party/typed_keys";
 import { Datapack, MinecraftResource, NamespaceData } from "./types";
 shim();
 
@@ -28,7 +28,7 @@ export async function getNamespaceResources(namespace: string, location: string)
     const result: NamespaceData = {};
     const namespaceFolder = path.join(location, "data", namespace);
     const subDirs = await subDirectories(namespaceFolder);
-    for (const type of keys(resourceTypes)) {
+    for (const type of typed_keys(resourceTypes)) {
         const resourceInfo = resourceTypes[type];
         if (subDirs.indexOf(resourceInfo.path[0]) === -1) {
             continue;
@@ -73,7 +73,7 @@ export async function getNamespaceResources(namespace: string, location: string)
 
 export async function getDatapacksResources(dataLocation: string): Promise<Datapack[]> {
     const datapackNames = await subDirectories(dataLocation);
-    const promises: Array<Promise<Datapack>> = datapackNames.map(async (packName) => {
+    const promises = datapackNames.map(async (packName): Promise<Datapack> => {
         const dataFolder = path.join(dataLocation, packName);
         const datapackNamespaces = await subDirectories(dataFolder);
         const result: Datapack = { namespaces: {}, path: dataFolder };

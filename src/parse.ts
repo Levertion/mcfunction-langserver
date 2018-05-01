@@ -1,11 +1,19 @@
+import { EventEmitter } from "events";
 import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
-import { CommandError, CommandErrorBuilder, isCommandError } from "../brigadier_components/errors";
-import { StringReader } from "../brigadier_components/string_reader";
-import { Resources } from "../data/datapack_resources";
-import { CommandNode, CommandNodePath, CommandTree, GlobalData, MCNode } from "../data/types";
-import { CommmandData, ParseNode, ParseResult, StoredParseResult, SubAction } from "../types";
-import { buildInfoForParsers, getNodeAlongPath } from "./node_management";
+
+import { emit } from "cluster";
+import { CommandError, CommandErrorBuilder, isCommandError } from "./brigadier_components/errors";
+import { StringReader } from "./brigadier_components/string_reader";
+import { DataManager } from "./data/manager";
+import { CommandNode, CommandNodePath, CommandTree, Datapack, GlobalData, MCNode } from "./data/types";
+import { createParserInfo } from "./misc_functions/creators";
+import { getNextNode } from "./misc_functions/node_tree";
+import { ReturnHelper } from "./misc_functions/returnhelper";
 import { getParser } from "./parsers/get_parser";
+import {
+    CommandContext, CommmandData, ContextChange, FunctionInfo,
+    ParseNode, ReturnedInfo, StoredParseResult, SubAction,
+} from "./types";
 
 const ParseExceptions = {
     NoSpace: new CommandErrorBuilder("parsing.command.whitespace",
@@ -76,7 +84,7 @@ function recursiveParse(reader: StringReader, node: MCNode<CommandNode>,
 
 function parseAgainstChildren(reader: StringReader, node: MCNode<CommandNode>,
     nodePath: CommandNodePath, data: CommmandData): StoredParseResult {
-    const parent = getNextNode(node, nodePath, data.globalData.commands as CommandTree).node;
+    const parent = getNextNode(node, nodePath, data.globalData.commands).node;
     if (!!parent.children) {
         const nodes: ParseNode[] = [];
         const errors: CommandError[] = [];
@@ -104,30 +112,35 @@ function parseAgainstChildren(reader: StringReader, node: MCNode<CommandNode>,
     }
 }
 
-function parseAgainstNode(reader: StringReader, node: CommandNode, data: CommmandData, key: string): ParseResult {
-    const nodeInfo = buildInfoForParsers(node, data, key);
+function parseAgainstNode(reader: StringReader, node: CommandNode,
+    data: CommmandData, key: string, context: CommandContext): ReturnedInfo<ContextChange> {
+    const returner = new ReturnHelper();
+    const nodeInfo = createParserInfo(node, data, key);
     const parser = getParser(node);
     if (!parser) {
-        return { successful: false };
+        return returner.fail();
     }
     try {
         const result = parser.parse(reader, nodeInfo);
         if (result === undefined) {
-            return { successful: true };
+            return returner.succeed({});
+        }
+        if (returner.merge(result)) {
+            return returner.succeed(result.data);
         } else {
-            return result;
+            return returner.fail();
         }
     } catch (error) {
         if (isCommandError(error)) {
-            return { successful: false, errors: [error] };
+            return returner.fail(error);
         } else {
             mcLangLog(`Got unexpected error '${JSON.stringify(error)}' when parsing '${JSON.stringify(node)}'`);
-            return { successful: false };
+            return returner.fail();
         }
     }
 }
 
-export function parseCommand(command: string, globalData: GlobalData, localData?: Resources): StoredParseResult {
+export function parseCommand(command: string, globalData: GlobalData, localData?: Datapack[]): StoredParseResult {
     if (command.length > 0 && !command.startsWith("#")) {
         const reader = new StringReader(command);
         const data: CommmandData = { globalData, localData };
@@ -136,20 +149,18 @@ export function parseCommand(command: string, globalData: GlobalData, localData?
         return { actions: [], errors: [], nodes: [] };
     }
 }
-//#region GetNextNode
-export function getNextNode(node: CommandNode |
-    MCNode<CommandNode>, nodePath: CommandNodePath, tree: CommandTree): GetNodeResult {
-    // @ts-ignore The compiler complains oddly that McNode<CommandNode> doesn't have redirect defined.
-    if (!!node.redirect) {
-        // @ts-ignore
-        return { node: getNodeAlongPath(tree, node.redirect), path: node.redirect };
-    } else {
-        return { node, path: nodePath };
+export function parseLines(document: FunctionInfo, data: DataManager,
+    emitter: EventEmitter, documentUri: string, lines: number[]) {
+
+    for (const lineNo of lines) {
+        const line = document.lines[lineNo];
+        const result = parseCommand(line.text, data.globalData, data.getPackFolderData(document.datapack_root));
+        line.parseInfo = result;
+        emitter.emit(`${documentUri}:${lineNo}`);
     }
 }
-
-interface GetNodeResult {
-    node: MCNode<CommandNode>;
-    path: CommandNodePath;
+export function parseDocument(document: FunctionInfo, data: DataManager,
+    emitter: EventEmitter, documentUri: string) {
+    const lines = document.lines.map((_, i) => i);
+    parseLines(document, data, emitter, documentUri, lines);
 }
-//#endregion
