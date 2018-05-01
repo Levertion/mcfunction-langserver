@@ -114,6 +114,11 @@ async function ensureSecure(settings: Partial<McFunctionSettings>) {
 connection.onDidOpenTextDocument((params) => {
     const uri = params.textDocument.uri;
     const dataPackRoot = calculateDataFolder(uri);
+    const parsethis = () => {
+        parseDocument(documents[uri],
+            manager, parseCompletionEvents, uri);
+        sendDiagnostics(uri);
+    };
     documents[uri] = {
         datapack_root: dataPackRoot,
         lines: splitLines(params.textDocument.text),
@@ -121,18 +126,14 @@ connection.onDidOpenTextDocument((params) => {
     if (!!dataPackRoot) {
         manager.readPackFolderData(dataPackRoot).then(() => {
             if (started === true && documents.hasOwnProperty(uri)) {
-                parseDocument(documents[uri],
-                    manager, parseCompletionEvents, uri);
-                sendDiagnostics(uri);
+                parsethis();
             }
         }).catch((e) => {
             mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
         });
     }
     if (started === true) {
-        parseDocument(documents[uri],
-            manager, parseCompletionEvents, uri);
-        sendDiagnostics(uri);
+        parsethis();
     }
 });
 
@@ -150,11 +151,10 @@ function sendDiagnostics(uri: string) {
     const diagnostics: Diagnostic[] = [];
     for (let line = 0; line < doc.lines.length; line++) {
         const lineContent = doc.lines[line];
-        if (!!lineContent.parseInfo && lineContent.parseInfo.errors) {
+        if (!!lineContent.parseInfo && !!lineContent.parseInfo.errors) {
             diagnostics.push(...lineContent.parseInfo.errors.map((error) => commandErrorToDiagnostic(error, line)));
         }
     }
-    connection.sendDiagnostics({ uri, diagnostics: [] }); // Clear all diagnostics.
     connection.sendDiagnostics({ uri, diagnostics });
 }
 
