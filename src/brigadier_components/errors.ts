@@ -1,5 +1,5 @@
 import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
-import { MCFormat } from "../function_utils";
+import { MCFormat } from "../misc_functions";
 
 /**
  * An error inside a command.

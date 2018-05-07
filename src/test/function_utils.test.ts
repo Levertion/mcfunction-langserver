@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { calculateDataFolder, singleStringLineToCommandLines, stringsToCommandLine } from "../function_utils";
+import { calculateDataFolder, createCommandLines, splitLines } from "../misc_functions";
 import { } from "./logging_setup";
 
 describe("Function Utils", () => {
@@ -30,14 +30,14 @@ describe("Function Utils", () => {
     });
     describe("Strings To Command Line", () => {
         it("should convert an array of strings into an array of Command Lines", () => {
-            assert.deepEqual(stringsToCommandLine(["hello", "execute run say hi"]),
+            assert.deepEqual(createCommandLines(["hello", "execute run say hi"]),
                 [{ text: "hello" }, { text: "execute run say hi" }],
             );
         });
     });
     describe("Single String To Command Line", () => {
         it("should convert a multiple line string", () => {
-            assert.deepEqual(singleStringLineToCommandLines(`hello
+            assert.deepEqual(splitLines(`hello
 execute run say hi`), [{ text: "hello" }, { text: "execute run say hi" }]);
         });
     });

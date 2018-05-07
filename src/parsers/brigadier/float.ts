@@ -1,6 +1,6 @@
 import { isNumber } from "util";
-import { CommandErrorBuilder } from "../../../brigadier_components/errors";
-import { Parser } from "../../../types";
+import { CommandErrorBuilder } from "../../brigadier_components/errors";
+import { Parser } from "../../types";
 
 const JAVAMINFLOAT = -2139095039;
 const JAVAMAXFLOAT = 2139095039;
@@ -11,9 +11,6 @@ const FLOATEXCEPTIONS = {
 };
 
 const parser: Parser = {
-    getSuggestions: () => {
-        return [];
-    },
     parse: (reader, properties) => {
         const start = reader.cursor;
         const read = reader.readFloat();

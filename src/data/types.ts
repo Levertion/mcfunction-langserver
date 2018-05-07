@@ -47,9 +47,7 @@ export interface CommandNode extends MCNode<CommandNode> {
     parser?: string;
     executable?: boolean;
     redirect?: CommandNodePath;
-    properties?: {
-        [key: string]: any,
-    };
+    properties?: Dictionary<any>;
 }
 
 /**

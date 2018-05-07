@@ -102,6 +102,8 @@ interface McLogger {
  */
 type InternalLog = (message: string) => void
 
+type Dictionary<T> = { [key: string]: T }
+
 // Type definitions for util.promisify 1.0
 // Project: https://github.com/ljharb/util.promisify#readme
 // Definitions by: Adam Voss <https://github.com/adamvoss>

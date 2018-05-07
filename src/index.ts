@@ -6,16 +6,15 @@ import {
     CompletionList, createConnection, Diagnostic, IPCMessageReader,
     IPCMessageWriter, TextDocumentSyncKind, WorkspaceFolder,
 } from "vscode-languageserver";
+import { mergeDeep } from "./misc_functions/third_party/merge_deep";
 
 import { ComputeCompletions } from "./completions";
 import { readSecurity } from "./data/cache_management";
 import { DataManager } from "./data/manager";
-import { splitLines } from "./misc_functions/creators";
-import { calculateDataFolder } from "./misc_functions/datapack_folder";
-import { commandErrorToDiagnostic, runChanges } from "./misc_functions/lsp_conversions";
-import { actOnSecurity, checkSecurity } from "./misc_functions/security";
-import { setup_logging } from "./misc_functions/setup";
-import { mergeDeep } from "./misc_functions/third_party/merge_deep";
+import {
+    actOnSecurity, calculateDataFolder, checkSecurity,
+    commandErrorToDiagnostic, runChanges, setup_logging, splitLines,
+} from "./misc_functions/";
 import { parseDocument, parseLines } from "./parse";
 import { FunctionInfo, WorkspaceSecurity } from "./types";
 

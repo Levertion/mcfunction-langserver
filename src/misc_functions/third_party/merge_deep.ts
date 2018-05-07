@@ -6,22 +6,21 @@
  * Originally, non-typescript code by: https://github.com/salakar
  */
 
-interface AnyObject { // Added to appease no implicit any
-    [key: string]: any;
-}
+type AnyDict = Dictionary<any>;
+
 /**
  * Simple object check.
  * @param item
  * @returns {boolean}
  */
-export function isObject(item: any): item is AnyObject {
+export function isObject(item: any): item is AnyDict {
     return (item && typeof item === "object" && !Array.isArray(item));
 }
 
 /**
  * Deep merge two objects.
  */
-export function mergeDeep(target: AnyObject, ...sources: AnyObject[]): AnyObject {
+export function mergeDeep(target: AnyDict, ...sources: AnyDict[]): AnyDict {
     if (!sources.length) { return target; }
     const source = sources.shift();
     if (isObject(target) && isObject(source)) {

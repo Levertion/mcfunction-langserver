@@ -10,12 +10,12 @@ export function followPath<T extends MCNode<T>>(tree: MCNode<T>, path: CommandNo
     return current;
 }
 
-export function getNextNode(node: CommandNode |
-    MCNode<CommandNode>, nodePath: CommandNodePath, tree: CommandTree): GetNodeResult {
-    // @ts-ignore The compiler complains oddly that McNode<CommandNode> doesn't have redirect defined.
-    if (!!node.redirect) {
-        // @ts-ignore
-        return { node: getNodeAlongPath(tree, node.redirect), path: node.redirect };
+export function getNextNode(node: CommandNode | MCNode<CommandNode>
+    & { redirect?: CommandNodePath }, // Allow use of node.redirect without a tsignore
+    nodePath: CommandNodePath, tree: CommandTree): GetNodeResult {
+    const redirect: CommandNodePath | undefined = node.redirect;
+    if (!!redirect) {
+        return { node: followPath(tree, redirect), path: redirect };
     } else {
         return { node, path: nodePath };
     }

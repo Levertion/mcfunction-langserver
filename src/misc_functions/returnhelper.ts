@@ -1,8 +1,8 @@
 import { BlankCommandError, CommandError, fillBlankError } from "../brigadier_components/errors";
 import { ImmutableStringReader } from "../brigadier_components/string_reader";
 import {
-    BCE, CE, Failure, ReturnData, ReturnedInfo, ReturnFailure, ReturnSuccess,
-    SubAction, Success, SuggestResult,
+    BCE, CE, Failure, ParserInfo, ReturnData, ReturnedInfo, ReturnFailure,
+    ReturnSuccess, SubAction, Success, SuggestResult,
 } from "../types";
 
 /**
@@ -43,14 +43,16 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         return this.data;
     }
 
-    public succeed<T = undefined>(data: T): ReturnSuccess<T, Errorkind> {
+    public succeed<T extends undefined>(data?: T): ReturnSuccess<undefined, Errorkind>;
+    public succeed<T>(data: T): ReturnSuccess<T, Errorkind>;
+    public succeed<T>(data: T): ReturnSuccess<T, Errorkind> {
         return Object.assign(this.getShared(), {
             data,
             kind: Success as Success,
         });
     }
-    public fail(err?: Errorkind): ReturnFailure<Errorkind> {
-        if (!!err) {
+    public fail(err?: Errorkind, info?: ParserInfo): ReturnFailure<Errorkind> {
+        if (!!err && (!info || !info.suggesting)) {
             this.addErrors(err);
         }
         return Object.assign(this.getShared(), {
@@ -68,16 +70,24 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     }
 
     public mergeIfCantRead<T>(merge: ReturnedInfo<T, Errorkind>,
-        reader: ImmutableStringReader): merge is ReturnSuccess<T, Errorkind> {
-        this.merge(merge, !reader.canRead());
-        return isSuccessful(merge);
+        reader: ImmutableStringReader, info?: ParserInfo): merge is ReturnSuccess<T, Errorkind> {
+        return this.merge(merge, !reader.canRead(), info);
     }
-    public merge<T>(merge: ReturnedInfo<T, Errorkind>, suggest = true): merge is ReturnSuccess<T, Errorkind> {
-        if (suggest) {
-            this.mergeSuggestions(merge);
+    public merge<T>(merge: ReturnedInfo<T, Errorkind>, suggest = true,
+        info?: ParserInfo): merge is ReturnSuccess<T, Errorkind> {
+        if (!!info) {
+            if (suggest && info.suggesting) {
+                this.mergeSuggestions(merge);
+            } else {
+                this.mergeSafe(merge);
+            }
+        } else {
+            if (suggest) {
+                this.mergeSuggestions(merge);
+            }
+            this.mergeSafe(merge);
         }
-        this.mergeSafe(merge);
-        return true;
+        return isSuccessful(merge);
     }
 
     private mergeSuggestions(merge: ReturnData<Errorkind>) {

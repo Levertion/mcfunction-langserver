@@ -1,164 +1,145 @@
 import { EventEmitter } from "events";
-import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
-import { emit } from "cluster";
-import { CommandError, CommandErrorBuilder, isCommandError } from "./brigadier_components/errors";
+import { CommandErrorBuilder } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
+import { COMMENT_START, SPACE } from "./consts";
 import { DataManager } from "./data/manager";
-import { CommandNode, CommandNodePath, CommandTree, Datapack, GlobalData, MCNode } from "./data/types";
-import { createParserInfo } from "./misc_functions/creators";
-import { getNextNode } from "./misc_functions/node_tree";
-import { ReturnHelper } from "./misc_functions/returnhelper";
+import { CommandNode, CommandNodePath, Datapack, GlobalData } from "./data/types";
+import { createParserInfo, getNextNode, isSuccessful, ReturnHelper } from "./misc_functions";
 import { getParser } from "./parsers/get_parser";
-import {
-    CommandContext, CommmandData, ContextChange, FunctionInfo,
-    ParseNode, ReturnedInfo, StoredParseResult, SubAction,
-} from "./types";
+import { CommandContext, CommmandData, FunctionInfo, ParseNode, ReturnedInfo, StoredParseResult } from "./types";
 
-const ParseExceptions = {
-    NoSpace: new CommandErrorBuilder("parsing.command.whitespace",
-        "Expected whitespace, got '%s'"),
-    NoSuccesses:
-        new CommandErrorBuilder("command.parsing.matchless",
-            "No nodes which matched '%s' found"),
+const parseExceptions = {
+    Ambiguity: new CommandErrorBuilder("parsing.command.ambiguous",
+        "Command text is possibly ambiguous", DiagnosticSeverity.Information),
+    NoSuccesses: new CommandErrorBuilder("command.parsing.matchless",
+        "No nodes which matched '%s' found"),
     NotRunnable: new CommandErrorBuilder("parsing.command.executable",
         "The command '%s' cannot be run.", DiagnosticSeverity.Warning),
 };
 
-function recursiveParse(reader: StringReader, node: MCNode<CommandNode>,
-    path: CommandNodePath, data: CommmandData): StoredParseResult {
-    const begin = reader.cursor;
-    const result = parseAgainstChildren(reader, node, path, data);
-    const actions: SubAction[] = result.actions;
-    const errors: CommandError[] = result.errors;
-    const nodes = [];
-    let spaceissue: { start: number, character: string } | undefined;
-    for (const success of result.nodes) {
-        if (!!node.children) {
-            reader.cursor = success.high;
-            const key = success.path[success.path.length - 1];
-            const child = node.children[key];
-            const checkCanRead = (): boolean => {
-                if (!reader.canRead()) {
-                    if (!child.executable) {
-                        errors.push(ParseExceptions.NotRunnable.create(0, reader.cursor, reader.string));
-                    }
-                    return false;
-                } else {
-                    return true;
-                }
-            };
-            if (checkCanRead()) {
-                if (reader.peek() === " ") {
-                    reader.skip();
-                    let successCount = 0;
-                    if (checkCanRead()) {
-                        const recursiveResult = recursiveParse(reader, child, success.path, data);
-                        actions.push(...recursiveResult.actions);
-                        nodes.push(...recursiveResult.nodes);
-                        errors.push(...recursiveResult.errors);
-                        successCount = recursiveResult.nodes.length;
-                    }
-                    if (successCount === 0) {
-                        success.final = true;
-                    }
-                    nodes.push(success);
-                } else {
-                    spaceissue = { start: reader.cursor, character: reader.peek() };
-                }
-            } else {
-                nodes.push(success);
-            }
-        }
+export function parseCommand(text: string, globalData: GlobalData, localData: Datapack[] | undefined):
+    StoredParseResult | void {
+    if (text.length === 0 || text.startsWith(COMMENT_START)) {
+        return;
     }
-    if (nodes.length === 0) {
-        if (!!spaceissue) {
-            errors.push(ParseExceptions.NoSpace.create(spaceissue.start, spaceissue.start + 1, spaceissue.character));
-        } else {
-            errors.push(ParseExceptions.NoSuccesses.create(begin, reader.string.length,
-                reader.string.substring(begin, reader.string.length)));
-        }
+    const reader = new StringReader(text);
+    const data: CommmandData = { globalData, localData };
+    const startingcontext: CommandContext = {};
+    const recurse = parsechildren(reader, globalData.commands as any, [], data, startingcontext);
+    const nodes: ParseNode[] = [];
+    if (isSuccessful(recurse)) {
+        nodes.push(...recurse.data);
     }
-    return { actions, errors, nodes };
+    return { actions: recurse.actions, nodes, errors: recurse.errors };
 }
 
-function parseAgainstChildren(reader: StringReader, node: MCNode<CommandNode>,
-    nodePath: CommandNodePath, data: CommmandData): StoredParseResult {
-    const parent = getNextNode(node, nodePath, data.globalData.commands).node;
-    if (!!parent.children) {
+function parsechildren(reader: StringReader, node: CommandNode,
+    path: CommandNodePath, data: CommmandData, context: CommandContext): ReturnedInfo<ParseNode[]> {
+    const parent = getNextNode(node, path, data.globalData.commands);
+    const helper = new ReturnHelper();
+    const children = parent.node.children;
+    if (children) {
         const nodes: ParseNode[] = [];
-        const errors: CommandError[] = [];
-        const actions: SubAction[] = [];
-        const children = Object.keys(parent.children);
         const start = reader.cursor;
-        for (const childName of children) {
+        let successCount = 0;
+        let min: number = reader.getTotalLength();
+        for (const childKey of Object.keys(children)) {
+            const child = children[childKey];
+            const childpath = [...path, childKey];
+            const result = parseAgainstNode(reader, child, childpath, data, context);
+            if (helper.merge(result, false)) {
+                const newNode: ParseNode = { context, low: start, high: reader.cursor, path: childpath };
+                const childdata = result.data;
+                function checkRead(): boolean {
+                    if (reader.canRead()) {
+                        return true;
+                    } else {
+                        if (childdata.node.executable) {
+                            helper.addErrors(parseExceptions.NotRunnable.create(0, reader.cursor, reader.string));
+                        }
+                        return false;
+                    }
+                }
+                if (checkRead()) {
+                    if (reader.peek() === SPACE) {
+                        reader.skip();
+                        if (checkRead()) {
+                            const newContext = childdata.newContext ? childdata.newContext : context;
+                            const recurse = parsechildren(reader, childdata.node,
+                                childpath, data, newContext);
+                            if (helper.merge(recurse)) {
+                                successCount++;
+                                min = Math.min(min, reader.cursor);
+                                nodes.push(...recurse.data);
+                            } else {
+                                newNode.final = true;
+                            }
+                        }
+                        nodes.push(newNode);
+                    }
+                } else {
+                    nodes.push(newNode);
+                }
+            }
             reader.cursor = start;
-            const newPath = nodePath.slice(); newPath.push(childName);
-            const childNode = parent.children[childName];
-            const result = parseAgainstNode(reader, childNode, data, childName);
-            if (!!result.errors) {
-                errors.push(...result.errors);
-            }
-            if (result.successful) {
-                nodes.push({ path: newPath, low: start, high: reader.cursor });
-            }
-            if (!!result.actions) {
-                actions.push(...result.actions);
-            }
         }
-        return { nodes, errors, actions };
+        if (successCount === 0) {
+            helper.addErrors(parseExceptions.NoSuccesses.create(reader.cursor, reader.getTotalLength(),
+                reader.getRemaining()));
+        }
+        if (successCount > 1) {
+            helper.addErrors(parseExceptions.Ambiguity.create(start, min));
+        }
+        return helper.succeed(nodes);
     } else {
-        return { nodes: [], errors: [], actions: [] };
+        if (!(parent.node as CommandNode).executable) {
+            mcLangLog(`Malformed tree at path ${JSON.stringify(path)}. No children and not executable`);
+        }
+        return helper.fail();
     }
+}
+
+interface NodeParseSuccess {
+    newContext?: CommandContext;
+    max: number;
+    node: CommandNode;
 }
 
 function parseAgainstNode(reader: StringReader, node: CommandNode,
-    data: CommmandData, key: string, context: CommandContext): ReturnedInfo<ContextChange> {
-    const returner = new ReturnHelper();
-    const nodeInfo = createParserInfo(node, data, key);
+    path: CommandNodePath, data: CommmandData, context: CommandContext): ReturnedInfo<NodeParseSuccess> {
     const parser = getParser(node);
-    if (!parser) {
-        return returner.fail();
-    }
-    try {
-        const result = parser.parse(reader, nodeInfo);
-        if (result === undefined) {
-            return returner.succeed({});
-        }
-        if (returner.merge(result)) {
-            return returner.succeed(result.data);
+    const helper = new ReturnHelper();
+    if (!!parser) {
+        const result = parser.parse(reader, createParserInfo(node, data, path, context, false));
+        if (!!result) {
+            if (helper.merge(result, false)) {
+                const newContext = Object.assign({}, context, result.data);
+                return helper.succeed<NodeParseSuccess>({
+                    max: reader.cursor, newContext, node,
+                });
+            } else {
+                return helper.fail();
+            }
         } else {
-            return returner.fail();
+            return helper.succeed<NodeParseSuccess>({ max: reader.cursor, node });
         }
-    } catch (error) {
-        if (isCommandError(error)) {
-            return returner.fail(error);
-        } else {
-            mcLangLog(`Got unexpected error '${JSON.stringify(error)}' when parsing '${JSON.stringify(node)}'`);
-            return returner.fail();
-        }
+    } else {
+        return helper.fail();
     }
 }
 
-export function parseCommand(command: string, globalData: GlobalData, localData?: Datapack[]): StoredParseResult {
-    if (command.length > 0 && !command.startsWith("#")) {
-        const reader = new StringReader(command);
-        const data: CommmandData = { globalData, localData };
-        return recursiveParse(reader, globalData.commands as CommandTree, [], data);
-    } else {
-        return { actions: [], errors: [], nodes: [] };
-    }
-}
 export function parseLines(document: FunctionInfo, data: DataManager,
     emitter: EventEmitter, documentUri: string, lines: number[]) {
-
     for (const lineNo of lines) {
         const line = document.lines[lineNo];
         const result = parseCommand(line.text, data.globalData, data.getPackFolderData(document.datapack_root));
-        line.parseInfo = result;
+        line.parseInfo = result ? result : false;
         emitter.emit(`${documentUri}:${lineNo}`);
     }
 }
+
 export function parseDocument(document: FunctionInfo, data: DataManager,
     emitter: EventEmitter, documentUri: string) {
     const lines = document.lines.map((_, i) => i);

@@ -18,7 +18,7 @@ export interface WorkspaceSecurity {
 }
 
 export interface CommandLine {
-    parseInfo?: StoredParseResult;
+    parseInfo?: StoredParseResult | false;
     text: string;
     /**
      * A cache of the tree of actions
@@ -28,15 +28,17 @@ export interface CommandLine {
 //#endregion
 //#region Interaction with parsers
 export interface ParserInfo {
-    node_properties: {
-        [key: string]: any,
-    };
+    node_properties: Dictionary<any>;
     data: CommmandData;
-    path: CommandNodePath;
+    path: CommandNodePath; // Length can safely be assumed to be greater than 0
     /**
      * The immutable context
      */
     context: CommandContext;
+    /**
+     * When suggesting, the end of the reader's string will be the cursor position
+     */
+    suggesting: boolean;
 }
 
 export interface CommmandData {
@@ -70,7 +72,7 @@ export interface CommandContext {
     /**
      * Whether the executor is definitely a player
      */
-    isPlayer: boolean;
+    isPlayer?: boolean;
     [key: string]: any;
 }
 
@@ -102,8 +104,9 @@ interface SubActionBase<U extends string, T> extends DataInterval<T> {
     type: U;
 }
 
-export type SubAction = SubActionBase<"hover", string>;
-// | SubNode<"rename", RenameRequest>;
+export type SubAction = SubActionBase<"hover", string>
+    | SubActionBase<"format", string>;
+// | SubActionBase<"rename", RenameRequest>;
 //#endregion
 export type Success = true;
 export const Success: Success = true;
