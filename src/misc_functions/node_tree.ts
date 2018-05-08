@@ -1,6 +1,7 @@
 import { CommandNode, CommandNodePath, CommandTree, MCNode } from "../data/types";
 
 export function followPath<T extends MCNode<T>>(tree: MCNode<T>, path: CommandNodePath): MCNode<T> {
+    // There are no protections here, because if a path is given it should be correct.
     let current = tree;
     for (const section of path) {
         if (!!current.children && !!current.children[section]) {

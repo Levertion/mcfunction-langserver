@@ -1,14 +1,9 @@
 import * as assert from "assert";
 import { GlobalData } from "../../data/types";
-import { parseCommand } from "../../parse/index";
 import { StoredParseResult } from "../../types";
-import { setup_test } from "../logging_setup";
 import { assertErrors } from "./parsers/utils/parser_test_utils";
 
 describe("parseCommand()", () => {
-    before(() => {
-        setup_test();
-    });
     describe("No command", () => {
         it("should return nothing when the string is empty", () => {
             assert.deepEqual(parseCommand("", {} as any as GlobalData),

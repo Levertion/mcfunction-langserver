@@ -103,14 +103,6 @@ export interface DataResource<T> extends MinecraftResource {
 }
 
 export interface MinecraftResource {
-    /**
-     * The uri from the root of the datapack
-     * E.g. if the datapack was at
-     * `<...>/datapacks/name`, and the resource was at
-     * `<...>/datapacks/name/data/namespace/advancements/hi.json`,
-     * this would be `data/namespace/advancements/hi.json`
-     */
-    uri: string;
     resource_name: NamespacedName;
 }
 

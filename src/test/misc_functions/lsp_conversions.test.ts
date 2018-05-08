@@ -2,11 +2,10 @@ import * as assert from "assert";
 import {
     DiagnosticSeverity, VersionedTextDocumentIdentifier,
 } from "vscode-languageserver/lib/main";
-import { commandErrorToDiagnostic, runChanges } from "../langserver_conversions";
-import { FunctionInfo } from "../types";
-import { } from "./logging_setup";
+import { commandErrorToDiagnostic, runChanges } from "../../misc_functions/lsp_conversions";
+import { FunctionInfo } from "../../types";
 
-describe("Language Server Conversions", () => {
+describe("Language Server Conversions (Misc)", () => {
     describe("commandErrorToDiagnostic()", () => {
         it("should convert a CommandError into a valid Diagnostics", () => {
             global.mcLangSettings = { translation: { lang: "en-us" } } as McFunctionSettings;

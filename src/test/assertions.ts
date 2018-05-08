@@ -1,7 +1,12 @@
-import { AssertionError } from "assert";
-import { CommandError, isCommandError } from "../../../../brigadier_components/errors";
-import { SuggestResult } from "../../../../types";
+import { AssertionError, equal } from "assert";
+import { CommandError, isCommandError } from "../brigadier_components/errors";
+import { MinecraftResource, NamespacedName } from "../data/types";
+import { namespacesEqual } from "../misc_functions";
+import { SuggestResult } from "../types";
 
+/**
+ * Information about a single expected error
+ */
 export interface ErrorInfo {
     range: {
         start: number,
@@ -10,6 +15,11 @@ export interface ErrorInfo {
     code: string;
 }
 
+/**
+ * Ensures that the right errors from `expected` are in `realErrors`s
+ * @param expected The errors which are expected
+ * @param realErrors The actual errors
+ */
 export function assertErrors(expected: ErrorInfo[], realErrors: CommandError[] | undefined) {
     if (!!realErrors) {
         if (expected.length < realErrors.length) {
@@ -38,6 +48,12 @@ export function assertErrors(expected: ErrorInfo[], realErrors: CommandError[] |
     }
 }
 
+/**
+ * Creates a function which confirms whether or not a passed value is a matching error to `expected`.
+ *
+ * This is designed to be used in `assert.throws`.
+ * @param expected The data about the expected error
+ */
 export function thrownErrorAssertion(expected: ErrorInfo): (error: any) => true {
     return (error: any) => {
         if (isCommandError(error)) {
@@ -57,7 +73,24 @@ export function thrownErrorAssertion(expected: ErrorInfo): (error: any) => true 
     };
 }
 
-export function assertSuggestions(expected: string[], start: number, actual: SuggestResult[] | undefined) {
+/**
+ * Information about a single expected suggestion
+ */
+export interface SuggestionInfo {
+    start: number;
+    text: string;
+}
+
+/**
+ * Information about a single expected suggestion.
+ * If a string is given, the start is taken to be `start`
+ */
+export type SuggestedOption = SuggestionInfo | string;
+
+/**
+ * Ensure that the suggestions match the assertion about them
+ */
+export function assertSuggestions(expected: SuggestedOption[], actual: SuggestResult[] | undefined, start: number = 0) {
     if (!!actual) {
         if (expected.length > actual.length) {
             throw new AssertionError({
@@ -70,17 +103,19 @@ export function assertSuggestions(expected: string[], start: number, actual: Sug
             });
         }
         for (const expectation of expected) {
+            const [beginning, position] = typeof expectation === "string" ?
+                [expectation, start] : [expectation.text, expectation.start];
             const index = actual.findIndex((v) => {
                 if (typeof v === "string") {
-                    return start === 0 && v === expectation;
+                    return position === 0 && v === beginning;
                 } else {
                     return v.text === expectation && v.start === start;
                 }
             });
             if (index === -1) {
                 throw new AssertionError({
-                    message: `Expected suggestions to contain a suggestion starting with '${expectation
-                        }', but got ${JSON.stringify(actual)}`,
+                    message: `Expected suggestions to contain a suggestion starting with text '${beginning
+                        }' at position ${position}, but this was not found: got ${JSON.stringify(actual)} instead`,
                 });
             }
             actual.splice(index, 1);
@@ -93,4 +128,31 @@ export function assertSuggestions(expected: string[], start: number, actual: Sug
 function errorMatches(expected: ErrorInfo, error: CommandError): boolean {
     return expected.code === error.code && expected.range.start === error.range.start
         && expected.range.end === error.range.end;
+}
+
+export function assertNamespaces(expected: NamespacedName[], actual: NamespacedName[]) {
+    const results = actual.slice();
+    for (const expectation of expected) {
+        let found: boolean = false;
+        for (let i = 0; i < results.length; i++) {
+            const element = actual[i];
+            if (namespacesEqual(element, expectation)) {
+                found = true;
+                results.splice(i, 1);
+                break;
+            }
+        }
+        if (!found) {
+            throw new AssertionError({
+                message: `Expected to find a path with namespace '${expectation.namespace
+                    }' and path ${expectation.path}, but none matched`,
+            });
+        }
+    }
+    if (results.length > 0) {
+        throw new AssertionError({
+            message:
+                `Remaining paths are ${results.map((v) => JSON.stringify(v)).join()}`,
+        });
+    }
 }
