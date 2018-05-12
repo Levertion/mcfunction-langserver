@@ -1,5 +1,7 @@
-import { CommandErrorBuilder } from "../../../brigadier_components/errors";
-import { Parser } from "../../../types";
+import { isNumber } from "util";
+import { CommandErrorBuilder } from "../../brigadier_components/errors";
+import { ReturnHelper } from "../../misc_functions";
+import { Parser } from "../../types";
 
 const JAVAMAXINT = 2147483647;
 const JAVAMININT = -2147483648;
@@ -10,23 +12,26 @@ const INTEGEREXCEPTIONS = {
 };
 
 const parser: Parser = {
-    getSuggestions: () => {
-        return [];
-    },
     parse: (reader, properties) => {
+        const helper = new ReturnHelper();
         const start = reader.cursor;
-        const read = reader.readInt();
+        const result = reader.readInt();
+        if (!helper.merge(result)) {
+            return helper.fail();
+        }
         const maxVal = properties.node_properties.max;
         const minVal = properties.node_properties.min;
         // See https://stackoverflow.com/a/12957445
-        const min = Math.max(isNaN(minVal) ? JAVAMININT : minVal, JAVAMININT);
-        const max = Math.min(isNaN(maxVal) ? JAVAMAXINT : maxVal, JAVAMAXINT);
-        if (read > max) {
-            throw INTEGEREXCEPTIONS.TOOBIG.create(start, reader.cursor, max, read);
+        const max = Math.min(isNumber(maxVal) ? maxVal : JAVAMAXINT, JAVAMAXINT);
+        const min = Math.max(isNumber(minVal) ? minVal : JAVAMININT, JAVAMININT);
+        if (result.data > max) {
+            return helper.fail(INTEGEREXCEPTIONS.TOOBIG.create(start, reader.cursor, max, result));
         }
-        if (read < min) {
-            throw INTEGEREXCEPTIONS.TOOSMALL.create(start, reader.cursor, min, read);
+        if (result.data < min) {
+            return helper.fail(INTEGEREXCEPTIONS.TOOSMALL.create(start, reader.cursor, min, result));
         }
+        return helper.succeed();
     },
 };
+
 export = parser;

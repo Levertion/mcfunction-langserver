@@ -1,20 +1,22 @@
-import { Parser } from "../../../types";
+import { ReturnHelper } from "../../misc_functions";
+import { Parser } from "../../types";
 
 const parser: Parser = {
-    getSuggestions: () => {
-        return [];
-    },
     parse: (reader, properties) => {
+        const helper = new ReturnHelper();
         switch (properties.node_properties.type) {
             case "greedy":
                 reader.cursor = reader.string.length;
-                break;
+                return helper.succeed();
             case "word":
                 reader.readUnquotedString();
-                break;
+                return helper.succeed();
             default:
-                reader.readString();
-                break;
+                if (helper.merge(reader.readString())) {
+                    return helper.succeed();
+                } else {
+                    return helper.fail();
+                }
         }
     },
 };

@@ -1,5 +1,6 @@
 import { isNumber } from "util";
 import { CommandErrorBuilder } from "../../brigadier_components/errors";
+import { ReturnHelper } from "../../misc_functions";
 import { Parser } from "../../types";
 
 const JAVAMINFLOAT = -2139095039;
@@ -12,19 +13,24 @@ const FLOATEXCEPTIONS = {
 
 const parser: Parser = {
     parse: (reader, properties) => {
+        const helper = new ReturnHelper();
         const start = reader.cursor;
-        const read = reader.readFloat();
+        const result = reader.readFloat();
+        if (!helper.merge(result)) {
+            return helper.fail();
+        }
         const maxVal = properties.node_properties.max;
         const minVal = properties.node_properties.min;
         // See https://stackoverflow.com/a/12957445
         const max = Math.min(isNumber(maxVal) ? maxVal : JAVAMAXFLOAT, JAVAMAXFLOAT);
         const min = Math.max(isNumber(minVal) ? minVal : JAVAMINFLOAT, JAVAMINFLOAT);
-        if (read > max) {
-            throw FLOATEXCEPTIONS.TOOBIG.create(start, reader.cursor, max, read);
+        if (result.data > max) {
+            return helper.fail(FLOATEXCEPTIONS.TOOBIG.create(start, reader.cursor, max, result));
         }
-        if (read < min) {
-            throw FLOATEXCEPTIONS.TOOSMALL.create(start, reader.cursor, min, read);
+        if (result.data < min) {
+            return helper.fail(FLOATEXCEPTIONS.TOOSMALL.create(start, reader.cursor, min, result));
         }
+        return helper.succeed();
     },
 };
 
