@@ -48,7 +48,6 @@ export async function getNamespaceResources(namespace: string, location: string)
                         namespace, path: internalUri
                             .slice(0, -realExtension.length).replace(new RegExp(`\\${path.sep}`, "g"), "/"),
                     },
-                    uri: path.relative(location, file),
                 };
                 try {
                     if (!!resourceInfo.readJson) {
