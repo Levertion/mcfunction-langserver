@@ -43,7 +43,7 @@ export function computeCompletions(linenum: number,
     }
     for (const insideNode of internals) {
         const newPath = insideNode.path.slice();
-        const parentPath = newPath.slice(0, newPath.length - 2);
+        const parentPath = newPath.slice(0, -1);
         completions.push(...getCompletionsFromNode(linenum,
             insideNode.low, character, line.text, parentPath, commandData, insideNode.context));
     }

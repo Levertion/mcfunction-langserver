@@ -47,9 +47,10 @@ function parsechildren(reader: StringReader, node: CommandNode,
         let min: number = reader.getTotalLength();
         for (const childKey of Object.keys(children)) {
             const child = children[childKey];
-            const childpath = [...path, childKey];
+            const childpath = [...parent.path, childKey];
             const result = parseAgainstNode(reader, child, childpath, data, context);
             if (helper.merge(result, false)) {
+                successCount++;
                 const newNode: ParseNode = { context, low: start, high: reader.cursor, path: childpath };
                 const childdata = result.data;
                 function checkRead(): boolean {
@@ -70,12 +71,13 @@ function parsechildren(reader: StringReader, node: CommandNode,
                             const recurse = parsechildren(reader, childdata.node,
                                 childpath, data, newContext);
                             if (helper.merge(recurse)) {
-                                successCount++;
                                 min = Math.min(min, reader.cursor);
                                 nodes.push(...recurse.data);
                             } else {
                                 newNode.final = true;
                             }
+                        } else {
+                            newNode.final = true;
                         }
                         nodes.push(newNode);
                     }
@@ -86,7 +88,7 @@ function parsechildren(reader: StringReader, node: CommandNode,
             reader.cursor = start;
         }
         if (successCount === 0) {
-            helper.addErrors(parseExceptions.NoSuccesses.create(reader.cursor, reader.getTotalLength(),
+            return helper.fail(parseExceptions.NoSuccesses.create(reader.cursor, reader.getTotalLength(),
                 reader.getRemaining()));
         }
         if (successCount > 1) {
