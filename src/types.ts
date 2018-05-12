@@ -124,10 +124,12 @@ export interface ReturnData<ErrorKind extends BCE = CE> {
 /**
  * A general return type which can either succeed or fail, bringing other data
  */
-export type ReturnedInfo<T, ErrorKind extends BCE = CE> = ReturnSuccess<T, ErrorKind> | ReturnFailure<ErrorKind>;
+export type ReturnedInfo<T, ErrorKind extends BCE = CE,
+    E = undefined> = ReturnSuccess<T, ErrorKind> | ReturnFailure<E, ErrorKind>;
 
-export interface ReturnFailure<ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
+export interface ReturnFailure<K = undefined, ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
     kind: Failure;
+    data: K;
 }
 
 export interface ReturnSuccess<T, ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {

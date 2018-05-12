@@ -8,7 +8,7 @@ import {
 } from "vscode-languageserver";
 import { mergeDeep } from "./misc_functions/third_party/merge_deep";
 
-import { ComputeCompletions } from "./completions";
+import { computeCompletions } from "./completions";
 import { readSecurity } from "./data/cache_management";
 import { DataManager } from "./data/manager";
 import {
@@ -179,12 +179,12 @@ connection.workspace.onDidChangeWorkspaceFolders(async (params) => {
 connection.onCompletion((params) => {
     const doc = documents[params.textDocument.uri];
     const line = doc.lines[params.position.line];
-    const computeCompletionsLocal = () => ComputeCompletions(params.position.line,
+    const computeCompletionsLocal = () => computeCompletions(params.position.line,
         doc, params.position.character, manager);
     if (!started) {
         return [];
     }
-    if (!!line.parseInfo) {
+    if (line.hasOwnProperty("parseInfo")) {
         return computeCompletionsLocal();
     } else {
         return promisify((cb) =>

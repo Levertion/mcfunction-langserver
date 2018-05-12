@@ -1,17 +1,28 @@
 import * as assert from "assert";
-import { GlobalData } from "../../data/types";
-import { StoredParseResult } from "../../types";
-import { assertErrors } from "./parsers/utils/parser_test_utils";
+import { join } from "path";
+import { GlobalData } from "../data/types";
+import { parseCommand } from "../parse";
+import { StoredParseResult } from "../types";
+
+const fakeGlobal: GlobalData = {} as any;
 
 describe("parseCommand()", () => {
+    before(() => {
+        global.mcLangSettings = {
+            parsers: {
+                "langserver:dummy1": join(__dirname, "parsers", "tests", "dummy1_parser"),
+            },
+        } as any;
+    });
+    after(() => {
+        delete global.mcLangSettings;
+    });
     describe("No command", () => {
         it("should return nothing when the string is empty", () => {
-            assert.deepEqual(parseCommand("", {} as any as GlobalData),
-                { actions: [], errors: [], nodes: [] });
+            assert.equal(parseCommand("", fakeGlobal, undefined), undefined);
         });
         it("should return nothing when the string is a comment", () => {
-            assert.deepEqual(parseCommand("#this is a comment. I'm making a note here: ...", {} as any as GlobalData),
-                { actions: [], errors: [], nodes: [] });
+            assert.equal(parseCommand("#this is a comment", fakeGlobal, undefined), undefined);
         });
     });
     describe("single argument tests", () => {
@@ -34,8 +45,10 @@ describe("parseCommand()", () => {
         } as any;
 
         it("should parse an executable, valid, command as such", () => {
-            const result = parseCommand("hel", singleArgData);
-            const expected: StoredParseResult = { errors: [], actions: [], nodes: [{ low: 0, high: 3, path: ["test1"] }] };
+            const result = parseCommand("hel", singleArgData, undefined);
+            const expected: StoredParseResult = {
+                actions: [], errors: [], nodes: [{ low: 0, high: 3, path: ["test1"], context: {}, final: false }],
+            };
             assert.deepEqual(result, expected);
         });
 

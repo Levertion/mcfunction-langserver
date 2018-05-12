@@ -13,4 +13,4 @@ Contributions are welcome to remove from this list.
 # Untested sections
 These sections of the language server are untested, either through infeasibility or it not being needed.
 
- - [Setup logging](../misc_functions/setup.ts) - Cannot be tested as global `mclanglog` is already defined for Mocha in [logging_setup.ts](./logging_setup.ts)
+ - [Setup logging](../misc_functions/setup.ts) - Cannot be easily tested as global `mclanglog` is already defined for Mocha in [logging_setup.ts](./logging_setup.ts)

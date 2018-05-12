@@ -1,3 +1,6 @@
+import { ReturnHelper } from "../misc_functions";
+import { typed_keys } from "../misc_functions/third_party/typed_keys";
+import { CE, ReturnedInfo, Suggestion } from "../types";
 import { CommandErrorBuilder } from "./errors";
 
 const EXCEPTIONS = {
@@ -8,6 +11,7 @@ const EXCEPTIONS = {
     EXPECTED_INT: new CommandErrorBuilder("parsing.int.expected", "Expected integer"),
     EXPECTED_START_OF_QUOTE: new CommandErrorBuilder("parsing.quote.expected.start",
         "Expected quote to start a string"),
+    EXPECTED_STRING_FROM: new CommandErrorBuilder("parsing.expected.option", "Expected string from %s, got '%s'"),
     EXPECTED_SYMBOL: new CommandErrorBuilder("parsing.expected", "Expected '%s'"),
     INVALID_BOOL: new CommandErrorBuilder("parsing.bool.invalid",
         "Invalid bool, expected true or false but found '%s'"),
@@ -20,12 +24,13 @@ const EXCEPTIONS = {
 const QUOTE = "\"";
 const ESCAPE = "\\";
 
-export class StringReader implements ImmutableStringReader {
+export class StringReader {
     public static charAllowedNumber = /^[0-9\-\.]$/;
     public static charAllowedInUnquotedString = /^[0-9A-Za-z_\-\.+]$/;
     public static isWhiteSpace(char: string) {
         return char === "\n" || char === "\t";
     }
+    private static bools = { true: true, false: false };
     public cursor: number = 0;
     public readonly string: string;
 
@@ -64,35 +69,38 @@ export class StringReader implements ImmutableStringReader {
     /**
      * Read an integer from the string
      */
-    public readInt(): number {
+    public readInt(): ReturnedInfo<number> {
+        const helper = new ReturnHelper();
         const start: number = this.cursor;
         const readToTest: string = this.readWhileRegexp(StringReader.charAllowedNumber);
         if (readToTest.length === 0) {
-            throw EXCEPTIONS.EXPECTED_INT.create(start, this.string.length);
+            return helper.fail(EXCEPTIONS.EXPECTED_INT.create(start, this.string.length));
         }
         // The Java readInt crashes upon a `.`, but the regex includes one in brigadier
         if (readToTest.indexOf(".") !== -1) {
-            throw EXCEPTIONS.INVALID_INT.create(start, this.cursor, this.string.substring(start, this.cursor));
+            return helper.fail(EXCEPTIONS.INVALID_INT.create(start, this.cursor,
+                this.string.substring(start, this.cursor)));
         }
         try {
-            return Number.parseInt(readToTest, 10);
+            return helper.succeed(Number.parseInt(readToTest, 10));
         } catch (error) {
-            throw EXCEPTIONS.INVALID_INT.create(start, this.cursor, readToTest);
+            return helper.fail(EXCEPTIONS.INVALID_INT.create(start, this.cursor, readToTest));
         }
     }
     /**
      * Read a from the string
      */
-    public readFloat(): number {
+    public readFloat(): ReturnedInfo<number> {
+        const helper = new ReturnHelper();
         const start: number = this.cursor;
         const readToTest: string = this.readWhileRegexp(StringReader.charAllowedNumber);
         if (readToTest.length === 0) {
-            throw EXCEPTIONS.EXPECTED_FLOAT.create(start, this.string.length);
+            return helper.fail(EXCEPTIONS.EXPECTED_FLOAT.create(start, this.string.length));
         }
         try {
-            return parseFloat(readToTest);
+            return helper.succeed(parseFloat(readToTest));
         } catch (error) {
-            throw EXCEPTIONS.EXPECTED_INT.create(start, this.cursor, readToTest);
+            return helper.fail(EXCEPTIONS.EXPECTED_INT.create(start, this.cursor, readToTest));
         }
     }
     /**
@@ -105,13 +113,14 @@ export class StringReader implements ImmutableStringReader {
     /**
      * Read from the string, returning a string, which, in the original had been surrounded by quotes
      */
-    public readQuotedString(): string {
+    public readQuotedString(): ReturnedInfo<string> {
+        const helper = new ReturnHelper();
         const start = this.cursor;
         if (!this.canRead()) {
-            return "";
+            return helper.succeed("");
         }
         if (this.peek() !== QUOTE) {
-            throw EXCEPTIONS.EXPECTED_START_OF_QUOTE.create(this.cursor, this.string.length);
+            return helper.fail(EXCEPTIONS.EXPECTED_START_OF_QUOTE.create(this.cursor, this.string.length));
         }
         let result: string = "";
         let escaped: boolean = false;
@@ -123,59 +132,98 @@ export class StringReader implements ImmutableStringReader {
                     result += c;
                     escaped = false;
                 } else {
-                    this.cursor = this.cursor - 1;
-                    throw EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(this.cursor, this.string.length, c);
+                    return helper.fail(EXCEPTIONS.INVALID_ESCAPE.create(this.cursor, this.cursor + 1, c));
                 }
             } else if (c === ESCAPE) {
                 escaped = true;
             } else if (c === QUOTE) {
-                return result;
+                return helper.succeed(result);
             } else {
                 result += c;
             }
         }
-        throw EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(start, this.string.length);
+        return helper.fail(EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(start, this.string.length));
     }
     /**
      * Read a string from the string. If it surrounded by quotes, the quotes are ignored.
      * The cursor ends on the last character in the string.
      */
-    public readString(): string {
+    public readString(): ReturnedInfo<string> {
         if (this.canRead() && this.peek() === QUOTE) {
             return this.readQuotedString();
         } else {
-            return this.readUnquotedString();
+            const helper = new ReturnHelper();
+            if (!this.canRead()) {
+                helper.addSuggestions({ start: this.cursor, text: QUOTE });
+            }
+            return helper.succeed(this.readUnquotedString());
+        }
+    }
+
+    /**
+     * Expect a string from a selection
+     */
+    public expectStringFrom<T extends string>(options: T[], addError = true): ReturnedInfo<T, CE, string | false> {
+        const start = this.cursor;
+        const helper = new ReturnHelper();
+        let quoted = false;
+        if (this.peek() === QUOTE) {
+            quoted = true;
+        }
+        const result = this.readString();
+        if (!helper.merge(result)) {
+            return helper.failWithData(false as any);
+        }
+        let valid: T | undefined;
+        for (const option of options) {
+            if (option === result.data) {
+                valid = option;
+            }
+        }
+        if (!this.canRead()) {
+            helper.addSuggestions(...options.filter((v) => v.startsWith(result.data)).map<Suggestion>((v) => {
+                return { start, text: quoted ? QUOTE + v : v };
+            }));
+        }
+        if (valid) {
+            return helper.succeed(valid);
+        } else {
+            if (addError) {
+                helper.addErrors(EXCEPTIONS.EXPECTED_STRING_FROM.create(start, this.cursor,
+                    JSON.stringify(options), result.data));
+            }
+            return helper.failWithData(result.data);
         }
     }
     /**
      * Read a boolean value from the string
      */
-    public readBoolean(): boolean {
-        const start: number = this.cursor;
-        const value: string = this.readString();
-        if (value.length === 0) {
-            throw EXCEPTIONS.EXPECTED_BOOL.create(this.cursor, this.string.length);
+    public readBoolean(): ReturnedInfo<boolean> {
+        const helper = new ReturnHelper();
+        const start = this.cursor;
+        const value = this.expectStringFrom<keyof typeof
+            StringReader["bools"]>(typed_keys(StringReader.bools), false);
+        if (!helper.merge(value)) {
+            if (value.data !== false) {
+                return helper.fail(EXCEPTIONS.INVALID_BOOL.create(start, this.cursor, value.data));
+            } else {
+                return helper.fail();
+            }
         }
-        switch (value) {
-            case "true":
-                return true;
-            case "false":
-                return false;
-            default:
-                throw EXCEPTIONS.INVALID_BOOL.create(start, this.cursor, value);
-        }
+        return helper.succeed(StringReader.bools[value.data]);
     }
+
     /**
-     * Require that a specific character follows
-     * @param c The character which should come next
+     * Require that a specific string follows
+     * @param str The string which should come next
      */
-    public expect(c: string) {
-        if (this.peek() !== c) {
-            throw EXCEPTIONS.EXPECTED_SYMBOL.create(this.cursor, this.cursor, this.peek(), c);
+    public expect(str: string): ReturnedInfo<undefined> {
+        const helper = new ReturnHelper();
+        if (this.string.substr(this.cursor, str.length) !== str) {
+            return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL.create(this.cursor, this.cursor, this.peek(), str));
         }
-        if (this.canRead()) {
-            this.skip();
-        }
+        this.cursor += str.length;
+        return helper.succeed();
     }
     /**
      * Read the string until a certain regular expression matches the
@@ -209,36 +257,4 @@ export class StringReader implements ImmutableStringReader {
         }
         return this.string.substring(begin, this.cursor);
     }
-}
-
-export interface ImmutableStringReader {
-    readonly string: string;
-    readonly cursor: number;
-    /**
-     * The number of remaining characters until the end of the string.
-     * This is under the assumption that the character under the cursor has not been read.
-     */
-    getRemainingLength: () => number;
-    /**
-     * Get the total length of this string.
-     */
-    getTotalLength: () => number;
-    /**
-     * Get the text in the string which has been already read
-     */
-    getRead: () => string;
-    /**
-     * Get the text from the reader which hasn't been read yet.
-     */
-    getRemaining: () => string;
-    /**
-     * Is it safe to read?
-     * @param length The number of characters. Can be omitted
-     */
-    canRead: (length?: number) => boolean;
-    /**
-     * Look at a character without moving the cursor.
-     * @param offset Where to look relative to the cursor. Can be omitted
-     */
-    peek: (offset?: number) => string;
 }

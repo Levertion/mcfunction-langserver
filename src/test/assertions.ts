@@ -1,8 +1,8 @@
 import { AssertionError, equal } from "assert";
 import { CommandError, isCommandError } from "../brigadier_components/errors";
-import { MinecraftResource, NamespacedName } from "../data/types";
-import { namespacesEqual } from "../misc_functions";
-import { SuggestResult } from "../types";
+import { NamespacedName } from "../data/types";
+import { isSuccessful, namespacesEqual } from "../misc_functions";
+import { ReturnedInfo, ReturnSuccess, SuggestResult } from "../types";
 
 /**
  * Information about a single expected error
@@ -153,6 +153,21 @@ export function assertNamespaces(expected: NamespacedName[], actual: NamespacedN
         throw new AssertionError({
             message:
                 `Remaining paths are ${results.map((v) => JSON.stringify(v)).join()}`,
+        });
+    }
+}
+
+export function assertReturn<T>(val: ReturnedInfo<T>, shouldSucceed: boolean, errors: ErrorInfo[],
+    suggestions: SuggestionInfo[], numActions: number = 0, suggestStart: number = 0): val is ReturnSuccess<T> {
+    if (isSuccessful(val) === shouldSucceed) {
+        assertErrors(errors, val.errors);
+        assertSuggestions(suggestions, val.suggestions, suggestStart);
+        equal(val.actions.length, numActions, `incorrect Number of expected actions: '${JSON.stringify(val.actions)}'`);
+        return shouldSucceed;
+    } else {
+        throw new AssertionError({
+            message: `Expected value given to ${shouldSucceed ? "succeed" :
+                "fail"}, but it didn't. Value is: '${JSON.stringify(val)}'`,
         });
     }
 }

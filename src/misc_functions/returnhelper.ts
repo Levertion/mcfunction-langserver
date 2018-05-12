@@ -1,5 +1,5 @@
 import { BlankCommandError, CommandError, fillBlankError } from "../brigadier_components/errors";
-import { ImmutableStringReader } from "../brigadier_components/string_reader";
+import { StringReader } from "../brigadier_components/string_reader";
 import {
     BCE, CE, Failure, ParserInfo, ReturnData, ReturnedInfo, ReturnFailure,
     ReturnSuccess, SubAction, Success, SuggestResult,
@@ -16,7 +16,7 @@ function createReturn<ErrorKind extends BCE = CE>(): ReturnData<ErrorKind> {
  * Test if `input` is successful
  * @param input The info to test
  */
-export function isSuccessful<T, E extends BCE = CE>(input: ReturnedInfo<T, E>): input is ReturnSuccess<T, E> {
+export function isSuccessful<T, E extends BCE = CE>(input: ReturnedInfo<T, E, any>): input is ReturnSuccess<T, E> {
     return input.kind === Success;
 }
 
@@ -51,13 +51,16 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
             kind: Success as Success,
         });
     }
-    public fail(err?: Errorkind, info?: ParserInfo): ReturnFailure<Errorkind> {
+    public failWithData<T>(data: T): ReturnFailure<T, Errorkind> {
+        return Object.assign(this.getShared(), { kind: Failure as Failure, data });
+    }
+    public fail(err?: Errorkind, info?: ParserInfo): ReturnFailure<undefined, Errorkind> {
         if (!!err && (!info || !info.suggesting)) {
             this.addErrors(err);
         }
         return Object.assign(this.getShared(), {
             kind: Failure as Failure,
-        });
+        }, {} as { data: undefined });
     }
     public addErrors(...errs: Errorkind[]) {
         this.data.errors.push(...errs);
@@ -69,11 +72,11 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         this.data.actions.push(...actions);
     }
 
-    public mergeIfCantRead<T>(merge: ReturnedInfo<T, Errorkind>,
-        reader: ImmutableStringReader, info?: ParserInfo): merge is ReturnSuccess<T, Errorkind> {
+    public suggestUnlessRead<T>(merge: ReturnedInfo<T, Errorkind>,
+        reader: StringReader, info?: ParserInfo): merge is ReturnSuccess<T, Errorkind> {
         return this.merge(merge, !reader.canRead(), info);
     }
-    public merge<T>(merge: ReturnedInfo<T, Errorkind>, suggest = true,
+    public merge<T>(merge: ReturnedInfo<T, Errorkind, any>, suggest = true,
         info?: ParserInfo): merge is ReturnSuccess<T, Errorkind> {
         if (!!info) {
             if (suggest && info.suggesting) {

@@ -1,13 +1,13 @@
 import * as assert from "assert";
 import { CompletionItemKind, CompletionList } from "vscode-languageserver/lib/main";
-import { ComputeCompletions } from "../completions";
+import { computeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
 import { GlobalData } from "../data/types";
 import { CommandLine } from "../types";
 
 describe("ComputeCompletions()", () => {
     it("should replace an internal node", () => {
-        const result = ComputeCompletions(0, {
+        const result = computeCompletions(0, {
             datapack_root: "",
             lines: [{
                 parseInfo: {
@@ -58,7 +58,7 @@ describe("ComputeCompletions()", () => {
         assert.deepEqual(result, expected);
     });
     it("should do completions from after a final node", () => {
-        const result = ComputeCompletions(0, {
+        const result = computeCompletions(0, {
             datapack_root: "",
             lines: [{
                 parseInfo: {
@@ -115,7 +115,7 @@ describe("ComputeCompletions()", () => {
         assert.deepEqual(result, expected);
     });
     it("should give completions from the start", () => {
-        const result = ComputeCompletions(0, {
+        const result = computeCompletions(0, {
             datapack_root: "",
             lines: [{
                 parseInfo: {
