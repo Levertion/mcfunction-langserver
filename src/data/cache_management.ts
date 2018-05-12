@@ -52,7 +52,11 @@ export async function storeSecurity(security: WorkspaceSecurity) {
 }
 
 export async function readSecurity(): Promise<WorkspaceSecurity> {
-    return JSON.parse((await readFileAsync(path.join(cacheFolder, "security.json"))).toString());
+    try {
+        return JSON.parse((await readFileAsync(path.join(cacheFolder, "security.json"))).toString());
+    } catch (error) {
+        return {};
+    }
 }
 
 //#region Helper Functions
