@@ -94,9 +94,9 @@ connection.onDidChangeConfiguration(async (params) => {
     }
 });
 
-async function ensureSecure(settings: Partial<McFunctionSettings>) {
+async function ensureSecure(settings: { mcfunction: Partial<McFunctionSettings> }) {
     const secure = await security;
-    const newsettings = mergeDeep({}, global.mcLangSettings, settings) as McFunctionSettings;
+    const newsettings = mergeDeep({}, global.mcLangSettings, settings.mcfunction) as McFunctionSettings;
     const securityResult = checkSecurity(workspaces, secure, newsettings);
     if (securityResult !== true) {
         // Failed security checkup challenge
