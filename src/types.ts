@@ -14,7 +14,9 @@ export interface FunctionInfo {
 }
 
 export interface WorkspaceSecurity {
-    [workspace: string]: boolean;
+    JarPath?: boolean;
+    JavaPath?: boolean;
+    CustomParsers?: boolean;
 }
 
 export interface CommandLine {

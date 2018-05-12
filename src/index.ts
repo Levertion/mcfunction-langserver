@@ -4,7 +4,7 @@ import { shim } from "util.promisify";
 shim();
 import {
     CompletionList, createConnection, Diagnostic, IPCMessageReader,
-    IPCMessageWriter, TextDocumentSyncKind, WorkspaceFolder,
+    IPCMessageWriter, TextDocumentSyncKind,
 } from "vscode-languageserver";
 import { mergeDeep } from "./misc_functions/third_party/merge_deep";
 
@@ -12,8 +12,7 @@ import { computeCompletions } from "./completions";
 import { readSecurity } from "./data/cache_management";
 import { DataManager } from "./data/manager";
 import {
-    actOnSecurity, calculateDataFolder, checkSecurity,
-    commandErrorToDiagnostic, runChanges, setup_logging, splitLines,
+    actOnSecurity, calculateDataFolder, commandErrorToDiagnostic, runChanges, securityIssues, setup_logging, splitLines,
 } from "./misc_functions/";
 import { parseDocument, parseLines } from "./parse";
 import { FunctionInfo, WorkspaceSecurity } from "./types";
@@ -30,17 +29,14 @@ const documents: {
 const parseCompletionEvents = new EventEmitter();
 let security: Promise<WorkspaceSecurity>;
 
-let workspaces: WorkspaceFolder[];
-
 let started = false;
 let starting = false;
 //#endregion
 
 // For Server Startup logic, see:
 // https://github.com/Microsoft/language-server-protocol/issues/246
-connection.onInitialize((params) => {
+connection.onInitialize(() => {
     setup_logging(connection);
-    workspaces = params.workspaceFolders || [];
     manager = new DataManager();
     return {
         capabilities: {
@@ -50,9 +46,6 @@ connection.onInitialize((params) => {
             textDocumentSync: {
                 change: TextDocumentSyncKind.Incremental,
                 openClose: true,
-            },
-            workspace: {
-                workspaceFolders: { changeNotifications: true, supported: true },
             },
         },
     };
@@ -97,13 +90,13 @@ connection.onDidChangeConfiguration(async (params) => {
 async function ensureSecure(settings: { mcfunction: Partial<McFunctionSettings> }) {
     const secure = await security;
     const newsettings = mergeDeep({}, global.mcLangSettings, settings.mcfunction) as McFunctionSettings;
-    const securityResult = checkSecurity(workspaces, secure, newsettings);
-    if (securityResult !== true) {
+    const issues = securityIssues(newsettings, secure);
+    if (issues.length > 0) {
         // Failed security checkup challenge
-        const safetocontinue = await actOnSecurity(securityResult, connection, secure);
+        const safetocontinue = await actOnSecurity(issues, connection, secure);
         if (!safetocontinue) {
             connection.sendNotification("mcfunction/shutdown",
-                `Shutting down because of insecure settings: '${securityResult.issues.join("', '")}'`);
+                `Shutting down because of insecure settings: '${issues.join("', '")}'`);
             return;
         }
     }
@@ -161,19 +154,6 @@ connection.onDidCloseTextDocument((params) => {
     // Clear diagnostics - might not be needed
     connection.sendDiagnostics({ uri: params.textDocument.uri, diagnostics: [] });
     delete documents[params.textDocument.uri];
-});
-
-connection.workspace.onDidChangeWorkspaceFolders(async (params) => {
-    for (const workspace of params.removed) {
-        for (let index = 0; index < workspaces.length; index++) {
-            if (workspaces[index].uri === workspace.uri) {
-                workspaces.splice(index, 1);
-            }
-        }
-    }
-    workspaces.push(...params.added);
-    // Makes sure that this workspace doesn't have insecure settings disabled
-    await ensureSecure({});
 });
 
 connection.onCompletion((params) => {

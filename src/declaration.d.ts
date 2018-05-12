@@ -35,6 +35,8 @@ interface McFunctionSettings {
      */
     data: {
         /**
+         * Global Scoped Setting
+         * 
          * Whether to enable the automatic Data Collection downloading.
          * 
          * This does not affect the customJar setting.
@@ -43,6 +45,8 @@ interface McFunctionSettings {
          */
         download: boolean;
         /**
+         * Global Scoped Setting
+         * 
          * Whether the Data Collection is enabled.
          * 
          * This DOES affect the customJar setting.
@@ -51,6 +55,8 @@ interface McFunctionSettings {
          */
         enabled: boolean;
         /**
+         * Global Scoped Setting
+         * 
          * __Advanced Users Only__
          * 
          * The path to a custom (server) jar to attempt to extract data from. 
@@ -62,6 +68,8 @@ interface McFunctionSettings {
          */
         customJar: string;
         /**
+         * Global Scoped Setting
+         * 
          * __Advanced Users Only__
          * 
          * An optional custom path to the java executable (`java`/`java.exe`).
