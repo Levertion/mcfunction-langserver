@@ -1,5 +1,5 @@
 import { readCache } from "./cache_management";
-import { getDatapacksResources } from "./datapack_resources";
+import { getDatapacks } from "./datapack_resources";
 import { collectGlobalData } from "./extractor";
 import { Datapack, GlobalData } from "./types";
 
@@ -52,7 +52,7 @@ export class DataManager {
 
     public async readPackFolderData(folder: string) {
         if (!this.packDataPromises.hasOwnProperty(folder)) {
-            this.packDataPromises[folder] = getDatapacksResources(folder);
+            this.packDataPromises[folder] = getDatapacks(folder);
             this.packDataComplete[folder] = await this.packDataPromises[folder];
         } else {
             await this.packDataPromises[folder];

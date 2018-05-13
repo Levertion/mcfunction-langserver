@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import * as path from "path";
-import { getDatapacksResources, Resources } from "../../data/datapack_resources";
+import { getDatapacks } from "../../data/datapack_resources";
+import { Datapack } from "../../data/types";
 const logger = (message: string) => {
     // tslint:disable-next-line:no-console
     console.log(message);
@@ -13,46 +14,32 @@ global.mcLangLog = Object.assign(logger,
 const rootFolder = path.join(__dirname, "..", "..", "..", "test_data");
 describe("Datapack Resource Testing", () => {
     it("should return the correct data", async () => {
-        const expected: Resources = {
-            data: {
+        const expected: Datapack[] = [{
+            namespaces: {
                 minecraft: {
                     function_tags: [
                         {
-                            uri: path.normalize("tags/functions/tick.json"),
                             resource_name: { namespace: "minecraft", path: "tick" },
                         },
                     ],
                 },
-                mryurihi: {
+                test_namespace: {
                     functions: [
                         {
-                            uri: path.normalize("functions/function.mcfunction"),
-                            resource_name: { namespace: "mryurihi", path: "function" },
-                        },
-                        // Included in both datapacks so repeated.
-                        // Maybe worth changing?
-                        {
-                            uri: path.normalize("functions/function.mcfunction"),
-                            resource_name: { namespace: "mryurihi", path: "function" },
+                            resource_name: { namespace: "test_namespace", path: "function" },
                         },
                     ],
                 },
             },
-            datapacks: [
-                {
-                    name: "ExampleDatapack",
-                    namespaces: ["minecraft", "mryurihi"],
-                    packs_folder: path.join(rootFolder, "test_world", "datapacks"),
-                },
-                {
-                    name: "ExampleDatapack2",
-                    namespaces: ["mryurihi"],
-                    packs_folder: path.join(rootFolder, "test_world", "datapacks"),
-                },
-            ],
-        };
-        const result = await getDatapacksResources(path.join(rootFolder, "test_world", "datapacks"));
-        result.datapacks.sort((a, b) => a.name.length - b.name.length);
+            path: path.join(rootFolder, "test_world", "datapacks", "ExampleDatapack"),
+        },
+        {
+            namespaces: {
+                test_namespace: { functions: [{ resource_name: { namespace: "test_namespace", path: "function" } }] },
+            }, path: path.join(rootFolder, "test_world", "datapacks", "ExampleDatapack2"),
+        }];
+        const result = await getDatapacks(path.join(rootFolder, "test_world", "datapacks"));
+        result.sort((a, b) => a.path.length - b.path.length);
         assert.deepEqual(result, expected);
     });
 });

@@ -1,55 +1,53 @@
 import * as assert from "assert";
-import { StringReader } from "../../../../brigadier_components/string_reader";
-import * as stringArgumentParser from "../../../../parse/parsers/brigadier/string";
-import { CommmandData, ParserInfo } from "../../../../types";
+import { StringReader } from "../../../brigadier_components/string_reader";
+import * as stringArgumentParser from "../../../parsers/brigadier/string";
+import { ParserInfo } from "../../../types";
+import { assertReturn, defined } from "../../assertions";
+
+const defaultProperties: ParserInfo = {
+    context: {}, data: {} as any,
+    node_properties: {}, path: ["test"], suggesting: true,
+};
 
 describe("String Argument Parser", () => {
     describe("parse()", () => {
-        describe("Greedy string", () => {
+        it("should read to the end with a greedy string", () => {
             const properties: ParserInfo = {
-                data: {} as CommmandData, key: "test", node_properties: { type: "greedy" },
+                ...defaultProperties,
+                node_properties: { type: "greedy" },
             };
-            it("should read to the end of the string", () => {
-                const reader = new StringReader("test space :\"-)(*");
-                assert.doesNotThrow(() => stringArgumentParser.parse(reader, properties));
-                assert.equal(reader.cursor, 17);
-            });
+            const reader = new StringReader("test space :\"-)(*");
+            assertReturn(defined(stringArgumentParser.parse(reader, properties)), true);
+            assert.equal(reader.cursor, 17);
         });
         describe("Phrase String", () => {
             const properties: ParserInfo = {
-                data: {} as CommmandData, key: "test", node_properties: { type: "phrase" },
+                ...defaultProperties,
+                node_properties: { type: "phrase" },
             };
             it("should read an unquoted string section", () => {
                 const reader = new StringReader("test space :\"-)(*");
-                assert.doesNotThrow(() => stringArgumentParser.parse(reader, properties));
+                assertReturn(defined(stringArgumentParser.parse(reader, properties)), true);
                 assert.equal(reader.cursor, 4);
             });
             it("should read a quoted string section", () => {
                 const reader = new StringReader("\"quote test\" :\"-)(*");
-                assert.doesNotThrow(() => stringArgumentParser.parse(reader, properties));
+                assertReturn(defined(stringArgumentParser.parse(reader, properties)), true);
                 assert.equal(reader.cursor, 11);
             });
         });
         describe("Word String", () => {
-            const properties: ParserInfo = { key: "test", node_properties: { type: "word" }, data: {} as CommmandData };
+            const properties: ParserInfo = { ...defaultProperties, node_properties: { type: "word" } };
             it("should read only an unquoted string section", () => {
                 const reader = new StringReader("test space :\"-)(*");
-                assert.doesNotThrow(() => stringArgumentParser.parse(reader, properties));
+                assertReturn(defined(stringArgumentParser.parse(reader, properties)), true);
                 assert.equal(reader.cursor, 4);
             });
             it("should not read a quoted string section", () => {
                 const reader = new StringReader("\"quote test\" :\"-)(*");
-                assert.doesNotThrow(() => stringArgumentParser.parse(reader, properties));
+                assertReturn(defined(stringArgumentParser.parse(reader, properties)), true);
                 assert.equal(reader.cursor, 0);
             });
-        });
-    });
-    describe("getSuggestions()", () => {
-        it("should not give any suggestions", () => {
-            const properties: ParserInfo = {
-                data: {} as CommmandData, key: "test", node_properties: { type: "greedy" },
-            };
-            assert.deepEqual(stringArgumentParser.getSuggestions("false", properties), []);
         });
     });
 });

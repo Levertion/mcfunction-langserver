@@ -1,8 +1,8 @@
 import * as assert from "assert";
 import * as path from "path";
-import * as stringParser from "../../../parse/parsers/brigadier/string";
-import { getParser } from "../../../parse/parsers/get_parser";
-import * as literal from "../../../parse/parsers/literal";
+import * as stringParser from "../../parsers/brigadier/string";
+import { getParser } from "../../parsers/get_parser";
+import * as literal from "../../parsers/literal";
 import * as dummy1 from "./tests/dummy1_parser";
 
 describe("getParser()", () => {

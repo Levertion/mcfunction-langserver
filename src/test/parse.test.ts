@@ -2,9 +2,29 @@ import * as assert from "assert";
 import { join } from "path";
 import { GlobalData } from "../data/types";
 import { parseCommand } from "../parse";
-import { StoredParseResult } from "../types";
+import { ParseNode, StoredParseResult } from "../types";
+import { assertErrors, ErrorInfo } from "./assertions";
 
 const fakeGlobal: GlobalData = {} as any;
+
+function assertParse(result: StoredParseResult | void, errors: ErrorInfo[], nodes: ParseNode[]) {
+    assert.notEqual(result, undefined);
+    result = result as any as StoredParseResult;
+    assertErrors(errors, result.errors);
+    const newNodes = result.nodes.slice();
+    for (const node of nodes) {
+        assert(newNodes.findIndex((v, i, s) => {
+            try {
+                assert.deepStrictEqual(v, node);
+                s.splice(i, 1);
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }));
+    }
+    assert(newNodes.length === 0);
+}
 
 describe("parseCommand()", () => {
     before(() => {
@@ -46,42 +66,23 @@ describe("parseCommand()", () => {
 
         it("should parse an executable, valid, command as such", () => {
             const result = parseCommand("hel", singleArgData, undefined);
-            const expected: StoredParseResult = {
-                actions: [], errors: [], nodes: [{ low: 0, high: 3, path: ["test1"], context: {}, final: false }],
-            };
-            assert.deepEqual(result, expected);
+            assertParse(result, [], [{ context: {}, final: false, low: 0, high: 3, path: ["test1"] }]);
         });
 
         it("should return an error from a command which cannot be run", () => {
-            const result = parseCommand("hello", singleArgData);
-            const expected = { actions: [], nodes: [{ low: 0, high: 5, path: ["test2"] }] };
-            assertErrors([{ code: "parsing.command.executable", range: { start: 0, end: 5 } }], result.errors);
-
-            const newResult: any = Object.assign({}, result);
-            delete newResult.errors; // Errors are complicated to predict exactly.
-            assert.deepEqual(newResult, expected);
+            const result = parseCommand("hello", singleArgData, undefined);
+            assertParse(result, [{
+                code: "parsing.command.executable",
+                range: { start: 0, end: 5 },
+            }], [{ low: 0, high: 5, path: ["test2"], context: {}, final: false }]);
         });
 
-        it("should add an error if there is a missing space, and not add a node", () => {
-            const result = parseCommand("hel1", singleArgData);
-            const expected = { actions: [], nodes: [] };
-            assertErrors([{ code: "parsing.command.whitespace", range: { start: 3, end: 4 } }], result.errors);
-
-            const newResult: any = Object.assign({}, result);
-            delete newResult.errors; // Errors are complicated to predict exactly.
-            assert.deepEqual(newResult, expected);
-        });
-
-        it("should add an error if there is extra text not matched by a node", () => {
-            const result = parseCommand("hi", singleArgData);
-            const expected = { actions: [], nodes: [] };
-            assertErrors([{ code: "command.parsing.matchless", range: { start: 0, end: 2 } }], result.errors);
-
-            const newResult: any = Object.assign({}, result);
-            delete newResult.errors; // Errors are complicated to predict exactly.
-            assert.deepEqual(newResult, expected);
+        it("should add an error if there text at the start not matched by a node", () => {
+            const result = parseCommand("hi", singleArgData, undefined);
+            assertParse(result, [{ code: "command.parsing.matchless", range: { start: 0, end: 2 } }], []);
         });
     });
+
     describe("Multi Argument Tests", () => {
         const multiArgData: GlobalData = {
             commands: {
@@ -114,35 +115,20 @@ describe("parseCommand()", () => {
         } as any;
 
         it("should only add a space between nodes", () => {
-            const result = parseCommand("hel hel", multiArgData);
-            const expected = {
-                actions: [],
-                nodes: [{ high: 3, low: 0, path: ["test1"] }, {
-                    high: 7, low: 4, path: ["test1", "testchild1"],
-                }],
-            };
-            assertErrors([{ code: "parsing.command.executable", range: { start: 0, end: 7 } }], result.errors);
-
-            result.nodes.sort((a, b) => a.low - b.low);
-            const newResult: any = Object.assign({}, result);
-            delete newResult.errors;
-            assert.deepEqual(newResult, expected);
+            const result = parseCommand("hel hel", multiArgData, undefined);
+            assertParse(result, [{ code: "parsing.command.executable", range: { start: 0, end: 7 } }],
+                [{ high: 3, low: 0, path: ["test1"], final: false, context: {} }, {
+                    context: {}, final: false, high: 7,
+                    low: 4, path: ["test1", "testchild1"],
+                }]);
         });
 
-        it("should not add a node when a node which is second fails", () => {
-            const result = parseCommand("hel hel1", multiArgData);
-            const expected = {
-                actions: [],
-                nodes: [{
-                    final: true,
-                    high: 3, low: 0, path: ["test1"],
-                }],
-            };
-            assertErrors([{ code: "parsing.command.whitespace", range: { start: 7, end: 8 } }], result.errors);
-
-            const newResult: any = Object.assign({}, result);
-            delete newResult.errors; // Errors are complicated to predict exactly.
-            assert.deepEqual(newResult, expected);
+        it("should not add a node when a node which follows fails", () => {
+            const result = parseCommand("hel hel1", multiArgData, undefined);
+            assertParse(result, [{ code: "parsing.command.matchless", range: { start: 4, end: 8 } }], [{
+                context: {}, final: true,
+                high: 3, low: 0, path: ["test1"],
+            }]);
         });
     });
 });

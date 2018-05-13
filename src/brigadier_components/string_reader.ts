@@ -38,18 +38,17 @@ export class StringReader {
         this.string = stringToRead;
     }
 
-    public getRemainingLength(): number {
-        return this.string.length - this.cursor;
-    }
-
-    public getTotalLength(): number {
-        return this.string.length;
-    }
     public getRead() {
         return this.string.substring(0, this.cursor);
     }
     public getRemaining() {
         return this.string.substring(this.cursor);
+    }
+    public getRemainingLength(): number {
+        return this.string.length - this.cursor;
+    }
+    public getTotalLength(): number {
+        return this.string.length;
     }
     public canRead(length = 1) {
         return this.cursor + length <= this.string.length;
@@ -57,11 +56,11 @@ export class StringReader {
     public peek(offset = 0) {
         return this.string.charAt(this.cursor + offset);
     }
-    public read(): string {
-        return this.string.charAt(this.cursor++);
-    }
     public skip() {
         this.cursor++;
+    }
+    public read(): string {
+        return this.string.charAt(this.cursor++);
     }
     public skipWhitespace() {
         this.readWhileRegexp(/\s/); // Whitespace
@@ -132,7 +131,8 @@ export class StringReader {
                     result += c;
                     escaped = false;
                 } else {
-                    return helper.fail(EXCEPTIONS.INVALID_ESCAPE.create(this.cursor, this.cursor + 1, c));
+                    return helper.fail(EXCEPTIONS.INVALID_ESCAPE.create(this.cursor - 1, // includes backslash
+                        this.cursor + 1, c));
                 }
             } else if (c === ESCAPE) {
                 escaped = true;
@@ -142,6 +142,7 @@ export class StringReader {
                 result += c;
             }
         }
+        helper.addSuggestion(this.cursor, QUOTE); // Always cannot read at this point
         return helper.fail(EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(start, this.string.length));
     }
     /**
@@ -163,7 +164,7 @@ export class StringReader {
     /**
      * Expect a string from a selection
      */
-    public expectStringFrom<T extends string>(options: T[], addError = true): ReturnedInfo<T, CE, string | false> {
+    public readOption<T extends string>(options: T[], addError = true): ReturnedInfo<T, CE, string | false> {
         const start = this.cursor;
         const helper = new ReturnHelper();
         let quoted = false;
@@ -182,7 +183,7 @@ export class StringReader {
         }
         if (!this.canRead()) {
             helper.addSuggestions(...options.filter((v) => v.startsWith(result.data)).map<Suggestion>((v) => {
-                return { start, text: quoted ? QUOTE + v : v };
+                return { start, text: quoted ? QUOTE + v + QUOTE : v };
             }));
         }
         if (valid) {
@@ -201,7 +202,7 @@ export class StringReader {
     public readBoolean(): ReturnedInfo<boolean> {
         const helper = new ReturnHelper();
         const start = this.cursor;
-        const value = this.expectStringFrom<keyof typeof
+        const value = this.readOption<keyof typeof
             StringReader["bools"]>(typed_keys(StringReader.bools), false);
         if (!helper.merge(value)) {
             if (value.data !== false) {
@@ -219,8 +220,13 @@ export class StringReader {
      */
     public expect(str: string): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
-        if (this.string.substr(this.cursor, str.length) !== str) {
-            return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL.create(this.cursor, this.cursor, this.peek(), str));
+        if (str.startsWith(this.getRemaining())) {
+            helper.addSuggestions({ text: str, start: this.cursor });
+        }
+        const sub = this.string.substr(this.cursor, str.length);
+        if (sub !== str) {
+            return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL.create(this.cursor,
+                Math.min(this.string.length, this.cursor + str.length), sub, str));
         }
         this.cursor += str.length;
         return helper.succeed();

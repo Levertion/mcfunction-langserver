@@ -25,10 +25,10 @@ const parser: Parser = {
         const max = Math.min(isNumber(maxVal) ? maxVal : JAVAMAXFLOAT, JAVAMAXFLOAT);
         const min = Math.max(isNumber(minVal) ? minVal : JAVAMINFLOAT, JAVAMINFLOAT);
         if (result.data > max) {
-            return helper.fail(FLOATEXCEPTIONS.TOOBIG.create(start, reader.cursor, max, result));
+            return helper.fail(FLOATEXCEPTIONS.TOOBIG.create(start, reader.cursor, max, result.data));
         }
         if (result.data < min) {
-            return helper.fail(FLOATEXCEPTIONS.TOOSMALL.create(start, reader.cursor, min, result));
+            return helper.fail(FLOATEXCEPTIONS.TOOSMALL.create(start, reader.cursor, min, result.data));
         }
         return helper.succeed();
     },

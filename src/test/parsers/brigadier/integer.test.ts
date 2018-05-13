@@ -1,49 +1,45 @@
 import * as assert from "assert";
-import { StringReader } from "../../../../brigadier_components/string_reader";
-import * as integerArgumentParser from "../../../../parse/parsers/brigadier/integer";
-import { CommmandData, ParserInfo } from "../../../../types";
-import { thrownErrorAssertion } from "../utils/parser_test_utils";
+import { StringReader } from "../../../brigadier_components/string_reader";
+import * as integerArgumentParser from "../../../parsers/brigadier/integer";
+import { ParserInfo } from "../../../types";
+import { assertReturn, defined } from "../../assertions";
 
-const defaultProperties: ParserInfo = { key: "test", node_properties: {}, data: {} as CommmandData };
+const defaultProperties: ParserInfo = {
+    context: {}, data: {} as any, node_properties: {},
+    path: ["test"], suggesting: true,
+};
 
 describe("Integer Argument Parser", () => {
     describe("parse", () => {
         function validIntTests(s: string, expectedNum: number, numEnd: number) {
-            describe("no constraints", () => {
+            it("should succeed with an unconstrained value", () => {
                 const reader = new StringReader(s);
-                const properties: ParserInfo = {
-                    data: {} as CommmandData,
-                    key: "test",
-                    node_properties: {},
-                };
-                it("should succeed", () => {
-                    assert.doesNotThrow(() => integerArgumentParser.parse(reader, properties));
-                    assert.equal(reader.cursor, numEnd);
-                });
+                assert.doesNotThrow(() => integerArgumentParser.parse(reader, defaultProperties));
+                assert.equal(reader.cursor, numEnd);
             });
-            describe("less than min", () => {
+            it("should fail with a value less than the minimum", () => {
                 const reader = new StringReader(s);
                 const properties: ParserInfo = {
-                    data: {} as CommmandData,
-                    key: "test", node_properties: { min: expectedNum + 1 },
+                    ...defaultProperties,
+                    node_properties: { min: expectedNum + 1 },
                 };
-                it("should not succeed", () => {
-                    assert.throws(() => {
-                        integerArgumentParser.parse(reader, properties);
-                    }, thrownErrorAssertion({ code: "argument.integer.low", range: { start: 0, end: numEnd } }));
-                });
+                const result = integerArgumentParser.parse(reader, properties);
+                assertReturn(defined(result), false, [{
+                    code: "argument.integer.low",
+                    range: { start: 0, end: numEnd },
+                }]);
             });
-            describe("more than max", () => {
+            it("should fail with a value more than the maximum", () => {
                 const reader = new StringReader(s);
                 const properties: ParserInfo = {
-                    data: {} as CommmandData,
-                    key: "test", node_properties: { max: expectedNum - 1 },
+                    ...defaultProperties,
+                    node_properties: { max: expectedNum - 1 },
                 };
-                it("should not suceed", () => {
-                    assert.throws(() => { integerArgumentParser.parse(reader, properties); },
-                        thrownErrorAssertion({ code: "argument.integer.big", range: { start: 0, end: numEnd } }),
-                    );
-                });
+                const result = integerArgumentParser.parse(reader, properties);
+                assertReturn(defined(result), false, [{
+                    code: "argument.integer.big",
+                    range: { start: 0, end: numEnd },
+                }]);
             });
         }
         describe("valid integer", () => {
@@ -52,26 +48,15 @@ describe("Integer Argument Parser", () => {
         describe("valid integer with space", () => {
             validIntTests("1234 ", 1234, 4);
         });
-        describe("java max value testing ", () => {
-            it("should throw an integer too big error", () => {
-                const reader = new StringReader("1000000000000000");
-                assert.throws(() => integerArgumentParser.parse(reader, defaultProperties),
-                    thrownErrorAssertion({ code: "argument.integer.big", range: { start: 0, end: 16 } }),
-                );
-            });
+        it("should fail when the integer is bigger than the java max", () => {
+            const reader = new StringReader("1000000000000000");
+            const result = integerArgumentParser.parse(reader, defaultProperties);
+            assertReturn(defined(result), false, [{ code: "argument.integer.big", range: { start: 0, end: 16 } }]);
         });
-        describe("java min value testing ", () => {
-            it("should throw an integer too small error", () => {
-                const reader = new StringReader("-1000000000000000");
-                assert.throws(() => integerArgumentParser.parse(reader, defaultProperties),
-                    thrownErrorAssertion({ code: "argument.integer.low", range: { start: 0, end: 17 } }),
-                );
-            });
-        });
-        describe("getSuggestions()", () => {
-            it("should not give any suggestions", () => {
-                assert.deepEqual(integerArgumentParser.getSuggestions("false", defaultProperties), []);
-            });
+        it("should fail when the integer is less than the java min", () => {
+            const reader = new StringReader("-1000000000000000");
+            const result = integerArgumentParser.parse(reader, defaultProperties);
+            assertReturn(defined(result), false, [{ code: "argument.integer.low", range: { start: 0, end: 17 } }]);
         });
     });
 });

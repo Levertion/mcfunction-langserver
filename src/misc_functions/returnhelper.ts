@@ -2,7 +2,7 @@ import { BlankCommandError, CommandError, fillBlankError } from "../brigadier_co
 import { StringReader } from "../brigadier_components/string_reader";
 import {
     BCE, CE, Failure, ParserInfo, ReturnData, ReturnedInfo, ReturnFailure,
-    ReturnSuccess, SubAction, Success, SuggestResult,
+    ReturnSuccess, SubAction, Success, Suggestion, SuggestResult,
 } from "../types";
 
 /**
@@ -61,6 +61,9 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         return Object.assign(this.getShared(), {
             kind: Failure as Failure,
         }, {} as { data: undefined });
+    }
+    public addSuggestion(start: number, text: string, kind?: Suggestion["kind"], description?: string) {
+        this.addSuggestions({ start, text, kind, description });
     }
     public addErrors(...errs: Errorkind[]) {
         this.data.errors.push(...errs);

@@ -70,14 +70,15 @@ export async function getNamespaceResources(namespace: string, location: string)
     return result;
 }
 
-export async function getDatapacksResources(dataLocation: string): Promise<Datapack[]> {
+export async function getDatapacks(dataLocation: string): Promise<Datapack[]> {
     const datapackNames = await subDirectories(dataLocation);
     const promises = datapackNames.map(async (packName): Promise<Datapack> => {
-        const dataFolder = path.join(dataLocation, packName);
+        const packFolder = path.join(dataLocation, packName);
+        const dataFolder = path.join(packFolder, "data");
         const datapackNamespaces = await subDirectories(dataFolder);
-        const result: Datapack = { namespaces: {}, path: dataFolder };
+        const result: Datapack = { namespaces: {}, path: packFolder };
         await Promise.all(datapackNamespaces.map(async (namespace) => {
-            result.namespaces[namespace] = await getNamespaceResources(namespace, dataFolder);
+            result.namespaces[namespace] = await getNamespaceResources(namespace, packFolder);
         }));
         return result;
     });

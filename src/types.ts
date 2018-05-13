@@ -95,7 +95,7 @@ export interface Parser {
 export interface ParseNode extends Interval {
     path: CommandNodePath;
     context: CommandContext;
-    final?: boolean;
+    final: boolean;
 }
 
 export interface StoredParseResult {

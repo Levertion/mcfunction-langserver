@@ -51,7 +51,7 @@ function parsechildren(reader: StringReader, node: CommandNode,
             const result = parseAgainstNode(reader, child, childpath, data, context);
             if (helper.merge(result, false)) {
                 successCount++;
-                const newNode: ParseNode = { context, low: start, high: reader.cursor, path: childpath };
+                const newNode: ParseNode = { context, low: start, high: reader.cursor, path: childpath, final: false };
                 const childdata = result.data;
                 function checkRead(): boolean {
                     if (reader.canRead()) {

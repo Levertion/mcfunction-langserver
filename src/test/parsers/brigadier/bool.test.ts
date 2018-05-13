@@ -1,37 +1,52 @@
-import * as assert from "assert";
-import { StringReader } from "../../../../brigadier_components/string_reader";
-import * as boolArgumentParser from "../../../../parse/parsers/brigadier/bool";
-import { CommmandData, ParserInfo } from "../../../../types";
-import { thrownErrorAssertion } from "../utils/parser_test_utils";
+import { StringReader } from "../../../brigadier_components/string_reader";
+import * as boolArgumentParser from "../../../parsers/brigadier/bool";
+import { CommmandData, ParserInfo } from "../../../types";
+import { assertReturn, defined } from "../../assertions";
 
 describe("Boolean Argument Parser", () => {
-    const properties: ParserInfo = { key: "test", node_properties: {}, data: {} as CommmandData };
+    const properties: ParserInfo = {
+        context: {}, data: {} as CommmandData, node_properties: {},
+        path: ["test"], suggesting: true, // Note that bool parser ignores suggesting
+    };
     describe("parse()", () => {
-        it("should not throw an error when it is reading true", () => {
+        it("should not error when it is reading true", () => {
             const reader = new StringReader("true");
-            assert.doesNotThrow(() => boolArgumentParser.parse(reader, properties));
+            const result = boolArgumentParser.parse(reader, properties);
+            assertReturn(defined(result), true, [], ["true"]);
         });
-        it("should not throw an error when it is reading false", () => {
+        it("should not error when it is reading false", () => {
             const reader = new StringReader("false");
-            assert.doesNotThrow(() => boolArgumentParser.parse(reader, properties));
+            const result = boolArgumentParser.parse(reader, properties);
+            assertReturn(defined(result), true, [], ["false"]);
         });
-        it("should throw an error if it is not reading true or false", () => {
+        it("should error if it is not reading true or false", () => {
             const reader = new StringReader("notbool");
-            assert.throws(() => boolArgumentParser.parse(reader, properties),
-                thrownErrorAssertion({ code: "parsing.bool.invalid", range: { start: 0, end: 7 } }));
+            const result = boolArgumentParser.parse(reader, properties);
+            assertReturn(defined(result), false, [{ code: "parsing.bool.invalid", range: { start: 0, end: 7 } }]);
         });
     });
-    describe("getSuggestions()", () => {
-        it("it should suggest the boolean which start begins", () => {
-            assert.deepEqual(boolArgumentParser.getSuggestions("fals", properties), ["false"]);
-            assert.deepEqual(boolArgumentParser.getSuggestions("tru", properties), ["true"]);
-        });
-        it("should suggest both true and false when it gets an empty start", () => {
-            assert.deepEqual(boolArgumentParser.getSuggestions("", properties), ["true", "false"]);
-        });
-        it("should suggest the full boolean if it is given a full bool.", () => {
-            assert.deepEqual(boolArgumentParser.getSuggestions("true", properties), ["true"]);
-            assert.deepEqual(boolArgumentParser.getSuggestions("false", properties), ["false"]);
-        });
+    it("should suggest false for a string beginning with it", () => {
+        const reader = new StringReader("fal");
+        const result = boolArgumentParser.parse(reader, properties);
+        assertReturn(defined(result), false, [{
+            code: "parsing.bool.invalid",
+            range: { start: 0, end: 3 },
+        }], ["false"]);
+    });
+    it("should suggest true for a string beginning with it", () => {
+        const reader = new StringReader("tru");
+        const result = boolArgumentParser.parse(reader, properties);
+        assertReturn(defined(result), false, [{
+            code: "parsing.bool.invalid",
+            range: { start: 0, end: 3 },
+        }], ["true"]);
+    });
+    it("should suggest both for an empty string", () => {
+        const reader = new StringReader("");
+        const result = boolArgumentParser.parse(reader, properties);
+        assertReturn(defined(result), false, [{
+            code: "parsing.bool.invalid",
+            range: { start: 0, end: 0 },
+        }], ["true", "false"]);
     });
 });

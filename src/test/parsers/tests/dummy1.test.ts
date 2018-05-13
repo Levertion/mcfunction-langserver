@@ -1,7 +1,7 @@
 import * as assert from "assert";
-import { CompletionItemKind } from "vscode-languageserver/lib/main";
-import { StringReader } from "../../../../brigadier_components/string_reader";
-import { ParserInfo } from "../../../../types";
+import { StringReader } from "../../../brigadier_components/string_reader";
+import { ParserInfo } from "../../../types";
+import { assertReturn, defined } from "../../assertions";
 import * as dummyparser from "./dummy1_parser";
 
 describe("dummyParser1", () => {
@@ -9,28 +9,27 @@ describe("dummyParser1", () => {
         it("should read the specified number of characters", () => {
             const reader = new StringReader("test hello");
             const result = dummyparser.parse(reader, { node_properties: { number: 4 } } as any as ParserInfo);
-            assert.deepEqual(result, { successful: true });
+            assertReturn(defined(result), true, [], ["hello", "welcome"]);
             assert.equal(reader.cursor, 4);
         });
 
         it("should default to 3 when not given any properties", () => {
             const reader = new StringReader("test hello");
             const result = dummyparser.parse(reader, { node_properties: {} } as any as ParserInfo);
-            assert.deepEqual(result, { successful: true });
+            assertReturn(defined(result), true, [], ["hello", "welcome"]);
             assert.equal(reader.cursor, 3);
         });
 
         it("should not succeed if there is not enough room", () => {
             const reader = new StringReader("te");
             const result = dummyparser.parse(reader, { node_properties: {} } as any as ParserInfo);
-            assert.deepEqual(result, { successful: false });
+            assertReturn(defined(result), false, [], ["hello", "welcome"]);
         });
-    });
-    describe("getSuggestions", () => {
-        it("should give the completions", () => {
-            assert.deepEqual(["hello", { start: 2, value: "test", kind: CompletionItemKind.Constructor }],
-                dummyparser.getSuggestions("", {} as any as ParserInfo),
-            );
+        it("should give the suggestions: hello at the start and welcome at the cursor", () => {
+            const reader = new StringReader("testing");
+            reader.cursor = 3;
+            const result = dummyparser.parse(reader, { node_properties: {} } as any as ParserInfo);
+            assertReturn(defined(result), true, [], ["hello", { text: "welcome", start: 3 }]);
         });
     });
 });

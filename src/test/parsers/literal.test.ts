@@ -1,46 +1,37 @@
 import * as assert from "assert";
-import { StringReader } from "../../../brigadier_components/string_reader";
-import * as literalArgumentParser from "../../../parse/parsers/literal";
-import { ParserInfo } from "../../../types";
+import { StringReader } from "../../brigadier_components/string_reader";
+import * as literalArgumentParser from "../../parsers/literal";
+import { ParserInfo } from "../../types";
+import { assertReturn, defined } from "../assertions";
 
 describe("literalArgumentParser", () => {
-    const properties: ParserInfo = { key: "test", node_properties: {} } as any as ParserInfo;
+    const properties: ParserInfo = { path: ["test"], node_properties: {}, suggesting: true } as any as ParserInfo;
     describe("parse()", () => {
         describe("literal correct", () => {
-            it("should suceed", () => {
+            it("should succeed, suggesting the string", () => {
                 const reader = new StringReader("test");
-                assert.deepEqual(literalArgumentParser.parse(reader, properties), { successful: true });
-            });
-            it("should set the cursor to end of the string when the literal goes to the end of the string", () => {
-                const reader = new StringReader("test");
-                literalArgumentParser.parse(reader, properties);
+                assertReturn(defined(literalArgumentParser.parse(reader, properties)), true, [], ["test"]);
                 assert.equal(reader.cursor, 4);
             });
             it("should set the cursor to after the string when it doesn't reach the end", () => {
                 const reader = new StringReader("test ");
-                literalArgumentParser.parse(reader, properties);
+                assertReturn(defined(literalArgumentParser.parse(reader, properties)), true, [], ["test"]);
                 assert.equal(reader.cursor, 4);
             });
         });
         describe("literal not matching", () => {
-            it("should fail when the first character doesn't mathc", () => {
+            it("should fail when the first character doesn't match", () => {
                 const reader = new StringReader("nottest");
-                assert.deepEqual(literalArgumentParser.parse(reader, properties), { successful: false });
+                assertReturn(defined(literalArgumentParser.parse(reader, properties)), false);
             });
             it("should throw an error when the last character doesn't match", () => {
                 const reader = new StringReader("tesnot");
-                assert.deepEqual(literalArgumentParser.parse(reader, properties), { successful: false });
+                assertReturn(defined(literalArgumentParser.parse(reader, properties)), false);
             });
-        });
-    });
-    describe("getSuggestions()", () => {
-        it("should return the literal if it is given a valid start", () => {
-            assert.deepEqual(literalArgumentParser.getSuggestions("tes", properties), ["test"]);
-            assert.deepEqual(literalArgumentParser.getSuggestions("test", properties), ["test"]);
-        });
-        it("should give nothing if there is an invalid start", () => {
-            assert.deepEqual(literalArgumentParser.getSuggestions("hello", properties), []);
-            assert.deepEqual(literalArgumentParser.getSuggestions("nottest", properties), []);
+            it("should suggest the string if the start is given", () => {
+                const reader = new StringReader("tes");
+                assertReturn(defined(literalArgumentParser.parse(reader, properties)), false, [], ["test"]);
+            });
         });
     });
 });

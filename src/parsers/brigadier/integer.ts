@@ -25,10 +25,10 @@ const parser: Parser = {
         const max = Math.min(isNumber(maxVal) ? maxVal : JAVAMAXINT, JAVAMAXINT);
         const min = Math.max(isNumber(minVal) ? minVal : JAVAMININT, JAVAMININT);
         if (result.data > max) {
-            return helper.fail(INTEGEREXCEPTIONS.TOOBIG.create(start, reader.cursor, max, result));
+            return helper.fail(INTEGEREXCEPTIONS.TOOBIG.create(start, reader.cursor, max, result.data));
         }
         if (result.data < min) {
-            return helper.fail(INTEGEREXCEPTIONS.TOOSMALL.create(start, reader.cursor, min, result));
+            return helper.fail(INTEGEREXCEPTIONS.TOOSMALL.create(start, reader.cursor, min, result.data));
         }
         return helper.succeed();
     },

@@ -5,7 +5,7 @@ import { exactifyNamespace, namespacesEqual } from "../../misc_functions/namespa
 describe("Namespace Functions (Misc)", () => {
     describe("exactifyNamespace", () => {
         it("should make a normal namespaced name into an exact namespaced name", () => {
-            assert.equal(exactifyNamespace({ namespace: "test", path: "testpath" }),
+            assert.deepEqual(exactifyNamespace({ namespace: "test", path: "testpath" }),
                 { namespace: "test", path: "testpath", exact: true });
         });
     });

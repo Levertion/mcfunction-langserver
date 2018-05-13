@@ -1,35 +1,41 @@
 import * as assert from "assert";
-import { StringReader } from "../../../../brigadier_components/string_reader";
-import * as floatArgumentParser from "../../../../parse/parsers/brigadier/float";
-import { CommmandData, ParserInfo } from "../../../../types";
-import { thrownErrorAssertion } from "../utils/parser_test_utils";
+import { StringReader } from "../../../brigadier_components/string_reader";
+import * as floatArgumentParser from "../../../parsers/brigadier/float";
+import { CommmandData, ParserInfo } from "../../../types";
+import { assertReturn, defined } from "../../assertions";
 
 describe("Float Argument Parser", () => {
     describe("parse()", () => {
         function validFloatTests(s: string, expectedNum: number, numEnd: number) {
             it("should succeed with no constraints", () => {
                 const reader = new StringReader(s);
-                const properties: ParserInfo = { data: {} as CommmandData, key: "test", node_properties: {} };
-                assert.doesNotThrow(() => floatArgumentParser.parse(reader, properties));
+                const properties: ParserInfo = {
+                    context: {}, data: {} as CommmandData,
+                    node_properties: {}, path: ["test"], suggesting: true,
+                };
+                const result = floatArgumentParser.parse(reader, properties);
+                assertReturn(defined(result), true);
                 assert.equal(reader.cursor, numEnd);
             });
-            it("should throw a valid command error when the value is less than the minimum", () => {
+            it("should reject a number less than the minimum", () => {
                 const reader = new StringReader(s);
                 const properties: ParserInfo = {
-                    data: {} as CommmandData, key: "test",
-                    node_properties: { min: expectedNum + 1 },
+                    context: {}, data: {} as CommmandData, node_properties: { min: expectedNum + 1 },
+                    path: ["test"], suggesting: true,
                 };
-                assert.throws(() => {
-                    floatArgumentParser.parse(reader, properties);
-                }, thrownErrorAssertion({ code: "argument.float.low", range: { start: 0, end: numEnd } }));
+                const result = floatArgumentParser.parse(reader, properties);
+                assertReturn(defined(result), false,
+                    [{ code: "argument.float.low", range: { start: 0, end: numEnd } }]);
             });
-            it("should throw a valid command error when it is more than the maximum", () => {
+            it("should reject a number more than the maximum", () => {
                 const reader = new StringReader(s);
                 const properties: ParserInfo = {
-                    data: {} as CommmandData, key: "test", node_properties: { max: expectedNum - 1 },
+                    context: {}, data: {} as CommmandData, node_properties: { max: expectedNum - 1 },
+                    path: ["test"], suggesting: true,
                 };
-                assert.throws(() => { floatArgumentParser.parse(reader, properties); },
-                    thrownErrorAssertion({ code: "argument.float.big", range: { start: 0, end: numEnd } }));
+                const result = floatArgumentParser.parse(reader, properties);
+                assertReturn(defined(result), false,
+                    [{ code: "argument.float.big", range: { start: 0, end: numEnd } }]);
             });
         }
         describe("valid integer", () => {
@@ -47,26 +53,20 @@ describe("Float Argument Parser", () => {
         it("should fail when the number is bigger than the java maximum float", () => {
             const reader = new StringReader("1000000000000000");
             const properties: ParserInfo = {
-                data: {} as CommmandData, key: "test", node_properties: {},
+                context: {}, data: {} as CommmandData, node_properties: {},
+                path: ["test"], suggesting: true,
             };
-            assert.throws(() => {
-                floatArgumentParser.parse(reader, properties);
-            }, thrownErrorAssertion({ code: "argument.float.big", range: { start: 0, end: 16 } }));
+            const result = floatArgumentParser.parse(reader, properties);
+            assertReturn(defined(result), false, [{ code: "argument.float.big", range: { start: 0, end: 16 } }]);
         });
         it("should fail when the number is less than the java minimum float", () => {
             const reader = new StringReader("-1000000000000000");
             const properties: ParserInfo = {
-                data: {} as CommmandData, key: "test", node_properties: {},
+                context: {}, data: {} as CommmandData, node_properties: {},
+                path: ["test"], suggesting: true,
             };
-            assert.throws(() => {
-                floatArgumentParser.parse(reader, properties);
-            }, thrownErrorAssertion({ code: "argument.float.low", range: { start: 0, end: 17 } }));
-        });
-    });
-    describe("getSuggestions()", () => {
-        it("should not give any suggestions", () => {
-            const properties: ParserInfo = { key: "test", node_properties: {}, data: {} as CommmandData };
-            assert.deepEqual(floatArgumentParser.getSuggestions("false", properties), []);
+            const result = floatArgumentParser.parse(reader, properties);
+            assertReturn(defined(result), false, [{ code: "argument.float.low", range: { start: 0, end: 17 } }]);
         });
     });
 });

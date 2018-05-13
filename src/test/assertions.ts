@@ -109,7 +109,7 @@ export function assertSuggestions(expected: SuggestedOption[], actual: SuggestRe
                 if (typeof v === "string") {
                     return position === 0 && v === beginning;
                 } else {
-                    return v.text === expectation && v.start === start;
+                    return v.text === beginning && v.start === position;
                 }
             });
             if (index === -1) {
@@ -157,8 +157,8 @@ export function assertNamespaces(expected: NamespacedName[], actual: NamespacedN
     }
 }
 
-export function assertReturn<T>(val: ReturnedInfo<T>, shouldSucceed: boolean, errors: ErrorInfo[],
-    suggestions: SuggestionInfo[], numActions: number = 0, suggestStart: number = 0): val is ReturnSuccess<T> {
+export function assertReturn<T>(val: ReturnedInfo<T>, shouldSucceed: boolean, errors: ErrorInfo[] = [], suggestions:
+    Array<SuggestionInfo | string> = [], numActions: number = 0, suggestStart: number = 0): val is ReturnSuccess<T> {
     if (isSuccessful(val) === shouldSucceed) {
         assertErrors(errors, val.errors);
         assertSuggestions(suggestions, val.suggestions, suggestStart);
@@ -170,4 +170,11 @@ export function assertReturn<T>(val: ReturnedInfo<T>, shouldSucceed: boolean, er
                 "fail"}, but it didn't. Value is: '${JSON.stringify(val)}'`,
         });
     }
+}
+
+export function defined<T>(val: T | undefined): T {
+    if (val === undefined) {
+        throw new AssertionError({ actual: val, message: "Expected not to be defined" });
+    }
+    return val;
 }

@@ -1,25 +1,21 @@
-import { CompletionItemKind } from "vscode-languageserver/lib/main";
-import { Parser } from "../../../../types";
+import { ReturnHelper } from "../../../misc_functions";
+import { Parser } from "../../../types";
 
 /**
  * Used for testing.
  * Do not attempt to use an actual command tree using this.
  */
 const parser: Parser = {
-    getSuggestions: () => [
-        "hello",
-        { start: 2, text: "test", kind: CompletionItemKind.Constructor },
-    ],
     parse: (reader, node) => {
-        let num: number = 3;
-        if (node.node_properties.number) {
-            num = node.node_properties.number;
-        }
+        const helper = new ReturnHelper();
+        helper.addSuggestion(0, "hello");
+        helper.addSuggestion(reader.cursor, "welcome");
+        const num: number = node.node_properties.number || 3;
         if (reader.canRead(num)) {
             reader.cursor += num;
-            return { successful: true };
+            return helper.succeed();
         } else {
-            return { successful: false };
+            return helper.fail();
         }
     },
 };
