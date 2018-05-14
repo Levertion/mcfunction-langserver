@@ -135,7 +135,7 @@ export function assertNamespaces(expected: NamespacedName[], actual: NamespacedN
     for (const expectation of expected) {
         let found: boolean = false;
         for (let i = 0; i < results.length; i++) {
-            const element = actual[i];
+            const element = results[i];
             if (namespacesEqual(element, expectation)) {
                 found = true;
                 results.splice(i, 1);
