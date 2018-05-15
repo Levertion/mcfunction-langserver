@@ -173,6 +173,13 @@ export class StringReader {
         }
         const result = this.readString();
         if (!helper.merge(result, false)) {
+            if (quoted && !this.canRead()) {
+                const remaining = this.string.substring(start + 1);
+                // Note that if there are quotes and backslashes, this will fail
+                helper.addSuggestions(...options.filter((v) => v.startsWith(remaining)).map<Suggestion>((v) => {
+                    return { start, text: QUOTE + v + QUOTE };
+                }));
+            }
             return helper.failWithData(false as any);
         }
         let valid: T | undefined;
@@ -183,7 +190,10 @@ export class StringReader {
         }
         if (!this.canRead()) {
             helper.addSuggestions(...options.filter((v) => v.startsWith(result.data)).map<Suggestion>((v) => {
-                return { start, text: quoted ? QUOTE + v + QUOTE : v };
+                return {
+                    start, text: quoted || v.includes("\"") || v.includes("\\") ?
+                        QUOTE + v.replace("\\", "\\\\").replace("\"", "\\\"") + QUOTE : v,
+                };
             }));
         }
         if (valid) {
