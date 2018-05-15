@@ -1,6 +1,6 @@
 import * as path from "path";
 
-export function setup_test() {
+function setup_logging() {
     global.mcLangSettings = {
         parsers: {
             "langserver:dummy1": path.join(__dirname, "parse", "parsers", "tests", "dummy1_parser"),
@@ -14,3 +14,4 @@ export function setup_test() {
     global.mcLangLog = Object.assign(logger,
         { internal: (message: string) => logger(`[McFunctionInternal] ${message}`) });
 }
+setup_logging();

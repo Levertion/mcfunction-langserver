@@ -31,7 +31,7 @@ async function getResources(dataDir: string): Promise<DataSaveResult<"resources"
 //#endregion
 //#region Items
 async function getItems(dataDir: string): Promise<DataSaveResult<"items">> {
-    const itemsData: { [key: string]: { protocol_id: number } } = JSON.parse((await readFileAsync(
+    const itemsData: Dictionary<{ protocol_id: number }> = JSON.parse((await readFileAsync(
         path.join(dataDir, "reports", "items.json"))).toString());
     return ["items", Object.keys(itemsData)];
 }

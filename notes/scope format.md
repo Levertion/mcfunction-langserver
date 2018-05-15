@@ -33,7 +33,7 @@ You *generally* should not have multiple of the same scopes inside one another (
 `"*x*-*y*-separator"`: A separator between different scopes, like `"key-value-separator"` would be `:` for NBT  
 `"argument"`: A command argument. This shouldn't be used anywhere else  
 `"key"`: A key, like foo in `foo:bar` and `foo=bar`  
-`"value"`: A value, like bar in `foor:bar` and `foo=bar` 
+`"value"`: A value, like bar in `foo:bar` and `foo=bar` 
 `"quote"`: A quote character, IE `"`  
 `"separator"`: Should accompany `*x*-separator` and `*x*-*y*-separator*`  
 `"*x*-start"`: Start of a value with characters as start and end markers (like `{` and `[`). An accompanying `"start"` should also exist  

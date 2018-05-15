@@ -67,27 +67,27 @@ export function getNBTTagFromTree(tag: NBTTag<any>, nbtPath: string[]) {
     return lastTag;
 }
 
-function isRefNode(node: NBTNode): node is RefNode {
+export function isRefNode(node: NBTNode): node is RefNode {
     return "ref" in node;
 }
 
-function isFunctionNode(node: NBTNode): node is FunctionNode {
+export function isFunctionNode(node: NBTNode): node is FunctionNode {
     return "function" in node;
 }
 
-function isTypedNode(node: NBTNode): node is NoPropertyNode | CompoundNode | ListNode {
+export function isTypedNode(node: NBTNode): node is NoPropertyNode | CompoundNode | ListNode {
     return "type" in node;
 }
 
-function isCompoundNode(node: NBTNode): node is CompoundNode {
+export function isCompoundNode(node: NBTNode): node is CompoundNode {
     return isTypedNode(node) && node.type === "compound";
 }
 
-function isRootNode(node: NBTNode): node is CompoundNode {
+export function isRootNode(node: NBTNode): node is CompoundNode {
     return isTypedNode(node) && node.type === "root";
 }
 
-function isListNode(node: NBTNode): node is ListNode {
+export function isListNode(node: NBTNode): node is ListNode {
     return isTypedNode(node) && node.type === "list";
 }
 
