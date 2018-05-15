@@ -13,7 +13,7 @@ function assertParse(result: StoredParseResult | void, errors: ErrorInfo[], node
     assertErrors(errors, result.errors);
     const newNodes = result.nodes.slice();
     for (const node of nodes) {
-        assert(newNodes.findIndex((v, i, s) => {
+        assert(newNodes.find((v, i, s) => {
             try {
                 assert.deepStrictEqual(v, node);
                 s.splice(i, 1);
@@ -23,7 +23,7 @@ function assertParse(result: StoredParseResult | void, errors: ErrorInfo[], node
             }
         }));
     }
-    assert(newNodes.length === 0);
+    assert.equal(newNodes.length, 0);
 }
 
 describe("parseCommand()", () => {
@@ -66,15 +66,15 @@ describe("parseCommand()", () => {
 
         it("should parse an executable, valid, command as such", () => {
             const result = parseCommand("hel", singleArgData, undefined);
-            assertParse(result, [], [{ context: {}, final: false, low: 0, high: 3, path: ["test1"] }]);
+            assertParse(result, [], [{ context: {}, final: true, low: 0, high: 3, path: ["test1"] }]);
         });
 
-        it("should return an error from a command which cannot be run", () => {
+        it("should return a warning from a command which cannot be executed", () => {
             const result = parseCommand("hello", singleArgData, undefined);
             assertParse(result, [{
                 code: "parsing.command.executable",
                 range: { start: 0, end: 5 },
-            }], [{ low: 0, high: 5, path: ["test2"], context: {}, final: false }]);
+            }], [{ low: 0, high: 5, path: ["test2"], context: {}, final: true }]);
         });
 
         it("should add an error if there text at the start not matched by a node", () => {
@@ -118,14 +118,14 @@ describe("parseCommand()", () => {
             const result = parseCommand("hel hel", multiArgData, undefined);
             assertParse(result, [{ code: "parsing.command.executable", range: { start: 0, end: 7 } }],
                 [{ high: 3, low: 0, path: ["test1"], final: false, context: {} }, {
-                    context: {}, final: false, high: 7,
+                    context: {}, final: true, high: 7,
                     low: 4, path: ["test1", "testchild1"],
                 }]);
         });
 
         it("should not add a node when a node which follows fails", () => {
             const result = parseCommand("hel hel1", multiArgData, undefined);
-            assertParse(result, [{ code: "parsing.command.matchless", range: { start: 4, end: 8 } }], [{
+            assertParse(result, [{ code: "command.parsing.matchless", range: { start: 4, end: 8 } }], [{
                 context: {}, final: true,
                 high: 3, low: 0, path: ["test1"],
             }]);

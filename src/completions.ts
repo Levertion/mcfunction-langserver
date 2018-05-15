@@ -8,8 +8,8 @@ import { followPath, getNextNode } from "./misc_functions/node_tree";
 import { getParser } from "./parsers/get_parser";
 import { CommandContext, CommmandData, FunctionInfo, ParseNode, SuggestResult } from "./types";
 
-export function computeCompletions(linenum: number,
-    document: FunctionInfo, character: number, data: DataManager): CompletionList {
+export function computeCompletions(linenum: number, character: number,
+    document: FunctionInfo, data: DataManager): CompletionList {
     const line = document.lines[linenum];
     if (line.parseInfo === undefined || line.text.startsWith(COMMENT_START)) {
         return CompletionList.create([], true);
@@ -91,15 +91,18 @@ function suggestionsToCompletions(suggestions: SuggestResult[], line: number, st
                 },
             });
         } else {
-            result.push({
-                detail: suggestion.description,
+            const completion: CompletionItem = {
                 kind: suggestion.kind || defaultKind,
                 label: suggestion.text,
                 textEdit: {
                     newText: suggestion.text,
                     range: { start: { character: start + suggestion.start, line }, end: { character: end, line } },
                 },
-            });
+            };
+            if (!!suggestion.description) {
+                completion.detail = suggestion.description;
+            }
+            result.push(completion);
         }
     }
     return result;

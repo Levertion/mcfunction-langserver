@@ -12,12 +12,17 @@ export function followPath<T extends MCNode<T>>(tree: MCNode<T>, path: CommandNo
 }
 
 export function getNextNode(node: CommandNode | MCNode<CommandNode>
-    & { redirect?: CommandNodePath }, // Allow use of node.redirect without a tsignore
+    & { redirect?: CommandNodePath, executable?: boolean }, // Allow use of node.redirect without a tsignore
     nodePath: CommandNodePath, tree: CommandTree): GetNodeResult {
     const redirect: CommandNodePath | undefined = node.redirect;
     if (!!redirect) {
         return { node: followPath(tree, redirect), path: redirect };
     } else {
+        if (!node.children && !node.executable) {
+            // In this case either tree is malformed or in `execute run`
+            // So we just return the entire tree
+            return { node: tree, path: [] };
+        }
         return { node, path: nodePath };
     }
 }

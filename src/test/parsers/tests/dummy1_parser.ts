@@ -8,9 +8,9 @@ import { Parser } from "../../../types";
 const parser: Parser = {
     parse: (reader, node) => {
         const helper = new ReturnHelper();
-        helper.addSuggestion(0, "hello");
-        helper.addSuggestion(reader.cursor, "welcome");
         const num: number = node.node_properties.number || 3;
+        helper.addSuggestions("hello");
+        helper.addSuggestion(Math.min(Math.floor(num / 2), reader.string.length), "welcome");
         if (reader.canRead(num)) {
             reader.cursor += num;
             return helper.succeed();

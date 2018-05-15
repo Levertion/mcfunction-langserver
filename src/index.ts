@@ -159,8 +159,8 @@ connection.onDidCloseTextDocument((params) => {
 connection.onCompletion((params) => {
     const doc = documents[params.textDocument.uri];
     const line = doc.lines[params.position.line];
-    const computeCompletionsLocal = () => computeCompletions(params.position.line,
-        doc, params.position.character, manager);
+    const computeCompletionsLocal = () => computeCompletions(params.position.line, params.position.character,
+        doc, manager);
     if (!started) {
         return [];
     }

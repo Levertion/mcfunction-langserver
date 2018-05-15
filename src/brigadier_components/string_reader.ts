@@ -172,7 +172,7 @@ export class StringReader {
             quoted = true;
         }
         const result = this.readString();
-        if (!helper.merge(result)) {
+        if (!helper.merge(result, false)) {
             return helper.failWithData(false as any);
         }
         let valid: T | undefined;

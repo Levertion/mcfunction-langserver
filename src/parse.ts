@@ -50,14 +50,13 @@ function parsechildren(reader: StringReader, node: CommandNode,
             const childpath = [...parent.path, childKey];
             const result = parseAgainstNode(reader, child, childpath, data, context);
             if (helper.merge(result, false)) {
-                successCount++;
-                const newNode: ParseNode = { context, low: start, high: reader.cursor, path: childpath, final: false };
+                const newNode: ParseNode = { context, low: start, high: reader.cursor, path: childpath, final: true };
                 const childdata = result.data;
                 function checkRead(): boolean {
                     if (reader.canRead()) {
                         return true;
                     } else {
-                        if (childdata.node.executable) {
+                        if (!childdata.node.executable) {
                             helper.addErrors(parseExceptions.NotRunnable.create(0, reader.cursor, reader.string));
                         }
                         return false;
@@ -65,6 +64,7 @@ function parsechildren(reader: StringReader, node: CommandNode,
                 }
                 if (checkRead()) {
                     if (reader.peek() === SPACE) {
+                        successCount++;
                         reader.skip();
                         if (checkRead()) {
                             const newContext = childdata.newContext ? childdata.newContext : context;
@@ -73,15 +73,13 @@ function parsechildren(reader: StringReader, node: CommandNode,
                             if (helper.merge(recurse)) {
                                 min = Math.min(min, reader.cursor);
                                 nodes.push(...recurse.data);
-                            } else {
-                                newNode.final = true;
+                                newNode.final = false;
                             }
-                        } else {
-                            newNode.final = true;
                         }
                         nodes.push(newNode);
                     }
                 } else {
+                    successCount++;
                     nodes.push(newNode);
                 }
             }

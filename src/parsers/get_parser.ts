@@ -11,7 +11,6 @@ const implementedParsers: { [id: string]: string } = {
     "brigadier:float": "./brigadier/float",
     "brigadier:integer": "./brigadier/integer",
     "brigadier:string": "./brigadier/string",
-    "langserver:dummy1": "./tests/dummy1",
 };
 
 export function getParser(node: CommandNode): Parser | undefined {
