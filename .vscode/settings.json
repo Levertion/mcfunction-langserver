@@ -7,4 +7,6 @@
     "tslint.autoFixOnSave": true,
     // Consistent finalNewLine
     "files.insertFinalNewline": true,
+    // Use of node_modules folder typescript version
+    "typescript.tsdk": "node_modules\\typescript\\lib",
 }

@@ -3,11 +3,13 @@ import * as path from "path";
 import { promisify } from "util";
 import { shim } from "util.promisify";
 shim();
+import { typed_keys } from "../misc_functions/third_party/typed_keys";
+import { WorkspaceSecurity } from "../types";
 import { GlobalData } from "./types";
 
 const cacheFolder = path.join(__dirname, "cache");
 
-const cacheFileNames: {[K in keyof GlobalData]: string; } = {
+const cacheFileNames: { [K in keyof GlobalData]: string; } = {
     blocks: "blocks.json",
     commands: "commands.json",
     items: "items.json",
@@ -17,8 +19,7 @@ const cacheFileNames: {[K in keyof GlobalData]: string; } = {
 
 export async function readCache(): Promise<GlobalData> {
     const data: GlobalData = {} as GlobalData;
-    // @ts-ignore The result from Object.keys is compa
-    const keys: Array<keyof typeof cacheFileNames> = Object.keys(cacheFileNames);
+    const keys = typed_keys(cacheFileNames);
     const promises: Array<Thenable<GlobalData[keyof GlobalData]>> = [];
     for (const key of keys) {
         promises.push(readJSON<GlobalData[typeof key]>(path.join(cacheFolder, cacheFileNames[key])));
@@ -37,8 +38,7 @@ export async function cacheData(data: GlobalData) {
     } catch (_) {
         // Don't use the error
     }
-    // @ts-ignore The result from Object.keys is compatible
-    const keys: Array<keyof typeof cacheFileNames> = Object.keys(cacheFileNames);
+    const keys: Array<keyof typeof cacheFileNames> = typed_keys(cacheFileNames);
     const promises: Array<Thenable<void>> = [];
     for (const key of keys) {
         promises.push(writeJSON(path.join(cacheFolder, cacheFileNames[key]), data[key]));
@@ -47,12 +47,16 @@ export async function cacheData(data: GlobalData) {
     return;
 }
 
-export async function storeSecurity(security: { [workspace: string]: true }) {
+export async function storeSecurity(security: WorkspaceSecurity) {
     await saveFileAsync(path.join(cacheFolder, "security.json"), JSON.stringify(security));
 }
 
-export async function readSecurity(): Promise<{ [workspace: string]: true }> {
-    return JSON.parse((await readFileAsync(path.join(cacheFolder, "security.json"))).toString());
+export async function readSecurity(): Promise<WorkspaceSecurity> {
+    try {
+        return JSON.parse((await readFileAsync(path.join(cacheFolder, "security.json"))).toString());
+    } catch (error) {
+        return {};
+    }
 }
 
 //#region Helper Functions

@@ -1,5 +1,5 @@
 import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
-import { MCFormat } from "../function_utils";
+import { MCFormat } from "../misc_functions";
 
 /**
  * An error inside a command.
@@ -41,6 +41,9 @@ export interface BlankCommandError {
     _e: "1";
 }
 
+/**
+ * Helper class to create command errors
+ */
 export class CommandErrorBuilder {
     private code: string;
     private default: string;
@@ -67,10 +70,21 @@ export class CommandErrorBuilder {
     }
 }
 
+/**
+ * Test if `T` is a command error
+ * @param T The thing to test
+ */
 export function isCommandError(T: any): T is CommandError {
     return T._e === "1";
 }
 
+/**
+ * Transform `err` into a real command error.
+ * MODIFIES `err`
+ * @param err The error to transform
+ * @param start The starting location in the line of the error
+ * @param end The end position
+ */
 export function fillBlankError(err: BlankCommandError, start: number, end: number): CommandError {
     return Object.assign(err, { range: { start, end } });
 }

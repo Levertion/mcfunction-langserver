@@ -1,167 +1,106 @@
 import * as assert from "assert";
+import { join } from "path";
 import { CompletionItemKind, CompletionList } from "vscode-languageserver/lib/main";
-import { ComputeCompletions } from "../completions";
+import { computeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
-import { GlobalData } from "../data/types";
-import { CommandLine } from "../types";
-import { setup_test } from "./logging_setup";
+
+const data = new DataManager({
+    DummyGlobal: {
+        commands: {
+            children: {
+                children: {
+                    children: {
+                        chil: {
+                            type: "literal",
+                        },
+                        test_child: {
+                            node_properties: { num: 8 },
+                            parser: "langserver:dummy1",
+                            type: "argument",
+                        },
+                    },
+                    parser: "langserver:dummy1",
+                    type: "argument",
+                },
+                nochildren: {
+                    type: "literal",
+                },
+            },
+            type: "root",
+        },
+    } as any,
+    DummyPack: {},
+});
 
 describe("ComputeCompletions()", () => {
     before(() => {
-        setup_test();
+        global.mcLangSettings = {
+            parsers: {
+                "langserver:dummy1": join(__dirname, "parsers", "tests", "dummy1_parser"),
+            },
+        } as any;
     });
-    it("should replace an internal node", () => {
-        const result = ComputeCompletions(0, {
+    it("should get suggestions from the start of an inside node", () => {
+        const result = computeCompletions(0, 15, {
             datapack_root: "",
             lines: [{
                 parseInfo: {
-                    nodes: [{ low: 0, high: 9, path: ["test1"] }],
+                    actions: [], errors: [],
+                    nodes: [{ low: 5, high: 15, path: ["nochildren"], final: true, context: {} }],
                 },
-                text: "longhello",
-            } as any as CommandLine],
-        }, 9,
-            new DataManager({
-                DummyGlobal: {
-                    commands: {
-                        children: {
-                            test1: {
-                                parser: "langserver:dummy1",
-                                type: "argument",
-                            },
-                        },
-                        type: "root",
-                    },
-                } as any as GlobalData,
-            }));
+                text: "skip nochildren",
+            }],
+        }, data);
         const expected: CompletionList = {
             isIncomplete: true,
             items: [{
-                kind: CompletionItemKind.Keyword,
-                label: "hello",
+                kind: CompletionItemKind.Method, label: "nochildren",
                 textEdit: {
-                    newText: "hello",
-                    range: {
-                        end: { line: 0, character: 9 },
-                        start: { line: 0, character: 0 },
-                    },
+                    newText: "nochildren", range: { start: { line: 0, character: 5 }, end: { line: 0, character: 15 } },
                 },
             }, {
-                detail: undefined, // Quirk of the system.
-                kind: CompletionItemKind.Constructor,
-                label: "test",
-                textEdit: {
-                    newText: "test",
-                    range: {
-                        end: { line: 0, character: 9 },
-                        start: { line: 0, character: 2 },
-                    },
+                kind: CompletionItemKind.Keyword, // Default kind
+                label: "welcome", textEdit: {
+                    newText: "welcome", range: { start: { line: 0, character: 6 }, end: { line: 0, character: 15 } },
+                },
+            }, {
+                kind: CompletionItemKind.Keyword, // Default kind
+                label: "hello", textEdit: {
+                    newText: "hello", range: { start: { line: 0, character: 5 }, end: { line: 0, character: 15 } },
                 },
             }],
         };
         result.items.sort((a, b) => b.label.length - a.label.length);
         assert.deepEqual(result, expected);
     });
-    it("should do completions from after a final node", () => {
-        const result = ComputeCompletions(0, {
+    it("should give suggestions which follow a final node", () => {
+        const result = computeCompletions(0, 15, {
             datapack_root: "",
             lines: [{
                 parseInfo: {
-                    nodes: [{ low: 0, high: 3, path: ["test1"], final: true }],
+                    actions: [], errors: [],
+                    nodes: [{ low: 0, high: 11, path: ["children"], final: true, context: {} }],
                 },
-                text: "lon ghello",
-            } as any as CommandLine],
-        }, 9,
-            new DataManager({
-                DummyGlobal: {
-                    commands: {
-                        children: {
-                            test1: {
-                                children: {
-                                    test2: {
-                                        parser: "langserver:dummy1",
-                                        type: "argument",
-                                    },
-                                },
-                                parser: "langserver:dummy1",
-                                type: "argument",
-                            },
-                        },
-                        type: "root",
-                    },
-                } as any as GlobalData,
-            }));
-        const expected: CompletionList = {
-            isIncomplete: true,
-            items: [{
-                kind: CompletionItemKind.Keyword,
-                label: "hello",
-                textEdit: {
-                    newText: "hello",
-                    range: {
-                        end: { line: 0, character: 9 },
-                        start: { line: 0, character: 4 },
-                    },
-                },
-            }, {
-                detail: undefined, // Quirk of the system.
-                kind: CompletionItemKind.Constructor,
-                label: "test",
-                textEdit: {
-                    newText: "test",
-                    range: {
-                        end: { line: 0, character: 9 },
-                        start: { line: 0, character: 6 },
-                    },
-                },
+                text: "haschildren chi",
             }],
-        };
-        result.items.sort((a, b) => b.label.length - a.label.length);
-        assert.deepEqual(result, expected);
-    });
-    it("should give completions from the start", () => {
-        const result = ComputeCompletions(0, {
-            datapack_root: "",
-            lines: [{
-                parseInfo: {
-                    nodes: [],
-                },
-                text: "starting",
-            } as any as CommandLine],
-        }, 2,
-            new DataManager({
-                DummyGlobal: {
-                    commands: {
-                        children: {
-                            test1: {
-                                parser: "langserver:dummy1",
-                                type: "argument",
-                            },
-                        },
-                        type: "root",
-                    },
-                } as any as GlobalData,
-            }));
+        }, data);
         const expected: CompletionList = {
             isIncomplete: true,
             items: [{
-                kind: CompletionItemKind.Keyword,
-                label: "hello",
-                textEdit: {
-                    newText: "hello",
-                    range: {
-                        end: { line: 0, character: 2 },
-                        start: { line: 0, character: 0 },
-                    },
+                kind: CompletionItemKind.Keyword, label: "welcome", textEdit: {
+                    newText: "welcome",
+                    range: { end: { line: 0, character: 15 }, start: { line: 0, character: 13 } },
                 },
             }, {
-                detail: undefined, // Quirk of the system.
-                kind: CompletionItemKind.Constructor,
-                label: "test",
-                textEdit: {
-                    newText: "test",
-                    range: {
-                        end: { line: 0, character: 2 },
-                        start: { line: 0, character: 2 },
+                kind: CompletionItemKind.Keyword, label: "hello", textEdit: {
+                    newText: "hello", range: { end: { line: 0, character: 15 }, start: { line: 0, character: 12 } },
+                },
+            }, {
+                kind: CompletionItemKind.Method,
+                label: "chil", textEdit: {
+                    newText: "chil", range: {
+                        end: { line: 0, character: 15 },
+                        start: { line: 0, character: 12 },
                     },
                 },
             }],
