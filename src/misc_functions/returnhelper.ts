@@ -20,6 +20,18 @@ export function isSuccessful<T, E extends BCE = CE>(input: ReturnedInfo<T, E, an
     return input.kind === Success;
 }
 
+export function returnSwitch<T, E extends BCE = CE, K = undefined>(
+    data: ReturnedInfo<T, E, K>,
+    succeed: (data: ReturnSuccess<T, E>) => any = () => undefined,
+    fail: (data: ReturnFailure<K, E>) => any = () => undefined,
+) {
+    if (isSuccessful(data)) {
+        succeed(data);
+    } else {
+        fail(data);
+    }
+}
+
 /**
  * Fill the blank errors in data with 'real' errors
  * MODIFIES `data`
@@ -37,10 +49,23 @@ export function fillBlanks(data: ReturnData<BCE>, start: number, end: number): R
 }
 
 export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
+
+    public static succeed<T, E extends BCE = CE>(data: T): ReturnSuccess<T, E> {
+        return { data, errors: [], actions: [], suggestions: [], kind: Success as Success };
+    }
+
+    public static fail<T, E extends BCE = CE>(data: T): ReturnFailure<T, E> {
+        return { data, errors: [], actions: [], suggestions: [], kind: Failure as Failure };
+    }
+
     private data = createReturn<Errorkind>();
 
     public getShared(): ReturnData<Errorkind> {
         return this.data;
+    }
+
+    public hasErrors(): boolean {
+        return this.data.errors.length > 0;
     }
 
     public succeed<T extends undefined>(data?: T): ReturnSuccess<undefined, Errorkind>;

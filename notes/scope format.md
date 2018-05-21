@@ -42,3 +42,5 @@ You *generally* should not have multiple of the same scopes inside one another (
 `"string"`: If the scoped value is a string
 `"quoted"`: If the string is quoted
 `"unquoted"`: If the string is unquoted
+`"prefix"`: If the character is a prefix
+`"suffix"`: Same as `"prefix"`
