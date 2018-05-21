@@ -11,7 +11,7 @@ import { NBTTagInt } from "./tag/int_tag";
 import { NBTTagList } from "./tag/list_tag";
 import { NBTTagLongArray } from "./tag/long_array_tag";
 import { NBTTagLong } from "./tag/long_tag";
-import { NBTTag } from "./tag/nbt_tag";
+import { NBTTag, ParseReturn } from "./tag/nbt_tag";
 import { NBTTagShort } from "./tag/short_tag";
 import { NBTTagString } from "./tag/string_tag";
 import { CorrectLevel, NBTErrorData } from "./util/nbt_util";
@@ -46,7 +46,8 @@ export function parseTag(reader: StringReader):
         const p = pf();
         reader.cursor = start;
         const out = p.parse(reader);
-        if (isSuccessful(out) && correctTag === null || out.data > correctness) {
+        // @ts-ignore
+        if (isSuccessful(out as ParseReturn) && correctTag === null || out.data > correctness) {
             correctTag = p;
             correctness = out.data as CorrectLevel;
             correctPlace = reader.cursor;

@@ -3,7 +3,6 @@ import { isSuccessful, ReturnHelper } from "../../../../misc_functions";
 import { ReturnedInfo, SuggestResult } from "../../../../types";
 import { isCompoundNode, NBTNode } from "../doc_walker";
 import { runSuggestFunction } from "../doc_walker_func";
-import { NBTContextData } from "../nbt";
 import { NBTTag } from "../tag/nbt_tag";
 
 export const ARRAY_START = "[";
@@ -31,19 +30,6 @@ export interface NBTErrorData {
 
 export enum CorrectLevel {
     NO, MAYBE, YES,
-}
-
-export interface NBTHoverAction {
-    start: number;
-    end: number;
-    data: string | ((path: string[], root: NBTTag<any>, context?: NBTContextData) => () => string);
-    path?: string[];
-}
-
-export interface NBTHighlightAction {
-    start: number;
-    end: number;
-    scopes: string[] | string;
 }
 
 export function expectAndScope(

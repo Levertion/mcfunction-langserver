@@ -1,3 +1,4 @@
+/*
 import { StringReader } from "../../../brigadier_components/string_reader";
 import { HighlightScope } from "../../../highlight/highlight_util";
 import { Parser, ParserInfo, SubAction, SuggestResult } from "../../../types";
@@ -75,3 +76,4 @@ export class NBTParser implements Parser {
         return [];
     }
 }
+*/

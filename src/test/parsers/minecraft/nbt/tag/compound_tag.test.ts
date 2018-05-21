@@ -2,10 +2,9 @@ import assert = require("assert");
 import { StringReader } from "../../../../../brigadier_components/string_reader";
 import { HighlightScope } from "../../../../../highlight/highlight_util";
 import { NBTTagCompound } from "../../../../../parsers/minecraft/nbt/tag/compound_tag";
-import { NBTHighlightAction } from "../../../../../parsers/minecraft/nbt/util/nbt_util";
 import { equalValue } from "../../../../../util";
 
-interface HighlightTest { t: string; v: NBTHighlightAction[]; }
+interface HighlightTest { t: string; v: HighlightScope[]; }
 
 describe("CompoundTag tests", () => {
     describe("getHighlight()", () => {

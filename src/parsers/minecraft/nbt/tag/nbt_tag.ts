@@ -30,5 +30,5 @@ export abstract class NBTTag<L> {
             && tag.getVal() === this.getVal();
     }
 
-    protected abstract parse(reader: StringReader): ParseReturn;
+    public abstract parse(reader: StringReader): ParseReturn;
 }
