@@ -1,5 +1,4 @@
 import assert = require("assert");
-import { CommandError } from "../../../brigadier_components/errors";
 import { StringReader } from "../../../brigadier_components/string_reader";
 import { SwizzleParser } from "../../../parsers/minecraft/swizzle";
 import { Suggestion } from "../../../types";
@@ -12,9 +11,10 @@ describe("Swizzle", () => {
             "z",
             "yx",
             "xyz",
-        ].forEach((v) => it("should not throw when parsing " + v, () => {
+        ].forEach((v) => it("should not fail when parsing " + v, () => {
             const reader = new StringReader(v);
-            assert.doesNotThrow(() => parser.parse(reader));
+            const out = parser.parse(reader);
+            assert.ok(out.kind);
         }));
         [
             ["xx", "x"],
@@ -22,11 +22,11 @@ describe("Swizzle", () => {
             ["xyyz", "y"],
         ].forEach((v) => it("should throw a duplicate exception when parsing " + v[0], () => {
             const reader = new StringReader(v[0]);
-            try {
-                parser.parse(reader);
+            const out = parser.parse(reader);
+            if (out.kind) {
                 assert.fail("Did not throw an error");
-            } catch (e) {
-                const ex = e as CommandError;
+            } else {
+                const ex = out.errors[0];
                 assert.strictEqual(ex.code, "argument.swizzle.duplicate");
                 assert.strictEqual(ex.text, `Duplicate character '${v[1]}'`);
             }
@@ -37,17 +37,17 @@ describe("Swizzle", () => {
             ["xxf", "f"], // Invalid character checking should come before duplicate checking
         ].forEach((v) => it("should throw an invalid character exception when parsing " + v[0], () => {
             const reader = new StringReader(v[0]);
-            try {
-                parser.parse(reader);
+            const out = parser.parse(reader);
+            if (out.kind) {
                 assert.fail("Did not throw an error");
-            } catch (e) {
-                const ex = e as CommandError;
+            } else {
+                const ex = out.errors[0];
                 assert.strictEqual(ex.code, "argument.swizzle.invalid");
                 assert.strictEqual(ex.text, `Invalid character '${v[1]}'`);
             }
         }));
     });
-    describe("getSuggestions()", () => {
+    describe("suggestions", () => {
         [
             ["", ["x", "y", "z", "xy", "xz", "yz", "xyz"]],
             ["z", ["z", "zx", "zy", "zxy"]],

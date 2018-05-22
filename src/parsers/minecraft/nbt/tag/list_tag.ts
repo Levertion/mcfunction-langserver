@@ -59,7 +59,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             this.val.push(value);
 
             reader.skipWhitespace();
-            const opt = reader.readOption([LIST_END, LIST_VALUE_SEP]);
+            const opt = reader.expectOption([LIST_END, LIST_VALUE_SEP]);
             if (!helper.merge(opt)) {
                 return helper.failWithData({ parsed: this, correct: 1 });
             } else {

@@ -1,4 +1,4 @@
-import { ReturnHelper } from "../misc_functions";
+import { isSuccessful, ReturnHelper } from "../misc_functions";
 import { typed_keys } from "../misc_functions/third_party/typed_keys";
 import { CE, ReturnedInfo, Suggestion } from "../types";
 import { CommandErrorBuilder } from "./errors";
@@ -11,8 +11,10 @@ const EXCEPTIONS = {
     EXPECTED_INT: new CommandErrorBuilder("parsing.int.expected", "Expected integer"),
     EXPECTED_START_OF_QUOTE: new CommandErrorBuilder("parsing.quote.expected.start",
         "Expected quote to start a string"),
-    EXPECTED_STRING_FROM: new CommandErrorBuilder("parsing.expected.option", "Expected string from %s, got '%s'"),
+    EXPECTED_STRING_FROM: new CommandErrorBuilder("parsing.string.option",
+        "Expected string from %s, got '%s'"),
     EXPECTED_SYMBOL: new CommandErrorBuilder("parsing.expected", "Expected '%s'"),
+    EXPECTED_SYMBOL_OPTION: new CommandErrorBuilder("parsing.expected.option", "expected one of %s, got '%s'"),
     INVALID_BOOL: new CommandErrorBuilder("parsing.bool.invalid",
         "Invalid bool, expected true or false but found '%s'"),
     INVALID_ESCAPE: new CommandErrorBuilder("parsing.quote.escape",
@@ -240,6 +242,29 @@ export class StringReader {
         }
         this.cursor += str.length;
         return helper.succeed();
+    }
+    /**
+     * Require that a specific string of a set of strings follows
+     * @param opts The options for the expectation
+     */
+    public expectOption(opts: string[]): ReturnedInfo<string> {
+        const helper = new ReturnHelper();
+        let maxlen = 0;
+        for (const opt of opts) {
+            if (opt.length > maxlen) {
+                maxlen = opt.length;
+            }
+            const out = this.expect(opt);
+            if (isSuccessful(out)) {
+                helper.merge(out);
+                return helper.succeed(opt);
+            }
+        }
+        return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL_OPTION.create(this.cursor,
+            Math.min(this.string.length, this.cursor + maxlen),
+            this.string.substr(this.cursor, maxlen),
+            JSON.stringify(opts)),
+        );
     }
     /**
      * Read the string until a certain regular expression matches the

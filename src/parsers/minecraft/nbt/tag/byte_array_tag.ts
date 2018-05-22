@@ -66,7 +66,7 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
             }
 
             reader.skipWhitespace();
-            const opt = reader.readOption([ARRAY_END, ARRAY_VALUE_SEP]);
+            const opt = reader.expectOption([ARRAY_END, ARRAY_VALUE_SEP]);
             if (!helper.merge(opt)) {
                 return helper.failWithData({ parsed: this, correct: 2 });
             } else {
@@ -88,7 +88,7 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
                 start,
             }),
         );
-        if (helper.hasErrors) {
+        if (helper.hasErrors()) {
             return helper.failWithData({ parsed: this, correct: CorrectLevel.YES });
         }
         return helper.succeed(CorrectLevel.YES);

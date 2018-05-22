@@ -27,8 +27,8 @@ const parsers: Array<() => NBTTag<any>> = [
     () => new NBTTagIntArray([]),
     () => new NBTTagLongArray([]),
     () => new NBTTagCompound({}),
-    () => new NBTTagString(""),
     () => new NBTTagList([]),
+    () => new NBTTagString(""),
 ];
 
 export function parseTag(reader: StringReader):
@@ -47,7 +47,7 @@ export function parseTag(reader: StringReader):
         reader.cursor = start;
         const out = p.parse(reader);
         // @ts-ignore
-        if (isSuccessful(out as ParseReturn) && correctTag === null || out.data > correctness) {
+        if (isSuccessful(out as ParseReturn) && (correctTag === null || out.data > correctness)) {
             correctTag = p;
             correctness = out.data as CorrectLevel;
             correctPlace = reader.cursor;

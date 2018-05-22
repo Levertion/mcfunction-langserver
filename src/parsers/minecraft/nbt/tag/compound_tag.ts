@@ -98,6 +98,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             }
 
             let val: NBTTag<any>;
+            const tstart = reader.cursor;
             const pkey = parseTag(reader);
 
             if (helper.merge(pkey as ReturnedInfo<NBTTag<any> | NBTErrorData>)) {
@@ -109,13 +110,19 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 );
             }
 
+            helper.addActions(actionFromScope({
+                end: reader.cursor,
+                scopes: ["value"],
+                start: tstart,
+            }));
+
             reader.skipWhitespace();
 
             this.val[key.data] = val;
 
             reader.skipWhitespace();
 
-            const opt = reader.readOption([COMPOUND_END, COMPOUND_PAIR_SEP]);
+            const opt = reader.expectOption([COMPOUND_END, COMPOUND_PAIR_SEP]);
             if (!helper.merge(opt)) {
                 return helper.failWithData({ parsed: this, correct: 2 });
             } else {
