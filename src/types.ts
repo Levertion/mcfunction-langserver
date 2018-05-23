@@ -78,12 +78,22 @@ export interface CommandContext {
     [key: string]: any;
 }
 
+export interface ContextPath {
+    path: string[];
+    data: any;
+}
+
 export interface Parser {
     /**
      * Parse the argument as described in NodeProperties against this parser in the reader.
      * Gets both suggestions and success
      */
-    parse: (reader: StringReader, properties: ParserInfo) => ReturnedInfo<ContextChange> | undefined;
+    parse: (reader: StringReader, properties: ParserInfo, pathContext?: any) => ReturnedInfo<ContextChange> | undefined;
+
+    /**
+     * Command paths for the pathContext to change
+     */
+    contextPaths?: ContextPath[];
     /**
      * The default suggestion kind for suggestions from this parser
      */
