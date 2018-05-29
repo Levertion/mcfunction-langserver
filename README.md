@@ -1,6 +1,5 @@
-## Minecraft Function Language Server  [![Build Status](https://travis-ci.org/Levertion/mcfunction-langserver.svg?branch=master)](https://travis-ci.org/Levertion/mcfunction-langserver)
-
-[![Greenkeeper badge](https://badges.greenkeeper.io/Levertion/mcfunction-langserver.svg)](https://greenkeeper.io/)
+## Minecraft Function Language Server 
+[![Build Status](https://travis-ci.org/Levertion/mcfunction-langserver.svg?branch=master)](https://travis-ci.org/Levertion/mcfunction-langserver) [![Greenkeeper badge](https://badges.greenkeeper.io/Levertion/mcfunction-langserver.svg)](https://greenkeeper.io/)  
 This is a language server which provides support for Minecraft function (`.mcfunction`) files.
 
 ## Contributing
