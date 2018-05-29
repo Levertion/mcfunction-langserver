@@ -112,7 +112,12 @@ function parseAgainstNode(reader: StringReader, node: CommandNode,
     const parser = getParser(node);
     const helper = new ReturnHelper();
     if (!!parser) {
-        const result = parser.parse(reader, createParserInfo(node, data, path, context, false));
+        const contextData = !parser.contextPaths ? undefined :
+            parser.contextPaths.find((v) =>
+                v.path.length === path.length &&
+                v.path.every((el, i) => el === path[i]),
+            );
+        const result = parser.parse(reader, createParserInfo(node, data, path, context, false), contextData);
         if (!!result) {
             if (helper.merge(result, false)) {
                 const newContext = Object.assign({}, context, result.data);
