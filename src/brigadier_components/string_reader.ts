@@ -252,7 +252,6 @@ export class StringReader {
         let maxlen = 0;
         const start = this.cursor;
         for (const opt of opts) {
-            const sstart = this.cursor;
             if (opt.length > maxlen) {
                 maxlen = opt.length;
             }
@@ -261,7 +260,7 @@ export class StringReader {
                 helper.merge(out);
                 return helper.succeed(opt);
             }
-            this.cursor = sstart;
+            this.cursor = start;
         }
         return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL_OPTION.create(start,
             Math.min(this.string.length, this.cursor + maxlen),

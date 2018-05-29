@@ -8,7 +8,7 @@ export interface HighlightScope {
 
 export function actionFromScopes(scopes: HighlightScope[]): SubAction[] {
     return scopes.map<SubAction>(
-        (v) => ({ data: v, high: v.end, low: v.start, type: "highlight" }),
+        (v) => actionFromScope(v),
     ) as SubAction[];
 }
 
