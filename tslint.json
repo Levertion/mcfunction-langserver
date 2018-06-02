@@ -1,5 +1,5 @@
 {
-  "extends": ["tslint-config-prettier", "tslint:recommended"],
+  "extends": ["tslint:recommended", "tslint-config-prettier"],
   "rules": {
     "interface-name": [true, "never-prefix"],
     "align": false,
