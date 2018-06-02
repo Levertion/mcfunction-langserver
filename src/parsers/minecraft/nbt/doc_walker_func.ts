@@ -1,6 +1,6 @@
 import path = require("path");
 import { sprintf } from "sprintf-js";
-import { FunctionNode, getNBTTagFromTree } from "./doc_walker";
+import { FunctionNode, getNBTTagFromTree } from "./doc_walker_util";
 import { NBTTag } from "./tag/nbt_tag";
 import { NBTTagString } from "./tag/string_tag";
 

@@ -1,8 +1,8 @@
 import { StringReader } from "../../../../brigadier_components/string_reader";
 import { isSuccessful, ReturnHelper } from "../../../../misc_functions";
 import { ReturnedInfo, SuggestResult } from "../../../../types";
-import { isCompoundNode, NBTNode } from "../doc_walker";
 import { runSuggestFunction } from "../doc_walker_func";
+import { isCompoundNode, NBTNode } from "../doc_walker_util";
 import { NBTTag } from "../tag/nbt_tag";
 
 export const ARRAY_START = "[";
