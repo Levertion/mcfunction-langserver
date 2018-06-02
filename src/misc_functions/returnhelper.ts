@@ -3,12 +3,12 @@ import {
     CommandError,
     fillBlankError
 } from "../brigadier_components/errors";
-import { StringReader } from "../brigadier_components/string_reader";
 import {
     BCE,
     CE,
-    failure,
     Failure,
+    failure,
+    MiscInfo,
     ParserInfo,
     ReturnData,
     ReturnedInfo,
@@ -25,7 +25,7 @@ import {
  * Create an instance of the common return type
  */
 function createReturn<ErrorKind extends BCE = CE>(): ReturnData<ErrorKind> {
-    return { actions: [], errors: [], suggestions: [] };
+    return { actions: [], errors: [], suggestions: [], misc: [] };
 }
 
 /**
@@ -64,45 +64,72 @@ export function fillBlanks(
 
 export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     private readonly data: ReturnData<Errorkind> = createReturn<Errorkind>();
+    private readonly suggesting?: boolean;
 
-    public addActions(...actions: SubAction[]): void {
-        this.data.actions.push(...actions);
+    public constructor(suggesting?: ParserInfo | boolean) {
+        if (typeof suggesting !== "undefined") {
+            if (typeof suggesting === "boolean") {
+                this.suggesting = suggesting;
+                return;
+            }
+            this.suggesting = suggesting.suggesting;
+        }
     }
-    public addErrors(...errs: Errorkind[]): void {
-        this.data.errors.push(...errs);
+
+    public addActions(...actions: SubAction[]): this {
+        if (this.suggesting === undefined || !this.suggesting) {
+            this.data.actions.push(...actions);
+        }
+        return this;
+    }
+
+    public addErrors(...errs: Errorkind[]): this {
+        if (this.suggesting === undefined || !this.suggesting) {
+            this.data.errors.push(...errs);
+        }
+        return this;
+    }
+
+    public addMisc(...others: MiscInfo[]): this {
+        if (this.suggesting === undefined || !this.suggesting) {
+            this.data.misc.push(...others);
+        }
+        return this;
     }
     public addSuggestion(
         start: number,
         text: string,
         kind?: Suggestion["kind"],
         description?: string
-    ): void {
-        this.addSuggestions({ start, text, kind, description });
+    ): this {
+        if (this.suggesting === undefined || this.suggesting) {
+            this.addSuggestions({ start, text, kind, description });
+        }
+        return this;
     }
-    public addSuggestions(...suggestions: SuggestResult[]): void {
-        this.data.suggestions.push(...suggestions);
+    public addSuggestions(...suggestions: SuggestResult[]): this {
+        if (this.suggesting === undefined || this.suggesting) {
+            this.data.suggestions.push(...suggestions);
+        }
+        return this;
     }
 
-    public fail(
-        err?: Errorkind,
-        info?: ParserInfo
-    ): ReturnFailure<undefined, Errorkind> {
-        if (!!err && (!info || !info.suggesting)) {
+    public fail(err?: Errorkind): ReturnFailure<undefined, Errorkind> {
+        if (!!err && !this.suggesting) {
             this.addErrors(err);
         }
-        return Object.assign(
-            this.getShared(),
-            {
-                kind: failure as Failure
-            },
-            ({} as any) as { data: undefined }
-        );
+        return {
+            ...this.getShared(),
+            kind: failure as Failure
+        } as ReturnFailure<undefined, Errorkind>;
     }
+
     public failWithData<T>(data: T): ReturnFailure<T, Errorkind> {
-        return Object.assign(this.getShared(), {
+        return {
+            ...this.getShared(),
             data,
             kind: failure as Failure
-        });
+        };
     }
     public getShared(): ReturnData<Errorkind> {
         return this.data;
@@ -110,21 +137,20 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
 
     public merge<T>(
         merge: ReturnedInfo<T, Errorkind, any>,
-        suggest: boolean = true,
-        info?: ParserInfo
+        suggestOverride?: boolean
     ): merge is ReturnSuccess<T, Errorkind> {
-        if (!!info) {
-            if (suggest && info.suggesting) {
-                this.mergeSuggestions(merge);
-            } else {
-                this.mergeSafe(merge);
+        for (const val of [suggestOverride, this.suggesting]) {
+            if (typeof val === "boolean") {
+                if (val) {
+                    this.mergeSuggestions(merge);
+                } else {
+                    this.mergeSafe(merge);
+                }
+                return isSuccessful(merge);
             }
-        } else {
-            if (suggest) {
-                this.mergeSuggestions(merge);
-            }
-            this.mergeSafe(merge);
         }
+        this.mergeSuggestions(merge);
+        this.mergeSafe(merge);
         return isSuccessful(merge);
     }
 
@@ -133,26 +159,32 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     ): ReturnSuccess<undefined, Errorkind>;
     public succeed<T>(data: T): ReturnSuccess<T, Errorkind>;
     public succeed<T>(data: T): ReturnSuccess<T, Errorkind> {
-        return Object.assign(this.getShared(), {
+        return {
+            ...this.getShared(),
             data,
             kind: success as Success
-        });
-    }
-
-    public suggestUnlessRead<T>(
-        merge: ReturnedInfo<T, Errorkind>,
-        reader: StringReader,
-        info?: ParserInfo
-    ): merge is ReturnSuccess<T, Errorkind> {
-        return this.merge(merge, !reader.canRead(), info);
+        };
     }
 
     private mergeSafe(merge: ReturnData<Errorkind>): void {
         this.addActions(...merge.actions);
         this.addErrors(...merge.errors);
+        this.addMisc(...merge.misc);
     }
 
     private mergeSuggestions(merge: ReturnData<Errorkind>): void {
         this.addSuggestions(...merge.suggestions);
+    }
+}
+
+export function prepareForParser(
+    info: ReturnedInfo<any>,
+    suggesting: boolean | ParserInfo
+): ReturnedInfo<undefined> {
+    const helper = new ReturnHelper(suggesting);
+    if (helper.merge(info)) {
+        return helper.succeed();
+    } else {
+        return helper.fail();
     }
 }

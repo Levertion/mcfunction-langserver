@@ -1,50 +1,34 @@
 import * as assert from "assert";
-import { StringReader } from "../../../brigadier_components/string_reader";
-import { ParserInfo } from "../../../types";
-import { assertReturn, defined } from "../../assertions";
+import { testParser } from "../../assertions";
 import * as dummyparser from "./dummy1_parser";
+
+const dummyParserTester = testParser(dummyparser);
 
 describe("dummyParser1", () => {
     describe("parse", () => {
         it("should read the specified number of characters", () => {
-            const reader = new StringReader("test hello");
-            const result = dummyparser.parse(reader, ({
+            const result = dummyParserTester({
                 node_properties: { number: 4 }
-            } as any) as ParserInfo);
-            assertReturn(
-                defined(result),
-                true,
-                [],
-                ["hello", { text: "welcome", start: 2 }]
-            );
-            assert.strictEqual(reader.cursor, 4);
+            })("test hello", {
+                succeeds: true,
+                suggestions: ["hello", { text: "welcome", start: 2 }]
+            });
+            assert.strictEqual(result[1].cursor, 4);
         });
 
         it("should default to 3 when not given any properties", () => {
-            const reader = new StringReader("test hello");
-            const result = dummyparser.parse(reader, ({
-                node_properties: {}
-            } as any) as ParserInfo);
-            assertReturn(
-                defined(result),
-                true,
-                [],
-                ["hello", { text: "welcome", start: 1 }]
-            );
-            assert.strictEqual(reader.cursor, 3);
+            const result = dummyParserTester()("test hello", {
+                succeeds: true,
+                suggestions: ["hello", { text: "welcome", start: 1 }]
+            });
+            assert.strictEqual(result[1].cursor, 3);
         });
 
         it("should not succeed if there is not enough room", () => {
-            const reader = new StringReader("te");
-            const result = dummyparser.parse(reader, ({
-                node_properties: {}
-            } as any) as ParserInfo);
-            assertReturn(
-                defined(result),
-                false,
-                [],
-                ["hello", { text: "welcome", start: 1 }]
-            );
+            dummyParserTester()("te", {
+                succeeds: false,
+                suggestions: ["hello", { text: "welcome", start: 1 }]
+            });
         });
     });
 });

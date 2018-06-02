@@ -1,85 +1,82 @@
 import * as assert from "assert";
-import { StringReader } from "../../../brigadier_components/string_reader";
 import * as integerArgumentParser from "../../../parsers/brigadier/integer";
-import { ParserInfo } from "../../../types";
-import { assertReturn, defined } from "../../assertions";
+import { testParser } from "../../assertions";
 
-const defaultProperties: ParserInfo = {
-    context: {},
-    data: {} as any,
-    node_properties: {},
-    path: ["test"],
-    suggesting: true
-};
+const integerTest = testParser(integerArgumentParser);
 
 describe("Integer Argument Parser", () => {
-    describe("parse", () => {
-        function validIntTests(
-            s: string,
-            expectedNum: number,
-            numEnd: number
-        ): void {
-            it("should succeed with an unconstrained value", () => {
-                const reader = new StringReader(s);
-                assert.doesNotThrow(() =>
-                    integerArgumentParser.parse(reader, defaultProperties)
-                );
-                assert.strictEqual(reader.cursor, numEnd);
+    function validIntTests(
+        s: string,
+        expectedNum: number,
+        numEnd: number
+    ): void {
+        it("should succeed with an unconstrained value", () => {
+            const result = integerTest()(s, {
+                succeeds: true
             });
-            it("should fail with a value less than the minimum", () => {
-                const reader = new StringReader(s);
-                const properties: ParserInfo = {
-                    ...defaultProperties,
-                    node_properties: { min: expectedNum + 1 }
-                };
-                const result = integerArgumentParser.parse(reader, properties);
-                assertReturn(defined(result), false, [
+            assert.strictEqual(result[1].cursor, numEnd);
+        });
+        it("should fail with a value less than the minimum", () => {
+            integerTest({
+                node_properties: { min: expectedNum + 1 }
+            })(s, {
+                errors: [
                     {
                         code: "argument.integer.low",
                         range: { start: 0, end: numEnd }
                     }
-                ]);
+                ],
+                succeeds: true
             });
-            it("should fail with a value more than the maximum", () => {
-                const reader = new StringReader(s);
-                const properties: ParserInfo = {
-                    ...defaultProperties,
-                    node_properties: { max: expectedNum - 1 }
-                };
-                const result = integerArgumentParser.parse(reader, properties);
-                assertReturn(defined(result), false, [
+        });
+        it("should fail with a value more than the maximum", () => {
+            integerTest({
+                node_properties: { max: expectedNum - 1 }
+            })(s, {
+                errors: [
                     {
                         code: "argument.integer.big",
                         range: { start: 0, end: numEnd }
                     }
-                ]);
+                ],
+                succeeds: true
             });
-        }
-        describe("valid integer", () => {
-            validIntTests("1234", 1234, 4);
         });
-        describe("valid integer with space", () => {
-            validIntTests("1234 ", 1234, 4);
+    }
+    describe("valid integer", () => {
+        validIntTests("1234", 1234, 4);
+    });
+    describe("valid integer with space", () => {
+        validIntTests("1234 ", 1234, 4);
+    });
+    it("should fail when the integer is bigger than the java max", () => {
+        integerTest()("1000000000000000", {
+            errors: [
+                {
+                    code: "argument.integer.big",
+                    range: { start: 0, end: 16 }
+                }
+            ],
+            succeeds: true
         });
-        it("should fail when the integer is bigger than the java max", () => {
-            const reader = new StringReader("1000000000000000");
-            const result = integerArgumentParser.parse(
-                reader,
-                defaultProperties
-            );
-            assertReturn(defined(result), false, [
-                { code: "argument.integer.big", range: { start: 0, end: 16 } }
-            ]);
+    });
+    it("should fail when the integer is less than the java min", () => {
+        integerTest()("-1000000000000000", {
+            errors: [
+                {
+                    code: "argument.integer.low",
+                    range: { start: 0, end: 17 }
+                }
+            ],
+            succeeds: true
         });
-        it("should fail when the integer is less than the java min", () => {
-            const reader = new StringReader("-1000000000000000");
-            const result = integerArgumentParser.parse(
-                reader,
-                defaultProperties
-            );
-            assertReturn(defined(result), false, [
-                { code: "argument.integer.low", range: { start: 0, end: 17 } }
-            ]);
+    });
+    it("should fail when there is an invalid integer", () => {
+        integerTest()("notint", {
+            errors: [
+                { code: "parsing.int.expected", range: { start: 0, end: 6 } }
+            ],
+            succeeds: false
         });
     });
 });

@@ -2,15 +2,16 @@ import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
 import { CompletionItemKind } from "vscode-languageserver";
 import { BlankCommandError, CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
-import { CommandNodePath, Datapack, GlobalData } from "./data/types";
+import { CommandNodePath, GlobalData, PacksInfo } from "./data/types";
+import { PackLocationSegments } from "./misc_functions";
 
 //#region Document
 export interface FunctionInfo {
+    lines: CommandLine[];
     /**
      * The filesystem path to the `datapacks` folder this is part of - NOT the folder of the single datapack
      */
-    datapack_root: string | undefined;
-    lines: CommandLine[];
+    pack_segments: PackLocationSegments | undefined;
 }
 
 export interface WorkspaceSecurity {
@@ -28,6 +29,7 @@ export interface CommandLine {
     text: string;
 }
 //#endregion
+
 //#region Interaction with parsers
 export interface ParserInfo {
     /**
@@ -36,7 +38,7 @@ export interface ParserInfo {
     context: CommandContext;
     data: CommmandData;
     node_properties: Dictionary<any>;
-    path: CommandNodePath; // Length can safely be assumed to be greater than 0
+    path: CommandNodePath; // Will be > 0
     /**
      * When suggesting, the end of the reader's string will be the cursor position
      */
@@ -44,11 +46,11 @@ export interface ParserInfo {
 }
 
 export interface CommmandData {
-    readonly globalData: GlobalData;
+    globalData: GlobalData;
     /**
      * Data from datapacks
      */
-    readonly localData?: Datapack[];
+    localData?: PacksInfo;
 }
 
 export interface Suggestion {
@@ -72,7 +74,8 @@ export type ContextChange = Partial<CommandContext> | undefined;
 
 export interface CommandContext {
     /**
-     * Whether the executor is definitely a player
+     * Whether the executor is definitely a player.
+     * (Currently unused)
      */
     isPlayer?: boolean;
     [key: string]: any;
@@ -126,7 +129,31 @@ export type Failure = false;
 export interface ReturnData<ErrorKind extends BCE = CE> {
     actions: SubAction[];
     errors: ErrorKind[];
+    /**
+     * Points not related to a specific line being parsed.
+     * This includes errors inside a file for example.
+     */
+    misc: MiscInfo[];
     suggestions: SuggestResult[];
+}
+
+type MiscInfoBase<kind extends string, value> = value & {
+    kind: kind;
+};
+
+export type MiscInfo =
+    | MiscInfoBase<"FileError", FileError>
+    | MiscInfoBase<"ClearError", ClearFileError>;
+
+interface FileError {
+    filePath: string;
+    group: string;
+    message: string;
+}
+
+interface ClearFileError {
+    filePath: string;
+    group?: string;
 }
 
 /**

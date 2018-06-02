@@ -5,7 +5,7 @@ import { Parser } from "../types";
 const parser: Parser = {
     kind: CompletionItemKind.Method,
     parse: (reader, properties) => {
-        const helper = new ReturnHelper();
+        const helper = new ReturnHelper(properties);
         const begin = reader.cursor;
         const literal = properties.path[properties.path.length - 1];
         if (

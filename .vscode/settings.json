@@ -4,6 +4,8 @@
     //=======================================//
     // Automatic Code Cleaning
     "editor.formatOnSave": true,
+    // Allow use of prettier extension solely
+    "typescript.format.enable": false,
     "tslint.autoFixOnSave": true,
     // Consistent finalNewLine
     "files.insertFinalNewline": true,

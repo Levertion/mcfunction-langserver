@@ -4,6 +4,7 @@ import { shim } from "util.promisify";
 shim();
 import { promisify } from "util";
 
+import { DATAFOLDER } from "../../consts";
 import { getNamespaceResources } from "../datapack_resources";
 import { BlocksPropertyInfo, CommandTree, GlobalData } from "../types";
 const readFileAsync = promisify(fs.readFile);
@@ -31,11 +32,13 @@ export async function collectData(
 async function getResources(
     dataDir: string
 ): Promise<DataSaveResult<"resources">> {
-    const namespacePath = path.join(dataDir, "data");
-    return [
-        "resources",
-        await getNamespaceResources("minecraft", namespacePath)
-    ];
+    const namespacePath = path.join(dataDir, DATAFOLDER);
+    const resources = await getNamespaceResources(
+        "minecraft",
+        namespacePath,
+        undefined
+    );
+    return ["resources", resources.data];
 }
 //#endregion
 //#region Items
