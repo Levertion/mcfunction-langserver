@@ -1,11 +1,25 @@
 {
-    "extends": "tslint:recommended",
-    "rules": {
-        "interface-name": [
-            true,
-            "never-prefix"
-        ],
-        "align": false,
-        "no-floating-promises": true
-    }
+  "extends": ["tslint:all", "tslint-config-prettier"],
+  "rules": {
+    "interface-name": [true, "never-prefix"],
+    "no-floating-promises": true,
+    "typedef": {
+      "options": [
+        "array-destructuring",
+        "call-signature",
+        "object-destructuring",
+        "parameter",
+        "property-declaration"
+      ]
+    },
+    "no-magic-numbers": false,
+    "completed-docs": false,
+    "only-arrow-functions": { "options": "allow-declarations" },
+    "no-any": false,
+    "newline-before-return": false,
+    "strict-boolean-expressions": false,
+    "no-object-literal-type-assertion": false,
+    "no-unsafe-any": false,
+    "restrict-plus-operands": false
+  }
 }
