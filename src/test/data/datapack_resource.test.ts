@@ -54,6 +54,6 @@ describe("Datapack Resource Testing", () => {
       path.join(rootFolder, "test_world", "datapacks")
     );
     result.sort((a, b) => a.path.length - b.path.length);
-    assert.deepEqual(result, expected);
+    assert.deepStrictEqual(result, expected);
   });
 });

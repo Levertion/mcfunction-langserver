@@ -10,7 +10,7 @@ import { CommmandData, ParserInfo } from "../../types";
 describe("Instance Creation Functions (Misc)", () => {
   describe("createCommandLines()", () => {
     it("should convert an array of strings into an array of Command Lines", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         createCommandLines(["line number 1", "line number two"]),
         [{ text: "line number 1" }, { text: "line number two" }]
       );
@@ -62,14 +62,19 @@ describe("Instance Creation Functions (Misc)", () => {
 
   describe("splitLines", () => {
     it("should convert a multiple line string", () => {
-      assert.deepEqual(splitLines("first line\nsecond line\nthird line"), [
-        { text: "first line" },
-        { text: "second line" },
-        { text: "third line" }
-      ]);
+      assert.deepStrictEqual(
+        splitLines("first line\nsecond line\nthird line"),
+        [
+          { text: "first line" },
+          { text: "second line" },
+          { text: "third line" }
+        ]
+      );
     });
     it("should create a single command line from a single line string", () => {
-      assert.deepEqual(splitLines("singleline"), [{ text: "singleline" }]);
+      assert.deepStrictEqual(splitLines("singleline"), [
+        { text: "singleline" }
+      ]);
     });
   });
 });

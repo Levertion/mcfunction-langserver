@@ -12,7 +12,7 @@ function assertParse(
   errors: ErrorInfo[],
   nodes: ParseNode[]
 ): void {
-  assert.notEqual(res, undefined);
+  assert.notStrictEqual(res, undefined);
   const result = (res as any) as StoredParseResult;
   assertErrors(errors, result.errors);
   const newNodes = result.nodes.slice();
@@ -29,7 +29,7 @@ function assertParse(
       })
     );
   }
-  assert.equal(newNodes.length, 0);
+  assert.strictEqual(newNodes.length, 0);
 }
 
 describe("parseCommand()", () => {
@@ -50,10 +50,10 @@ describe("parseCommand()", () => {
   });
   describe("No command", () => {
     it("should return nothing when the string is empty", () => {
-      assert.equal(parseCommand("", fakeGlobal, undefined), undefined);
+      assert.strictEqual(parseCommand("", fakeGlobal, undefined), undefined);
     });
     it("should return nothing when the string is a comment", () => {
-      assert.equal(
+      assert.strictEqual(
         parseCommand("#this is a comment", fakeGlobal, undefined),
         undefined
       );

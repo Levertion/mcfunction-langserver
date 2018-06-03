@@ -1,4 +1,4 @@
-import { AssertionError, equal } from "assert";
+import { AssertionError, strictEqual } from "assert";
 import { CommandError, isCommandError } from "../brigadier_components/errors";
 import { NamespacedName } from "../data/types";
 import { isSuccessful, namespacesEqual } from "../misc_functions";
@@ -205,7 +205,7 @@ export function assertReturn<T>(
   if (isSuccessful(val) === shouldSucceed) {
     assertErrors(errors, val.errors);
     assertSuggestions(suggestions, val.suggestions, suggestStart);
-    equal(
+    strictEqual(
       val.actions.length,
       numActions,
       `incorrect Number of expected actions: '${JSON.stringify(val.actions)}'`

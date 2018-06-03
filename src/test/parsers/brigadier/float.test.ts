@@ -22,7 +22,7 @@ describe("Float Argument Parser", () => {
         };
         const result = floatArgumentParser.parse(reader, properties);
         assertReturn(defined(result), true);
-        assert.equal(reader.cursor, numEnd);
+        assert.strictEqual(reader.cursor, numEnd);
       });
       it("should reject a number less than the minimum", () => {
         const reader = new StringReader(s);

@@ -24,7 +24,7 @@ describe("Integer Argument Parser", () => {
         assert.doesNotThrow(() =>
           integerArgumentParser.parse(reader, defaultProperties)
         );
-        assert.equal(reader.cursor, numEnd);
+        assert.strictEqual(reader.cursor, numEnd);
       });
       it("should fail with a value less than the minimum", () => {
         const reader = new StringReader(s);

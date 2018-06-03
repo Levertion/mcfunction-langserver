@@ -36,7 +36,7 @@ describe("Cache Management", () => {
     it("should cache the data in the folder", async () => {
       await cache.cacheData(testData);
       const files = await promisify(fs.readdir)(cacheFolder);
-      assert.deepEqual(
+      assert.deepStrictEqual(
         files.sort(),
         [
           "commands.json",
@@ -52,7 +52,7 @@ describe("Cache Management", () => {
     it("should be consistent with cacheData", async () => {
       await cache.cacheData(testData);
       const data = await cache.readCache();
-      assert.deepEqual(data, testData);
+      assert.deepStrictEqual(data, testData);
     });
   });
 });

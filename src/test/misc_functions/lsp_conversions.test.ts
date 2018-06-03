@@ -68,11 +68,11 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [{ text: "lhello1" }, { text: "line2" }, { text: "line3" }],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [0]);
+        assert.deepStrictEqual(result, [0]);
       });
       it("should work with a single changed line splitting into two lines", () => {
         const functionInfo: FunctionInfo = {
@@ -94,7 +94,7 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [
             { text: "lhello" },
             { text: "hi1" },
@@ -103,7 +103,7 @@ describe("Language Server Conversions (Misc)", () => {
           ],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [0, 1]);
+        assert.deepStrictEqual(result, [0, 1]);
       });
       it("should work with a single changed line splitting into several lines not from the start", () => {
         const functionInfo: FunctionInfo = {
@@ -125,7 +125,7 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [
             { text: "line1" },
             { text: "lhello" },
@@ -135,7 +135,7 @@ describe("Language Server Conversions (Misc)", () => {
           ],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [1, 2, 3]);
+        assert.deepStrictEqual(result, [1, 2, 3]);
       });
     });
     describe("Changing Multiple Lines", () => {
@@ -159,11 +159,11 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [{ text: "lhello2" }, { text: "line3" }],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [0]);
+        assert.deepStrictEqual(result, [0]);
       });
       it("should work changing multiple lines into the same number of lines", () => {
         const functionInfo: FunctionInfo = {
@@ -185,11 +185,11 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [{ text: "lhello" }, { text: "hi2" }, { text: "line3" }],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [0, 1]);
+        assert.deepStrictEqual(result, [0, 1]);
       });
       it("should work changing multiple lines into more lines", () => {
         const functionInfo: FunctionInfo = {
@@ -211,7 +211,7 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [
             { text: "lhello" },
             { text: "hi" },
@@ -220,7 +220,7 @@ describe("Language Server Conversions (Misc)", () => {
           ],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [0, 1, 2]);
+        assert.deepStrictEqual(result, [0, 1, 2]);
       });
     });
     describe("Multiple Change events", () => {
@@ -251,11 +251,11 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [{ text: "lhello1" }, { text: "lhello22" }, { text: "line3" }],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [0, 1]);
+        assert.deepStrictEqual(result, [0, 1]);
       });
       it("should work when changing lines in reverse order", () => {
         const functionInfo: FunctionInfo = {
@@ -284,11 +284,11 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [{ text: "lhello1" }, { text: "lhello22" }, { text: "line3" }],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [0, 1]);
+        assert.deepStrictEqual(result, [0, 1]);
       });
       it("should work when compressing multiple lines after the first run.", () => {
         const functionInfo: FunctionInfo = {
@@ -317,11 +317,11 @@ describe("Language Server Conversions (Misc)", () => {
           },
           functionInfo
         );
-        assert.deepEqual(functionInfo, {
+        assert.deepStrictEqual(functionInfo, {
           lines: [{ text: "lhello2" }, { text: "lhello23" }],
           ...dummyFunctionInfo
         });
-        assert.deepEqual(result, [0, 1]);
+        assert.deepStrictEqual(result, [0, 1]);
       });
     });
   });

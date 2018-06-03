@@ -20,7 +20,7 @@ describe("literalArgumentParser", () => {
           [],
           ["test"]
         );
-        assert.equal(reader.cursor, 4);
+        assert.strictEqual(reader.cursor, 4);
       });
       it("should set the cursor to after the string when it doesn't reach the end", () => {
         const reader = new StringReader("test ");
@@ -30,7 +30,7 @@ describe("literalArgumentParser", () => {
           [],
           []
         );
-        assert.equal(reader.cursor, 4);
+        assert.strictEqual(reader.cursor, 4);
       });
     });
     describe("literal not matching", () => {

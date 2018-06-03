@@ -8,7 +8,7 @@ import {
 describe("Namespace Functions (Misc)", () => {
   describe("exactifyNamespace", () => {
     it("should make a normal namespaced name into an exact namespaced name", () => {
-      assert.deepEqual(
+      assert.deepStrictEqual(
         exactifyNamespace({ namespace: "test", path: "testpath" }),
         { namespace: "test", path: "testpath", exact: true }
       );

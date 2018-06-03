@@ -17,7 +17,7 @@ describe("dummyParser1", () => {
         [],
         ["hello", { text: "welcome", start: 2 }]
       );
-      assert.equal(reader.cursor, 4);
+      assert.strictEqual(reader.cursor, 4);
     });
 
     it("should default to 3 when not given any properties", () => {
@@ -31,7 +31,7 @@ describe("dummyParser1", () => {
         [],
         ["hello", { text: "welcome", start: 1 }]
       );
-      assert.equal(reader.cursor, 3);
+      assert.strictEqual(reader.cursor, 3);
     });
 
     it("should not succeed if there is not enough room", () => {

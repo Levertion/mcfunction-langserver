@@ -24,7 +24,7 @@ describe("String Argument Parser", () => {
         defined(stringArgumentParser.parse(reader, properties)),
         true
       );
-      assert.equal(reader.cursor, 17);
+      assert.strictEqual(reader.cursor, 17);
     });
     describe("Phrase String", () => {
       const properties: ParserInfo = {
@@ -37,7 +37,7 @@ describe("String Argument Parser", () => {
           defined(stringArgumentParser.parse(reader, properties)),
           true
         );
-        assert.equal(reader.cursor, 4);
+        assert.strictEqual(reader.cursor, 4);
       });
       it("should read a quoted string section", () => {
         const reader = new StringReader('"quote test" :"-)(*');
@@ -45,7 +45,7 @@ describe("String Argument Parser", () => {
           defined(stringArgumentParser.parse(reader, properties)),
           true
         );
-        assert.equal(reader.cursor, 11);
+        assert.strictEqual(reader.cursor, 11);
       });
     });
     describe("Word String", () => {
@@ -59,7 +59,7 @@ describe("String Argument Parser", () => {
           defined(stringArgumentParser.parse(reader, properties)),
           true
         );
-        assert.equal(reader.cursor, 4);
+        assert.strictEqual(reader.cursor, 4);
       });
       it("should not read a quoted string section", () => {
         const reader = new StringReader('"quote test" :"-)(*');
@@ -67,7 +67,7 @@ describe("String Argument Parser", () => {
           defined(stringArgumentParser.parse(reader, properties)),
           true
         );
-        assert.equal(reader.cursor, 0);
+        assert.strictEqual(reader.cursor, 0);
       });
     });
   });

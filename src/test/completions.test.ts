@@ -111,7 +111,7 @@ describe("ComputeCompletions()", () => {
       ]
     };
     result.items.sort((a, b) => b.label.length - a.label.length);
-    assert.deepEqual(result, expected);
+    assert.deepStrictEqual(result, expected);
   });
   it("should give suggestions which follow a final node", () => {
     const result = computeCompletions(
@@ -179,6 +179,6 @@ describe("ComputeCompletions()", () => {
       ]
     };
     result.items.sort((a, b) => b.label.length - a.label.length);
-    assert.deepEqual(result, expected);
+    assert.deepStrictEqual(result, expected);
   });
 });

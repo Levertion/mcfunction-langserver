@@ -1,4 +1,3 @@
-import { isNumber } from "util";
 import { CommandErrorBuilder } from "../../brigadier_components/errors";
 import { ReturnHelper } from "../../misc_functions";
 import { Parser } from "../../types";
@@ -29,11 +28,11 @@ const parser: Parser = {
     const minVal = properties.node_properties.min;
     // See https://stackoverflow.com/a/12957445
     const max = Math.min(
-      isNumber(maxVal) ? maxVal : JAVAMAXFLOAT,
+      typeof maxVal === "number" ? maxVal : JAVAMAXFLOAT,
       JAVAMAXFLOAT
     );
     const min = Math.max(
-      isNumber(minVal) ? minVal : JAVAMINFLOAT,
+      typeof minVal === "number" ? minVal : JAVAMINFLOAT,
       JAVAMINFLOAT
     );
     if (result.data > max) {
