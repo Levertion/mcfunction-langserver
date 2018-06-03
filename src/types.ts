@@ -1,66 +1,66 @@
 import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
-import { CompletionItemKind } from "vscode-languageserver/lib/main";
+import { CompletionItemKind } from "vscode-languageserver";
 import { BlankCommandError, CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
 import { CommandNodePath, Datapack, GlobalData } from "./data/types";
 
 //#region Document
 export interface FunctionInfo {
-    lines: CommandLine[];
-    /**
-     * The filesystem path to the `datapacks` folder this is part of - NOT the folder of the single datapack
-     */
-    datapack_root: string | undefined;
+  /**
+   * The filesystem path to the `datapacks` folder this is part of - NOT the folder of the single datapack
+   */
+  datapack_root: string | undefined;
+  lines: CommandLine[];
 }
 
 export interface WorkspaceSecurity {
-    JarPath?: boolean;
-    JavaPath?: boolean;
-    CustomParsers?: boolean;
+  CustomParsers?: boolean;
+  JarPath?: boolean;
+  JavaPath?: boolean;
 }
 
 export interface CommandLine {
-    parseInfo?: StoredParseResult | false;
-    text: string;
-    /**
-     * A cache of the tree of actions
-     */
-    actions?: IntervalTree<SubAction>;
+  /**
+   * A cache of the tree of actions
+   */
+  actions?: IntervalTree<SubAction>;
+  parseInfo?: StoredParseResult | false;
+  text: string;
 }
 //#endregion
 //#region Interaction with parsers
 export interface ParserInfo {
-    node_properties: Dictionary<any>;
-    data: CommmandData;
-    path: CommandNodePath; // Length can safely be assumed to be greater than 0
-    /**
-     * The immutable context
-     */
-    context: CommandContext;
-    /**
-     * When suggesting, the end of the reader's string will be the cursor position
-     */
-    suggesting: boolean;
+  /**
+   * The immutable context
+   */
+  context: CommandContext;
+  data: CommmandData;
+  node_properties: Dictionary<any>;
+  path: CommandNodePath; // Length can safely be assumed to be greater than 0
+  /**
+   * When suggesting, the end of the reader's string will be the cursor position
+   */
+  suggesting: boolean;
 }
 
 export interface CommmandData {
-    /**
-     * Data from datapacks
-     */
-    readonly localData?: Datapack[];
-    readonly globalData: GlobalData;
+  readonly globalData: GlobalData;
+  /**
+   * Data from datapacks
+   */
+  readonly localData?: Datapack[];
 }
 
 export interface Suggestion {
-    text: string;
-    /**
-     * The start from where value should be replaced. 0 indexed character gaps.
-     * E.g. `@e[na` with the suggestion `{value:"name=",start:3}`
-     * would make `@e[name=` when accepted.
-     */
-    start: number;
-    kind?: CompletionItemKind;
-    description?: string;
+  description?: string;
+  kind?: CompletionItemKind;
+  /**
+   * The start from where value should be replaced. 0 indexed character gaps.
+   * E.g. `@e[na` with the suggestion `{value:"name=",start:3}`
+   * would make `@e[name=` when accepted.
+   */
+  start: number;
+  text: string;
 }
 
 export type SuggestResult = Suggestion | string;
@@ -71,72 +71,81 @@ export type SuggestResult = Suggestion | string;
 export type ContextChange = Partial<CommandContext> | undefined;
 
 export interface CommandContext {
-    /**
-     * Whether the executor is definitely a player
-     */
-    isPlayer?: boolean;
-    [key: string]: any;
+  /**
+   * Whether the executor is definitely a player
+   */
+  isPlayer?: boolean;
+  [key: string]: any;
 }
 
 export interface Parser {
-    /**
-     * Parse the argument as described in NodeProperties against this parser in the reader.
-     * Gets both suggestions and success
-     */
-    parse: (reader: StringReader, properties: ParserInfo) => ReturnedInfo<ContextChange> | undefined;
-    /**
-     * The default suggestion kind for suggestions from this parser
-     */
-    kind?: CompletionItemKind;
+  /**
+   * The default suggestion kind for suggestions from this parser
+   */
+  kind?: CompletionItemKind;
+  /**
+   * Parse the argument as described in NodeProperties against this parser in the reader.
+   * Gets both suggestions and success
+   */
+  parse(
+    reader: StringReader,
+    properties: ParserInfo
+  ): ReturnedInfo<ContextChange | undefined>;
 }
 
 //#endregion
 //#region ParsingData
 export interface ParseNode extends Interval {
-    path: CommandNodePath;
-    context: CommandContext;
-    final: boolean;
+  context: CommandContext;
+  final: boolean;
+  path: CommandNodePath;
 }
 
 export interface StoredParseResult {
-    nodes: ParseNode[]; errors: CommandError[]; actions: SubAction[];
+  actions: SubAction[];
+  errors: CommandError[];
+  nodes: ParseNode[];
 }
 
 interface SubActionBase<U extends string, T> extends DataInterval<T> {
-    type: U;
+  type: U;
 }
 
-export type SubAction = SubActionBase<"hover", string>
-    | SubActionBase<"format", string>;
+export type SubAction =
+  | SubActionBase<"hover", string>
+  | SubActionBase<"format", string>;
 // | SubActionBase<"rename", RenameRequest>;
 //#endregion
 export type Success = true;
-export const Success: Success = true;
+export const success: Success = true;
 
-export const Failure: Failure = false;
+export const failure: Failure = false;
 export type Failure = false;
 
 //#region ReturnData
 export interface ReturnData<ErrorKind extends BCE = CE> {
-    errors: ErrorKind[];
-    suggestions: SuggestResult[];
-    actions: SubAction[];
+  actions: SubAction[];
+  errors: ErrorKind[];
+  suggestions: SuggestResult[];
 }
 
 /**
  * A general return type which can either succeed or fail, bringing other data
  */
-export type ReturnedInfo<T, ErrorKind extends BCE = CE,
-    E = undefined> = ReturnSuccess<T, ErrorKind> | ReturnFailure<E, ErrorKind>;
+export type ReturnedInfo<T, ErrorKind extends BCE = CE, E = undefined> =
+  | ReturnSuccess<T, ErrorKind>
+  | ReturnFailure<E, ErrorKind>;
 
-export interface ReturnFailure<K = undefined, ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
-    kind: Failure;
-    data: K;
+export interface ReturnFailure<K = undefined, ErrorKind extends BCE = CE>
+  extends ReturnData<ErrorKind> {
+  data: K;
+  kind: Failure;
 }
 
-export interface ReturnSuccess<T, ErrorKind extends BCE = CE> extends ReturnData<ErrorKind> {
-    kind: Success;
-    data: T;
+export interface ReturnSuccess<T, ErrorKind extends BCE = CE>
+  extends ReturnData<ErrorKind> {
+  data: T;
+  kind: Success;
 }
 //#endregion
 // Helper types to lower the amount of repetition of the names

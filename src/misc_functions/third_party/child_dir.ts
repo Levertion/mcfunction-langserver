@@ -7,9 +7,15 @@ import { sep } from "path";
  * @param child The child path
  * @param parent The parent path.
  */
-export function isChildOf(child: string, parent: string, seperator: string = sep): boolean {
-    if (child === parent) { return false; }
-    const parentTokens = parent.split(seperator).filter((i) => i.length); // Has same effect as len>0
-    const splitChild = child.split(seperator).filter((i) => i.length);
-    return parentTokens.every((t, i) => splitChild[i] === t);
+export function isChildOf(
+  child: string,
+  parent: string,
+  seperator: string = sep
+): boolean {
+  if (child === parent) {
+    return false;
+  }
+  const parentTokens = parent.split(seperator).filter(i => i.length); // Has same effect as len>0
+  const splitChild = child.split(seperator).filter(i => i.length);
+  return parentTokens.every((t, i) => splitChild[i] === t);
 }
