@@ -1,6 +1,6 @@
 ## Minecraft Function Language Server
 
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors)
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 [![Build Status](https://travis-ci.org/Levertion/mcfunction-langserver.svg?branch=master)](https://travis-ci.org/Levertion/mcfunction-langserver)
 [![Greenkeeper badge](https://badges.greenkeeper.io/Levertion/mcfunction-langserver.svg)](https://greenkeeper.io/)
@@ -27,8 +27,8 @@ Thanks goes to these wonderful people ([emoji key](https://github.com/kentcdodds
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore -->
-| [<img src="https://avatars2.githubusercontent.com/u/17830663?v=4" width="100px;"/><br /><sub><b>MrYurihi</b></sub>](https://github.com/MrYurihi)<br />[💻](https://github.com/levertion/mcfunction-langserver/commits?author=MrYurihi "Code") [⚠️](https://github.com/levertion/mcfunction-langserver/commits?author=MrYurihi "Tests") [👀](#review-MrYurihi "Reviewed Pull Requests") |
-| :---: |
+| [<img src="https://avatars2.githubusercontent.com/u/17830663?v=4" width="100px;"/><br /><sub><b>MrYurihi</b></sub>](https://github.com/MrYurihi)<br />[💻](https://github.com/levertion/mcfunction-langserver/commits?author=MrYurihi "Code") [⚠️](https://github.com/levertion/mcfunction-langserver/commits?author=MrYurihi "Tests") [👀](#review-MrYurihi "Reviewed Pull Requests") | [<img src="https://avatars2.githubusercontent.com/u/26185209?v=4" width="100px;"/><br /><sub><b>Levertion</b></sub>](https://github.com/Levertion)<br />[💻](https://github.com/levertion/mcfunction-langserver/commits?author=Levertion "Code") [⚠️](https://github.com/levertion/mcfunction-langserver/commits?author=Levertion "Tests") [🤔](#ideas-Levertion "Ideas, Planning, & Feedback") |
+| :---: | :---: |
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 

@@ -19,6 +19,17 @@
         "test",
         "review"
       ]
+    },
+    {
+      "login": "Levertion",
+      "name": "Levertion",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/26185209?v=4",
+      "profile": "https://github.com/Levertion",
+      "contributions": [
+        "code",
+        "test",
+        "ideas"
+      ]
     }
   ]
 }
