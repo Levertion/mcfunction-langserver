@@ -1,14 +1,17 @@
 import * as fs from "fs";
 import { tmpdir } from "os";
 import * as path from "path";
-import { promisify } from "util";
 import { shim } from "util.promisify";
 shim();
+import { promisify } from "util";
+
 import { cacheData } from "../cache_management";
 import { GlobalData } from "../types";
 import { collectData } from "./collect_data";
 import { getPathToJar } from "./download";
 import { checkJavaPath, runGenerator } from "./extract_data";
+
+const mkdtmpAsync = promisify(fs.mkdtemp);
 
 /**
  * Will throw an error if something goes wrong.
@@ -28,11 +31,12 @@ import { checkJavaPath, runGenerator } from "./extract_data";
  * - Cache that data
  * - Return the data
  */
-export async function collectGlobalData(currentversion?: string): Promise<GlobalData> {
+export async function collectGlobalData(
+    currentversion: string = ""
+): Promise<GlobalData> {
     if (mcLangSettings.data.enabled) {
         const javaPath = await checkJavaPath();
         const dir = await mkdtmpAsync(path.join(tmpdir(), "mcfunction"));
-        currentversion = currentversion || "";
         const jarInfo = await getPathToJar(dir, currentversion);
         const datadir = await runGenerator(javaPath, dir, jarInfo.jarPath);
         mcLangLog("Generator Finished");
@@ -40,8 +44,8 @@ export async function collectGlobalData(currentversion?: string): Promise<Global
         await cacheData(data);
         return data;
     } else {
-        throw new Error("Data Obtainer disabled in settings. To obtain data automatically, please enable it.");
+        throw new Error(
+            "Data Obtainer disabled in settings. To obtain data automatically, please enable it."
+        );
     }
 }
-
-const mkdtmpAsync = promisify(fs.mkdtemp);

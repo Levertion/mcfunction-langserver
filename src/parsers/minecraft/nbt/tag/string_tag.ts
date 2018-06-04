@@ -9,7 +9,7 @@ export class NBTTagString extends NBTTag<string> {
 
     public parse(reader: StringReader) {
         const helper = new ReturnHelper();
-        const quoted = reader.canRead() && reader.peek() === "\"";
+        const quoted = reader.canRead() && reader.peek() === '"';
         const start = reader.cursor;
         const str = reader.readString();
         if (!helper.merge(str)) {
@@ -20,13 +20,13 @@ export class NBTTagString extends NBTTag<string> {
                 actionFromScope({
                     end: reader.cursor,
                     scopes: ["string", quoted ? "quoted" : "unquoted"],
-                    start,
-                }),
+                    start
+                })
             );
             if (quoted) {
                 helper.addActions(
                     actionFromScope(scopeChar(reader.cursor, ["quote"])),
-                    actionFromScope(scopeChar(start + 1, ["quote"])),
+                    actionFromScope(scopeChar(start + 1, ["quote"]))
                 );
             }
             return helper.succeed(1);

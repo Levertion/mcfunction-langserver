@@ -1,6 +1,14 @@
-import { CommandNode, CommandNodePath, CommandTree, MCNode } from "../data/types";
+import {
+    CommandNode,
+    CommandNodePath,
+    CommandTree,
+    MCNode
+} from "../data/types";
 
-export function followPath<T extends MCNode<T>>(tree: MCNode<T>, path: CommandNodePath): MCNode<T> {
+export function followPath<T extends MCNode<T>>(
+    tree: MCNode<T>,
+    path: CommandNodePath
+): MCNode<T> {
     // There are no protections here, because if a path is given it should be correct.
     let current = tree;
     for (const section of path) {
@@ -11,9 +19,16 @@ export function followPath<T extends MCNode<T>>(tree: MCNode<T>, path: CommandNo
     return current;
 }
 
-export function getNextNode(node: CommandNode | MCNode<CommandNode>
-    & { redirect?: CommandNodePath, executable?: boolean }, // Allow use of node.redirect without a tsignore
-    nodePath: CommandNodePath, tree: CommandTree): GetNodeResult {
+export function getNextNode(
+    node:
+        | CommandNode
+        | MCNode<CommandNode> & {
+              executable?: boolean;
+              redirect?: CommandNodePath;
+          }, // Allow use of node.redirect without a tsignore
+    nodePath: CommandNodePath,
+    tree: CommandTree
+): GetNodeResult {
     const redirect: CommandNodePath | undefined = node.redirect;
     if (!!redirect) {
         return { node: followPath(tree, redirect), path: redirect };

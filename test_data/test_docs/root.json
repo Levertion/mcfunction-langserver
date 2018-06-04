@@ -31,9 +31,7 @@
         },
         "child_ref_test": {
             "type": "compound",
-            "child_ref": [
-                "./child_ref_test.json"
-            ],
+            "child_ref": ["./child_ref_test.json"],
             "children": {
                 "key1": {
                     "description": "child_ref_self_test OK"

@@ -1,8 +1,9 @@
 import { MinecraftResource, NamespaceData } from "../data/types";
 import { CommmandData } from "../types";
 
-export function getResourcesofType<T extends MinecraftResource = MinecraftResource>(
-    resources: CommmandData, type: keyof NamespaceData): T[] {
+export function getResourcesofType<
+    T extends MinecraftResource = MinecraftResource
+>(resources: CommmandData, type: keyof NamespaceData): T[] {
     const results: MinecraftResource[] = [];
     const globalResources = resources.globalData.resources[type];
     if (!!globalResources) {

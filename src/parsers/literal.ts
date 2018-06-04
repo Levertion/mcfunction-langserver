@@ -1,4 +1,4 @@
-import { CompletionItemKind } from "vscode-languageserver/lib/main";
+import { CompletionItemKind } from "vscode-languageserver";
 import { ReturnHelper } from "../misc_functions";
 import { Parser } from "../types";
 
@@ -8,7 +8,10 @@ const parser: Parser = {
         const helper = new ReturnHelper();
         const begin = reader.cursor;
         const literal = properties.path[properties.path.length - 1];
-        if (properties.suggesting && literal.startsWith(reader.getRemaining())) {
+        if (
+            properties.suggesting &&
+            literal.startsWith(reader.getRemaining())
+        ) {
             helper.addSuggestions(literal);
         }
         if (reader.canRead(literal.length)) {
@@ -21,7 +24,7 @@ const parser: Parser = {
             }
         }
         return helper.fail();
-    },
+    }
 };
 
 export = parser;

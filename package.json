@@ -1,43 +1,53 @@
 {
-  "name": "mcfunction-langserver",
-  "version": "0.0.1",
-  "description": "Language Server for Minecraft Functions",
-  "main": "lib/index.js",
-  "scripts": {
-    "test": "mocha --opts ./mocha.opts",
-    "compile": "tsc -p tsconfig.json",
-    "lint": "tslint --project ."
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Levertion/mcfunction-langserver/"
-  },
-  "keywords": [
-    "Minecraft"
-  ],
-  "author": "Levertion",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/js-combinatorics": "^0.5.29",
-    "@types/mocha": "^5.2.0",
-    "@types/node": "^10.1.0",
-    "@types/request-promise-native": "^1.0.13",
-    "@types/rimraf": "^2.0.2",
-    "@types/sprintf-js": "^1.1.0",
-    "mocha": "^5.2.0",
-    "rimraf": "^2.6.2",
-    "tslint": "^5.10.0",
-    "typescript": "^2.8.3",
-    "vscode-languageserver-types": "^3.7.2"
-  },
-  "dependencies": {
-    "js-combinatorics": "^0.5.3",
-    "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git#1.13.0-18w16a",
-    "node-interval-tree": "^1.3.3",
-    "request": "^2.87.0",
-    "request-promise-native": "^1.0.5",
-    "sprintfjs": "^1.2.9",
-    "util.promisify": "^1.0.0",
-    "vscode-languageserver": "^4.1.3"
-  }
+    "name": "mcfunction-langserver",
+    "version": "0.0.1",
+    "description": "Language Server for Minecraft Functions",
+    "main": "lib/index.js",
+    "scripts": {
+        "test": "mocha --opts ./mocha.opts",
+        "compile": "tsc -p tsconfig.json",
+        "lint": "tslint --project .",
+        "precommit": "pretty-quick --staged",
+        "prettier": "prettier --config .prettierrc.json **/*.{ts,json}",
+        "prettywrite": "prettier --config .prettierrc.json --write **/*.{ts,json}",
+        "contributors:add": "all-contributors add",
+        "contributors:generate": "all-contributors generate"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Levertion/mcfunction-langserver/"
+    },
+    "keywords": [
+        "Minecraft"
+    ],
+    "author": "Levertion",
+    "license": "MIT",
+    "devDependencies": {
+        "@types/js-combinatorics": "^0.5.29",
+        "@types/mocha": "^5.2.0",
+        "@types/node": "^10.1.0",
+        "@types/request-promise-native": "^1.0.13",
+        "@types/rimraf": "^2.0.2",
+        "@types/sprintf-js": "^1.1.0",
+        "mocha": "^5.2.0",
+        "rimraf": "^2.6.2",
+        "tslint": "^5.10.0",
+        "all-contributors-cli": "^4.11.2",
+        "husky": "^0.14.3",
+        "prettier": "^1.13.4",
+        "pretty-quick": "^1.6.0",
+        "tslint-config-prettier": "^1.13.0",
+        "typescript": "^2.8.3",
+        "vscode-languageserver-types": "^3.7.2"
+    },
+    "dependencies": {
+        "js-combinatorics": "^0.5.3",
+        "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git#1.13.0-18w16a",
+        "node-interval-tree": "^1.3.3",
+        "request": "^2.87.0",
+        "request-promise-native": "^1.0.5",
+        "sprintfjs": "^1.2.9",
+        "util.promisify": "^1.0.0",
+        "vscode-languageserver": "^4.1.3"
+    }
 }

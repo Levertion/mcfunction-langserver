@@ -7,8 +7,14 @@ import { Parser } from "../../types";
 
 const values = ["x", "y", "z"];
 
-const INVALID_CHAR = new CommandErrorBuilder("argument.swizzle.invalid", "Invalid character '%s'");
-const DUPLICATE = new CommandErrorBuilder("argument.swizzle.duplicate", "Duplicate character '%s'");
+const INVALID_CHAR = new CommandErrorBuilder(
+    "argument.swizzle.invalid",
+    "Invalid character '%s'"
+);
+const DUPLICATE = new CommandErrorBuilder(
+    "argument.swizzle.duplicate",
+    "Duplicate character '%s'"
+);
 
 export class SwizzleParser implements Parser {
     public parse(reader: StringReader) {
@@ -25,19 +31,20 @@ export class SwizzleParser implements Parser {
                 helper.addErrors(DUPLICATE.create(start, reader.cursor, v));
             }
         }
-        helper.addActions(...actionFromScopes([
-            {
-                end: reader.cursor,
-                scopes: ["argument", "minecraft:swizzle"],
-                start,
-            },
-        ]));
-        const text = reader.string.substring(start, reader.cursor);
-        const suggestions = power(values.filter((v) => text.indexOf(v) === -1))
-            .map((v) => text + v.join("")).filter((v) => v !== "");
-        suggestions.forEach(
-            (v) => helper.addSuggestion(0, v),
+        helper.addActions(
+            ...actionFromScopes([
+                {
+                    end: reader.cursor,
+                    scopes: ["argument", "minecraft:swizzle"],
+                    start
+                }
+            ])
         );
+        const text = reader.string.substring(start, reader.cursor);
+        const suggestions = power(values.filter(v => text.indexOf(v) === -1))
+            .map(v => text + v.join(""))
+            .filter(v => v !== "");
+        suggestions.forEach(v => helper.addSuggestion(0, v));
         if (helper.hasErrors()) {
             return helper.fail();
         } else {

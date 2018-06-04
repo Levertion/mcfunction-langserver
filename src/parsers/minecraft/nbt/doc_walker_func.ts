@@ -12,20 +12,28 @@ interface SuggestFuncs {
     [key: string]: SuggestFunc;
 }
 
-type PathFunc = (parsed: NBTTag<any>, nbtPath: string[], node: FunctionNode, args: any) => string;
+type PathFunc = (
+    parsed: NBTTag<any>,
+    nbtPath: string[],
+    node: FunctionNode,
+    args: any
+) => string;
 type SuggestFunc = (func: string, args: any) => string[];
 
-export function runNodeFunction(parsed: NBTTag<any>, nbtPath: string[], node: FunctionNode, args: any) {
+export function runNodeFunction(
+    parsed: NBTTag<any>,
+    nbtPath: string[],
+    node: FunctionNode,
+    args: any
+) {
     return pathsFuncs[node.function.id](parsed, nbtPath, node, args);
 }
 
 const pathsFuncs: PathFunctions = {
-    insertStringNBT,
+    insertStringNBT
 };
 
-const suggestFuncs: SuggestFuncs = {
-
-};
+const suggestFuncs: SuggestFuncs = {};
 
 interface InsertStringNBTArgs {
     ref: string;
@@ -34,10 +42,19 @@ interface InsertStringNBTArgs {
 }
 
 // @ts-ignore
-function insertStringNBT(parsed: NBTTagCompound, nbtPath: string[], node: FunctionNode, args: InsertStringNBTArgs) {
-    const newRef = path.posix.join(path.dirname(nbtPath.join("/")), args.tag_path).split("/");
+function insertStringNBT(
+    parsed: NBTTagCompound,
+    nbtPath: string[],
+    node: FunctionNode,
+    args: InsertStringNBTArgs
+) {
+    const newRef = path.posix
+        .join(path.dirname(nbtPath.join("/")), args.tag_path)
+        .split("/");
     const out = getNBTTagFromTree(parsed, newRef);
-    return !out || !(out instanceof NBTTagString) ? args.default : sprintf(args.ref, out.getVal());
+    return !out || !(out instanceof NBTTagString)
+        ? args.default
+        : sprintf(args.ref, out.getVal());
 }
 
 // Suggest function

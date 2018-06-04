@@ -7,8 +7,13 @@ import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string_tag";
 describe("Documentation Walker Tests", () => {
     describe("getFinalNode()", () => {
         const nbt = new NBTTagCompound({ var1: new NBTTagString("func_test") });
-        const walker = new NBTWalker(nbt, path.resolve(__dirname,
-            "../../../../../test_data/test_docs/root.json"));
+        const walker = new NBTWalker(
+            nbt,
+            path.resolve(
+                __dirname,
+                "../../../../../test_data/test_docs/root.json"
+            )
+        );
 
         it("should return the correct node for the basic doc", () => {
             const node = walker.getFinalNode(["basic_test"]);

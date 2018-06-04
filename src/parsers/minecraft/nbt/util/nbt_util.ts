@@ -29,14 +29,16 @@ export interface NBTErrorData {
 }
 
 export enum CorrectLevel {
-    NO, MAYBE, YES,
+    NO,
+    MAYBE,
+    YES
 }
 
 export function expectAndScope(
     reader: StringReader,
     str: string,
     scopes: string[],
-    data: NBTErrorData,
+    data: NBTErrorData
 ) {
     const exp = reader.expect(str);
     if (!isSuccessful(exp)) {
@@ -104,35 +106,43 @@ export function parseFloatNBT(reader: StringReader): ReturnedInfo<number> {
 export const scopeChar = (end: number, scopes: string[]) => ({
     end,
     scopes,
-    start: end - 1,
+    start: end - 1
 });
 
-export function addSuggestionsToHelper(node: NBTNode, helper: ReturnHelper, reader: StringReader) {
+export function addSuggestionsToHelper(
+    node: NBTNode,
+    helper: ReturnHelper,
+    reader: StringReader
+) {
     if (!!node.suggestions) {
         const sugg = node.suggestions;
         if (!!sugg) {
-            sugg.forEach(
-                (v) => {
-                    if (typeof v === "string") {
-                        helper.addSuggestion(reader.cursor, v);
-                    } else if ("function" in v) {
-                        runSuggestFunction(v.function.id, v.function.params).forEach(
-                            (v2) => helper.addSuggestion(reader.cursor, v2),
-                        );
-                    } else {
-                        helper.addSuggestion(reader.cursor, v.value, undefined, v.description);
-                    }
-                },
-            );
+            sugg.forEach(v => {
+                if (typeof v === "string") {
+                    helper.addSuggestion(reader.cursor, v);
+                } else if ("function" in v) {
+                    runSuggestFunction(
+                        v.function.id,
+                        v.function.params
+                    ).forEach(v2 => helper.addSuggestion(reader.cursor, v2));
+                } else {
+                    helper.addSuggestion(
+                        reader.cursor,
+                        v.value,
+                        undefined,
+                        v.description
+                    );
+                }
+            });
         }
     }
     if (isCompoundNode(node)) {
-        helper.addSuggestions(...Object.keys(node.children).map<SuggestResult>(
-            (v) => ({
+        helper.addSuggestions(
+            ...Object.keys(node.children).map<SuggestResult>(v => ({
                 description: node.children[v].description,
                 start: reader.cursor,
-                text: v,
-            }),
-        ));
+                text: v
+            }))
+        );
     }
 }

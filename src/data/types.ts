@@ -17,12 +17,19 @@ export interface ExactName extends NamespacedName {
 export interface GlobalData {
     blocks: BlocksPropertyInfo;
     commands: CommandTree;
-    resources: NamespaceData;
     items: string[];
     meta_info: { version: string };
+    resources: NamespaceData;
 }
 
 //#region Command Tree
+/**
+ * A node with children.
+ */
+export interface MCNode<T> {
+    children?: { [id: string]: T };
+}
+
 /**
  * The root of the commands.
  */
@@ -40,22 +47,16 @@ export type CommandNodePath = string[];
  * See <https://gist.github.com/Dinnerbone/7370a2846953eee2d8fc64514fb76de8> for the format
  */
 export interface CommandNode extends MCNode<CommandNode> {
-    type: "literal" | "argument";
+    executable?: boolean;
     /**
      * The parser for this node. Only Applicable if type of argument
      */
     parser?: string;
-    executable?: boolean;
-    redirect?: CommandNodePath;
     properties?: Dictionary<any>;
+    redirect?: CommandNodePath;
+    type: "literal" | "argument";
 }
 
-/**
- * A node with children.
- */
-export interface MCNode<T> {
-    children?: { [id: string]: T };
-}
 //#endregion Command Tree
 
 //#region BlockInfo
@@ -87,23 +88,22 @@ export interface Datapack {
     path: string;
 }
 
+export interface MinecraftResource {
+    resource_name: NamespacedName;
+}
 export interface NamespaceData {
-    functions?: MinecraftResource[];
-    recipes?: MinecraftResource[];
     advancements?: MinecraftResource[];
-    loot_tables?: MinecraftResource[];
-    structures?: MinecraftResource[];
     block_tags?: MinecraftResource[];
-    item_tags?: MinecraftResource[];
     function_tags?: MinecraftResource[];
+    functions?: MinecraftResource[];
+    item_tags?: MinecraftResource[];
+    loot_tables?: MinecraftResource[];
+    recipes?: MinecraftResource[];
+    structures?: MinecraftResource[];
 }
 
 export interface DataResource<T> extends MinecraftResource {
     data?: T;
-}
-
-export interface MinecraftResource {
-    resource_name: NamespacedName;
 }
 
 //#region Resource file description

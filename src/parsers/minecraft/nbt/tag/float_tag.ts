@@ -7,7 +7,6 @@ import { NBTTag } from "./nbt_tag";
 export const FLOAT_TAG_SUFFIX = "f";
 
 export class NBTTagFloat extends NBTTag<number> {
-
     public tagType: "float" = "float";
 
     public parse(reader: StringReader) {
@@ -25,9 +24,9 @@ export class NBTTagFloat extends NBTTag<number> {
             actionFromScope({
                 end: reader.cursor,
                 scopes: ["float"],
-                start,
+                start
             }),
-            actionFromScope(scopeChar(reader.cursor, ["suffix"])),
+            actionFromScope(scopeChar(reader.cursor, ["suffix"]))
         );
         this.val = readInt.data;
         return helper.succeed(CorrectLevel.YES);

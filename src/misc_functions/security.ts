@@ -1,12 +1,14 @@
-import { IConnection } from "vscode-languageserver/lib/main";
+import { IConnection } from "vscode-languageserver";
 import { storeSecurity } from "../data/cache_management";
 import { WorkspaceSecurity } from "../types";
 
 /**
  * Check if the given change requires security confirmation
  */
-export function securityIssues(settings: McFunctionSettings, security: WorkspaceSecurity):
-    Array<keyof WorkspaceSecurity> {
+export function securityIssues(
+    settings: McFunctionSettings,
+    security: WorkspaceSecurity
+): Array<keyof WorkspaceSecurity> {
     const results: Array<keyof WorkspaceSecurity> = [];
     if (!!settings.data) {
         if (!!settings.data.customJar && security.JarPath !== true) {
@@ -25,8 +27,11 @@ export function securityIssues(settings: McFunctionSettings, security: Workspace
     return results;
 }
 
-export async function actOnSecurity(issues: Array<keyof WorkspaceSecurity>,
-    connection: IConnection, security: WorkspaceSecurity): Promise<boolean> {
+export async function actOnSecurity(
+    issues: Array<keyof WorkspaceSecurity>,
+    connection: IConnection,
+    security: WorkspaceSecurity
+): Promise<boolean> {
     let securityChanged = false;
     const resave = async () => {
         if (securityChanged) {
@@ -34,10 +39,13 @@ export async function actOnSecurity(issues: Array<keyof WorkspaceSecurity>,
         }
     };
     for (const issue of issues) {
-        const response = await connection.window.showErrorMessage(
-            `[MCFUNCTION] You have the potentially insecure setting '${issue
-            }' set, but no confirmation has been recieved.`,
-            { title: "Yes" }, { title: "No (Stops server)" });
+        const response = await Promise.resolve(
+            connection.window.showErrorMessage(
+                `[MCFUNCTION] You have the potentially insecure setting '${issue}' set, but no confirmation has been recieved.`,
+                { title: "Yes" },
+                { title: "No (Stops server)" }
+            )
+        );
         if (!!response && response.title === "Yes") {
             security[issue] = true;
             securityChanged = true;

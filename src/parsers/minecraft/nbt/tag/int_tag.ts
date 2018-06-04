@@ -5,7 +5,6 @@ import { CorrectLevel, parseIntNBT } from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
 export class NBTTagInt extends NBTTag<number> {
-
     public tagType: "int" = "int";
 
     public parse(reader: StringReader) {
@@ -19,8 +18,8 @@ export class NBTTagInt extends NBTTag<number> {
             actionFromScope({
                 end: reader.cursor,
                 scopes: ["int"],
-                start,
-            }),
+                start
+            })
         );
         this.val = readInt.data;
         return helper.succeed(CorrectLevel.YES);

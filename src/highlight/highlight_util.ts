@@ -7,11 +7,14 @@ export interface HighlightScope {
 }
 
 export function actionFromScopes(scopes: HighlightScope[]): SubAction[] {
-    return scopes.map<SubAction>(
-        (v) => actionFromScope(v),
-    ) as SubAction[];
+    return scopes.map<SubAction>(v => actionFromScope(v)) as SubAction[];
 }
 
 export function actionFromScope(scope: HighlightScope): SubAction {
-    return { data: scope, high: scope.end, low: scope.start, type: "highlight" };
+    return {
+        data: scope,
+        high: scope.end,
+        low: scope.start,
+        type: "highlight"
+    };
 }

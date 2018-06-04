@@ -7,7 +7,6 @@ import { NBTTag } from "./nbt_tag";
 export const BYTE_TAG_SUFFIX = "b";
 
 export class NBTTagByte extends NBTTag<number> {
-
     public tagType: "byte" = "byte";
 
     public parse(reader: StringReader) {
@@ -25,9 +24,9 @@ export class NBTTagByte extends NBTTag<number> {
             actionFromScope({
                 end: reader.cursor,
                 scopes: ["byte"],
-                start,
+                start
             }),
-            actionFromScope(scopeChar(reader.cursor, ["suffix"])),
+            actionFromScope(scopeChar(reader.cursor, ["suffix"]))
         );
         this.val = readInt.data;
         return helper.succeed(CorrectLevel.YES);

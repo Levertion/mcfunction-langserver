@@ -7,7 +7,6 @@ import { NBTTag } from "./nbt_tag";
 export const LONG_TAG_SUFFIX = "l";
 
 export class NBTTagLong extends NBTTag<number> {
-
     public tagType: "long" = "long";
 
     public parse(reader: StringReader) {
@@ -25,9 +24,9 @@ export class NBTTagLong extends NBTTag<number> {
             actionFromScope({
                 end: reader.cursor,
                 scopes: ["long"],
-                start,
+                start
             }),
-            actionFromScope(scopeChar(reader.cursor, ["suffix"])),
+            actionFromScope(scopeChar(reader.cursor, ["suffix"]))
         );
         this.val = readInt.data;
         return helper.succeed(CorrectLevel.YES);

@@ -1,14 +1,15 @@
-import { IConnection } from "vscode-languageserver/lib/main";
+import { IConnection } from "vscode-languageserver";
 
-export function setup_logging(connection: IConnection) {
+export function setup_logging(connection: IConnection): void {
     const log = (message: string) => {
         connection.console.log(message);
     };
-    global.mcLangLog = Object.assign<InternalLog, McLogger>(log, {
+    // tslint:disable-next-line:prefer-object-spread
+    global.mcLangLog = Object.assign(log, {
         internal: (m: string) => {
-            if (mcLangSettings.trace.internalLogging === true) {
+            if (mcLangSettings.trace.internalLogging) {
                 log(`[McFunctionInternal] ${m}`);
             }
-        },
+        }
     });
 }

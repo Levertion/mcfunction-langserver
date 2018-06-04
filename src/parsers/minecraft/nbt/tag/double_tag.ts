@@ -7,7 +7,6 @@ import { NBTTag } from "./nbt_tag";
 export const DOUBLE_TAG_SUFFIX = "d";
 
 export class NBTTagDouble extends NBTTag<number> {
-
     public tagType: "double" = "double";
 
     public parse(reader: StringReader) {
@@ -25,9 +24,9 @@ export class NBTTagDouble extends NBTTag<number> {
             actionFromScope({
                 end: reader.cursor,
                 scopes: ["double"],
-                start,
+                start
             }),
-            actionFromScope(scopeChar(reader.cursor, ["suffix"])),
+            actionFromScope(scopeChar(reader.cursor, ["suffix"]))
         );
         this.val = readInt.data;
         return helper.succeed(CorrectLevel.YES);

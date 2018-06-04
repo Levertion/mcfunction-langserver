@@ -1,17 +1,31 @@
 import { CommandErrorBuilder } from "../../../../brigadier_components/errors";
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import { actionFromScope, actionFromScopes } from "../../../../highlight/highlight_util";
+import {
+    actionFromScope,
+    actionFromScopes
+} from "../../../../highlight/highlight_util";
 import { ReturnHelper } from "../../../../misc_functions";
 import { ReturnedInfo } from "../../../../types";
 import { parseTag } from "../tag_parser";
-import { LIST_END, LIST_START, LIST_VALUE_SEP, NBTErrorData, scopeChar } from "../util/nbt_util";
+import {
+    LIST_END,
+    LIST_START,
+    LIST_VALUE_SEP,
+    NBTErrorData,
+    scopeChar
+} from "../util/nbt_util";
 import { NBTTag } from "./nbt_tag";
 
-const MIXED = new CommandErrorBuilder("argument.nbt.list.mixed", "Mixed value types");
-const NOVAL = new CommandErrorBuilder("argument.nbt.list.noval", "Expected ']'");
+const MIXED = new CommandErrorBuilder(
+    "argument.nbt.list.mixed",
+    "Mixed value types"
+);
+const NOVAL = new CommandErrorBuilder(
+    "argument.nbt.list.noval",
+    "Expected ']'"
+);
 
 export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
-
     public tagType: "list" = "list";
 
     public parse(reader: StringReader) {
@@ -22,7 +36,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             return helper.failWithData({ correct: 0 });
         }
         helper.addActions(
-            actionFromScope(scopeChar(reader.cursor, ["list-start", "start"])),
+            actionFromScope(scopeChar(reader.cursor, ["list-start", "start"]))
         );
         if (!reader.canRead()) {
             helper.addSuggestion(reader.cursor, LIST_END);
@@ -32,7 +46,6 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
         let type: NBTTag<any>["tagType"];
         let next = reader.peek();
         while (next !== LIST_END) {
-
             reader.skipWhitespace();
 
             let value: NBTTag<any>;
@@ -44,7 +57,10 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 return helper.failWithData({
                     correct: 1,
                     parsed: this,
-                    path: [this.val.length.toString, ...((tag.data as NBTErrorData).path || [])],
+                    path: [
+                        this.val.length.toString,
+                        ...((tag.data as NBTErrorData).path || [])
+                    ]
                 });
             }
 
@@ -64,7 +80,12 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 return helper.failWithData({ parsed: this, correct: 1 });
             } else {
                 helper.addActions(
-                    actionFromScope(scopeChar(reader.cursor, ["value-separator", "separator"])),
+                    actionFromScope(
+                        scopeChar(reader.cursor, [
+                            "value-separator",
+                            "separator"
+                        ])
+                    )
                 );
                 next = opt.data;
             }
@@ -74,10 +95,10 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 {
                     end: reader.cursor,
                     scopes: ["list"],
-                    start,
+                    start
                 },
-                scopeChar(reader.cursor, ["array", "end"]),
-            ]),
+                scopeChar(reader.cursor, ["array", "end"])
+            ])
         );
         if (helper.hasErrors()) {
             return helper.failWithData({ parsed: this, correct: 1 });
@@ -90,8 +111,9 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
         if (tag.tagType !== this.tagType) {
             return false;
         }
-        return this.val.length === (tag as NBTTagList).val.length && this.val.every(
-            (v, i) => v.tagEq((tag as NBTTagList).getVal()[i]),
+        return (
+            this.val.length === (tag as NBTTagList).val.length &&
+            this.val.every((v, i) => v.tagEq((tag as NBTTagList).getVal()[i]))
         );
     }
 }

@@ -1,4 +1,3 @@
-
 export class ArrayReader {
     private index = 0;
     private arr: string[];
@@ -28,7 +27,11 @@ export class ArrayReader {
     }
 
     public insert(val: string[], index = 0) {
-        this.arr = [...this.arr.slice(0, index), ...val, ...this.arr.slice(index)];
+        this.arr = [
+            ...this.arr.slice(0, index),
+            ...val,
+            ...this.arr.slice(index)
+        ];
     }
 
     public getArray() {

@@ -7,8 +7,10 @@ export class DataManager {
     //#region Data Management
     private globalDataInternal: GlobalData = {} as GlobalData;
 
-    private packDataComplete: { [root: string]: Datapack[] } = {};
-    private packDataPromises: { [root: string]: Promise<Datapack[]> } = {};
+    private readonly packDataComplete: { [root: string]: Datapack[] } = {};
+    private readonly packDataPromises: {
+        [root: string]: Promise<Datapack[]>;
+    } = {};
 
     public get globalData(): GlobalData {
         return this.globalDataInternal;
@@ -21,9 +23,12 @@ export class DataManager {
      * Dummy Data can be included for running tests.
      * @param param0 Dummy Data to provide to the data manager.
      */
-    constructor({ DummyGlobal, DummyPack }: {
-        DummyGlobal?: DataManager["globalDataInternal"],
-        DummyPack?: DataManager["packDataComplete"],
+    public constructor({
+        DummyGlobal,
+        DummyPack
+    }: {
+        DummyGlobal?: DataManager["globalDataInternal"];
+        DummyPack?: DataManager["packDataComplete"];
     } = {}) {
         this.globalDataInternal = DummyGlobal || this.globalDataInternal;
         this.packDataComplete = DummyPack || this.packDataComplete;
@@ -43,20 +48,13 @@ export class DataManager {
         }
     }
 
-    public getPackFolderData(folder: string | undefined): Datapack[] | undefined {
+    public getPackFolderData(
+        folder: string | undefined
+    ): Datapack[] | undefined {
         if (!!folder && this.packDataComplete.hasOwnProperty(folder)) {
             return this.packDataComplete[folder];
         }
-        return;
-    }
-
-    public async readPackFolderData(folder: string) {
-        if (!this.packDataPromises.hasOwnProperty(folder)) {
-            this.packDataPromises[folder] = getDatapacks(folder);
-            this.packDataComplete[folder] = await this.packDataPromises[folder];
-        } else {
-            await this.packDataPromises[folder];
-        }
+        return undefined;
     }
 
     public async readCache(): Promise<boolean> {
@@ -66,8 +64,19 @@ export class DataManager {
             mcLangLog("Cache Successfully read");
             return true;
         } catch (error) {
-            mcLangLog(`Reading cache failed with error ${JSON.stringify(error)}`);
+            mcLangLog(
+                `Reading cache failed with error ${JSON.stringify(error)}`
+            );
             return false;
+        }
+    }
+
+    public async readPackFolderData(folder: string): Promise<void> {
+        if (!this.packDataPromises.hasOwnProperty(folder)) {
+            this.packDataPromises[folder] = getDatapacks(folder);
+            this.packDataComplete[folder] = await this.packDataPromises[folder];
+        } else {
+            await this.packDataPromises[folder];
         }
     }
 }

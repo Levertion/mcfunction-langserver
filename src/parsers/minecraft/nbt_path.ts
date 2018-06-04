@@ -12,7 +12,10 @@ const COMPACC = ".";
 const ARROPEN = "[";
 const ARRCLOSE = "]";
 
-const badChar = new CommandErrorBuilder("argument.nbt_path.badchar", "Bad character '%s'");
+const badChar = new CommandErrorBuilder(
+    "argument.nbt_path.badchar",
+    "Bad character '%s'"
+);
 
 export class NBTPathParser implements Parser {
     public parse(reader: StringReader): ReturnedInfo<undefined> {
@@ -21,52 +24,73 @@ export class NBTPathParser implements Parser {
         const highlight: HighlightScope[] = [];
         const start = reader.cursor;
         const walker = new NBTWalker(new NBTTagCompound({}));
-        returnSwitch(reader.readString(), (v) => { out.push(v.data); helper.merge(v); },
-            (v) => {
+        returnSwitch(
+            reader.readString(),
+            v => {
+                out.push(v.data);
+                helper.merge(v);
+            },
+            v => {
                 helper.merge(v);
                 const node = walker.getFinalNode([]);
                 if (!!node) {
                     addSuggestionsToHelper(node, helper, reader);
                 }
-            },
+            }
         );
-        while (!helper.hasErrors() && reader.canRead() && !/\s/.test(reader.peek())) {
+        while (
+            !helper.hasErrors() &&
+            reader.canRead() &&
+            !/\s/.test(reader.peek())
+        ) {
             const next = reader.read();
             if (next === COMPACC) {
                 highlight.push({
                     end: reader.cursor,
                     scopes: ["value-separator", "separator"],
-                    start: reader.cursor - 1,
+                    start: reader.cursor - 1
                 });
                 const sstart = reader.cursor;
-                const quot = reader.peek() === "\"";
-                returnSwitch(reader.readString(), (v) => { out.push(v.data); helper.merge(v); },
-                    (v) => {
+                const quot = reader.peek() === '"';
+                returnSwitch(
+                    reader.readString(),
+                    v => {
+                        out.push(v.data);
+                        helper.merge(v);
+                    },
+                    v => {
                         helper.merge(v);
                         const node = walker.getFinalNode([]);
                         if (!!node) {
                             addSuggestionsToHelper(node, helper, reader);
                         }
-                    },
+                    }
                 );
                 highlight.push({
                     end: reader.cursor,
                     scopes: ["value", "string", quot ? "quoted" : "unquoted"],
-                    start: sstart,
+                    start: sstart
                 });
             } else if (next === ARROPEN) {
-                returnSwitch(reader.readInt(), (v) => { out.push(v.data.toString()); helper.merge(v); },
-                    (v) => {
+                returnSwitch(
+                    reader.readInt(),
+                    v => {
+                        out.push(v.data.toString());
+                        helper.merge(v);
+                    },
+                    v => {
                         helper.merge(v);
                         const node = walker.getFinalNode([]);
                         if (!!node) {
                             addSuggestionsToHelper(node, helper, reader);
                         }
-                    },
+                    }
                 );
                 helper.merge(reader.expect(ARRCLOSE));
             } else {
-                helper.addErrors(badChar.create(reader.cursor - 1, reader.cursor, next));
+                helper.addErrors(
+                    badChar.create(reader.cursor - 1, reader.cursor, next)
+                );
             }
         }
         if (!helper.hasErrors()) {
@@ -76,7 +100,7 @@ export class NBTPathParser implements Parser {
         highlight.push({
             end: reader.cursor,
             scopes: ["argument", "minecraft:nbt_path"],
-            start,
+            start
         });
         helper.addActions(...actionFromScopes(highlight));
         return helper.addErrors() ? helper.fail() : helper.succeed();

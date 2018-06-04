@@ -9,15 +9,10 @@
             "request": "launch",
             "name": "Mocha Tests",
             "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
-            "args": [
-                "--opts",
-                "${workspaceFolder}/mocha.opts"
-            ],
-            "outFiles": [
-                "${workspaceFolder}/out/**/*.js"
-            ],
+            "args": ["--opts", "${workspaceFolder}/mocha.opts"],
+            "outFiles": ["${workspaceFolder}/out/**/*.js"],
             "internalConsoleOptions": "openOnSessionStart",
-            "preLaunchTask": "Compile",
+            "preLaunchTask": "Compile"
         }
     ]
 }

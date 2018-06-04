@@ -18,7 +18,7 @@ const parser: Parser = {
                     return helper.fail();
                 }
         }
-    },
+    }
 };
 
 export = parser;

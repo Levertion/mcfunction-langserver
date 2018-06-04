@@ -1,14 +1,27 @@
 import { CommandNode, CommandNodePath } from "../data/types";
-import { CommandContext, CommandLine, CommmandData, ParserInfo } from "../types";
+import {
+    CommandContext,
+    CommandLine,
+    CommmandData,
+    ParserInfo
+} from "../types";
 
 /**
  * Build parser info from the data required
  */
-export function createParserInfo(node: CommandNode, data: CommmandData,
-    path: CommandNodePath, context: CommandContext, suggesting: boolean): ParserInfo {
+export function createParserInfo(
+    node: CommandNode,
+    data: CommmandData,
+    path: CommandNodePath,
+    context: CommandContext,
+    suggesting: boolean
+): ParserInfo {
     const result: ParserInfo = {
-        context, data, node_properties: node.properties || {},
-        path, suggesting,
+        context,
+        data,
+        node_properties: node.properties || {},
+        path,
+        suggesting
     };
     return result;
 }

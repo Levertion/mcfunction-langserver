@@ -29,51 +29,51 @@ interface McFunctionSettings {
          * The code for the language to be used.
          */
         lang: string;
-    }
+    };
     /**
      * Settings related to the collection of data.
      */
     data: {
         /**
          * Global Scoped Setting
-         * 
+         *
          * Whether to enable the automatic Data Collection downloading.
-         * 
+         *
          * This does not affect the customJar setting.
-         * 
+         *
          * Enabled by default, but the collector is disabled.
          */
         download: boolean;
         /**
          * Global Scoped Setting
-         * 
+         *
          * Whether the Data Collection is enabled.
-         * 
+         *
          * This DOES affect the customJar setting.
-         * 
+         *
          * Disabled by default.
          */
         enabled: boolean;
         /**
          * Global Scoped Setting
-         * 
+         *
          * __Advanced Users Only__
-         * 
-         * The path to a custom (server) jar to attempt to extract data from. 
-         * 
+         *
+         * The path to a custom (server) jar to attempt to extract data from.
+         *
          * This is recommended for when working with mods,
          * or past Minecraft versions (AFTER 1.13 Snapshot 18w01a) only.
-         * 
+         *
          * Note that not all mod parsers will be always supported, and features may change between snapshots.
          */
         customJar: string;
         /**
          * Global Scoped Setting
-         * 
+         *
          * __Advanced Users Only__
-         * 
+         *
          * An optional custom path to the java executable (`java`/`java.exe`).
-         * 
+         *
          * Should be left blank to use the default `java` in PATH.
          */
         javaPath: string; // Should be fine if points to javaw, stout is unused insofar.
@@ -81,25 +81,25 @@ interface McFunctionSettings {
          * Whether or not to use snapshot versions when collecting data.
          */
         snapshots: boolean;
-    }
+    };
     /**
      * Custom parsers to be used
      */
     parsers: {
         [name: string]: string;
-    }
+    };
 }
 /**
  * Log a message to the console.
- * 
- * This message will always be available 
+ *
+ * This message will always be available
  * to the user in the language server output.
  */
 declare const mcLangLog: McLogger & InternalLog;
 interface McLogger {
     /**
-     * Log to the console a message useful for debugging. 
-     * 
+     * Log to the console a message useful for debugging.
+     *
      * This is disabled or enabled
      * based on the "mcfunction.trace.internalLogging" setting
      */
@@ -108,9 +108,9 @@ interface McLogger {
 /**
  * An internal logging type to allow proper typing information to be used for mcLangLog.
  */
-type InternalLog = (message: string) => void
+type InternalLog = (message: string) => void;
 
-type Dictionary<T> = { [key: string]: T }
+type Dictionary<T> = { [key: string]: T };
 
 // Type definitions for util.promisify 1.0
 // Project: https://github.com/ljharb/util.promisify#readme
@@ -121,7 +121,9 @@ type Dictionary<T> = { [key: string]: T }
 declare module "util.promisify" {
     export = promisify;
 
-    function promisify(f: (...args: any[]) => void): (...args: any[]) => Promise<any>;
+    function promisify(
+        f: (...args: any[]) => void
+    ): (...args: any[]) => Promise<any>;
 
     namespace promisify {
         interface implementation {

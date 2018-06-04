@@ -8,16 +8,19 @@ import { Parser } from "../../../types";
 const parser: Parser = {
     parse: (reader, node) => {
         const helper = new ReturnHelper();
-        const num: number = node.node_properties.number || 3;
+        const num: number = (node.node_properties.number as number) || 3;
         helper.addSuggestions("hello");
-        helper.addSuggestion(Math.min(Math.floor(num / 2), reader.string.length), "welcome");
+        helper.addSuggestion(
+            Math.min(Math.floor(num / 2), reader.string.length),
+            "welcome"
+        );
         if (reader.canRead(num)) {
             reader.cursor += num;
             return helper.succeed();
         } else {
             return helper.fail();
         }
-    },
+    }
 };
 
 export = parser;

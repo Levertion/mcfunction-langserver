@@ -10,16 +10,26 @@ export interface NBTFunction {
 export interface NodeBase {
     currentPath: string;
     description?: string;
-    suggestions?: Array<string |
-    { value: string, description?: string } |
-    { function: NBTFunction }
+    suggestions?: Array<
+        | string
+        | { value: string; description?: string }
+        | { function: NBTFunction }
     >;
 }
 
 export interface NoPropertyNode extends NodeBase {
-    type: "no-nbt" |
-    "byte" | "short" | "int" | "long" | "float" | "double" |
-    "byte_array" | "string" | "int_array" | "long_array";
+    type:
+        | "no-nbt"
+        | "byte"
+        | "short"
+        | "int"
+        | "long"
+        | "float"
+        | "double"
+        | "byte_array"
+        | "string"
+        | "int_array"
+        | "long_array";
 }
 
 export interface RefNode extends NodeBase {
@@ -41,7 +51,12 @@ export interface CompoundNode extends NodeBase {
     children: { [key: string]: NBTNode };
 }
 
-export type NBTNode = NoPropertyNode | CompoundNode | ListNode | RefNode | FunctionNode;
+export type NBTNode =
+    | NoPropertyNode
+    | CompoundNode
+    | ListNode
+    | RefNode
+    | FunctionNode;
 
 export function getNBTTagFromTree(tag: NBTTag<any>, nbtPath: string[]) {
     let lastTag = tag;
@@ -67,7 +82,9 @@ export function isFunctionNode(node: NBTNode): node is FunctionNode {
     return "function" in node;
 }
 
-export function isTypedNode(node: NBTNode): node is NoPropertyNode | CompoundNode | ListNode {
+export function isTypedNode(
+    node: NBTNode
+): node is NoPropertyNode | CompoundNode | ListNode {
     return "type" in node;
 }
 
