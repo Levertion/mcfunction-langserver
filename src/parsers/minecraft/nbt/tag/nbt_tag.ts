@@ -23,7 +23,7 @@ export abstract class NBTTag<L> {
 
     protected val: L;
 
-    constructor(val: L) {
+    public constructor(val: L) {
         this.val = val;
     }
 
@@ -31,13 +31,13 @@ export abstract class NBTTag<L> {
         return this.val;
     }
 
+    public abstract parse(reader: StringReader): ParseReturn;
+
     /**
      * Test if two NBT tags are equivalent in value
      * @param tag The NBT tag to test against
      */
-    public tagEq(tag: NBTTag<any>): boolean {
+    public tagEq(tag: NBTTag<any>) {
         return tag.tagType === this.tagType && tag.getVal() === this.getVal();
     }
-
-    public abstract parse(reader: StringReader): ParseReturn;
 }

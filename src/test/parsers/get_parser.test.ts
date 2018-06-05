@@ -21,15 +21,15 @@ describe("getParser()", () => {
             }
         } as any) as McFunctionSettings;
         const parser = getParser({
-            type: "argument",
-            parser: "langserver:dummy1"
+            parser: "langserver:dummy1",
+            type: "argument"
         });
         assert.strictEqual(parser, dummy1);
     });
     it("should give the correct parser for a builtin parser", () => {
         const parser = getParser({
-            type: "argument",
-            parser: "brigadier:string"
+            parser: "brigadier:string",
+            type: "argument"
         });
         assert.strictEqual(parser, stringParser);
     });

@@ -1,32 +1,28 @@
 export class ArrayReader {
-    private index = 0;
     private arr: string[];
+    private index = 0;
 
-    constructor(arr: string[]) {
+    public constructor(arr: string[]) {
         this.arr = arr;
+    }
+
+    public end() {
+        return this.index === this.arr.length;
+    }
+
+    public getArray() {
+        return this.arr;
     }
 
     public getIndex() {
         return this.index;
     }
 
-    public setIndex(val: number) {
-        this.index = val;
+    public getRead() {
+        return this.arr.slice(0, this.index);
     }
 
-    public read() {
-        return this.arr[this.index++];
-    }
-
-    public skip() {
-        this.index++;
-    }
-
-    public peek() {
-        return this.arr[this.index];
-    }
-
-    public insert(val: string[], index = 0) {
+    public insert(val: string[], index: number = 0) {
         this.arr = [
             ...this.arr.slice(0, index),
             ...val,
@@ -34,15 +30,19 @@ export class ArrayReader {
         ];
     }
 
-    public getArray() {
-        return this.arr;
+    public peek() {
+        return this.arr[this.index];
     }
 
-    public end() {
-        return this.index === this.arr.length;
+    public read() {
+        return this.arr[this.index++];
     }
 
-    public getRead() {
-        return this.arr.slice(0, this.index);
+    public setIndex(val: number) {
+        this.index = val;
+    }
+
+    public skip() {
+        this.index++;
     }
 }

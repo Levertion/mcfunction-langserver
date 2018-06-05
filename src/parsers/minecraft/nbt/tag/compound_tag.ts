@@ -15,7 +15,7 @@ import {
     NBTErrorData,
     scopeChar
 } from "../util/nbt_util";
-import { NBTTag, ParseReturn } from "./nbt_tag";
+import { NBTTag } from "./nbt_tag";
 
 const NO_KEY = new CommandErrorBuilder(
     "argument.nbt.compound.nokey",
@@ -29,9 +29,9 @@ const NO_VAL = new CommandErrorBuilder(
 export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
     public tagType: "compound" = "compound";
 
-    private keyPos: number[][] = [];
+    private readonly keyPos: number[][] = [];
 
-    public parse(reader: StringReader): ParseReturn {
+    public parse(reader: StringReader) {
         const start = reader.cursor;
         const helper = new ReturnHelper();
         const compStart = reader.expect(COMPOUND_START);
@@ -53,9 +53,9 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 return helper.failWithData({
                     correct: 2,
                     keys,
+                    parsed: this,
                     part: "key" as "key",
-                    path: [],
-                    parsed: this
+                    path: []
                 });
             }
             const keyS = reader.cursor;
@@ -65,9 +65,9 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 return helper.failWithData({
                     correct: 2,
                     keys,
+                    parsed: this,
                     part: "key" as "key",
-                    path: [],
-                    parsed: this
+                    path: []
                 });
             }
             keys.push(key.data);
@@ -105,9 +105,9 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 return helper.failWithData({
                     correct: 2,
                     keys,
+                    parsed: this,
                     part: "key" as "key",
-                    path: [key.data],
-                    parsed: this
+                    path: [key.data]
                 });
             }
             helper.addActions(
@@ -127,9 +127,9 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 helper.failWithData({
                     correct: 2,
                     keys,
+                    parsed: this,
                     part: "value",
-                    path: [key],
-                    parsed: this
+                    path: [key]
                 });
             }
 
@@ -147,11 +147,11 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                     ...((pkey.data as NBTErrorData).path || [])
                 ];
                 return helper.failWithData({
-                    parsed: this,
+                    correct: 2,
                     keys,
+                    parsed: this,
                     part: "value" as "value",
-                    path,
-                    correct: 2
+                    path
                 });
             }
 

@@ -12,8 +12,8 @@ const readDirAsync = promisify(fs.readdir);
 const readFileAsync = promisify(fs.readFile);
 const statAsync = promisify(fs.stat);
 const existsAsync = promisify<string, boolean>((location, cb) => {
-    fs.exists(location, result => {
-        cb(undefined as any, result);
+    fs.access(location, err => {
+        cb(undefined as any, !!err);
     });
 });
 //#endregion
@@ -77,7 +77,7 @@ export async function getNamespaceResources(
                         // @ts-ignore The resources are only officially allowed to be MinecraftResources.
                         // However, they are cast to DataResources at a later time if applicable.
                         newResource.data = JSON.parse(
-                            await readFileAsync(file)
+                            (await readFileAsync(file)).toString()
                         );
                     }
                 } catch (error) {

@@ -1,5 +1,5 @@
-import assert = require("assert");
-import path = require("path");
+import * as assert from "assert";
+import * as path from "path";
 import { NBTWalker } from "../../../../parsers/minecraft/nbt/doc_walker";
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound_tag";
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string_tag";

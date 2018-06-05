@@ -115,14 +115,14 @@ export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
         );
         if (helper.hasErrors()) {
             return helper.failWithData({
-                parsed: this,
-                correct: CorrectLevel.YES
+                correct: CorrectLevel.YES,
+                parsed: this
             });
         }
         return helper.succeed(CorrectLevel.YES);
     }
 
-    public tagEq(tag: NBTTag<any>) {
+    public tagEq(tag: NBTTag<any>): boolean {
         if (tag.tagType !== this.tagType) {
             return false;
         }

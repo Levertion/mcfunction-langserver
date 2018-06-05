@@ -12,7 +12,7 @@ export interface NodeBase {
     description?: string;
     suggestions?: Array<
         | string
-        | { value: string; description?: string }
+        | { description?: string; value: string }
         | { function: NBTFunction }
     >;
 }
@@ -41,14 +41,14 @@ export interface FunctionNode extends NodeBase {
 }
 
 export interface ListNode extends NodeBase {
-    type: "list";
     item: NBTNode;
+    type: "list";
 }
 
 export interface CompoundNode extends NodeBase {
-    type: "compound" | "root";
     child_ref: string[];
     children: { [key: string]: NBTNode };
+    type: "compound" | "root";
 }
 
 export type NBTNode =
@@ -58,12 +58,13 @@ export type NBTNode =
     | RefNode
     | FunctionNode;
 
-export function getNBTTagFromTree(tag: NBTTag<any>, nbtPath: string[]) {
+export function getNBTTagFromTree(
+    tag: NBTTag<any>,
+    nbtPath: string[]
+): NBTTag<any> | undefined {
     let lastTag = tag;
     for (const s of nbtPath) {
-        if (lastTag === undefined) {
-            return undefined;
-        } else if (lastTag.tagType === "list" && /\d+/.test(s)) {
+        if (lastTag.tagType === "list" && /\d+/.test(s)) {
             lastTag = (tag as NBTTagList).getVal()[parseInt(s, 10)];
         } else if (lastTag.tagType === "compound") {
             lastTag = (tag as NBTTagCompound).getVal()[s];

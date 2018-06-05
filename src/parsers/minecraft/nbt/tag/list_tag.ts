@@ -43,7 +43,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             helper.addErrors(NOVAL.create(start, reader.cursor));
             return helper.failWithData({ parsed: this, correct: 1 });
         }
-        let type: NBTTag<any>["tagType"];
+        let type: NBTTag<any>["tagType"] | undefined;
         let next = reader.peek();
         while (next !== LIST_END) {
             reader.skipWhitespace();
@@ -58,13 +58,12 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                     correct: 1,
                     parsed: this,
                     path: [
-                        this.val.length.toString,
+                        this.val.length.toString(),
                         ...((tag.data as NBTErrorData).path || [])
                     ]
                 });
             }
 
-            // @ts-ignore
             if (type === undefined) {
                 type = value.tagType;
             } else if (type !== value.tagType) {

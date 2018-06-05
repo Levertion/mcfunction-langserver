@@ -162,11 +162,11 @@ describe("parseCommand()", () => {
                 ],
                 [
                     {
+                        context: {},
+                        final: false,
                         high: 3,
                         low: 0,
-                        path: ["test1"],
-                        final: false,
-                        context: {}
+                        path: ["test1"]
                     },
                     {
                         context: {},

@@ -24,21 +24,21 @@
     "license": "MIT",
     "devDependencies": {
         "@types/js-combinatorics": "^0.5.29",
-        "@types/mocha": "^5.2.0",
-        "@types/node": "^10.1.0",
-        "@types/request-promise-native": "^1.0.13",
+        "@types/mocha": "^5.2.1",
+        "@types/node": "^10.3.1",
+        "@types/request-promise-native": "^1.0.15",
         "@types/rimraf": "^2.0.2",
         "@types/sprintf-js": "^1.1.0",
-        "mocha": "^5.2.0",
-        "rimraf": "^2.6.2",
-        "tslint": "^5.10.0",
         "all-contributors-cli": "^4.11.2",
         "husky": "^0.14.3",
+        "mocha": "^5.2.0",
         "prettier": "^1.13.4",
         "pretty-quick": "^1.6.0",
+        "rimraf": "^2.6.2",
+        "tslint": "^5.10.0",
         "tslint-config-prettier": "^1.13.0",
-        "typescript": "^2.8.3",
-        "vscode-languageserver-types": "^3.7.2"
+        "typescript": "^2.9.1",
+        "vscode-languageserver-types": "^3.8.1"
     },
     "dependencies": {
         "js-combinatorics": "^0.5.3",
@@ -46,8 +46,8 @@
         "node-interval-tree": "^1.3.3",
         "request": "^2.87.0",
         "request-promise-native": "^1.0.5",
-        "sprintfjs": "^1.2.9",
+        "sprintf-js": "^1.1.1",
         "util.promisify": "^1.0.0",
-        "vscode-languageserver": "^4.1.3"
+        "vscode-languageserver": "^4.2.1"
     }
 }

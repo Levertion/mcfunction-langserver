@@ -1,13 +1,13 @@
 import { SubAction } from "../types";
 
 export interface HighlightScope {
-    start: number;
     end: number;
     scopes: string[];
+    start: number;
 }
 
 export function actionFromScopes(scopes: HighlightScope[]): SubAction[] {
-    return scopes.map<SubAction>(v => actionFromScope(v)) as SubAction[];
+    return scopes.map<SubAction>(actionFromScope);
 }
 
 export function actionFromScope(scope: HighlightScope): SubAction {

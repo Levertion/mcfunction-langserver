@@ -6,7 +6,6 @@
         "typedef": {
             "options": [
                 "array-destructuring",
-                "call-signature",
                 "object-destructuring",
                 "parameter",
                 "property-declaration"
@@ -22,6 +21,9 @@
         "strict-boolean-expressions": false,
         "no-object-literal-type-assertion": false,
         "no-unsafe-any": false,
-        "restrict-plus-operands": false
+        "restrict-plus-operands": false,
+        "trailing-comma": false,
+        "prefer-function-over-method": false,
+        "no-void-expression": false
     }
 }

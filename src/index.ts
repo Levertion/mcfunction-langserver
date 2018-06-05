@@ -188,8 +188,8 @@ function sendDiagnostics(uri: string): void {
 connection.onDidCloseTextDocument(params => {
     // Clear diagnostics - might not be needed
     connection.sendDiagnostics({
-        uri: params.textDocument.uri,
-        diagnostics: []
+        diagnostics: [],
+        uri: params.textDocument.uri
     });
     // tslint:disable-next-line:no-dynamic-delete
     delete documents[params.textDocument.uri];

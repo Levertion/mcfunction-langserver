@@ -21,10 +21,10 @@ export const COMPOUND_PAIR_SEP = ",";
 
 export interface NBTErrorData {
     correct: CorrectLevel;
-    part?: "key" | "value";
-    parsed?: NBTTag<any>;
-    path?: string[];
     keys?: string[];
+    parsed?: NBTTag<any>;
+    part?: "key" | "value";
+    path?: string[];
     pos?: number;
 }
 
@@ -34,6 +34,12 @@ export enum CorrectLevel {
     YES
 }
 
+export const scopeChar = (end: number, scopes: string[]) => ({
+    end,
+    scopes,
+    start: end - 1
+});
+
 export function expectAndScope(
     reader: StringReader,
     str: string,
@@ -42,9 +48,9 @@ export function expectAndScope(
 ) {
     const exp = reader.expect(str);
     if (!isSuccessful(exp)) {
-        return ReturnHelper.fail(data);
+        return new ReturnHelper().failWithData(data);
     }
-    return ReturnHelper.succeed(scopeChar(reader.cursor, scopes));
+    return new ReturnHelper().succeed(scopeChar(reader.cursor, scopes));
 }
 
 export function parseIntNBT(reader: StringReader): ReturnedInfo<number> {
@@ -102,12 +108,6 @@ export function parseFloatNBT(reader: StringReader): ReturnedInfo<number> {
         return helper.succeed(out);
     }
 }
-
-export const scopeChar = (end: number, scopes: string[]) => ({
-    end,
-    scopes,
-    start: end - 1
-});
 
 export function addSuggestionsToHelper(
     node: NBTNode,

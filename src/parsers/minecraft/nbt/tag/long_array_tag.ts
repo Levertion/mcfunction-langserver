@@ -115,8 +115,8 @@ export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
         );
         if (helper.hasErrors()) {
             return helper.failWithData({
-                parsed: this,
-                correct: CorrectLevel.YES
+                correct: CorrectLevel.YES,
+                parsed: this
             });
         }
         return helper.succeed(CorrectLevel.YES);

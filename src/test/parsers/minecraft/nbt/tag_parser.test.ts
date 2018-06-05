@@ -18,37 +18,23 @@ describe("Tag parser tests", () => {
         describe("byte", () => {
             [["1b", 1], ["2e2b", 200], ["345b", 345], ["3.2e1b", 32]].forEach(
                 v =>
-                    it(
-                        v[0].toString() +
-                            " should return as a byte tag with the value of " +
-                            v[1].toString(),
-                        () => {
-                            const reader = new StringReader(v[0].toString());
-                            const out = parseTag(reader).data as NBTTagByte;
-                            assert.strictEqual(out.tagType, "byte");
-                            assert.ok(
-                                out.tagEq(new NBTTagByte(v[1] as number))
-                            );
-                        }
-                    )
+                    it(`${v[0].toString()} should return as a byte tag with the value of ${v[1].toString()}`, () => {
+                        const reader = new StringReader(v[0].toString());
+                        const out = parseTag(reader).data as NBTTagByte;
+                        assert.strictEqual(out.tagType, "byte");
+                        assert.ok(out.tagEq(new NBTTagByte(v[1] as number)));
+                    })
             );
         });
         describe("short", () => {
             [["52s", 52], ["0.1e2s", 10], ["2765s", 2765], ["5e0s", 5]].forEach(
                 v =>
-                    it(
-                        v[0].toString() +
-                            " should return as a short tag with the value of " +
-                            v[1].toString(),
-                        () => {
-                            const reader = new StringReader(v[0].toString());
-                            const out = parseTag(reader).data as NBTTagShort;
-                            assert.strictEqual(out.tagType, "short");
-                            assert.ok(
-                                out.tagEq(new NBTTagShort(v[1] as number))
-                            );
-                        }
-                    )
+                    it(`${v[0].toString()} should return as a short tag with the value of ${v[1].toString()}`, () => {
+                        const reader = new StringReader(v[0].toString());
+                        const out = parseTag(reader).data as NBTTagShort;
+                        assert.strictEqual(out.tagType, "short");
+                        assert.ok(out.tagEq(new NBTTagShort(v[1] as number)));
+                    })
             );
         });
         describe("int", () => {
@@ -58,17 +44,12 @@ describe("Tag parser tests", () => {
                 ["3146", 3146],
                 ["5.45e3", 5450]
             ].forEach(v =>
-                it(
-                    v[0].toString() +
-                        " should return as a int tag with the value of " +
-                        v[1].toString(),
-                    () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseTag(reader).data as NBTTagInt;
-                        assert.strictEqual(out.tagType, "int");
-                        assert.ok(out.tagEq(new NBTTagInt(v[1] as number)));
-                    }
-                )
+                it(`${v[0].toString()} should return as a int tag with the value of ${v[1].toString()}`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseTag(reader).data as NBTTagInt;
+                    assert.strictEqual(out.tagType, "int");
+                    assert.ok(out.tagEq(new NBTTagInt(v[1] as number)));
+                })
             );
         });
         describe("long", () => {
@@ -78,17 +59,12 @@ describe("Tag parser tests", () => {
                 ["2712455l", 2712455],
                 ["1234e6l", 1234000000]
             ].forEach(v =>
-                it(
-                    v[0].toString() +
-                        " should return as a long tag with the value of " +
-                        v[1].toString(),
-                    () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseTag(reader).data as NBTTagLong;
-                        assert.strictEqual(out.tagType, "long");
-                        assert.ok(out.tagEq(new NBTTagLong(v[1] as number)));
-                    }
-                )
+                it(`${v[0].toString()} should return as a long tag with the value of ${v[1].toString()}`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseTag(reader).data as NBTTagLong;
+                    assert.strictEqual(out.tagType, "long");
+                    assert.ok(out.tagEq(new NBTTagLong(v[1] as number)));
+                })
             );
         });
         describe("float", () => {
@@ -98,17 +74,12 @@ describe("Tag parser tests", () => {
                 ["83f", 83],
                 ["0.45e2f", 45]
             ].forEach(v =>
-                it(
-                    v[0].toString() +
-                        " should return as a float tag with the value of " +
-                        v[1].toString(),
-                    () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseTag(reader).data as NBTTagFloat;
-                        assert.strictEqual(out.tagType, "float");
-                        assert.ok(out.tagEq(new NBTTagFloat(v[1] as number)));
-                    }
-                )
+                it(`${v[0].toString()} should return as a float tag with the value of ${v[1].toString()}`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseTag(reader).data as NBTTagFloat;
+                    assert.strictEqual(out.tagType, "float");
+                    assert.ok(out.tagEq(new NBTTagFloat(v[1] as number)));
+                })
             );
         });
         describe("double", () => {
@@ -118,17 +89,12 @@ describe("Tag parser tests", () => {
                 ["5832d", 5832],
                 ["1.2e2d", 120]
             ].forEach(v =>
-                it(
-                    v[0].toString() +
-                        " should return as a double tag with the value of " +
-                        v[1].toString(),
-                    () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseTag(reader).data as NBTTagDouble;
-                        assert.strictEqual(out.tagType, "double");
-                        assert.ok(out.tagEq(new NBTTagDouble(v[1] as number)));
-                    }
-                )
+                it(`${v[0].toString()} should return as a double tag with the value of ${v[1].toString()}`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseTag(reader).data as NBTTagDouble;
+                    assert.strictEqual(out.tagType, "double");
+                    assert.ok(out.tagEq(new NBTTagDouble(v[1] as number)));
+                })
             );
         });
         describe("byte array", () => {
@@ -139,42 +105,28 @@ describe("Tag parser tests", () => {
                     [112, 3, 7, 8, 234, 5, 32, 5]
                 ]
             ].forEach(v =>
-                it(
-                    v[0].toString() +
-                        " should return as a byte array tag with a value of [" +
-                        v[1].toString() +
-                        "]",
-                    () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseTag(reader).data as NBTTagByteArray;
-                        assert.strictEqual(out.tagType, "byte_array");
-                        assert.ok(
-                            out.tagEq(
-                                new NBTTagByteArray(
-                                    (v[1] as number[]).map(
-                                        v1 => new NBTTagByte(v1)
-                                    )
-                                )
+                it(`${v[0].toString()} should return as a byte array tag with a value of [${v[1].toString()}]`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseTag(reader).data as NBTTagByteArray;
+                    assert.strictEqual(out.tagType, "byte_array");
+                    assert.ok(
+                        out.tagEq(
+                            new NBTTagByteArray(
+                                (v[1] as number[]).map(v1 => new NBTTagByte(v1))
                             )
-                        );
-                    }
-                )
+                        )
+                    );
+                })
             );
         });
         describe("string", () => {
             [["hi", "hi"], ['"1 hello"', "1 hello"]].forEach(v =>
-                it(
-                    v[0].toString() +
-                        " should return as a string tag with a value of '" +
-                        v[1].toString() +
-                        "'",
-                    () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseTag(reader).data as NBTTagString;
-                        assert.strictEqual(out.tagType, "string");
-                        assert.ok(out.tagEq(new NBTTagString(v[1])));
-                    }
-                )
+                it(`${v[0].toString()} should return as a string tag with a value of '${v[1].toString()}'`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseTag(reader).data as NBTTagString;
+                    assert.strictEqual(out.tagType, "string");
+                    assert.ok(out.tagEq(new NBTTagString(v[1])));
+                })
             );
         });
         describe("list", () => {
@@ -189,20 +141,14 @@ describe("Tag parser tests", () => {
                     ]
                 ]
             ].forEach(v =>
-                it(
-                    v[0].toString() +
-                        " should return as a list tag with the correct value",
-                    () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseTag(reader).data as NBTTagList;
-                        assert.strictEqual(out.tagType, "list");
-                        assert.ok(
-                            out.tagEq(
-                                new NBTTagList(v[1] as Array<NBTTag<any>>)
-                            )
-                        );
-                    }
-                )
+                it(`${v[0].toString()} should return as a list tag with the correct value`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseTag(reader).data as NBTTagList;
+                    assert.strictEqual(out.tagType, "list");
+                    assert.ok(
+                        out.tagEq(new NBTTagList(v[1] as Array<NBTTag<any>>))
+                    );
+                })
             );
         });
         describe("compound", () => {
@@ -217,22 +163,18 @@ describe("Tag parser tests", () => {
                     }
                 ]
             ].forEach(v =>
-                it(
-                    v[0].toString() +
-                        " should return as a compound tag with the correct value",
-                    () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseTag(reader).data as NBTTagCompound;
-                        assert.strictEqual(out.tagType, "compound");
-                        assert.ok(
-                            out.tagEq(
-                                new NBTTagCompound(v[1] as {
-                                    [key: string]: NBTTag<any>;
-                                })
-                            )
-                        );
-                    }
-                )
+                it(`${v[0].toString()} should return as a compound tag with the correct value`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseTag(reader).data as NBTTagCompound;
+                    assert.strictEqual(out.tagType, "compound");
+                    assert.ok(
+                        out.tagEq(
+                            new NBTTagCompound(v[1] as {
+                                [key: string]: NBTTag<any>;
+                            })
+                        )
+                    );
+                })
             );
         });
     });

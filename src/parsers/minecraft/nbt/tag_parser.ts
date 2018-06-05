@@ -11,7 +11,7 @@ import { NBTTagInt } from "./tag/int_tag";
 import { NBTTagList } from "./tag/list_tag";
 import { NBTTagLongArray } from "./tag/long_array_tag";
 import { NBTTagLong } from "./tag/long_tag";
-import { NBTTag, ParseReturn } from "./tag/nbt_tag";
+import { NBTTag } from "./tag/nbt_tag";
 import { NBTTagShort } from "./tag/short_tag";
 import { NBTTagString } from "./tag/string_tag";
 import { CorrectLevel, NBTErrorData } from "./util/nbt_util";
@@ -34,12 +34,12 @@ const parsers: Array<() => NBTTag<any>> = [
 export function parseTag(
     reader: StringReader
 ): ReturnSuccess<NBTTag<any>> | ReturnFailure<NBTErrorData> {
-    let correctTag: NBTTag<any> | null = null;
+    let correctTag: NBTTag<any> | undefined;
     let correctness: CorrectLevel = 0;
     let correctPlace: number = reader.cursor;
 
-    let lastSuccess: ReturnSuccess<CorrectLevel> | null = null;
-    let lastErr: ReturnFailure<NBTErrorData> | null = null;
+    let lastSuccess: ReturnSuccess<CorrectLevel> | undefined;
+    let lastErr: ReturnFailure<NBTErrorData> | undefined;
     const helper = new ReturnHelper();
 
     const start = reader.cursor;
@@ -49,8 +49,8 @@ export function parseTag(
         const out = p.parse(reader);
         // @ts-ignore
         if (
-            isSuccessful(out as ParseReturn) &&
-            (correctTag === null || out.data > correctness)
+            isSuccessful(out) &&
+            (correctTag === undefined || out.data > correctness)
         ) {
             correctTag = p;
             correctness = out.data as CorrectLevel;
@@ -60,14 +60,14 @@ export function parseTag(
             lastErr = out as ReturnFailure<NBTErrorData>;
         }
     }
-    if (lastErr === null || lastSuccess === null) {
-        return ReturnHelper.fail({ correct: correctness });
+    if (lastErr === undefined || lastSuccess === undefined) {
+        return new ReturnHelper().failWithData({ correct: correctness });
     }
-    if (correctTag !== null) {
+    if (correctTag !== undefined) {
         reader.cursor = correctPlace;
         helper.merge(lastSuccess);
         return helper.succeed(correctTag);
     }
     helper.merge(lastErr);
-    return helper.failWithData(lastErr.data as NBTErrorData);
+    return helper.failWithData(lastErr.data);
 }

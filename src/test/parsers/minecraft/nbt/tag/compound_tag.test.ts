@@ -1,4 +1,4 @@
-import assert = require("assert");
+import * as assert from "assert";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
 import { HighlightScope } from "../../../../../highlight/highlight_util";
 import { NBTTagCompound } from "../../../../../parsers/minecraft/nbt/tag/compound_tag";
@@ -53,7 +53,7 @@ describe("CompoundTag tests", () => {
                 ]
             }
         ] as HighlightTest[]).forEach(v =>
-            it(v.t + " should return correct highlights", () => {
+            it(`${v.t} should return correct highlights`, () => {
                 const reader = new StringReader(v.t);
                 const tag = new NBTTagCompound({});
                 const tagret = tag.parse(reader);
@@ -66,9 +66,11 @@ describe("CompoundTag tests", () => {
                             v2 =>
                                 v.v.find(v3 => equalValue(v2, v3)) !== undefined
                         ),
-                    JSON.stringify(v.v) +
-                        " is not " +
-                        JSON.stringify(highlight, null, "\t")
+                    `${JSON.stringify(v.v)} is not ${JSON.stringify(
+                        highlight,
+                        undefined,
+                        "\t"
+                    )}`
                 );
             })
         );
