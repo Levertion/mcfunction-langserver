@@ -12,12 +12,11 @@ const readDirAsync = promisify(fs.readdir);
 const readFileAsync = promisify(fs.readFile);
 const statAsync = promisify(fs.stat);
 const existsAsync = promisify<string, boolean>((location, cb) => {
-    fs.access(location, err => {
-        cb(undefined as any, !!err);
+    fs.stat(location, result => {
+        cb(undefined as any, !result);
     });
 });
 //#endregion
-
 interface ResourceInfo<U = string> {
     extension: string;
     path: [U] | string[]; // Custom tuple allows autocomplete mostly.
