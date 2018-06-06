@@ -8,8 +8,8 @@
         "compile": "tsc -p tsconfig.json",
         "lint": "tslint --project .",
         "precommit": "pretty-quick --staged",
-        "prettier": "prettier --config .prettierrc.json **/*.{ts,json}",
-        "prettywrite": "prettier --config .prettierrc.json --write **/*.{ts,json}",
+        "prettier": "prettier **/*.{ts,json}",
+        "prettywrite": "prettier --write **/*.{ts,json}",
         "contributors:add": "all-contributors add",
         "contributors:generate": "all-contributors generate"
     },

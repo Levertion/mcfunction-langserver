@@ -21,9 +21,6 @@
         "strict-boolean-expressions": false,
         "no-object-literal-type-assertion": false,
         "no-unsafe-any": false,
-        "restrict-plus-operands": false,
-        "trailing-comma": false,
-        "prefer-function-over-method": false,
-        "no-void-expression": false
+        "restrict-plus-operands": false
     }
 }

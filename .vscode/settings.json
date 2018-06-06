@@ -3,7 +3,7 @@
     // Code Style                            //
     //=======================================//
     // Automatic Code Cleaning
-    "editor.formatOnSave": true,
+    //"editor.formatOnSave": true,
     "tslint.autoFixOnSave": true,
     // Consistent finalNewLine
     "files.insertFinalNewline": true,
