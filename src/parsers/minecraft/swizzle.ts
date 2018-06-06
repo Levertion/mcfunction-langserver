@@ -16,8 +16,8 @@ const DUPLICATE = new CommandErrorBuilder(
     "Duplicate character '%s'"
 );
 
-export class SwizzleParser implements Parser {
-    public parse(reader: StringReader) {
+export const parser: Parser = {
+    parse: (reader: StringReader) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const arr = reader.readUnquotedString().split("");
@@ -51,4 +51,4 @@ export class SwizzleParser implements Parser {
             return helper.succeed();
         }
     }
-}
+};
