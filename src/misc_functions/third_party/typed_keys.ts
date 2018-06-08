@@ -5,5 +5,5 @@
  * @param o The object to get the keys of.
  */
 export function typed_keys<O>(o: O): Array<keyof O> {
-  return Object.keys(o) as Array<keyof O>;
+    return Object.keys(o) as Array<keyof O>;
 }

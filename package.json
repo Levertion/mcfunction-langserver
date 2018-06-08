@@ -10,7 +10,7 @@
         "compile": "tsc -p tsconfig.json",
         "lint": "tslint --project .",
         "precommit": "pretty-quick --staged",
-        "prettier": "prettier --config .prettierrc **/*.{ts,json}",
+        "prettier": "prettier **/*.{ts,json}",
         "prettier:write": "npm run prettier -- --write",
         "contributors:add": "all-contributors add",
         "contributors:generate": "all-contributors generate"
