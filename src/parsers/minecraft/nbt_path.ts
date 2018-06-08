@@ -19,8 +19,8 @@ const badChar = new CommandErrorBuilder(
     "Bad character '%s'"
 );
 
-export class NBTPathParser implements Parser {
-    public parse(reader: StringReader): ReturnedInfo<undefined> {
+export const parser: Parser = {
+    parse: (reader: StringReader): ReturnedInfo<undefined> => {
         const helper = new ReturnHelper();
         const out: string[] = [];
         const highlight: HighlightScope[] = [];
@@ -107,4 +107,4 @@ export class NBTPathParser implements Parser {
         helper.addActions(...actionFromScopes(highlight));
         return helper.addErrors() ? helper.fail() : helper.succeed();
     }
-}
+};
