@@ -1,16 +1,16 @@
 import * as assert from "assert";
 import { StringReader } from "../../../brigadier_components/string_reader";
-import { SwizzleParser } from "../../../parsers/minecraft/swizzle";
-import { Suggestion } from "../../../types";
+import { parser } from "../../../parsers/minecraft/swizzle";
+import { ParserInfo, Suggestion } from "../../../types";
 
-const parser = new SwizzleParser();
+const prop: ParserInfo = {} as ParserInfo;
 
 describe("Swizzle", () => {
     describe("parse()", () => {
         ["z", "yx", "xyz"].forEach(v =>
             it(`should not fail when parsing ${v}`, () => {
                 const reader = new StringReader(v);
-                const out = parser.parse(reader);
+                const out = parser.parse(reader, prop);
                 assert.ok(out.kind);
             })
         );
@@ -19,7 +19,7 @@ describe("Swizzle", () => {
                 v[0]
             }`, () => {
                 const reader = new StringReader(v[0]);
-                const out = parser.parse(reader);
+                const out = parser.parse(reader, prop);
                 if (out.kind) {
                     assert.fail("Did not throw an error");
                 } else {
@@ -41,7 +41,7 @@ describe("Swizzle", () => {
                 v[0]
             }`, () => {
                 const reader = new StringReader(v[0]);
-                const out = parser.parse(reader);
+                const out = parser.parse(reader, prop);
                 if (out.kind) {
                     assert.fail("Did not throw an error");
                 } else {
@@ -60,7 +60,10 @@ describe("Swizzle", () => {
             ["xyz", ["xyz"]]
         ].forEach(v =>
             it(`should return correct suggestion for ${v[0]}`, () => {
-                const arg = parser.parse(new StringReader(v[0] as string));
+                const arg = parser.parse(
+                    new StringReader(v[0] as string),
+                    prop
+                );
                 const out = arg.suggestions as Suggestion[];
                 assert.ok(
                     out
