@@ -7,15 +7,15 @@ import * as path from "path";
  * @param sep The path seperator to use (allows for testing).
  */
 export function calculateDataFolder(
-  fileLocation: string,
-  sep: string = path.sep
+    fileLocation: string,
+    sep: string = path.sep
 ): string | undefined {
-  const packToSearch = `${sep}datapacks${sep}`;
-  let packsFolderIndex = fileLocation.lastIndexOf(packToSearch);
-  if (packsFolderIndex !== -1) {
-    packsFolderIndex += packToSearch.length; // Note: lastIndexOf returns the position of the start.
-    return fileLocation.substring(0, packsFolderIndex);
-  } else {
-    return undefined;
-  }
+    const packToSearch = `${sep}datapacks${sep}`;
+    let packsFolderIndex = fileLocation.lastIndexOf(packToSearch);
+    if (packsFolderIndex !== -1) {
+        packsFolderIndex += packToSearch.length; // Note: lastIndexOf returns the position of the start.
+        return fileLocation.substring(0, packsFolderIndex);
+    } else {
+        return undefined;
+    }
 }

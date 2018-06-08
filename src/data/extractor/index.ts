@@ -32,20 +32,20 @@ const mkdtmpAsync = promisify(fs.mkdtemp);
  * - Return the data
  */
 export async function collectGlobalData(
-  currentversion: string = ""
+    currentversion: string = ""
 ): Promise<GlobalData> {
-  if (mcLangSettings.data.enabled) {
-    const javaPath = await checkJavaPath();
-    const dir = await mkdtmpAsync(path.join(tmpdir(), "mcfunction"));
-    const jarInfo = await getPathToJar(dir, currentversion);
-    const datadir = await runGenerator(javaPath, dir, jarInfo.jarPath);
-    mcLangLog("Generator Finished");
-    const data = await collectData(jarInfo.version, datadir);
-    await cacheData(data);
-    return data;
-  } else {
-    throw new Error(
-      "Data Obtainer disabled in settings. To obtain data automatically, please enable it."
-    );
-  }
+    if (mcLangSettings.data.enabled) {
+        const javaPath = await checkJavaPath();
+        const dir = await mkdtmpAsync(path.join(tmpdir(), "mcfunction"));
+        const jarInfo = await getPathToJar(dir, currentversion);
+        const datadir = await runGenerator(javaPath, dir, jarInfo.jarPath);
+        mcLangLog("Generator Finished");
+        const data = await collectData(jarInfo.version, datadir);
+        await cacheData(data);
+        return data;
+    } else {
+        throw new Error(
+            "Data Obtainer disabled in settings. To obtain data automatically, please enable it."
+        );
+    }
 }
