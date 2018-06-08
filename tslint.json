@@ -21,7 +21,6 @@
         "no-object-literal-type-assertion": false,
         "no-unsafe-any": false,
         "restrict-plus-operands": false,
-        "indent": [true, "spaces", 4],
         "no-void-expression": [true, "ignore-arrow-function-shorthand"]
     }
 }
