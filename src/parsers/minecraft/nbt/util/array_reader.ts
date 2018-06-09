@@ -6,23 +6,23 @@ export class ArrayReader {
         this.arr = arr;
     }
 
-    public end() {
+    public end(): boolean {
         return this.index === this.arr.length;
     }
 
-    public getArray() {
+    public getArray(): string[] {
         return this.arr;
     }
 
-    public getIndex() {
+    public getIndex(): number {
         return this.index;
     }
 
-    public getRead() {
+    public getRead(): string[] {
         return this.arr.slice(0, this.index);
     }
 
-    public insert(val: string[], index: number = 0) {
+    public insert(val: string[], index: number = 0): void {
         this.arr = [
             ...this.arr.slice(0, index),
             ...val,
@@ -30,19 +30,19 @@ export class ArrayReader {
         ];
     }
 
-    public peek() {
+    public peek(): string {
         return this.arr[this.index];
     }
 
-    public read() {
+    public read(): string {
         return this.arr[this.index++];
     }
 
-    public setIndex(val: number) {
+    public setIndex(val: number): void {
         this.index = val;
     }
 
-    public skip() {
+    public skip(): void {
         this.index++;
     }
 }

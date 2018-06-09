@@ -15,7 +15,7 @@ import {
     NBTErrorData,
     scopeChar
 } from "../util/nbt_util";
-import { NBTTag } from "./nbt_tag";
+import { NBTTag, ParseReturn } from "./nbt_tag";
 
 const NO_KEY = new CommandErrorBuilder(
     "argument.nbt.compound.nokey",
@@ -31,7 +31,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
 
     private readonly keyPos: number[][] = [];
 
-    public parse(reader: StringReader) {
+    public parse(reader: StringReader): ParseReturn {
         const start = reader.cursor;
         const helper = new ReturnHelper();
         const compStart = reader.expect(COMPOUND_START);

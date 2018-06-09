@@ -2,12 +2,12 @@ import { StringReader } from "../../../../brigadier_components/string_reader";
 import { actionFromScope } from "../../../../highlight/highlight_util";
 import { ReturnHelper } from "../../../../misc_functions";
 import { scopeChar } from "../util/nbt_util";
-import { NBTTag } from "./nbt_tag";
+import { NBTTag, ParseReturn } from "./nbt_tag";
 
 export class NBTTagString extends NBTTag<string> {
     public tagType: "string" = "string";
 
-    public parse(reader: StringReader) {
+    public parse(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const quoted = reader.canRead() && reader.peek() === '"';
         const start = reader.cursor;

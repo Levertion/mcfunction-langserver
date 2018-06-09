@@ -14,7 +14,7 @@ import {
     scopeChar
 } from "../util/nbt_util";
 import { NBTTagInt } from "./int_tag";
-import { NBTTag } from "./nbt_tag";
+import { NBTTag, ParseReturn } from "./nbt_tag";
 
 export const INT_ARRAY_PREFIX = "I";
 
@@ -32,7 +32,7 @@ const EXCEPTIONS = {
 export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
     public tagType: "int_array" = "int_array";
 
-    public parse(reader: StringReader) {
+    public parse(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const arrstart = reader.expect(

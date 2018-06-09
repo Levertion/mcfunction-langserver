@@ -14,7 +14,7 @@ import {
     NBTErrorData,
     scopeChar
 } from "../util/nbt_util";
-import { NBTTag } from "./nbt_tag";
+import { NBTTag, ParseReturn } from "./nbt_tag";
 
 const MIXED = new CommandErrorBuilder(
     "argument.nbt.list.mixed",
@@ -28,7 +28,7 @@ const NOVAL = new CommandErrorBuilder(
 export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
     public tagType: "list" = "list";
 
-    public parse(reader: StringReader) {
+    public parse(reader: StringReader): ParseReturn {
         const start = reader.cursor;
         const helper = new ReturnHelper();
         const listStart = reader.expect(LIST_START);

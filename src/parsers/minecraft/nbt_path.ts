@@ -105,6 +105,6 @@ export const parser: Parser = {
             start
         });
         helper.addActions(...actionFromScopes(highlight));
-        return helper.addErrors() ? helper.fail() : helper.succeed();
+        return helper.hasErrors() ? helper.fail() : helper.succeed();
     }
 };

@@ -14,7 +14,7 @@ import {
     scopeChar
 } from "../util/nbt_util";
 import { NBTTagByte } from "./byte_tag";
-import { NBTTag } from "./nbt_tag";
+import { NBTTag, ParseReturn } from "./nbt_tag";
 
 export const BYTE_ARRAY_PREFIX = "B";
 
@@ -32,7 +32,7 @@ const EXCEPTIONS = {
 export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
     public tagType: "byte_array" = "byte_array";
 
-    public parse(reader: StringReader) {
+    public parse(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const arrstart = reader.expect(
@@ -122,7 +122,7 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
         return helper.succeed(CorrectLevel.YES);
     }
 
-    public tagEq(tag: NBTTag<any>) {
+    public tagEq(tag: NBTTag<any>): boolean {
         if (tag.tagType !== this.tagType) {
             return false;
         }

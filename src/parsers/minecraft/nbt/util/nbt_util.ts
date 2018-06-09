@@ -40,18 +40,18 @@ export const scopeChar = (end: number, scopes: string[]) => ({
     start: end - 1
 });
 
-export function expectAndScope(
+export const expectAndScope = (
     reader: StringReader,
     str: string,
     scopes: string[],
     data: NBTErrorData
-) {
+) => {
     const exp = reader.expect(str);
     if (!isSuccessful(exp)) {
         return new ReturnHelper().failWithData(data);
     }
     return new ReturnHelper().succeed(scopeChar(reader.cursor, scopes));
-}
+};
 
 export function parseIntNBT(reader: StringReader): ReturnedInfo<number> {
     const helper = new ReturnHelper();
@@ -113,7 +113,7 @@ export function addSuggestionsToHelper(
     node: NBTNode,
     helper: ReturnHelper,
     reader: StringReader
-) {
+): void {
     if (!!node.suggestions) {
         const sugg = node.suggestions;
         if (!!sugg) {

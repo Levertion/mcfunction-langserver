@@ -2,14 +2,14 @@ import { StringReader } from "../../../../brigadier_components/string_reader";
 import { actionFromScope } from "../../../../highlight/highlight_util";
 import { ReturnHelper } from "../../../../misc_functions";
 import { CorrectLevel, parseIntNBT, scopeChar } from "../util/nbt_util";
-import { NBTTag } from "./nbt_tag";
+import { NBTTag, ParseReturn } from "./nbt_tag";
 
 export const SHORT_TAG_SUFFIX = "s";
 
 export class NBTTagShort extends NBTTag<number> {
     public tagType: "short" = "short";
 
-    public parse(reader: StringReader) {
+    public parse(reader: StringReader): ParseReturn {
         const start = reader.cursor;
         const readInt = parseIntNBT(reader);
         const helper = new ReturnHelper();
