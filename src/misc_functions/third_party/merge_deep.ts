@@ -10,7 +10,6 @@ type AnyDict = Dictionary<any>;
 
 /**
  * Simple object check.
- * @param item
  */
 export function isObject(item: any): item is AnyDict {
     return item && typeof item === "object" && !Array.isArray(item);
