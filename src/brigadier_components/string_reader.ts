@@ -77,11 +77,11 @@ export class StringReader {
      */
     public expect(str: string): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
-        if (str.startsWith(this.getRemaining())) {
-            helper.addSuggestions({ text: str, start: this.cursor });
-        }
         const sub = this.string.substr(this.cursor, str.length);
         if (sub !== str) {
+            if (str.startsWith(this.getRemaining())) {
+                helper.addSuggestions({ text: str, start: this.cursor });
+            }
             return helper.fail(
                 EXCEPTIONS.EXPECTED_SYMBOL.create(
                     this.cursor,
