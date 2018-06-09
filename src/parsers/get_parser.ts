@@ -10,7 +10,10 @@ const implementedParsers: { [id: string]: string } = {
     "brigadier:bool": "./brigadier/bool",
     "brigadier:float": "./brigadier/float",
     "brigadier:integer": "./brigadier/integer",
-    "brigadier:string": "./brigadier/string"
+    "brigadier:string": "./brigadier/string",
+    "minecraft:nbt": "./minecraft/nbt",
+    "minecraft:nbt_path": "./minecraft/nbt_path",
+    "minecraft:swizzle": "./minecraft/swizzle"
 };
 
 export function getParser(node: CommandNode): Parser | undefined {
