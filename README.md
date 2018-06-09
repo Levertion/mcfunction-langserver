@@ -3,7 +3,7 @@
 [![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 [![Build Status](https://travis-ci.org/Levertion/mcfunction-langserver.svg?branch=master)](https://travis-ci.org/Levertion/mcfunction-langserver)
-[![Greenkeeper badge](https://badges.greenkeeper.io/Levertion/mcfunction-langserver.svg)](https://greenkeeper.io/)
+[![Renovate enabled](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovateapp.com/)
 
 This is a language server which provides support for Minecraft function (`.mcfunction`) files.
 
