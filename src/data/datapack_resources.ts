@@ -11,11 +11,6 @@ import { Datapack, MinecraftResource, NamespaceData } from "./types";
 const readDirAsync = promisify(fs.readdir);
 const readFileAsync = promisify(fs.readFile);
 const statAsync = promisify(fs.stat);
-const existsAsync = promisify<string, boolean>((location, cb) => {
-    fs.stat(location, result => {
-        cb(undefined as any, !result);
-    });
-});
 //#endregion
 interface ResourceInfo<U = string> {
     extension: string;
@@ -51,13 +46,10 @@ export async function getNamespaceResources(
             continue;
         }
         const dataContents = path.join(namespaceFolder, ...resourceInfo.path);
-        if (
-            resourceInfo.path.length > 1 &&
-            !(await existsAsync(dataContents))
-        ) {
+        const files = await walkDir(dataContents);
+        if (files.length === 0) {
             continue;
         }
-        const files = await walkDir(dataContents);
         const nameSpaceContents = result[type] || [];
         for (const file of files) {
             const realExtension = path.extname(file);
