@@ -38,7 +38,7 @@ export function parseTag(
     let correctness: CorrectLevel = 0;
     let correctPlace: number = reader.cursor;
 
-    let lastResult: ParseReturn;
+    let lastResult: ParseReturn | undefined;
     const helper = new ReturnHelper();
 
     const start = reader.cursor;
