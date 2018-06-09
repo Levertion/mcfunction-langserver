@@ -1,79 +1,57 @@
-/*
 import { StringReader } from "../../../brigadier_components/string_reader";
-import { HighlightScope } from "../../../highlight/highlight_util";
-import { Parser, ParserInfo, SubAction, SuggestResult } from "../../../types";
+import { ReturnHelper } from "../../../misc_functions";
+import { ContextPath, resolvePaths } from "../../../misc_functions/context";
+import { Parser, ReturnedInfo } from "../../../types";
 import { NBTWalker } from "./doc_walker";
 import { NBTTagCompound } from "./tag/compound_tag";
-import { NBTTag } from "./tag/nbt_tag";
-import { NBTHoverAction } from "./util/nbt_util";
+import { addSuggestionsToHelper } from "./util/nbt_util";
 
-export interface NBTContextData {
-    type: "entity" | "block" | "item";
-    id: string;
+type CtxPathFunc = (args: string[]) => NBTContextData;
+
+interface NBTContextData {
+    id?: string;
+    type: "entity" | "item" | "block";
 }
 
-function getRealActions(actions: NBTHoverAction[], root: NBTTag<any>, context?: NBTContextData): SubAction[] {
-    return actions.map((v) => ({
-        data: typeof v.data === "string" ? v.data : v.data(v.path || [], root, context),
-        high: v.end,
-        low: v.start,
-        type: "hover",
-    } as SubAction));
-}
+const paths: Array<ContextPath<CtxPathFunc>> = [
+    {
+        data: () => ({
+            type: "entity"
+        }),
+        path: ["data", "merge", "entity", "target", "nbt"]
+    }
+];
 
-export class NBTParser implements Parser {
-    // @ts-ignore
-    public parse(reader: StringReader, properties: ParserInfo, context?: ContextInformation) {
-        const contData = context ? context.handlerInfo as NBTContextData : undefined;
-        try {
-            const tag = new NBTTagCompound({});
-            tag.parse(reader);
-            return {
-                actions: getRealActions(tag.getHover(), tag, contData),
-                highlight: tag.getHighlight().map(
-                    (v) => ({
-                        end: v.end,
-                        scopes: typeof v.scopes === "string" ? [v.scopes] : v.scopes,
-                        start: v.start,
-                    }) as HighlightScope,
-                ),
-                successful: true,
-            };
-        } catch (e) {
-            const ex = e as NBTError;
+export function parseNBT(
+    reader: StringReader,
+    data?: NBTContextData
+): ReturnedInfo<undefined> {
+    const helper = new ReturnHelper();
+    const tag = new NBTTagCompound({});
+    const reply = tag.parse(reader);
 
-            return {
-                actions: !!ex.data ? (ex.data.parsed ?
-                    getRealActions(ex.data.parsed.getHover(), ex.data.parsed, contData)
-                    : undefined) : [],
-                errors: [ex.error],
-                successful: false,
-            };
+    if (helper.merge(reply)) {
+        // Parsing is complete and nothing can be added
+    } else {
+        if (!!data) {
+            const walker = new NBTWalker(
+                reply.data.parsed || new NBTTagCompound({})
+            );
+            const node = walker.getFinalNode(
+                [data.type, data.id || "none"].concat(reply.data.path || [])
+            );
+            if (!!node) {
+                addSuggestionsToHelper(node, helper, reader);
+            }
         }
     }
-    // @ts-ignore (no properties)
-    public getSuggestions(text: string, properties: ParserInfo, context?: ContextInformation): SuggestResult[] {
-        if (context === undefined) {
-            return [];
-        }
-        const contData = context.handlerInfo as NBTContextData;
-        const reader = new StringReader(text);
-        const parsed = new NBTTagCompound({});
-        let ex: NBTError | undefined;
-        try {
-            parsed.parse(reader);
-        } catch (e) {
-            ex = e as NBTError;
-        }
-        if (ex === undefined) {
-            return [];
-        }
-        const walker = new NBTWalker(parsed);
-        const node = walker.getFinalNode([contData.type, contData.id].concat(ex.data.path || []));
-        if (node !== undefined) {
-            //
-        }
-        return [];
-    }
+    return helper.hasErrors() ? helper.fail() : helper.succeed();
 }
-*/
+
+export const parser: Parser = {
+    parse: (reader, prop) => {
+        const ctxdatafn = resolvePaths(paths, prop.path || []);
+        const data = !ctxdatafn ? undefined : ctxdatafn([]);
+        return parseNBT(reader, data);
+    }
+};

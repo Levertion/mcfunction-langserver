@@ -87,13 +87,12 @@ export class NBTWalker {
             .split("/")
             .filter(v => v !== "");
         const fragReader = new ArrayReader(fragPath);
+        const nextPath = path.resolve(node.currentPath, node.ref);
         const newNode = JSON.parse(
-            fs.readFileSync(path.resolve(node.currentPath, node.ref)).toString()
+            fs.readFileSync(nextPath).toString()
         ) as NBTNode;
+        newNode.currentPath = path.dirname(nextPath);
         const evalNode = this.getNextNode(newNode, fragReader);
-        if (evalNode === undefined) {
-            return undefined;
-        }
         return evalNode;
     }
 
@@ -129,8 +128,12 @@ export class NBTWalker {
             }
         } else if (isRootNode(node)) {
             if (next in node.children) {
+                const nextNode = node.children[next];
                 arr.skip();
-                return this.getNextNode(node.children[next], arr);
+                if (!nextNode.currentPath) {
+                    nextNode.currentPath = node.currentPath;
+                }
+                return this.getNextNode(nextNode, arr);
             } else {
                 for (const k of Object.keys(node.children)) {
                     if (k.startsWith("$")) {
@@ -142,7 +145,11 @@ export class NBTWalker {
                                 .toString()
                         ) as ValueList;
                         if (vals.indexOf(next) !== -1) {
-                            return this.getNextNode(node.children[k], arr);
+                            const nextNode = node.children[k];
+                            if (!nextNode.currentPath) {
+                                nextNode.currentPath = node.currentPath;
+                            }
+                            return this.getNextNode(nextNode, arr);
                         }
                     }
                 }

@@ -11,7 +11,7 @@ import { NBTTagInt } from "./tag/int_tag";
 import { NBTTagList } from "./tag/list_tag";
 import { NBTTagLongArray } from "./tag/long_array_tag";
 import { NBTTagLong } from "./tag/long_tag";
-import { NBTTag } from "./tag/nbt_tag";
+import { NBTTag, ParseReturn } from "./tag/nbt_tag";
 import { NBTTagShort } from "./tag/short_tag";
 import { NBTTagString } from "./tag/string_tag";
 import { CorrectLevel, NBTErrorData } from "./util/nbt_util";
@@ -38,8 +38,7 @@ export function parseTag(
     let correctness: CorrectLevel = 0;
     let correctPlace: number = reader.cursor;
 
-    let lastSuccess: ReturnSuccess<CorrectLevel> | undefined;
-    let lastErr: ReturnFailure<NBTErrorData> | undefined;
+    let lastResult: ParseReturn;
     const helper = new ReturnHelper();
 
     const start = reader.cursor;
@@ -48,26 +47,35 @@ export function parseTag(
         reader.cursor = start;
         const out = p.parse(reader);
         // @ts-ignore
-        if (
-            isSuccessful(out) &&
-            (correctTag === undefined || out.data > correctness)
-        ) {
-            correctTag = p;
-            correctness = out.data as CorrectLevel;
-            correctPlace = reader.cursor;
-            lastSuccess = out as ReturnSuccess<CorrectLevel>;
+        if (isSuccessful(out)) {
+            if (out.data > correctness) {
+                lastResult = out;
+                correctPlace = reader.cursor;
+                correctness = out.data;
+                correctTag = p;
+            }
         } else {
-            lastErr = out as ReturnFailure<NBTErrorData>;
+            if (out.data.correct > correctness) {
+                lastResult = out;
+                correctPlace = reader.cursor;
+                correctness = out.data.correct;
+            }
         }
     }
-    if (lastErr === undefined || lastSuccess === undefined) {
+    // @ts-ignore
+    if (lastResult === undefined) {
         return new ReturnHelper().failWithData({ correct: correctness });
     }
-    if (correctTag !== undefined) {
-        reader.cursor = correctPlace;
-        helper.merge(lastSuccess);
-        return helper.succeed(correctTag);
+    if (helper.merge(lastResult)) {
+        if (correctTag === undefined) {
+            // This should never happen
+            return helper.failWithData({ correct: correctness });
+        } else {
+            reader.cursor = correctPlace;
+            return helper.succeed(correctTag);
+        }
+    } else {
+        helper.merge(lastResult);
+        return helper.failWithData(lastResult.data);
     }
-    helper.merge(lastErr);
-    return helper.failWithData(lastErr.data);
 }

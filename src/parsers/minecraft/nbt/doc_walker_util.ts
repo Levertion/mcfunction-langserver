@@ -48,12 +48,18 @@ export interface ListNode extends NodeBase {
 export interface CompoundNode extends NodeBase {
     child_ref: string[];
     children: { [key: string]: NBTNode };
-    type: "compound" | "root";
+    type: "compound";
+}
+
+export interface RootNode extends NodeBase {
+    children: { [key: string]: NBTNode };
+    type: "root";
 }
 
 export type NBTNode =
     | NoPropertyNode
     | CompoundNode
+    | RootNode
     | ListNode
     | RefNode
     | FunctionNode;
@@ -85,7 +91,7 @@ export function isFunctionNode(node: NBTNode): node is FunctionNode {
 
 export function isTypedNode(
     node: NBTNode
-): node is NoPropertyNode | CompoundNode | ListNode {
+): node is NoPropertyNode | CompoundNode | ListNode | RootNode {
     return "type" in node;
 }
 
@@ -93,7 +99,7 @@ export function isCompoundNode(node: NBTNode): node is CompoundNode {
     return isTypedNode(node) && node.type === "compound";
 }
 
-export function isRootNode(node: NBTNode): node is CompoundNode {
+export function isRootNode(node: NBTNode): node is RootNode {
     return isTypedNode(node) && node.type === "root";
 }
 
