@@ -3,6 +3,7 @@ import { CompletionItemKind } from "vscode-languageserver";
 import { BlankCommandError, CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
 import { CommandNodePath, Datapack, GlobalData } from "./data/types";
+import { HighlightScope } from "./misc_functions";
 
 //#region Document
 export interface FunctionInfo {
@@ -110,10 +111,10 @@ export interface StoredParseResult {
 interface SubActionBase<U extends string, T> extends DataInterval<T> {
     type: U;
 }
-
 export type SubAction =
     | SubActionBase<"hover", string>
-    | SubActionBase<"format", string>;
+    | SubActionBase<"format", string>
+    | SubActionBase<"highlight", HighlightScope>;
 // | SubActionBase<"rename", RenameRequest>;
 //#endregion
 export type Success = true;
