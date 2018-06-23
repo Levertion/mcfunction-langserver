@@ -1,5 +1,5 @@
 import { CompletionItemKind } from "vscode-languageserver";
-import { ReturnHelper } from "../misc_functions";
+import { actionFromScope, ReturnHelper } from "../misc_functions";
 import { Parser } from "../types";
 
 const parser: Parser = {
@@ -19,6 +19,13 @@ const parser: Parser = {
             if (reader.string.substring(begin, end) === literal) {
                 reader.cursor = end;
                 if (reader.peek() === " " || !reader.canRead()) {
+                    helper.addActions(
+                        actionFromScope({
+                            end: reader.cursor,
+                            scopes: ["argument", "literal"],
+                            start: begin
+                        })
+                    );
                     return helper.succeed();
                 }
             }
