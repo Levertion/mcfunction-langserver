@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { StringReader } from "../../../../../brigadier_components/string_reader";
-import { HighlightScope } from "../../../../../highlight/highlight_util";
+import { HighlightScope } from "../../../../../misc_functions";
 import { NBTTagCompound } from "../../../../../parsers/minecraft/nbt/tag/compound_tag";
 import { equalValue } from "../../../../../util";
 

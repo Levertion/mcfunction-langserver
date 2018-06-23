@@ -2,9 +2,9 @@ import { CommandErrorBuilder } from "../../../../brigadier_components/errors";
 import { StringReader } from "../../../../brigadier_components/string_reader";
 import {
     actionFromScope,
-    actionFromScopes
-} from "../../../../highlight/highlight_util";
-import { ReturnHelper } from "../../../../misc_functions";
+    actionFromScopes,
+    ReturnHelper
+} from "../../../../misc_functions";
 import { ReturnedInfo } from "../../../../types";
 import { parseTag } from "../tag_parser";
 import {

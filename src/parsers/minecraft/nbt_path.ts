@@ -2,9 +2,10 @@ import { CommandErrorBuilder } from "../../brigadier_components/errors";
 import { StringReader } from "../../brigadier_components/string_reader";
 import {
     actionFromScopes,
-    HighlightScope
-} from "../../highlight/highlight_util";
-import { ReturnHelper, returnSwitch } from "../../misc_functions";
+    HighlightScope,
+    ReturnHelper,
+    returnSwitch
+} from "../../misc_functions";
 import { Parser, ReturnedInfo } from "../../types";
 import { NBTWalker } from "./nbt/doc_walker";
 import { NBTTagCompound } from "./nbt/tag/compound_tag";

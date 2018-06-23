@@ -1,6 +1,5 @@
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import { actionFromScope } from "../../../../highlight/highlight_util";
-import { ReturnHelper } from "../../../../misc_functions";
+import { actionFromScope, ReturnHelper } from "../../../../misc_functions";
 import { CorrectLevel, parseFloatNBT, scopeChar } from "../util/nbt_util";
 import { NBTTag, ParseReturn } from "./nbt_tag";
 

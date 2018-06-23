@@ -3,7 +3,7 @@ import { CompletionItemKind } from "vscode-languageserver";
 import { BlankCommandError, CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
 import { CommandNodePath, Datapack, GlobalData } from "./data/types";
-import { HighlightScope } from "./highlight/highlight_util";
+import { HighlightScope } from "./misc_functions";
 
 //#region Document
 export interface FunctionInfo {
