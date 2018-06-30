@@ -1,10 +1,4 @@
-import { SubAction } from "../types";
-
-export interface HighlightScope {
-    end: number;
-    scopes: string[];
-    start: number;
-}
+import { HighlightScope, SubAction } from "../types";
 
 export function actionFromScopes(scopes: HighlightScope[]): SubAction[] {
     return scopes.map<SubAction>(actionFromScope);
@@ -12,7 +6,7 @@ export function actionFromScopes(scopes: HighlightScope[]): SubAction[] {
 
 export function actionFromScope(scope: HighlightScope): SubAction {
     return {
-        data: scope,
+        data: scope.scopes,
         high: scope.end,
         low: scope.start,
         type: "highlight"
