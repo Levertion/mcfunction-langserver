@@ -41,11 +41,7 @@ describe("literalArgumentParser", () => {
                     out.actions.filter(v => v.type === "highlight"),
                     [
                         {
-                            data: {
-                                end: 4,
-                                scopes: ["argument", "literal"],
-                                start: 0
-                            },
+                            data: ["argument", "literal"],
                             high: 4,
                             low: 0,
                             type: "highlight"
