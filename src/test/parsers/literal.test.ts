@@ -18,7 +18,8 @@ describe("literalArgumentParser", () => {
                     defined(literalArgumentParser.parse(reader, properties)),
                     true,
                     [],
-                    ["test"]
+                    ["test"],
+                    1
                 );
                 assert.strictEqual(reader.cursor, 4);
             });
@@ -28,9 +29,25 @@ describe("literalArgumentParser", () => {
                     defined(literalArgumentParser.parse(reader, properties)),
                     true,
                     [],
-                    []
+                    [],
+                    1
                 );
                 assert.strictEqual(reader.cursor, 4);
+            });
+            it("should return the correct highlight data", () => {
+                const reader = new StringReader("test");
+                const out = literalArgumentParser.parse(reader, properties);
+                assert.deepStrictEqual(
+                    out.actions.filter(v => v.type === "highlight"),
+                    [
+                        {
+                            data: ["argument", "literal"],
+                            high: 4,
+                            low: 0,
+                            type: "highlight"
+                        }
+                    ]
+                );
             });
         });
         describe("literal not matching", () => {
