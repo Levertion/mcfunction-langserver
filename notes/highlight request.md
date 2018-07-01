@@ -2,19 +2,9 @@
 
 request command: `mcfunction/highlightRange`
 
-request flow: Client -> Server -> Client
+request flow: Server -> Client
 
-Request data:
-
-```ts
-{
-    document: //Document: I forget what the TS type is
-    startLine: number,
-    endLine: number
-}
-```
-
-Response data:
+Information data:
 
 ```ts
 {
