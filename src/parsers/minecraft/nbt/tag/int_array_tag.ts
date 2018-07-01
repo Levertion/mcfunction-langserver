@@ -1,7 +1,10 @@
 import { CommandErrorBuilder } from "../../../../brigadier_components/errors";
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import { actionFromScope, actionFromScopes } from "../../../../misc_functions";
-import { ReturnHelper } from "../../../../misc_functions";
+import {
+    actionFromScope,
+    actionFromScopes,
+    ReturnHelper
+} from "../../../../misc_functions";
 import {
     ARRAY_END,
     ARRAY_PREFIX_SEP,
