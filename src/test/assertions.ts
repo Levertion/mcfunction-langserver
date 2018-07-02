@@ -59,10 +59,10 @@ export interface ReturnAssertionInfo {
     actions?: SubAction[];
     errors?: ErrorInfo[];
     numActions?: number;
+    numMisc?: number;
     start?: number;
     succeeds: boolean;
     suggestions?: SuggestedOption[];
-    numMisc?: number;
 }
 
 export function returnAssert<T>(
@@ -70,11 +70,11 @@ export function returnAssert<T>(
     {
         errors = [],
         numActions = 0,
+        numMisc = 0,
         start = 0,
         succeeds,
         suggestions = [],
-        actions,
-        numMisc = 0
+        actions
     }: ReturnAssertionInfo
 ): actual is ReturnSuccess<T> {
     if (isSuccessful(actual) === succeeds) {
