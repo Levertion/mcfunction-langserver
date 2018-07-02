@@ -6,6 +6,7 @@ import {
     CompletionList,
     createConnection,
     Diagnostic,
+    DidChangeWatchedFilesNotification,
     IPCMessageReader,
     IPCMessageWriter,
     TextDocumentSyncKind
@@ -17,15 +18,16 @@ import { readSecurity } from "./data/cache_management";
 import { DataManager } from "./data/manager";
 import {
     actOnSecurity,
-    calculateDataFolder,
     commandErrorToDiagnostic,
+    isSuccessful,
+    parseDataPath,
     runChanges,
     securityIssues,
     setup_logging,
     splitLines
 } from "./misc_functions/";
 import { parseDocument, parseLines } from "./parse";
-import { FunctionInfo, WorkspaceSecurity } from "./types";
+import { FunctionInfo, MiscInfo, WorkspaceSecurity } from "./types";
 
 const connection = createConnection(
     new IPCMessageReader(process),
@@ -35,9 +37,8 @@ connection.listen();
 
 //#region Data Storage
 let manager: DataManager;
-const documents: {
-    [url: string]: FunctionInfo;
-} = {};
+const documents: Map<string, FunctionInfo> = new Map();
+const fileErrors = new Map<string, { [group: string]: string }>();
 // Avoids race condition between parsing after change and getting completions
 const parseCompletionEvents = new EventEmitter();
 let security: Promise<WorkspaceSecurity>;
@@ -46,10 +47,10 @@ let started = false;
 let starting = false;
 //#endregion
 
-// For Server Startup logic, see:
-// Https://github.com/Microsoft/language-server-protocol/issues/246
+// For Server Startup logic, see: https://github.com/Microsoft/language-server-protocol/issues/246
 connection.onInitialize(() => {
     setup_logging(connection);
+
     manager = new DataManager();
     return {
         capabilities: {
@@ -76,8 +77,8 @@ connection.onDidChangeConfiguration(async params => {
     await ensureSecure(params.settings);
     const reparseall = () => {
         for (const uri in documents) {
-            if (documents.hasOwnProperty(uri)) {
-                const doc = documents[uri];
+            if (documents.has(uri)) {
+                const doc = documents.get(uri) as FunctionInfo;
                 parseDocument(doc, manager, parseCompletionEvents, uri);
                 sendDiagnostics(uri);
             }
@@ -89,7 +90,7 @@ connection.onDidChangeConfiguration(async params => {
             started = true;
             reparseall();
         }
-        const getDataResult = await manager.getGlobalData();
+        const getDataResult = await manager.loadGlobalData();
         if (getDataResult === true) {
             started = true;
             reparseall();
@@ -128,22 +129,41 @@ async function ensureSecure(settings: {
 
 connection.onDidOpenTextDocument(params => {
     const uri = params.textDocument.uri;
-    const dataPackRoot = calculateDataFolder(uri);
+    const dataPackSegments = parseDataPath(uri);
     const parsethis = () => {
-        parseDocument(documents[uri], manager, parseCompletionEvents, uri);
-        sendDiagnostics(uri);
+        // Sanity check
+        if (documents.has(uri)) {
+            parseDocument(
+                documents.get(uri) as FunctionInfo,
+                manager,
+                parseCompletionEvents,
+                uri
+            );
+            sendDiagnostics(uri);
+        }
     };
-    documents[uri] = {
-        datapack_root: dataPackRoot,
-        lines: splitLines(params.textDocument.text)
-    };
-    if (!!dataPackRoot) {
+    documents.set(uri, {
+        lines: splitLines(params.textDocument.text),
+        pack_segments: dataPackSegments
+    });
+    if (!!dataPackSegments) {
         manager
-            .readPackFolderData(dataPackRoot)
-            .then(() => {
+            .readPackFolderData(dataPackSegments.packsFolder)
+            .then(first => {
+                if (isSuccessful(first)) {
+                    connection.client.register(
+                        DidChangeWatchedFilesNotification.type,
+                        {
+                            watchers: [
+                                { globPattern: `${dataPackSegments}**/*` }
+                            ]
+                        }
+                    );
+                }
                 if (started && documents.hasOwnProperty(uri)) {
                     parsethis();
                 }
+                handleMiscInfo(first.misc);
             })
             .catch(e => {
                 mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
@@ -156,21 +176,16 @@ connection.onDidOpenTextDocument(params => {
 
 connection.onDidChangeTextDocument(params => {
     const uri = params.textDocument.uri;
-    const changedlines = runChanges(params, documents[uri]);
+    const document = documents.get(uri) as FunctionInfo;
+    const changedlines = runChanges(params, document);
     if (started) {
-        parseLines(
-            documents[uri],
-            manager,
-            parseCompletionEvents,
-            uri,
-            changedlines
-        );
+        parseLines(document, manager, parseCompletionEvents, uri, changedlines);
         sendDiagnostics(uri);
     }
 });
 
 function sendDiagnostics(uri: string): void {
-    const doc = documents[uri];
+    const doc = documents.get(uri) as FunctionInfo;
     const diagnostics: Diagnostic[] = [];
     for (let line = 0; line < doc.lines.length; line++) {
         const lineContent = doc.lines[line];
@@ -191,12 +206,65 @@ connection.onDidCloseTextDocument(params => {
         diagnostics: [],
         uri: params.textDocument.uri
     });
-    // tslint:disable-next-line:no-dynamic-delete
-    delete documents[params.textDocument.uri];
+    documents.delete(params.textDocument.uri);
 });
 
+connection.onDidChangeWatchedFiles(async e => {
+    const result = await manager.handleChanges(e);
+    handleMiscInfo(result.misc);
+});
+
+function handleMiscInfo(miscInfos: MiscInfo[]): void {
+    const changedFileErrors = new Set<string>();
+    for (const misc of miscInfos) {
+        if (misc.kind === "FileError") {
+            changedFileErrors.add(misc.filePath);
+            const value = fileErrors.get(misc.filePath);
+            if (value) {
+                fileErrors.set(misc.filePath, {
+                    ...value,
+                    group: misc.message
+                });
+            } else {
+                fileErrors.set(misc.filePath, {
+                    group: misc.message
+                });
+            }
+        }
+        if (misc.kind === "ClearError") {
+            changedFileErrors.add(misc.filePath);
+            const group = misc.group;
+            if (group) {
+                const value = fileErrors.get(misc.filePath);
+                if (value) {
+                    const { group: _, ...rest } = value;
+                    fileErrors.set(misc.filePath, { ...rest });
+                }
+            } else {
+                fileErrors.delete(misc.filePath);
+            }
+        }
+    }
+    for (const uri of changedFileErrors) {
+        const value = fileErrors.get(uri);
+        if (value) {
+            const diagnostics: Diagnostic[] = [];
+            for (const group of Object.keys(value)) {
+                diagnostics.push({
+                    message: value[group],
+                    range: {
+                        end: { line: 0, character: 0 },
+                        start: { line: 0, character: 0 }
+                    }
+                });
+            }
+            connection.sendDiagnostics({ uri, diagnostics });
+        }
+    }
+}
+
 connection.onCompletion(params => {
-    const doc = documents[params.textDocument.uri];
+    const doc = documents.get(params.textDocument.uri) as FunctionInfo;
     const line = doc.lines[params.position.line];
     const computeCompletionsLocal = () =>
         computeCompletions(

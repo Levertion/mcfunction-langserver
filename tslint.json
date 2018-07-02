@@ -4,13 +4,7 @@
         "interface-name": [true, "never-prefix"],
         "no-floating-promises": true,
         "typedef": {
-            "options": [
-                "array-destructuring",
-                "call-signature",
-                "object-destructuring",
-                "parameter",
-                "property-declaration"
-            ]
+            "options": ["call-signature", "parameter", "property-declaration"]
         },
         "no-magic-numbers": false,
         "completed-docs": false,

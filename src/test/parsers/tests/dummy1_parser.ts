@@ -6,9 +6,9 @@ import { Parser } from "../../../types";
  * Do not attempt to use an actual command tree using this.
  */
 const parser: Parser = {
-    parse: (reader, node) => {
-        const helper = new ReturnHelper();
-        const num: number = (node.node_properties.number as number) || 3;
+    parse: (reader, props) => {
+        const helper = new ReturnHelper(props);
+        const num: number = (props.node_properties.number as number) || 3;
         helper.addSuggestions("hello");
         helper.addSuggestion(
             Math.min(Math.floor(num / 2), reader.string.length),

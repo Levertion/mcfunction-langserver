@@ -1,13 +1,10 @@
 import { CompletionItemKind } from "vscode-languageserver";
-import { Parser, ReturnedInfo } from "../../types";
+import { prepareForParser } from "../../misc_functions";
+import { Parser } from "../../types";
 
 const parser: Parser = {
     kind: CompletionItemKind.Keyword,
-    parse: reader => {
-        const result = reader.readBoolean();
-        result.data = undefined;
-        return result as ReturnedInfo<undefined>;
-    }
+    parse: (reader, props) => prepareForParser(reader.readBoolean(), props)
 };
 
 export = parser;

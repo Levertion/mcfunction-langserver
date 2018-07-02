@@ -8,6 +8,7 @@ import {
     runChanges
 } from "../../misc_functions/lsp_conversions";
 import { FunctionInfo } from "../../types";
+import { pack_segments } from "../blanks";
 
 describe("Language Server Conversions (Misc)", () => {
     describe("commandErrorToDiagnostic()", () => {
@@ -41,7 +42,7 @@ describe("Language Server Conversions (Misc)", () => {
     });
     describe("Run Changes", () => {
         const dummyFunctionInfo = {
-            datapack_root: "test"
+            pack_segments
         };
         const dummyDoc: VersionedTextDocumentIdentifier = {
             uri: "test",

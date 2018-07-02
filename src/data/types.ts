@@ -3,23 +3,17 @@
  */
 //#region Namespace
 export interface NamespacedName {
-    namespace: string;
+    namespace?: string;
     path: string;
 }
 
-export interface ExactName extends NamespacedName {
-    /**
-     * Whether the namespace was explicitly specified
-     */
-    exact: boolean;
-}
 //#endregion
 export interface GlobalData {
     blocks: BlocksPropertyInfo;
     commands: CommandTree;
     items: string[];
     meta_info: { version: string };
-    resources: NamespaceData;
+    resources: Resources;
 }
 
 //#region Command Tree
@@ -82,16 +76,36 @@ export type AvailableItems = string[];
 
 //#region Resources
 export interface Datapack {
-    namespaces: {
-        [name: string]: NamespaceData;
-    };
-    path: string;
+    data: Resources;
+    id: DataPackID;
+    mcmeta?: McmetaFile;
 }
 
-export interface MinecraftResource {
-    resource_name: NamespacedName;
+export interface McmetaFile {
+    pack?: { description?: string; pack_format?: number };
 }
-export interface NamespaceData {
+
+export type DataPackID = number;
+
+export interface PacksInfo {
+    location: string;
+    packnamesmap: { [name: string]: DataPackID };
+    packs: { [packID: number]: Datapack };
+}
+
+export interface LocalData extends PacksInfo {
+    current: DataPackID;
+}
+
+export interface MinecraftResource extends NamespacedName {
+    /**
+     * The datapack this resource is related to.
+     * If undefined, must be the vanilla datapack
+     */
+    pack?: DataPackID;
+}
+
+export interface Resources {
     advancements?: MinecraftResource[];
     block_tags?: MinecraftResource[];
     function_tags?: MinecraftResource[];

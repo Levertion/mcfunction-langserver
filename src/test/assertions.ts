@@ -1,8 +1,102 @@
-import { AssertionError, strictEqual } from "assert";
-import { CommandError, isCommandError } from "../brigadier_components/errors";
+import { AssertionError, equal, strictEqual } from "assert";
+import { CommandError } from "../brigadier_components/errors";
+import { StringReader } from "../brigadier_components/string_reader";
 import { NamespacedName } from "../data/types";
 import { isSuccessful, namespacesEqual } from "../misc_functions";
-import { ReturnedInfo, ReturnSuccess, SuggestResult } from "../types";
+import { typed_keys } from "../misc_functions/third_party/typed_keys";
+import {
+    CE,
+    ContextChange,
+    Parser,
+    ParserInfo,
+    ReturnedInfo,
+    ReturnSuccess,
+    SubAction,
+    SuggestResult
+} from "../types";
+import { blankproperties } from "./blanks";
+
+export type TestParserInfo = Pick<
+    ParserInfo,
+    "context" | "data" | "node_properties" | "path"
+>;
+
+export const testParser = (parser: Parser) => (
+    data: Partial<TestParserInfo> = {}
+) => (
+    text: string,
+    expected: ReturnAssertionInfo
+): [ReturnedInfo<ContextChange | undefined>, StringReader] => {
+    let cursorPos: number;
+    {
+        const reader = new StringReader(text);
+        const result = parser.parse(reader, {
+            ...blankproperties,
+            ...data,
+            suggesting: true
+        });
+        returnAssert(result, {
+            start: expected.start,
+            succeeds: expected.succeeds,
+            suggestions: expected.suggestions
+        }); // There should be no non-suggestions when suggesting
+        cursorPos = reader.cursor;
+    }
+    {
+        const reader = new StringReader(text);
+        const result = parser.parse(reader, {
+            ...blankproperties,
+            ...data,
+            suggesting: false
+        });
+        returnAssert(result, { ...expected, suggestions: [] }); // There should be no suggestions when not suggesting
+        equal(reader.cursor, cursorPos);
+        return [result, reader];
+    }
+};
+
+export interface ReturnAssertionInfo {
+    actions?: SubAction[];
+    errors?: ErrorInfo[];
+    numActions?: number;
+    numMisc?: number;
+    start?: number;
+    succeeds: boolean;
+    suggestions?: SuggestedOption[];
+}
+
+export function returnAssert<T>(
+    actual: ReturnedInfo<T, CE, any>,
+    {
+        errors = [],
+        numActions = 0,
+        numMisc = 0,
+        start = 0,
+        succeeds,
+        suggestions = [],
+        actions
+    }: ReturnAssertionInfo
+): actual is ReturnSuccess<T> {
+    if (isSuccessful(actual) === succeeds) {
+        assertErrors(errors, actual.errors);
+        assertSuggestions(suggestions, actual.suggestions, start);
+        if (actions) {
+            assertMembers(actual.actions, actions, (expected, real) =>
+                typed_keys(expected).every(k => real[k] === expected[k])
+            );
+        } else {
+            strictEqual(actual.actions.length, numActions);
+        }
+        strictEqual(actual.misc.length, numMisc);
+    } else {
+        throw new AssertionError({
+            message: `Expected value given to ${
+                succeeds ? "succeed" : "fail"
+            }, but it didn't. Value is: '${JSON.stringify(actual)}'`
+        });
+    }
+    return true;
+}
 
 /**
  * Information about a single expected error
@@ -18,79 +112,31 @@ export interface ErrorInfo {
 /**
  * Ensures that the right errors from `expected` are in `realErrors`s
  * @param expected The errors which are expected
- * @param realErrors The actual errors
+ * @param actual The actual errors
  */
 export function assertErrors(
     expected: ErrorInfo[],
-    realErrors: CommandError[] | undefined
+    actual: CommandError[] | undefined
 ): void {
-    if (!!realErrors) {
-        if (expected.length < realErrors.length) {
-            throw new AssertionError({
-                message: `Too many errors were given. Actual errors were: '${JSON.stringify(
-                    realErrors
-                )}'`
-            });
-        }
-        if (expected.length > realErrors.length) {
-            throw new AssertionError({
-                message: `Too few errors were given. Actual errors were: '${JSON.stringify(
-                    realErrors
-                )}'`
-            });
-        }
-        for (const info of expected) {
-            const index = realErrors.findIndex(v => errorMatches(info, v));
-            if (index === -1) {
-                throw new AssertionError({
-                    message: `Expected errors to contain an error with code '${
-                        info.code
-                    }' and range ${info.range.start}...${
-                        info.range.end
-                    }, but none met this. The errors were ${JSON.stringify(
-                        realErrors
-                    )}`
-                });
-            }
-            realErrors.splice(index, 1);
-        }
-    } else if (expected.length > 0) {
-        throw new AssertionError({
-            message: "Expected an array of errors, got none"
-        });
-    }
+    assertMembers(
+        actual,
+        expected,
+        errorMatches,
+        info =>
+            `Expected errors to contain an error with code '${
+                info.code
+            }' and range ${info.range.start}...${
+                info.range.end
+            }, but none met this. The errors were ${JSON.stringify(actual)}`
+    );
 }
 
-/**
- * Creates a function which confirms whether or not a passed value is a matching error to `expected`.
- *
- * This is designed to be used in `assert.throws`.
- * @param expected The data about the expected error
- */
-export function thrownErrorAssertion(
-    expected: ErrorInfo
-): (error: any) => true {
-    return (error: any) => {
-        if (isCommandError(error)) {
-            if (errorMatches(expected, error)) {
-                return true; // Allows assert.throws to pass
-            } else {
-                throw new AssertionError({
-                    message: `Expected error with code '${
-                        expected.code
-                    } and range ${expected.range.start}...${
-                        expected.range.end
-                    }', but got '${JSON.stringify(error)}'`
-                });
-            }
-        } else {
-            throw new AssertionError({
-                message: `Got an error which isn't a command error: ${JSON.stringify(
-                    error
-                )} `
-            });
-        }
-    };
+function errorMatches(error: CommandError, expected: ErrorInfo): boolean {
+    return (
+        expected.code === error.code &&
+        expected.range.start === error.range.start &&
+        expected.range.end === error.range.end
+    );
 }
 
 /**
@@ -115,91 +161,53 @@ export function assertSuggestions(
     actual: SuggestResult[] | undefined,
     start: number = 0
 ): void {
-    if (!!actual) {
-        if (expected.length > actual.length) {
-            throw new AssertionError({
-                message: `Too many suggestions were given. Actual suggestions were: '${JSON.stringify(
-                    actual
-                )}'`
-            });
-        }
-        if (expected.length < actual.length) {
-            throw new AssertionError({
-                message: `Too few suggestions were given. Actual suggestions were: '${JSON.stringify(
-                    actual
-                )}'`
-            });
-        }
-        for (const expectation of expected) {
+    assertMembers(
+        actual,
+        expected,
+        (suggestion, expectation) => {
             const [startText, position]: [string, number] =
                 typeof expectation === "string"
                     ? [expectation, start]
                     : [expectation.text, expectation.start];
-            const index = actual.findIndex(v => {
-                if (typeof v === "string") {
-                    return position === 0 && v === startText;
-                } else {
-                    return v.text === startText && v.start === position;
-                }
-            });
-            if (index === -1) {
-                throw new AssertionError({
-                    message: `Expected suggestions to contain a suggestion starting with text '${startText}' at position ${position}, but this was not found: got ${JSON.stringify(
-                        actual
-                    )} instead`
-                });
+            if (typeof suggestion === "string") {
+                return position === 0 && suggestion === startText;
+            } else {
+                return (
+                    suggestion.text === startText &&
+                    suggestion.start === position
+                );
             }
-            actual.splice(index, 1);
+        },
+        expectation => {
+            const [startText, position]: [string, number] =
+                typeof expectation === "string"
+                    ? [expectation, start]
+                    : [expectation.text, expectation.start];
+            return `Expected suggestions to contain a suggestion starting with text '${startText}' at position ${position}, but this was not found: got ${JSON.stringify(
+                actual
+            )} instead`;
         }
-    } else if (expected.length > 0) {
-        throw new AssertionError({
-            message: "Expected an array of suggestions, got none"
-        });
-    }
-}
-
-function errorMatches(expected: ErrorInfo, error: CommandError): boolean {
-    return (
-        expected.code === error.code &&
-        expected.range.start === error.range.start &&
-        expected.range.end === error.range.end
     );
 }
 
 export function assertNamespaces(
     expected: NamespacedName[],
-    actual: NamespacedName[]
+    actual: NamespacedName[] | undefined
 ): void {
-    const results = actual.slice();
-    for (const expectation of expected) {
-        let found = false;
-        for (let i = 0; i < results.length; i++) {
-            const element = results[i];
-            if (namespacesEqual(element, expectation)) {
-                found = true;
-                results.splice(i, 1);
-                break;
-            }
-        }
-        if (!found) {
-            throw new AssertionError({
-                message: `Expected to find a path with namespace '${
-                    expectation.namespace
-                }' and path ${expectation.path}, but none matched`
-            });
-        }
-    }
-    if (results.length > 0) {
-        throw new AssertionError({
-            message: `Remaining paths are ${results
-                .map(v => JSON.stringify(v))
-                .join()}`
-        });
-    }
+    assertMembers(
+        actual,
+        expected,
+        namespacesEqual,
+        expectation =>
+            `Expected to find a path with namespace '${
+                expectation.namespace
+            }' and path ${expectation.path}, but none matched`
+    );
 }
 
+/* 
 export function assertReturn<T>(
-    val: ReturnedInfo<T>,
+    val: ReturnedInfo<T, CE, any>,
     shouldSucceed: boolean,
     errors: ErrorInfo[] = [],
     suggestions: Array<SuggestionInfo | string> = [],
@@ -225,13 +233,46 @@ export function assertReturn<T>(
         });
     }
 }
-
-export function defined<T>(val: T | undefined): T {
+ */
+export function unwrap<T>(val: T | undefined): T {
     if (val === undefined) {
         throw new AssertionError({
             actual: val,
-            message: "Expected not to be defined"
+            message: "Expected value to be defined"
         });
     }
     return val;
+}
+
+export function assertMembers<T, U>(
+    actual: T[] | undefined,
+    expected: U[],
+    func: (v1: T, v2: U) => boolean,
+    name: (val: U) => string = v => `Expected member for '${JSON.stringify(v)}'`
+): void {
+    if (typeof actual !== "undefined") {
+        strictEqual(
+            actual.length,
+            expected.length,
+            `Expected ${expected.length} members, got ${
+                actual.length
+            }: '${JSON.stringify(actual)}'`
+        );
+        outer: for (const member of expected) {
+            for (const toTest of actual) {
+                if (func(toTest, member)) {
+                    continue outer;
+                }
+            }
+            throw new AssertionError({ message: name(member) });
+        }
+    } else {
+        if (expected.length !== 0) {
+            throw new AssertionError({
+                message: `Expected array with ${
+                    expected.length
+                } members, got undefined`
+            });
+        }
+    }
 }

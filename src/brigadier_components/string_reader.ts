@@ -146,11 +146,23 @@ export class StringReader {
                 EXCEPTIONS.EXPECTED_FLOAT.create(start, this.string.length)
             );
         }
+
+        // The Java readInt throws upon multiple `.`s, but Javascript's doesn't
+
+        if ((readToTest.match(/\./g) || []).length > 1) {
+            return helper.fail(
+                EXCEPTIONS.INVALID_FLOAT.create(
+                    start,
+                    this.cursor,
+                    this.string.substring(start, this.cursor)
+                )
+            );
+        }
         try {
             return helper.succeed(parseFloat(readToTest));
         } catch (error) {
             return helper.fail(
-                EXCEPTIONS.EXPECTED_INT.create(start, this.cursor, readToTest)
+                EXCEPTIONS.INVALID_FLOAT.create(start, this.cursor, readToTest)
             );
         }
     }
@@ -168,7 +180,8 @@ export class StringReader {
                 EXCEPTIONS.EXPECTED_INT.create(start, this.string.length)
             );
         }
-        // The Java readInt crashes upon a `.`, but the regex includes one in brigadier
+        // The Java readInt throws upon a `.`, but the regex includes one in brigadier
+        // This handles this case
         if (readToTest.indexOf(".") !== -1) {
             return helper.fail(
                 EXCEPTIONS.INVALID_INT.create(

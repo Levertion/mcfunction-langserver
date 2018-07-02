@@ -23,7 +23,8 @@
         "Minecraft"
     ],
     "prettier": {
-        "tabWidth": 4
+        "tabWidth": 4,
+        "proseWrap": "always"
     },
     "dependencies": {
         "node-interval-tree": "^1.3.3",

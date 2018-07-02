@@ -3,7 +3,7 @@ import { Parser } from "../../types";
 
 const parser: Parser = {
     parse: (reader, properties) => {
-        const helper = new ReturnHelper();
+        const helper = new ReturnHelper(properties);
         switch (properties.node_properties.type) {
             case "greedy":
                 reader.cursor = reader.string.length;

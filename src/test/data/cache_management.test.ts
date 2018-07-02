@@ -9,7 +9,6 @@ import { promisify } from "util";
 
 import * as cache from "../../data/cache_management";
 import { GlobalData } from "../../data/types";
-import {} from "../logging_setup";
 
 const rimrafAsync = promisify(rimraf);
 
