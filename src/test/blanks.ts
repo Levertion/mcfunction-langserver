@@ -1,3 +1,4 @@
+import { GlobalData } from "../data/types";
 import { PackLocationSegments } from "../misc_functions";
 import { CommmandData } from "../types";
 import { ReturnAssertionInfo, TestParserInfo } from "./assertions";
@@ -20,4 +21,12 @@ export const blankproperties: TestParserInfo = {
     data: {} as CommmandData,
     node_properties: {},
     path: ["test"]
+};
+
+export const emptyGlobal: GlobalData = {
+    blocks: {},
+    commands: { type: "root" },
+    items: [],
+    meta_info: { version: "" },
+    resources: {}
 };

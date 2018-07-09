@@ -17,6 +17,8 @@ const NAMESPACEEXCEPTIONS = {
     )
 };
 
+const allowedPath = /[^a-z0-9_.-]/g;
+
 export function readNamespaceText(reader: StringReader): string {
     const namespaceChars = /^[0-9a-z_:/\.-]$/;
     return reader.readWhileRegexp(namespaceChars);
@@ -43,26 +45,20 @@ export function namespaceStart(
     }
 }
 
-/**
- * Parse a namespace from a reader out of options
- * Returns the parsed namespace if parses correctly
- * doesn't add an error for non-option namespace
- */
 export function parseNamespace(
-    reader: StringReader,
-    options: NamespacedName[],
-    suggesting: boolean
-): ReturnedInfo<NamespacedName, CE, NamespacedName | undefined> {
+    reader: StringReader
+): ReturnedInfo<NamespacedName> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const text = readNamespaceText(reader);
     const namespace = convertToNamespace(text);
-    const expr = /[^a-z0-9_.-]/g;
     let next: RegExpExecArray | null;
     let failed = false;
+    // Give an error for each invalid character
     do {
-        next = expr.exec(namespace.path);
+        next = allowedPath.exec(namespace.path);
         if (next) {
+            // Relies on the fact that convertToNamespace splits on the first
             const i = text.indexOf(":") + 1 + next.index + start;
             failed = true;
             helper.addErrors(
@@ -72,19 +68,45 @@ export function parseNamespace(
     } while (next);
     if (failed) {
         return helper.fail();
-    }
-    let successful = false;
-    for (const val of options) {
-        if (namespacesEqual(val, namespace)) {
-            successful = true;
-        }
-        if (suggesting && !reader.canRead() && namespaceStart(val, namespace)) {
-            helper.addSuggestions({ start, text: stringifyNamespace(val) });
-        }
-    }
-    if (successful) {
-        return helper.succeed(namespace);
     } else {
-        return helper.failWithData(namespace);
+        return helper.succeed(namespace);
+    }
+}
+
+interface OptionResult<T> {
+    literal: NamespacedName;
+    values: T[];
+}
+
+export function parseNamespaceOption<T extends NamespacedName>(
+    reader: StringReader,
+    options: T[]
+): ReturnedInfo<OptionResult<T>, CE, NamespacedName | undefined> {
+    const helper = new ReturnHelper();
+    const start = reader.cursor;
+    const namespace = parseNamespace(reader);
+    const results: T[] = [];
+    if (helper.merge(namespace)) {
+        for (const val of options) {
+            if (namespacesEqual(val, namespace.data)) {
+                results.push(val);
+            }
+            if (!reader.canRead() && namespaceStart(val, namespace.data)) {
+                helper.addSuggestions({
+                    start,
+                    text: stringifyNamespace(val)
+                });
+            }
+        }
+        if (results.length > 0) {
+            return helper.succeed<OptionResult<T>>({
+                literal: namespace.data,
+                values: results
+            });
+        } else {
+            return helper.failWithData(namespace.data);
+        }
+    } else {
+        return helper.failWithData(undefined);
     }
 }

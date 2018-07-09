@@ -4,7 +4,7 @@ import { getPacksInfo } from "../../data/datapack_resources";
 import { Datapack, MinecraftResource, PacksInfo } from "../../data/types";
 import { typed_keys } from "../../misc_functions/third_party/typed_keys";
 import { assertMembers, assertNamespaces, returnAssert } from "../assertions";
-import { succeeds } from "../blanks";
+import { emptyGlobal } from "../blanks";
 
 // Tests are run from within the lib folder, but data is in the root
 const rootFolder = path.join(__dirname, "..", "..", "..", "test_data");
@@ -16,36 +16,34 @@ describe("Datapack Resource Testing", () => {
                 data: {
                     function_tags: [{ namespace: "minecraft", path: "tick" }],
                     functions: [
-                        {
-                            namespace: "test_namespace",
-                            path: "function"
-                        }
+                        { namespace: "test_namespace", path: "function" }
                     ]
                 },
                 id: 0,
                 mcmeta: {
                     pack: { pack_format: 3, description: "test datapack" }
-                }
+                },
+                name: "ExampleDatapack"
             },
             ExampleDatapack2: {
                 data: {
                     functions: [
-                        {
-                            namespace: "test_namespace",
-                            path: "function"
-                        }
+                        { namespace: "test_namespace", path: "function" }
                     ]
                 },
                 id: 1,
                 mcmeta: {
                     pack: { pack_format: 3, description: "test datapack 2" }
-                }
+                },
+                name: "ExampleDatapack2"
             }
         };
         const result = await getPacksInfo(
-            path.join(rootFolder, "test_world", "datapacks")
+            path.join(rootFolder, "test_world", "datapacks"),
+            emptyGlobal
         );
-        returnAssert(result, succeeds);
+        returnAssert(result, { succeeds: true, numMisc: 4 });
+        assert(result.misc.every(v => v.kind === "ClearError"));
         assertPacksInfo(result.data, datapacks, expected);
     });
 });
