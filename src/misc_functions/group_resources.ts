@@ -42,7 +42,7 @@ export function getResourcesSplit<
     return results as T[];
 }
 
-export function getNamespaces<T extends NamespacedName>(
+export function getMatching<T extends NamespacedName>(
     resources: T[],
     value: T
 ): T[] {

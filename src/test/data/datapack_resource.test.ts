@@ -42,7 +42,7 @@ describe("Datapack Resource Testing", () => {
             path.join(rootFolder, "test_world", "datapacks"),
             emptyGlobal
         );
-        returnAssert(result, { succeeds: true, numMisc: 4 });
+        returnAssert(result, { succeeds: true, numMisc: 5 });
         assert(result.misc.every(v => v.kind === "ClearError"));
         assertPacksInfo(result.data, datapacks, expected);
     });

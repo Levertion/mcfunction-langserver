@@ -514,7 +514,46 @@ describe("string-reader", () => {
         });
     });
     describe("readOption", () => {
-        // TODO
+        it("should work properly", () => {
+            const reader = new StringReader("test");
+            const result = reader.readOption(["test", "other"]);
+            if (
+                returnAssert(result, {
+                    succeeds: true,
+                    suggestions: ["test"]
+                })
+            ) {
+                assert.equal(result.data, "test");
+            }
+        });
+        it("should give an error with an unknown value", () => {
+            const reader = new StringReader("test");
+            const result = reader.readOption(["nottest", "other"]);
+            if (
+                returnAssert(result, {
+                    errors: [
+                        {
+                            code: "parsing.expected.option",
+                            range: { start: 0, end: 4 }
+                        }
+                    ],
+                    succeeds: false
+                })
+            ) {
+                assert.equal(result.data, "test");
+            }
+        });
+        it("should not give an error when addError is false and there is an unknown value", () => {
+            const reader = new StringReader("test");
+            const result = reader.readOption(["nottest", "other"], false);
+            if (
+                returnAssert(result, {
+                    succeeds: false
+                })
+            ) {
+                assert.equal(result.data, "test");
+            }
+        });
     });
     describe("readWhileFunction()", () => {
         it("should not read the first character if the callback fails on it", () => {

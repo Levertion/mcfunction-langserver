@@ -10,7 +10,7 @@ import {
     Tag
 } from "../data/types";
 import { ReturnSuccess } from "../types";
-import { getNamespaces, getResourcesSplit } from "./group_resources";
+import { getMatching, getResourcesSplit } from "./group_resources";
 import { convertToNamespace } from "./namespace";
 import { readJSON } from "./promisified_fs";
 import { ReturnHelper } from "./returnhelper";
@@ -95,7 +95,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 packroot,
                 "function_tags",
                 getResourcesSplit("function_tags", globalData, packsInfo),
-                s => getNamespaces(functions, convertToNamespace(s)).length > 0
+                s => getMatching(functions, convertToNamespace(s)).length > 0
             );
         },
         path: ["tags", "functions"]
@@ -195,7 +195,7 @@ async function readTag(
                 !!tag.data.values,
                 filePath,
                 "InvalidTagNoValues",
-                "tag does not have a values tag"
+                `tag does not have a values key: ${JSON.stringify(tag.data)}`
             )
         ) {
             if (
@@ -203,7 +203,9 @@ async function readTag(
                     Array.isArray(tag.data.values),
                     filePath,
                     "InvalidTagValuesNotArray",
-                    "tag values is not an array"
+                    `tag values is not an array: ${JSON.stringify(
+                        tag.data.values
+                    )}`
                 )
             ) {
                 if (
@@ -212,7 +214,9 @@ async function readTag(
                         tag.data.values.every(v => typeof v === "string"),
                         filePath,
                         "InvalidTagValuesNotString",
-                        "tag values contains a non string value"
+                        `tag values contains a non string value: ${JSON.stringify(
+                            tag.data.values
+                        )}`
                     )
                 ) {
                     const seen = new Set<string>();
@@ -224,7 +228,7 @@ async function readTag(
                         }
                         seen.add(value);
                         if (value.startsWith(TAG_START)) {
-                            const result = getNamespaces(
+                            const result = getMatching(
                                 options,
                                 convertToNamespace(value)
                             );

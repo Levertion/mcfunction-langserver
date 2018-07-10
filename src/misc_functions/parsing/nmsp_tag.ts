@@ -31,6 +31,15 @@ interface TagParseResult {
     values?: MinecraftResource[];
 }
 
+/**
+ * Parse a namespace or tag.
+ * Returned:
+ *  - values are the resources which are the exact matches
+ *  - resolved are the lowest level tag members
+ *  - parsed is the literal tag. If parsed exists, but not resolved/values, then it was a non-tag
+ *  - if not successful, if data undefined then parsing failed.
+ *  - if data is a value, then a tag parsed but was unknown
+ */
 export function parseNamespaceOrTag(
     reader: StringReader,
     info: ParserInfo,
