@@ -1,5 +1,6 @@
 import * as assert from "assert";
 
+import { CommandErrorBuilder } from "../../../brigadier_components/errors";
 import { StringReader } from "../../../brigadier_components/string_reader";
 import { namespacesEqual } from "../../../misc_functions";
 import { parseNamespaceOrTag } from "../../../misc_functions/parsing/nmsp_tag";
@@ -47,13 +48,16 @@ const data: ParserInfo = {
     suggesting: false
 };
 
+const errorBuilder = new CommandErrorBuilder("test", "test");
+
 describe("parseNamespaceOrTag", () => {
     it("should allow a normal namespace to be parsed", () => {
         const reader = new StringReader("minecraft:stone");
-        const result = parseNamespaceOrTag(reader, {
-            ...blankproperties,
-            suggesting: false
-        });
+        const result = parseNamespaceOrTag(
+            reader,
+            { ...blankproperties, suggesting: false },
+            errorBuilder
+        );
         if (returnAssert(result, succeeds)) {
             assert(
                 namespacesEqual(result.data.parsed, {
@@ -65,10 +69,11 @@ describe("parseNamespaceOrTag", () => {
     });
     it("should give an error with an invalid namespace", () => {
         const reader = new StringReader("minecraft:fail:surplus");
-        const result = parseNamespaceOrTag(reader, {
-            ...blankproperties,
-            suggesting: false
-        });
+        const result = parseNamespaceOrTag(
+            reader,
+            { ...blankproperties, suggesting: false },
+            errorBuilder
+        );
         if (
             returnAssert(result, {
                 errors: [
@@ -91,13 +96,13 @@ describe("parseNamespaceOrTag", () => {
                 ...blankproperties,
                 suggesting: false
             },
-            undefined
+            errorBuilder
         );
         if (
             returnAssert(result, {
                 errors: [
                     {
-                        code: "argument.tags.notallowed",
+                        code: "test",
                         range: { start: 1, end: 14 }
                     }
                 ],

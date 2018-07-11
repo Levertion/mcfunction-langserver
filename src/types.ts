@@ -116,7 +116,8 @@ interface SubActionBase<U extends string, T> extends DataInterval<T> {
 
 export type SubAction =
     | SubActionBase<"hover", string>
-    | SubActionBase<"format", string>;
+    | SubActionBase<"format", string>
+    | SubActionBase<"source", string>;
 // | SubActionBase<"rename", RenameRequest>;
 //#endregion
 export type Success = true;

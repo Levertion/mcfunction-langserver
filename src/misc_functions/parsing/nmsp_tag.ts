@@ -3,12 +3,13 @@ import { StringReader } from "../../brigadier_components/string_reader";
 import { TAG_START } from "../../consts";
 import {
     DataResource,
-    MinecraftResource,
     NamespacedName,
+    PacksInfo,
     Resources,
     Tag
 } from "../../data/types";
-import { CE, ParserInfo, ReturnedInfo } from "../../types";
+import { CE, ParserInfo, ReturnedInfo, ReturnSuccess } from "../../types";
+import { buildPath } from "../datapack_folder";
 import { getResourcesofType } from "../group_resources";
 import { convertToNamespace, namespacesEqual } from "../namespace";
 import { ReturnHelper } from "../returnhelper";
@@ -18,17 +19,10 @@ import {
     readNamespaceText
 } from "./namespace";
 
-const EXCEPTIONS = {
-    no_tags: new CommandErrorBuilder(
-        "argument.tags.notallowed",
-        "Block tags are not allowed here"
-    )
-};
-
-interface TagParseResult {
+export interface TagParseResult {
     parsed: NamespacedName;
     resolved?: NamespacedName[];
-    values?: MinecraftResource[];
+    values?: Array<DataResource<Tag>>;
 }
 
 /**
@@ -43,16 +37,16 @@ interface TagParseResult {
 export function parseNamespaceOrTag(
     reader: StringReader,
     info: ParserInfo,
-    tagType?: keyof Resources
+    taghandling: keyof Resources | CommandErrorBuilder
 ): ReturnedInfo<TagParseResult, CE, NamespacedName | undefined> {
     const helper = new ReturnHelper(info);
     if (reader.peek() === TAG_START) {
         reader.skip();
         const tagStart = reader.cursor;
-        if (tagType) {
+        if (typeof taghandling === "string") {
             const tags: Array<DataResource<Tag>> = getResourcesofType(
                 info.data,
-                tagType
+                taghandling
             );
             const parsed = parseNamespaceOption(reader, tags);
             if (helper.merge(parsed)) {
@@ -71,12 +65,10 @@ export function parseNamespaceOrTag(
             }
         } else {
             readNamespaceText(reader);
-            return helper.fail(
-                EXCEPTIONS.no_tags.create(tagStart, reader.cursor)
-            );
+            return helper.fail(taghandling.create(tagStart, reader.cursor));
         }
     } else {
-        if (!reader.canRead() && tagType) {
+        if (!reader.canRead() && typeof taghandling === "string") {
             helper.addSuggestion(reader.cursor, TAG_START);
         }
         const parsed = parseNamespace(reader);
@@ -109,4 +101,37 @@ function getLowestForTag(
         }
     }
     return results;
+}
+
+export function buildTagActions(
+    tags: Array<DataResource<Tag>>,
+    low: number,
+    high: number,
+    localData?: PacksInfo
+): ReturnSuccess<void> {
+    const helper = new ReturnHelper();
+    for (const resource of tags) {
+        if (resource.data) {
+            helper.addActions({
+                data: `\`\`\`json
+${JSON.stringify(resource.data, undefined, 4)}
+\`\`\``,
+                high,
+                low,
+                type: "hover"
+            });
+        }
+        if (localData) {
+            const location = buildPath(resource, localData, "block_tags");
+            if (location) {
+                helper.addActions({
+                    data: location,
+                    high,
+                    low,
+                    type: "source"
+                });
+            }
+        }
+    }
+    return helper.succeed();
 }

@@ -179,6 +179,25 @@ export function getPath(
     );
 }
 
+export function buildPath(
+    resource: MinecraftResource,
+    packs: PacksInfo,
+    kind: keyof Resources,
+    path: PathModule = defaultPath
+): string | undefined {
+    if (resource.pack) {
+        const pack = packs.packs[resource.pack];
+        return getPath(
+            resource,
+            path.join(packs.location, pack.name),
+            kind,
+            path
+        );
+    } else {
+        return undefined;
+    }
+}
+
 async function readTag(
     resource: MinecraftResource,
     packRoot: string,
