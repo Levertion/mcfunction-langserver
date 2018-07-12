@@ -23,11 +23,7 @@ export class ArrayReader {
     }
 
     public insert(val: string[], index: number = 0): void {
-        this.arr = [
-            ...this.arr.slice(0, index),
-            ...val,
-            ...this.arr.slice(index)
-        ];
+        this.arr.splice(index, 0, ...val);
     }
 
     public peek(): string {
