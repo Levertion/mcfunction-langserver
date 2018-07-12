@@ -1,61 +1,42 @@
 import * as assert from "assert";
-import { StringReader } from "../../brigadier_components/string_reader";
 import * as literalArgumentParser from "../../parsers/literal";
-import { ParserInfo } from "../../types";
-import { assertReturn, defined } from "../assertions";
+import { testParser } from "../assertions";
+
+const literalTest = testParser(literalArgumentParser)({ path: ["test"] });
 
 describe("literalArgumentParser", () => {
-    const properties: ParserInfo = ({
-        node_properties: {},
-        path: ["test"],
-        suggesting: true
-    } as any) as ParserInfo;
     describe("parse()", () => {
         describe("literal correct", () => {
             it("should succeed, suggesting the string", () => {
-                const reader = new StringReader("test");
-                assertReturn(
-                    defined(literalArgumentParser.parse(reader, properties)),
-                    true,
-                    [],
-                    ["test"]
-                );
-                assert.strictEqual(reader.cursor, 4);
+                const result = literalTest("test", {
+                    succeeds: true,
+                    suggestions: ["test"]
+                });
+                assert.strictEqual(result[1].cursor, 4);
             });
             it("should set the cursor to after the string when it doesn't reach the end", () => {
-                const reader = new StringReader("test ");
-                assertReturn(
-                    defined(literalArgumentParser.parse(reader, properties)),
-                    true,
-                    [],
-                    []
-                );
-                assert.strictEqual(reader.cursor, 4);
+                const result = literalTest("test ", {
+                    succeeds: true
+                });
+                assert.strictEqual(result[1].cursor, 4);
             });
         });
         describe("literal not matching", () => {
             it("should fail when the first character doesn't match", () => {
-                const reader = new StringReader("nottest");
-                assertReturn(
-                    defined(literalArgumentParser.parse(reader, properties)),
-                    false
-                );
+                literalTest("fail ", {
+                    succeeds: false
+                });
             });
-            it("should throw an error when the last character doesn't match", () => {
-                const reader = new StringReader("tesnot");
-                assertReturn(
-                    defined(literalArgumentParser.parse(reader, properties)),
-                    false
-                );
+            it("should fail when the last character doesn't match", () => {
+                literalTest("tesnot", {
+                    succeeds: false
+                });
             });
             it("should suggest the string if the start is given", () => {
-                const reader = new StringReader("tes");
-                assertReturn(
-                    defined(literalArgumentParser.parse(reader, properties)),
-                    false,
-                    [],
-                    ["test"]
-                );
+                literalTest("tes", {
+                    succeeds: false,
+                    suggestions: ["test"]
+                });
             });
         });
     });

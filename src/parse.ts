@@ -8,8 +8,8 @@ import { DataManager } from "./data/manager";
 import {
     CommandNode,
     CommandNodePath,
-    Datapack,
-    GlobalData
+    GlobalData,
+    LocalData
 } from "./data/types";
 import {
     createParserInfo,
@@ -47,7 +47,7 @@ const parseExceptions = {
 export function parseCommand(
     text: string,
     globalData: GlobalData,
-    localData: Datapack[] | undefined
+    localData: LocalData | undefined
 ): StoredParseResult | void {
     if (text.length === 0 || text.startsWith(COMMENT_START)) {
         return undefined;
@@ -94,7 +94,7 @@ function parsechildren(
                 data,
                 context
             );
-            if (helper.merge(result, false)) {
+            if (helper.merge(result)) {
                 const newNode: ParseNode = {
                     context,
                     final: true,
@@ -188,14 +188,14 @@ function parseAgainstNode(
     context: CommandContext
 ): ReturnedInfo<NodeParseSuccess> {
     const parser = getParser(node);
-    const helper = new ReturnHelper();
+    const helper = new ReturnHelper(false);
     if (!!parser) {
         const result = parser.parse(
             reader,
             createParserInfo(node, data, path, context, false)
         );
         if (!!result) {
-            if (helper.merge(result, false)) {
+            if (helper.merge(result)) {
                 const newContext = { ...context, ...result.data };
                 return helper.succeed<NodeParseSuccess>({
                     max: reader.cursor,
@@ -225,11 +225,16 @@ export function parseLines(
 ): void {
     for (const lineNo of lines) {
         const line = document.lines[lineNo];
-        const result = parseCommand(
-            line.text,
-            data.globalData,
-            data.getPackFolderData(document.datapack_root)
-        );
+        const packsInfo = data.getPackFolderData(document.pack_segments);
+        let localData: LocalData | undefined;
+        if (packsInfo) {
+            localData = {
+                ...packsInfo,
+                // tslint:disable-next-line:no-non-null-assertion If packsinfo is defined, so is document.pack_segments
+                current: packsInfo.packnamesmap[document.pack_segments!.pack]
+            };
+        }
+        const result = parseCommand(line.text, data.globalData, localData);
         line.parseInfo = result ? result : false;
         emitter.emit(`${documentUri}:${lineNo}`);
     }

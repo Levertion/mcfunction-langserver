@@ -11,7 +11,7 @@ declare namespace NodeJS {
  */
 declare const mcLangSettings: McFunctionSettings;
 
-interface McFunctionSettings {
+interface McFunctionSettings extends LocalMcFunctionSettings {
     /**
      * Settings related to information tracking
      */
@@ -89,6 +89,20 @@ interface McFunctionSettings {
         [name: string]: string;
     };
 }
+
+interface LocalMcFunctionSettings {
+    packhandling: {
+        /**
+         * Error when there is an invalid extension
+         */
+        errorExtensions: boolean;
+        /**
+         * Additional extensions which are allowed
+         */
+        permittedExtensions: string[];
+    };
+}
+
 /**
  * Log a message to the console.
  *

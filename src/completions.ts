@@ -31,7 +31,7 @@ export function computeCompletions(
     }
     const commandData: CommmandData = {
         globalData: data.globalData,
-        localData: data.getPackFolderData(document.datapack_root)
+        localData: data.getPackFolderData(document.pack_segments)
     };
     const nodes = line.parseInfo ? line.parseInfo.nodes : [];
     if (nodes.length === 0) {

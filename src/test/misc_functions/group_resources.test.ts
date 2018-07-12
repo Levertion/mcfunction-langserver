@@ -7,46 +7,63 @@ const dummyData: CommmandData = {
         resources: {
             advancements: [
                 {
-                    resource_name: { namespace: "minecraft", path: "test" }
+                    namespace: "minecraft",
+                    path: "test"
                 }
-            ]
+            ],
+            functions: [{ namespace: "minecraft", path: "test2" }]
         }
     } as any,
-    localData: [
-        {
-            namespaces: {
-                test: {
+    localData: {
+        location: "",
+        packnamesmap: { testpack: 0, pack2: 1 },
+        packs: {
+            0: {
+                data: {
                     advancements: [
-                        { resource_name: { namespace: "test", path: "test" } },
                         {
-                            resource_name: {
-                                namespace: "test",
-                                path: "testfolder/testchild"
-                            }
-                        }
-                    ],
-                    functions: [
+                            namespace: "local",
+                            pack: 0,
+                            path: "test"
+                        },
                         {
-                            resource_name: {
-                                namespace: "test",
-                                path: "hello/test"
-                            }
+                            namespace: "local",
+                            pack: 0,
+                            path: "testfolder/testchild"
+                        },
+                        {
+                            namespace: "other",
+                            pack: 0,
+                            path: "secondtest"
                         }
                     ]
-                }
+                },
+                id: 0
             },
-            path: "/home/datapacks/testpack"
+            1: {
+                data: {
+                    advancements: [
+                        { namespace: "secondpath", path: "path", pack: 1 }
+                    ]
+                },
+                id: 1
+            }
         }
-    ]
+    }
 };
 
 describe("Group Resources (Misc)", () => {
     it("should collect the specified type of resource", () => {
         const result = getResourcesofType(dummyData, "advancements");
-        assertNamespaces(result.map(v => v.resource_name), [
-            { namespace: "minecraft", path: "test" },
-            { namespace: "test", path: "test" },
-            { namespace: "test", path: "testfolder/testchild" }
-        ]);
+        assertNamespaces(
+            [
+                { namespace: "minecraft", path: "test" },
+                { namespace: "local", path: "test" },
+                { namespace: "local", path: "testfolder/testchild" },
+                { namespace: "other", path: "secondtest" },
+                { namespace: "secondpath", path: "path" }
+            ],
+            result
+        );
     });
 });

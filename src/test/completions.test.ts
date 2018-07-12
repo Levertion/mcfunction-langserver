@@ -3,9 +3,10 @@ import { join } from "path";
 import { CompletionItemKind, CompletionList } from "vscode-languageserver";
 import { computeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
+import { pack_segments } from "./blanks";
 
-const data = new DataManager({
-    DummyGlobal: {
+const data = DataManager.newWithData(
+    {
         commands: {
             children: {
                 children: {
@@ -29,8 +30,8 @@ const data = new DataManager({
             type: "root"
         }
     } as any,
-    DummyPack: {}
-});
+    {}
+);
 
 describe("ComputeCompletions()", () => {
     before(() => {
@@ -50,7 +51,6 @@ describe("ComputeCompletions()", () => {
             0,
             15,
             {
-                datapack_root: "",
                 lines: [
                     {
                         parseInfo: {
@@ -68,7 +68,8 @@ describe("ComputeCompletions()", () => {
                         },
                         text: "skip nochildren"
                     }
-                ]
+                ],
+                pack_segments
             },
             data
         );
@@ -118,7 +119,6 @@ describe("ComputeCompletions()", () => {
             0,
             15,
             {
-                datapack_root: "",
                 lines: [
                     {
                         parseInfo: {
@@ -136,7 +136,8 @@ describe("ComputeCompletions()", () => {
                         },
                         text: "haschildren chi"
                     }
-                ]
+                ],
+                pack_segments
             },
             data
         );

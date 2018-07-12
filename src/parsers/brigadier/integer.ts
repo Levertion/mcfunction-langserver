@@ -18,7 +18,7 @@ const INTEGEREXCEPTIONS = {
 
 const parser: Parser = {
     parse: (reader, properties) => {
-        const helper = new ReturnHelper();
+        const helper = new ReturnHelper(properties);
         const start = reader.cursor;
         const result = reader.readInt();
         if (!helper.merge(result)) {
@@ -36,7 +36,7 @@ const parser: Parser = {
             JAVAMININT
         );
         if (result.data > max) {
-            return helper.fail(
+            helper.addErrors(
                 INTEGEREXCEPTIONS.TOOBIG.create(
                     start,
                     reader.cursor,
@@ -46,7 +46,7 @@ const parser: Parser = {
             );
         }
         if (result.data < min) {
-            return helper.fail(
+            helper.addErrors(
                 INTEGEREXCEPTIONS.TOOSMALL.create(
                     start,
                     reader.cursor,
