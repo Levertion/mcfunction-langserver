@@ -151,20 +151,22 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     }
     public merge<T>(
         merge: ReturnedInfo<T, Errorkind, any>,
-        suggestOverride?: boolean
+        blockSuggestions: boolean = false
     ): merge is ReturnSuccess<T, Errorkind> {
-        for (const val of [suggestOverride, this.suggesting]) {
-            if (typeof val === "boolean") {
-                if (val) {
+        if (typeof this.suggesting === "boolean") {
+            if (this.suggesting) {
+                if (!blockSuggestions) {
                     this.mergeSuggestions(merge);
-                } else {
-                    this.mergeSafe(merge);
                 }
-                return isSuccessful(merge);
+            } else {
+                this.mergeSafe(merge);
             }
+        } else {
+            if (!blockSuggestions) {
+                this.mergeSuggestions(merge);
+            }
+            this.mergeSafe(merge);
         }
-        this.mergeSuggestions(merge);
-        this.mergeSafe(merge);
         return isSuccessful(merge);
     }
 

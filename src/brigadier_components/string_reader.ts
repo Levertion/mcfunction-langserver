@@ -246,7 +246,7 @@ export class StringReader {
             quoted = true;
         }
         const result = this.readString();
-        if (!helper.merge(result, false)) {
+        if (!helper.merge(result, true)) {
             if (quoted && !this.canRead()) {
                 const remaining = this.string.substring(start + 1);
                 // Note that if there are quotes and backslashes, this will fail
