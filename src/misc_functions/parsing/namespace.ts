@@ -8,7 +8,7 @@ import { CommandErrorBuilder } from "../../brigadier_components/errors";
 import { StringReader } from "../../brigadier_components/string_reader";
 import { DEFAULT_NAMESPACE } from "../../consts";
 import { NamespacedName } from "../../data/types";
-import { CE, ReturnedInfo } from "../../types";
+import { CE, ReturnedInfo, Suggestion } from "../../types";
 
 const NAMESPACEEXCEPTIONS = {
     invalid_id: new CommandErrorBuilder(
@@ -43,6 +43,33 @@ export function namespaceStart(
             base.namespace === test.namespace && base.path.startsWith(test.path)
         );
     }
+}
+
+export function namespaceSuggestions(
+    options: NamespacedName[],
+    value: NamespacedName,
+    start: number
+): Suggestion[] {
+    const result: Suggestion[] = [];
+    for (const option of options) {
+        if (namespaceStart(option, value)) {
+            result.push({ text: stringifyNamespace(option), start });
+        }
+    }
+    return result;
+}
+
+export function namespaceSuggestionString(
+    options: string[],
+    value: NamespacedName,
+    start: number
+): Suggestion[] {
+    return namespaceSuggestions(
+        // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
+        options.map(v => convertToNamespace(v)),
+        value,
+        start
+    );
 }
 
 export function parseNamespace(

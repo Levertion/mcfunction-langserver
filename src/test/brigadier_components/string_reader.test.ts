@@ -348,6 +348,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, "");
+                assert.strictEqual(reader.cursor, 4);
             }
         });
         it("should throw an error if there is no opening quote", () => {
@@ -368,6 +369,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, "hello");
+                assert.strictEqual(reader.cursor, 7);
             }
         });
         it("should return an empty string when there is an empty quoted string", () => {
@@ -375,6 +377,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, "");
+                assert.strictEqual(reader.cursor, 2);
             }
         });
         it("should allow escaped quotes", () => {
@@ -382,6 +385,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, 'quote"here');
+                assert.strictEqual(reader.cursor, 13);
             }
         });
         it("should allow escaped backslashes", () => {
@@ -389,6 +393,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, "backslash\\here");
+                assert.strictEqual(reader.cursor, 17);
             }
         });
         it("should not allow surplus escapes", () => {

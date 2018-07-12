@@ -7,12 +7,16 @@ import {
     NamespacedName,
     SingleBlockPropertyInfo
 } from "../../../data/types";
-import { ReturnHelper, stringifyNamespace } from "../../../misc_functions";
+import {
+    namespaceSuggestionString,
+    ReturnHelper,
+    stringifyNamespace
+} from "../../../misc_functions";
 import {
     buildTagActions,
     parseNamespaceOrTag
 } from "../../../misc_functions/parsing/nmsp_tag";
-import { ParserInfo, ReturnedInfo } from "../../../types";
+import { ParserInfo, ReturnedInfo, Suggestion } from "../../../types";
 
 interface PropertyExceptions {
     duplicate: CommandErrorBuilder;
@@ -93,7 +97,7 @@ const exceptions = {
     ),
 
     unknown_tag: new CommandErrorBuilder(
-        "arguments.block.tag.unknown",
+        "arguments.block.tag.unknown", // Argument_s_ [sic]
         "Unknown block tag '%s'"
     )
 };
@@ -135,6 +139,15 @@ export function parseBlockArgument(
             }
         } else {
             stringifiedName = stringifyNamespace(parsed.data.parsed);
+            if (info.suggesting && !reader.canRead()) {
+                helper.addSuggestions(
+                    ...namespaceSuggestionString(
+                        Object.keys(info.data.globalData.blocks),
+                        parsed.data.parsed,
+                        start
+                    )
+                );
+            }
             const props = info.data.globalData.blocks[stringifiedName];
             if (!props) {
                 helper.addErrors(
@@ -244,7 +257,7 @@ function parseProperties(
             if (value === false) {
                 return helper.fail();
             }
-            if (propSuccessful && !valueSuccessful) {
+            if (propSuccessful && !valueSuccessful && value.length > 0) {
                 helper.addErrors(
                     errors.invalid.create(
                         valueStart,
@@ -271,6 +284,12 @@ function parseProperties(
             );
         }
         if (!reader.canRead()) {
+            helper.addSuggestions(
+                ...props.map<Suggestion>(prop => ({
+                    start: reader.cursor,
+                    text: prop
+                }))
+            );
             return helper.fail(
                 exceptions.unclosed_props.create(start, reader.cursor)
             );
@@ -291,8 +310,8 @@ function constructProperties(
         if (block) {
             for (const prop in block) {
                 if (block.hasOwnProperty(prop)) {
-                    result[stringified] = Array.from(
-                        new Set((result[stringified] || []).concat(block[prop]))
+                    result[prop] = Array.from(
+                        new Set((result[prop] || []).concat(block[prop]))
                     );
                 }
             }

@@ -303,6 +303,7 @@ export class StringReader {
             } else if (c === ESCAPE) {
                 escaped = true;
             } else if (c === QUOTE) {
+                this.skip();
                 return helper.succeed(result);
             } else {
                 result += c;

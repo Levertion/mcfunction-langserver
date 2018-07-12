@@ -40,9 +40,9 @@ export function parseNamespaceOrTag(
     taghandling: keyof Resources | CommandErrorBuilder
 ): ReturnedInfo<TagParseResult, CE, NamespacedName | undefined> {
     const helper = new ReturnHelper(info);
+    const start = reader.cursor;
     if (reader.peek() === TAG_START) {
         reader.skip();
-        const tagStart = reader.cursor;
         if (typeof taghandling === "string") {
             const tags: Array<DataResource<Tag>> = getResourcesofType(
                 info.data,
@@ -65,7 +65,7 @@ export function parseNamespaceOrTag(
             }
         } else {
             readNamespaceText(reader);
-            return helper.fail(taghandling.create(tagStart, reader.cursor));
+            return helper.fail(taghandling.create(start, reader.cursor));
         }
     } else {
         if (!reader.canRead() && typeof taghandling === "string") {

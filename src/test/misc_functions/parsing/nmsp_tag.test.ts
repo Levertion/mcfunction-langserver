@@ -103,7 +103,7 @@ describe("parseNamespaceOrTag", () => {
                 errors: [
                     {
                         code: "test",
-                        range: { start: 1, end: 14 }
+                        range: { start: 0, end: 14 }
                     }
                 ],
                 succeeds: false
