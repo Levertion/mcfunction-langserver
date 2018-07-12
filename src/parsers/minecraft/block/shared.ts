@@ -1,4 +1,4 @@
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { CompletionItemKind, DiagnosticSeverity } from "vscode-languageserver";
 
 import { CommandErrorBuilder } from "../../../brigadier_components/errors";
 import { StringReader } from "../../../brigadier_components/string_reader";
@@ -209,7 +209,11 @@ function parseProperties(
         while (reader.canRead() && reader.peek() !== "]") {
             reader.skipWhitespace();
             const propStart = reader.cursor;
-            const propParse = reader.readOption(props, false);
+            const propParse = reader.readOption(
+                props,
+                false,
+                CompletionItemKind.Property
+            );
             const propKey = propParse.data;
             const propSuccessful = helper.merge(propParse);
             if (propKey === false) {
@@ -251,7 +255,11 @@ function parseProperties(
             reader.skip();
             reader.skipWhitespace();
             const valueStart = reader.cursor;
-            const valueParse = reader.readOption(options[propKey] || [], false);
+            const valueParse = reader.readOption(
+                options[propKey] || [],
+                false,
+                CompletionItemKind.EnumMember
+            );
             const valueSuccessful = helper.merge(valueParse);
             const value = valueParse.data;
             if (value === false) {
@@ -286,6 +294,7 @@ function parseProperties(
         if (!reader.canRead()) {
             helper.addSuggestions(
                 ...props.map<Suggestion>(prop => ({
+                    kind: CompletionItemKind.Property,
                     start: reader.cursor,
                     text: prop
                 }))

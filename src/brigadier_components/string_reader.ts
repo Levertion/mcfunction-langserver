@@ -1,3 +1,4 @@
+import { CompletionItemKind } from "vscode-languageserver";
 import { ReturnHelper } from "../misc_functions";
 import { typed_keys } from "../misc_functions/third_party/typed_keys";
 import { CE, ReturnedInfo, Suggestion } from "../types";
@@ -204,7 +205,8 @@ export class StringReader {
      */
     public readOption<T extends string>(
         options: T[],
-        addError: boolean = true
+        addError: boolean = true,
+        completion?: CompletionItemKind
     ): ReturnedInfo<T, CE, string | false> {
         const start = this.cursor;
         const helper = new ReturnHelper();
@@ -221,6 +223,7 @@ export class StringReader {
                     ...options
                         .filter(v => v.startsWith(remaining))
                         .map<Suggestion>(v => ({
+                            kind: completion,
                             start,
                             text: `${QUOTE}${v}${QUOTE}`
                         }))
@@ -239,6 +242,7 @@ export class StringReader {
                 ...options
                     .filter(v => v.startsWith(result.data))
                     .map<Suggestion>(v => ({
+                        kind: completion,
                         start,
                         text:
                             quoted || v.includes('"') || v.includes("\\")

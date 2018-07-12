@@ -1,3 +1,4 @@
+import { CompletionItemKind } from "vscode-languageserver";
 import {
     convertToNamespace,
     namespacesEqual,
@@ -107,7 +108,8 @@ interface OptionResult<T> {
 
 export function parseNamespaceOption<T extends NamespacedName>(
     reader: StringReader,
-    options: T[]
+    options: T[],
+    completionKind?: CompletionItemKind
 ): ReturnedInfo<OptionResult<T>, CE, NamespacedName | undefined> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
@@ -119,10 +121,11 @@ export function parseNamespaceOption<T extends NamespacedName>(
                 results.push(val);
             }
             if (!reader.canRead() && namespaceStart(val, namespace.data)) {
-                helper.addSuggestions({
+                helper.addSuggestion(
                     start,
-                    text: stringifyNamespace(val)
-                });
+                    stringifyNamespace(val),
+                    completionKind
+                );
             }
         }
         if (results.length > 0) {

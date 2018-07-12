@@ -1,3 +1,4 @@
+import { CompletionItemKind } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier_components/errors";
 import { StringReader } from "../../brigadier_components/string_reader";
 import { TAG_START } from "../../consts";
@@ -48,7 +49,11 @@ export function parseNamespaceOrTag(
                 info.data,
                 taghandling
             );
-            const parsed = parseNamespaceOption(reader, tags);
+            const parsed = parseNamespaceOption(
+                reader,
+                tags,
+                CompletionItemKind.Folder
+            );
             if (helper.merge(parsed)) {
                 const values = parsed.data.values;
                 const resolved: NamespacedName[] = [];
@@ -69,7 +74,11 @@ export function parseNamespaceOrTag(
         }
     } else {
         if (!reader.canRead() && typeof taghandling === "string") {
-            helper.addSuggestion(reader.cursor, TAG_START);
+            helper.addSuggestion(
+                reader.cursor,
+                TAG_START,
+                CompletionItemKind.Operator
+            );
         }
         const parsed = parseNamespace(reader);
         if (helper.merge(parsed)) {
