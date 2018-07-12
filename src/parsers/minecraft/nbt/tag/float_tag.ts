@@ -1,6 +1,6 @@
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import { actionFromScope, ReturnHelper } from "../../../../misc_functions";
-import { CorrectLevel, parseFloatNBT, scopeChar } from "../util/nbt_util";
+import { ReturnHelper } from "../../../../misc_functions";
+import { CorrectLevel, parseFloatNBT } from "../util/nbt_util";
 import { NBTTag, ParseReturn } from "./nbt_tag";
 
 export const FLOAT_TAG_SUFFIX = "f";
@@ -9,7 +9,6 @@ export class NBTTagFloat extends NBTTag<number> {
     public tagType: "float" = "float";
 
     public parse(reader: StringReader): ParseReturn {
-        const start = reader.cursor;
         const readInt = parseFloatNBT(reader);
         const helper = new ReturnHelper();
         if (!helper.merge(readInt)) {
@@ -19,14 +18,6 @@ export class NBTTagFloat extends NBTTag<number> {
         if (!helper.merge(exp)) {
             return helper.failWithData({ correct: 0 });
         }
-        helper.addActions(
-            actionFromScope({
-                end: reader.cursor,
-                scopes: ["float"],
-                start
-            }),
-            actionFromScope(scopeChar(reader.cursor, ["suffix"]))
-        );
         this.val = readInt.data;
         return helper.succeed(CorrectLevel.YES);
     }

@@ -1,5 +1,5 @@
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import { isSuccessful, ReturnHelper } from "../../../../misc_functions";
+import { ReturnHelper } from "../../../../misc_functions";
 import { ReturnedInfo, SuggestResult } from "../../../../types";
 import { runSuggestFunction } from "../doc_walker_func";
 import { isCompoundNode, NBTNode } from "../doc_walker_util";
@@ -33,25 +33,6 @@ export enum CorrectLevel {
     MAYBE,
     YES
 }
-
-export const scopeChar = (end: number, scopes: string[]) => ({
-    end,
-    scopes,
-    start: end - 1
-});
-
-export const expectAndScope = (
-    reader: StringReader,
-    str: string,
-    scopes: string[],
-    data: NBTErrorData
-) => {
-    const exp = reader.expect(str);
-    if (!isSuccessful(exp)) {
-        return new ReturnHelper().failWithData(data);
-    }
-    return new ReturnHelper().succeed(scopeChar(reader.cursor, scopes));
-};
 
 export function parseIntNBT(reader: StringReader): ReturnedInfo<number> {
     const helper = new ReturnHelper();

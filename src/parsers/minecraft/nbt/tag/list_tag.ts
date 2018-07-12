@@ -1,18 +1,13 @@
 import { CommandErrorBuilder } from "../../../../brigadier_components/errors";
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import {
-    actionFromScope,
-    actionFromScopes,
-    ReturnHelper
-} from "../../../../misc_functions";
+import { ReturnHelper } from "../../../../misc_functions";
 import { ReturnedInfo } from "../../../../types";
 import { parseTag } from "../tag_parser";
 import {
     LIST_END,
     LIST_START,
     LIST_VALUE_SEP,
-    NBTErrorData,
-    scopeChar
+    NBTErrorData
 } from "../util/nbt_util";
 import { NBTTag, ParseReturn } from "./nbt_tag";
 
@@ -35,9 +30,6 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
         if (!helper.merge(listStart)) {
             return helper.failWithData({ correct: 0 });
         }
-        helper.addActions(
-            actionFromScope(scopeChar(reader.cursor, ["list-start", "start"]))
-        );
         if (!reader.canRead()) {
             helper.addSuggestion(reader.cursor, LIST_END);
             helper.addErrors(NOVAL.create(start, reader.cursor));
@@ -78,27 +70,9 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             if (!helper.merge(opt)) {
                 return helper.failWithData({ parsed: this, correct: 1 });
             } else {
-                helper.addActions(
-                    actionFromScope(
-                        scopeChar(reader.cursor, [
-                            "value-separator",
-                            "separator"
-                        ])
-                    )
-                );
                 next = opt.data;
             }
         }
-        helper.addActions(
-            ...actionFromScopes([
-                {
-                    end: reader.cursor,
-                    scopes: ["list"],
-                    start
-                },
-                scopeChar(reader.cursor, ["array", "end"])
-            ])
-        );
         if (helper.hasErrors()) {
             return helper.failWithData({ parsed: this, correct: 1 });
         } else {

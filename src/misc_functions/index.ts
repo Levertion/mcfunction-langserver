@@ -8,4 +8,3 @@ export * from "./returnhelper";
 export * from "./security";
 export * from "./setup";
 export * from "./translation";
-export * from "./highlight_util";

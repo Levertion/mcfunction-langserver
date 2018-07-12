@@ -1,11 +1,6 @@
 import { CommandErrorBuilder } from "../../brigadier_components/errors";
 import { StringReader } from "../../brigadier_components/string_reader";
-import {
-    actionFromScopes,
-    HighlightScope,
-    ReturnHelper,
-    returnSwitch
-} from "../../misc_functions";
+import { ReturnHelper, returnSwitch } from "../../misc_functions";
 import { Parser, ReturnedInfo } from "../../types";
 import { NBTWalker } from "./nbt/doc_walker";
 import { NBTTagCompound } from "./nbt/tag/compound_tag";
@@ -24,8 +19,6 @@ export const parser: Parser = {
     parse: (reader: StringReader): ReturnedInfo<undefined> => {
         const helper = new ReturnHelper();
         const out: string[] = [];
-        const highlight: HighlightScope[] = [];
-        const start = reader.cursor;
         const walker = new NBTWalker(new NBTTagCompound({}));
         returnSwitch(
             reader.readString(),
@@ -48,13 +41,6 @@ export const parser: Parser = {
         ) {
             const next = reader.read();
             if (next === COMPACC) {
-                highlight.push({
-                    end: reader.cursor,
-                    scopes: ["value-separator", "separator"],
-                    start: reader.cursor - 1
-                });
-                const sstart = reader.cursor;
-                const quot = reader.peek() === '"';
                 returnSwitch(
                     reader.readString(),
                     v => {
@@ -69,11 +55,6 @@ export const parser: Parser = {
                         }
                     }
                 );
-                highlight.push({
-                    end: reader.cursor,
-                    scopes: ["value", "string", quot ? "quoted" : "unquoted"],
-                    start: sstart
-                });
             } else if (next === ARROPEN) {
                 returnSwitch(
                     reader.readInt(),
@@ -100,12 +81,6 @@ export const parser: Parser = {
             helper.addSuggestion(reader.cursor, ".");
             helper.addSuggestion(reader.cursor, "[");
         }
-        highlight.push({
-            end: reader.cursor,
-            scopes: ["argument", "minecraft:nbt_path"],
-            start
-        });
-        helper.addActions(...actionFromScopes(highlight));
         return helper.hasErrors() ? helper.fail() : helper.succeed();
     }
 };

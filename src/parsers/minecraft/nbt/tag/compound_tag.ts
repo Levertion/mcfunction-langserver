@@ -1,10 +1,6 @@
 import { CommandErrorBuilder } from "../../../../brigadier_components/errors";
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import {
-    actionFromScope,
-    actionFromScopes,
-    ReturnHelper
-} from "../../../../misc_functions";
+import { ReturnHelper } from "../../../../misc_functions";
 import { ReturnedInfo } from "../../../../types";
 import { parseTag } from "../tag_parser";
 import {
@@ -12,8 +8,7 @@ import {
     COMPOUND_KEY_VALUE_SEP,
     COMPOUND_PAIR_SEP,
     COMPOUND_START,
-    NBTErrorData,
-    scopeChar
+    NBTErrorData
 } from "../util/nbt_util";
 import { NBTTag, ParseReturn } from "./nbt_tag";
 
@@ -32,17 +27,11 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
     private readonly keyPos: number[][] = [];
 
     public parse(reader: StringReader): ParseReturn {
-        const start = reader.cursor;
         const helper = new ReturnHelper();
         const compStart = reader.expect(COMPOUND_START);
         if (!helper.merge(compStart)) {
             return helper.failWithData({ correct: 0, parsed: this });
         }
-        helper.addActions(
-            actionFromScope(
-                scopeChar(reader.cursor, ["compound-start", "start"])
-            )
-        );
         let next = reader.peek();
         const keys = [];
         while (next !== COMPOUND_END) {
@@ -59,7 +48,6 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 });
             }
             const keyS = reader.cursor;
-            const quoted = reader.peek() === '"';
             const key = reader.readString();
             if (!helper.merge(key)) {
                 return helper.failWithData({
@@ -73,31 +61,6 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             keys.push(key.data);
             this.keyPos.push([keyS, reader.cursor]);
 
-            helper.addActions(
-                actionFromScope({
-                    end: reader.cursor,
-                    scopes: ["string", quoted ? "quoted" : "unquoted", "key"],
-                    start: keyS
-                })
-            );
-
-            if (quoted) {
-                helper.addActions(
-                    ...actionFromScopes([
-                        {
-                            end: keyS + 1,
-                            scopes: ["string-start", "start"],
-                            start: keyS
-                        },
-                        {
-                            end: reader.cursor,
-                            scopes: ["string-end", "end"],
-                            start: reader.cursor - 1
-                        }
-                    ])
-                );
-            }
-
             reader.skipWhitespace();
 
             const kvs = reader.expect(COMPOUND_KEY_VALUE_SEP);
@@ -110,15 +73,6 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                     path: [key.data]
                 });
             }
-            helper.addActions(
-                actionFromScope(
-                    scopeChar(reader.cursor, [
-                        "compound",
-                        "key-value",
-                        "separator"
-                    ])
-                )
-            );
 
             reader.skipWhitespace();
 
@@ -134,7 +88,6 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             }
 
             let val: NBTTag<any>;
-            const tstart = reader.cursor;
             const pkey = parseTag(reader);
 
             if (
@@ -155,14 +108,6 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 });
             }
 
-            helper.addActions(
-                actionFromScope({
-                    end: reader.cursor,
-                    scopes: ["value"],
-                    start: tstart
-                })
-            );
-
             reader.skipWhitespace();
 
             this.val[key.data] = val;
@@ -176,16 +121,6 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 next = opt.data;
             }
         }
-        helper.addActions(
-            actionFromScope(scopeChar(reader.cursor, ["compound-end", "end"]))
-        );
-        helper.addActions(
-            actionFromScope({
-                end: reader.cursor,
-                scopes: ["compound"],
-                start
-            })
-        );
         if (helper.hasErrors()) {
             return helper.failWithData({ parsed: this, correct: 2 });
         }

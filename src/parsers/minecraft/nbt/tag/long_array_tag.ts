@@ -1,17 +1,12 @@
 import { CommandErrorBuilder } from "../../../../brigadier_components/errors";
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import {
-    actionFromScope,
-    actionFromScopes,
-    ReturnHelper
-} from "../../../../misc_functions";
+import { ReturnHelper } from "../../../../misc_functions";
 import {
     ARRAY_END,
     ARRAY_PREFIX_SEP,
     ARRAY_START,
     ARRAY_VALUE_SEP,
-    CorrectLevel,
-    scopeChar
+    CorrectLevel
 } from "../util/nbt_util";
 import { NBTTagLong } from "./long_tag";
 import { NBTTag, ParseReturn } from "./nbt_tag";
@@ -41,17 +36,6 @@ export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
         if (!helper.merge(arrstart)) {
             return helper.failWithData({ correct: CorrectLevel.NO });
         }
-        helper.addActions(
-            ...actionFromScopes([
-                scopeChar(reader.cursor - 2, ["array-start"]),
-                scopeChar(reader.cursor - 1, ["prefix"]),
-                scopeChar(reader.cursor, [
-                    "prefix-values-separator",
-                    "separator"
-                ])
-            ])
-        );
-        const valsStart = reader.cursor;
         if (!reader.canRead()) {
             helper.addErrors(EXCEPTIONS.NO_VALUE.create(start, reader.cursor));
             return helper.failWithData({ parsed: this, correct: 2 });
@@ -69,19 +53,10 @@ export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
 
             reader.skipWhitespace();
 
-            const valStart = reader.cursor;
             const val = new NBTTagLong(0);
             const parseResult = val.parse(reader);
 
             helper.merge(parseResult);
-
-            helper.addActions(
-                actionFromScope({
-                    end: reader.cursor,
-                    scopes: ["value"],
-                    start: valStart
-                })
-            );
 
             this.val.push(val);
 
@@ -100,19 +75,6 @@ export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
                 next = opt.data;
             }
         }
-        helper.addActions(
-            actionFromScope({
-                end: reader.cursor - 1,
-                scopes: ["values"],
-                start: valsStart
-            }),
-            actionFromScope(scopeChar(reader.cursor, ["array", "end"])),
-            actionFromScope({
-                end: reader.cursor,
-                scopes: ["long_array"],
-                start
-            })
-        );
         if (helper.hasErrors()) {
             return helper.failWithData({
                 correct: CorrectLevel.YES,

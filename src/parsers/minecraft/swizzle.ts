@@ -1,7 +1,7 @@
 import { power } from "js-combinatorics";
 import { CommandErrorBuilder } from "../../brigadier_components/errors";
 import { StringReader } from "../../brigadier_components/string_reader";
-import { actionFromScopes, ReturnHelper } from "../../misc_functions";
+import { ReturnHelper } from "../../misc_functions";
 import { Parser } from "../../types";
 
 const values = ["x", "y", "z"];
@@ -30,15 +30,6 @@ export const parser: Parser = {
                 helper.addErrors(DUPLICATE.create(start, reader.cursor, v));
             }
         }
-        helper.addActions(
-            ...actionFromScopes([
-                {
-                    end: reader.cursor,
-                    scopes: ["argument", "minecraft:swizzle"],
-                    start
-                }
-            ])
-        );
         const text = reader.string.substring(start, reader.cursor);
         const suggestions = power(values.filter(v => text.indexOf(v) === -1))
             .map(v => text + v.join(""))

@@ -1,6 +1,5 @@
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import { actionFromScope, ReturnHelper } from "../../../../misc_functions";
-import { scopeChar } from "../util/nbt_util";
+import { ReturnHelper } from "../../../../misc_functions";
 import { NBTTag, ParseReturn } from "./nbt_tag";
 
 export class NBTTagString extends NBTTag<string> {
@@ -8,26 +7,11 @@ export class NBTTagString extends NBTTag<string> {
 
     public parse(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
-        const quoted = reader.canRead() && reader.peek() === '"';
-        const start = reader.cursor;
         const str = reader.readString();
         if (!helper.merge(str)) {
             return helper.failWithData({ correct: 1 });
         } else {
             this.val = str.data;
-            helper.addActions(
-                actionFromScope({
-                    end: reader.cursor,
-                    scopes: ["string", quoted ? "quoted" : "unquoted"],
-                    start
-                })
-            );
-            if (quoted) {
-                helper.addActions(
-                    actionFromScope(scopeChar(reader.cursor, ["quote"])),
-                    actionFromScope(scopeChar(start + 1, ["quote"]))
-                );
-            }
             return helper.succeed(1);
         }
     }
