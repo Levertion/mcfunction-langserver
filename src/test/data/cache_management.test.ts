@@ -28,7 +28,7 @@ const testData: GlobalData = {
     items: ["minecraft:not_chocolate"],
     meta_info: { version: "1.13" },
     resources: {}
-};
+} as any;
 describe("Cache Management", () => {
     after(async () => rimrafAsync(cacheFolder));
     describe("cacheData", () => {

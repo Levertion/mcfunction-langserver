@@ -1,7 +1,7 @@
 import { CommandErrorBuilder } from "../../brigadier_components/errors";
 import { StringReader } from "../../brigadier_components/string_reader";
 import { ReturnHelper } from "../../misc_functions";
-import { Parser, ReturnedInfo } from "../../types";
+import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 import { NBTWalker } from "./nbt/doc_walker";
 import { NBTTagCompound } from "./nbt/tag/compound_tag";
 import { addSuggestionsToHelper } from "./nbt/util/nbt_util";
@@ -16,10 +16,16 @@ const badChar = new CommandErrorBuilder(
 );
 
 export const parser: Parser = {
-    parse: (reader: StringReader): ReturnedInfo<undefined> => {
+    parse: (
+        reader: StringReader,
+        prop: ParserInfo
+    ): ReturnedInfo<undefined> => {
         const helper = new ReturnHelper();
         const out: string[] = [];
-        const walker = new NBTWalker(new NBTTagCompound({}));
+        const walker = new NBTWalker(
+            new NBTTagCompound({}),
+            prop.data.globalData.doc_fs
+        );
         const chr = reader.readString();
         if (helper.merge(chr)) {
             out.push(chr.data);

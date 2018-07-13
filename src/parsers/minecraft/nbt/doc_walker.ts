@@ -1,6 +1,6 @@
-import * as fs from "fs";
 import * as path from "path";
 import * as url from "url";
+import { MemoryFS } from "./doc_fs";
 import { runNodeFunction } from "./doc_walker_func";
 import {
     CompoundNode,
@@ -21,17 +21,23 @@ export type ValueList = string[];
 const rootNodePath = require.resolve("mc-nbt-paths/root.json");
 
 export class NBTWalker {
+    private docfs: MemoryFS;
     private readonly parsed: NBTTag<any>;
     private readonly root: string;
 
-    public constructor(parsed: NBTTag<any>, root: string = rootNodePath) {
+    public constructor(
+        parsed: NBTTag<any>,
+        docfs: MemoryFS,
+        root: string = rootNodePath
+    ) {
         this.parsed = parsed;
         this.root = root;
+        this.docfs = docfs;
     }
 
     public getFinalNode(nbtpath: string[]): NBTNode | undefined {
         const rootNode = JSON.parse(
-            fs.readFileSync(this.root).toString()
+            this.docfs.get(this.root).toString()
         ) as NBTNode;
         rootNode.currentPath = path.dirname(this.root);
         return this.getNextNode(rootNode, new ArrayReader(nbtpath));
@@ -89,7 +95,7 @@ export class NBTWalker {
         const fragReader = new ArrayReader(fragPath);
         const nextPath = path.resolve(node.currentPath, node.ref);
         const newNode = JSON.parse(
-            fs.readFileSync(nextPath).toString()
+            this.docfs.get(nextPath).toString()
         ) as NBTNode;
         newNode.currentPath = path.dirname(nextPath);
         const evalNode = this.getNextNode(newNode, fragReader);
@@ -138,10 +144,8 @@ export class NBTWalker {
                 for (const k of Object.keys(node.children)) {
                     if (k.startsWith("$")) {
                         const vals = JSON.parse(
-                            fs
-                                .readFileSync(
-                                    path.resolve(node.currentPath, k.slice(1))
-                                )
+                            this.docfs
+                                .get(path.resolve(node.currentPath, k.slice(1)))
                                 .toString()
                         ) as ValueList;
                         if (vals.indexOf(next) !== -1) {

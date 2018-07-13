@@ -2,6 +2,7 @@ import { StringReader } from "../../../brigadier_components/string_reader";
 import { ReturnHelper } from "../../../misc_functions";
 import { ContextPath, resolvePaths } from "../../../misc_functions/context";
 import { Parser, ReturnedInfo } from "../../../types";
+import { MemoryFS } from "./doc_fs";
 import { NBTWalker } from "./doc_walker";
 import { NBTTagCompound } from "./tag/compound_tag";
 import { addSuggestionsToHelper } from "./util/nbt_util";
@@ -24,6 +25,7 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
 
 export function parseNBT(
     reader: StringReader,
+    docFS: MemoryFS,
     data?: NBTContextData
 ): ReturnedInfo<undefined> {
     const helper = new ReturnHelper();
@@ -35,7 +37,8 @@ export function parseNBT(
     } else {
         if (!!data) {
             const walker = new NBTWalker(
-                reply.data.parsed || new NBTTagCompound({})
+                reply.data.parsed || new NBTTagCompound({}),
+                docFS
             );
             const node = walker.getFinalNode(
                 [data.type, data.id || "none"].concat(reply.data.path || [])
@@ -52,6 +55,6 @@ export const parser: Parser = {
     parse: (reader, prop) => {
         const ctxdatafn = resolvePaths(paths, prop.path || []);
         const data = !ctxdatafn ? undefined : ctxdatafn([]);
-        return parseNBT(reader, data);
+        return parseNBT(reader, prop.data.globalData.doc_fs, data);
     }
 };

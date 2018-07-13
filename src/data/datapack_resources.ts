@@ -6,7 +6,8 @@ import { createExtensionFileError } from "../misc_functions/file_errors";
 import {
     readDirAsync,
     readJSON,
-    statAsync
+    statAsync,
+    walkDir
 } from "../misc_functions/promisified_fs";
 import { typed_keys } from "../misc_functions/third_party/typed_keys";
 import { ReturnSuccess } from "../types";
@@ -139,31 +140,6 @@ export async function getPacksInfo(
     );
     await Promise.all(promises);
     return helper.succeed(result);
-}
-
-async function walkDir(currentPath: string): Promise<string[]> {
-    const subFolders: string[] = [];
-    try {
-        subFolders.push(...(await readDirAsync(currentPath)));
-    } catch (error) {
-        return [];
-    }
-    const promises = subFolders.map(async sub => {
-        try {
-            const files: string[] = [];
-            const subFile = path.join(currentPath, sub);
-            if ((await statAsync(subFile)).isDirectory()) {
-                files.push(...(await walkDir(subFile)));
-            } else {
-                files.push(subFile);
-            }
-            return files;
-        } catch (error) {
-            return [];
-        }
-    });
-    const results = await Promise.all(promises);
-    return ([] as string[]).concat(...results);
 }
 
 async function subDirectories(baseFolder: string): Promise<string[]> {

@@ -1,3 +1,5 @@
+import { MemoryFS } from "../parsers/minecraft/nbt/doc_fs";
+
 /**
  * Types for data
  */
@@ -11,6 +13,7 @@ export interface NamespacedName {
 export interface GlobalData {
     blocks: BlocksPropertyInfo;
     commands: CommandTree;
+    doc_fs: MemoryFS;
     items: string[];
     meta_info: { version: string };
     resources: Resources;
