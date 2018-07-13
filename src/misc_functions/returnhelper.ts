@@ -38,18 +38,6 @@ export function isSuccessful<T, E extends BCE = CE>(
     return input.kind === success;
 }
 
-export function returnSwitch<T, E extends BCE = CE, K = undefined>(
-    data: ReturnedInfo<T, E, K>,
-    succeed: (data: ReturnSuccess<T, E>) => any = () => undefined,
-    fail: (data: ReturnFailure<K, E>) => any = () => undefined
-): void {
-    if (isSuccessful(data)) {
-        succeed(data);
-    } else {
-        fail(data);
-    }
-}
-
 /**
  * Fill the blank errors in data with 'real' errors
  * MODIFIES `data`

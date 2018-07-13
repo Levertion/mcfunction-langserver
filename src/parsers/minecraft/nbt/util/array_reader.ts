@@ -1,5 +1,5 @@
 export class ArrayReader {
-    private arr: string[];
+    private readonly arr: string[];
     private index = 0;
 
     public constructor(arr: string[]) {
