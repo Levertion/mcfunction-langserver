@@ -39,43 +39,116 @@ export class NBTWalker {
         const rootNode = JSON.parse(
             this.docfs.get(this.root).toString()
         ) as NBTNode;
-        rootNode.currentPath = path.dirname(this.root);
-        return this.getNextNode(rootNode, new ArrayReader(nbtpath));
+        return this.getNextNode(
+            rootNode,
+            new ArrayReader(nbtpath),
+            path.dirname(this.root)
+        );
     }
 
-    private evalChildRef(node: CompoundNode): CompoundNode {
-        if (!node.child_ref) {
+    private getNextNode(
+        node: NBTNode | undefined,
+        reader: ArrayReader,
+        currentPath: string
+    ): NBTNode | undefined {
+        if (reader.end() && node !== undefined) {
+            if (isRefNode(node)) {
+                return this.getNextNodeRef(node, reader, currentPath);
+            } else if (isFunctionNode(node)) {
+                return this.getNextNodeFunction(node, reader, currentPath);
+            }
             return node;
         }
-        const copyNode = JSON.parse(JSON.stringify(node)) as CompoundNode;
-        if (!copyNode.children) {
-            copyNode.children = {};
+        if (node === undefined) {
+            return undefined;
         }
-        for (const s of node.child_ref) {
-            const currentPath = path.resolve(node.currentPath, s);
-            const refNode = this.evalRef({
-                currentPath: node.currentPath,
-                ref: currentPath
-            });
-            if (!!refNode && isCompoundNode(refNode)) {
-                for (const c of Object.keys(refNode.children)) {
-                    const newChild = JSON.parse(
-                        JSON.stringify(refNode.children[c])
-                    ) as NBTNode;
-                    newChild.currentPath = currentPath;
-                    copyNode.children[c] = newChild;
+        const next = reader.peek();
+        if (isRefNode(node)) {
+            return this.getNextNodeRef(node, reader, currentPath);
+        } else if (isFunctionNode(node)) {
+            return this.getNextNodeFunction(node, reader, currentPath);
+        } else if (isCompoundNode(node)) {
+            if (next in node.children) {
+                reader.skip();
+                return this.getNextNode(
+                    node.children[next],
+                    reader,
+                    currentPath
+                );
+            } else {
+                return this.getNextNodeChildRef(node, reader, currentPath);
+            }
+        } else if (isRootNode(node)) {
+            if (next in node.children) {
+                const nextNode = node.children[next];
+                reader.skip();
+                return this.getNextNode(nextNode, reader, currentPath);
+            } else {
+                for (const k of Object.keys(node.children)) {
+                    if (k.startsWith("$")) {
+                        const vals = JSON.parse(
+                            this.docfs
+                                .get(path.resolve(currentPath, k.slice(1)))
+                                .toString()
+                        ) as ValueList;
+                        if (vals.indexOf(next) !== -1) {
+                            const nextNode = node.children[k];
+                            return this.getNextNode(
+                                nextNode,
+                                reader,
+                                currentPath
+                            );
+                        }
+                    }
                 }
             }
+        } else if (isListNode(node)) {
+            if (/\d+/.test(next)) {
+                reader.skip();
+                return node.item;
+            }
+        } else {
+            return node;
         }
-        return copyNode;
+        return undefined;
     }
 
-    private evalFunction(
+    private getNextNodeChildRef(
+        node: CompoundNode,
+        reader: ArrayReader,
+        currentPath: string
+    ): NBTNode | undefined {
+        const next = reader.read();
+        if (!node.child_ref) {
+            return undefined;
+        }
+        for (const s of node.child_ref) {
+            const childPath = path.resolve(currentPath, s);
+            const refNode = this.getNextNodeRef(
+                {
+                    ref: childPath
+                },
+                new ArrayReader([]),
+                currentPath
+            );
+            if (
+                refNode !== undefined &&
+                isCompoundNode(refNode) &&
+                !!refNode.child_ref &&
+                next in refNode.child_ref
+            ) {
+                return this.getNextNode(refNode, reader, childPath);
+            }
+        }
+        return undefined;
+    }
+
+    private getNextNodeFunction(
         node: FunctionNode,
-        arr: ArrayReader
+        arr: ArrayReader,
+        currentPath: string
     ): NBTNode | undefined {
         const newNode: RefNode = {
-            currentPath: node.currentPath,
             ref: runNodeFunction(
                 this.parsed,
                 arr.getRead(),
@@ -83,90 +156,25 @@ export class NBTWalker {
                 node.function.params
             )
         };
-        return this.evalRef(newNode);
+        return this.getNextNodeRef(newNode, arr, currentPath);
     }
 
-    private evalRef(node: RefNode): NBTNode | undefined {
+    private getNextNodeRef(
+        node: RefNode,
+        reader: ArrayReader,
+        currentPath: string
+    ): NBTNode | undefined {
         const refUrl = url.parse(node.ref);
         const fragPath = (refUrl.hash || "#")
             .slice(1)
             .split("/")
             .filter(v => v !== "");
         const fragReader = new ArrayReader(fragPath);
-        const nextPath = path.resolve(node.currentPath, node.ref);
+        const nextPath = path.resolve(currentPath, node.ref);
         const newNode = JSON.parse(
             this.docfs.get(nextPath).toString()
         ) as NBTNode;
-        newNode.currentPath = path.dirname(nextPath);
-        const evalNode = this.getNextNode(newNode, fragReader);
-        return evalNode;
-    }
-
-    private getNextNode(
-        node: NBTNode | undefined,
-        arr: ArrayReader
-    ): NBTNode | undefined {
-        if (arr.end() && node !== undefined) {
-            if (isRefNode(node)) {
-                return this.getNextNode(this.evalRef(node), arr);
-            } else if (isFunctionNode(node)) {
-                return this.getNextNode(this.evalFunction(node, arr), arr);
-            }
-            return node;
-        }
-        if (node === undefined) {
-            return undefined;
-        }
-        const next = arr.peek();
-        if (isRefNode(node)) {
-            return this.getNextNode(this.evalRef(node), arr);
-        } else if (isFunctionNode(node)) {
-            return this.getNextNode(this.evalFunction(node, arr), arr);
-        } else if (isCompoundNode(node)) {
-            const evalNode = this.evalChildRef(node);
-            if (next in evalNode.children) {
-                const nextNode = evalNode.children[next];
-                arr.skip();
-                if (!nextNode.currentPath) {
-                    nextNode.currentPath = node.currentPath;
-                }
-                return this.getNextNode(evalNode.children[next], arr);
-            }
-        } else if (isRootNode(node)) {
-            if (next in node.children) {
-                const nextNode = node.children[next];
-                arr.skip();
-                if (!nextNode.currentPath) {
-                    nextNode.currentPath = node.currentPath;
-                }
-                return this.getNextNode(nextNode, arr);
-            } else {
-                for (const k of Object.keys(node.children)) {
-                    if (k.startsWith("$")) {
-                        const vals = JSON.parse(
-                            this.docfs
-                                .get(path.resolve(node.currentPath, k.slice(1)))
-                                .toString()
-                        ) as ValueList;
-                        if (vals.indexOf(next) !== -1) {
-                            const nextNode = node.children[k];
-                            if (!nextNode.currentPath) {
-                                nextNode.currentPath = node.currentPath;
-                            }
-                            return this.getNextNode(nextNode, arr);
-                        }
-                    }
-                }
-            }
-        } else if (isListNode(node)) {
-            if (/\d+/.test(next)) {
-                arr.skip();
-                node.item.currentPath = node.currentPath;
-                return node.item;
-            }
-        } else {
-            return node;
-        }
-        return undefined;
+        const evalNode = this.getNextNode(newNode, fragReader, node.ref);
+        return this.getNextNode(evalNode, reader, currentPath);
     }
 }

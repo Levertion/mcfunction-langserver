@@ -8,9 +8,8 @@ export interface NBTFunction {
 }
 
 export interface NodeBase {
-    currentPath: string;
-    description?: string;
-    suggestions?: Array<
+    readonly description?: string;
+    readonly suggestions?: Array<
         | string
         | { description?: string; value: string }
         | { function: NBTFunction }
@@ -18,7 +17,7 @@ export interface NodeBase {
 }
 
 export interface NoPropertyNode extends NodeBase {
-    type:
+    readonly type:
         | "no-nbt"
         | "byte"
         | "short"
@@ -33,27 +32,27 @@ export interface NoPropertyNode extends NodeBase {
 }
 
 export interface RefNode extends NodeBase {
-    ref: string;
+    readonly ref: string;
 }
 
 export interface FunctionNode extends NodeBase {
-    function: NBTFunction;
+    readonly function: NBTFunction;
 }
 
 export interface ListNode extends NodeBase {
-    item: NBTNode;
-    type: "list";
+    readonly item: NBTNode;
+    readonly type: "list";
 }
 
 export interface CompoundNode extends NodeBase {
-    child_ref: string[];
-    children: { [key: string]: NBTNode };
-    type: "compound";
+    readonly child_ref: string[];
+    readonly children: { [key: string]: NBTNode };
+    readonly type: "compound";
 }
 
 export interface RootNode extends NodeBase {
-    children: { [key: string]: NBTNode };
-    type: "root";
+    readonly children: { [key: string]: NBTNode };
+    readonly type: "root";
 }
 
 export type NBTNode =
