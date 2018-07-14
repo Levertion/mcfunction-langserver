@@ -1,3 +1,5 @@
+import { MemoryFS } from "../parsers/minecraft/nbt/doc_fs";
+
 /**
  * Types for data
  */
@@ -13,8 +15,19 @@ export interface GlobalData {
     commands: CommandTree;
     items: string[];
     meta_info: { version: string };
+    nbt_docs: MemoryFS;
     resources: Resources;
 }
+
+export type Cacheable = Pick<
+    GlobalData,
+    "commands" | "blocks" | "items" | "meta_info" | "resources"
+>;
+
+export type NonCacheable = Pick<
+    GlobalData,
+    Exclude<keyof GlobalData, keyof Cacheable>
+>;
 
 //#region Command Tree
 /**
