@@ -24,7 +24,7 @@ export const parser: Parser = {
         const out: string[] = [];
         const walker = new NBTWalker(
             new NBTTagCompound({}),
-            prop.data.globalData.doc_fs
+            prop.data.globalData.nbt_docs
         );
         const chr = reader.readString();
         if (helper.merge(chr)) {

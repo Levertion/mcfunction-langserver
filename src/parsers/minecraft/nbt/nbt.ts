@@ -55,6 +55,6 @@ export const parser: Parser = {
     parse: (reader, prop) => {
         const ctxdatafn = resolvePaths(paths, prop.path || []);
         const data = !ctxdatafn ? undefined : ctxdatafn([]);
-        return parseNBT(reader, prop.data.globalData.doc_fs, data);
+        return parseNBT(reader, prop.data.globalData.nbt_docs, data);
     }
 };

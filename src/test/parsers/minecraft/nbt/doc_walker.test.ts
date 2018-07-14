@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as path from "path";
-import { setupFiles } from "../../../../data/load_nbt";
+import { setupFiles } from "../../../../data/noncached";
 import { NBTWalker } from "../../../../parsers/minecraft/nbt/doc_walker";
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound_tag";
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string_tag";

@@ -19,6 +19,7 @@ import { ReturnedInfo, ReturnSuccess } from "../types";
 import { readCache } from "./cache_management";
 import { getPacksInfo } from "./datapack_resources";
 import { collectGlobalData } from "./extractor";
+import { loadNonCached } from "./noncached";
 import {
     Datapack,
     DataPackID,
@@ -198,7 +199,8 @@ export class DataManager {
     public async readCache(): Promise<boolean> {
         try {
             const cache = await readCache();
-            this.globalDataInternal = cache;
+            const noncache = await loadNonCached();
+            this.globalDataInternal = { ...cache, ...noncache };
             mcLangLog("Cache Successfully read");
             return true;
         } catch (error) {

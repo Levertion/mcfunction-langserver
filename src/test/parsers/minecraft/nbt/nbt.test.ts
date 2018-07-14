@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { StringReader } from "../../../../brigadier_components/string_reader";
-import { setupFiles } from "../../../../data/load_nbt";
+import { setupFiles } from "../../../../data/noncached";
 import { MemoryFS } from "../../../../parsers/minecraft/nbt/doc_fs";
 import { parseNBT, parser } from "../../../../parsers/minecraft/nbt/nbt";
 import { ParserInfo, SuggestResult } from "../../../../types";
@@ -12,7 +12,7 @@ describe("nbt parser test", () => {
             const out = parser.parse(reader, {
                 data: {
                     globalData: {
-                        doc_fs: new MemoryFS("")
+                        nbt_docs: new MemoryFS("")
                     }
                 }
             } as ParserInfo);
