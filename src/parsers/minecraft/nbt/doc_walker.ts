@@ -36,9 +36,7 @@ export class NBTWalker {
     }
 
     public getFinalNode(nbtpath: string[]): NBTNode | undefined {
-        const rootNode = JSON.parse(
-            this.docfs.get(this.root).toString()
-        ) as NBTNode;
+        const rootNode = this.docfs.get(this.root) as NBTNode;
         return this.getNextNode(
             rootNode,
             new ArrayReader(nbtpath),
@@ -86,10 +84,8 @@ export class NBTWalker {
             } else {
                 for (const k of Object.keys(node.children)) {
                     if (k.startsWith("$")) {
-                        const vals = JSON.parse(
-                            this.docfs
-                                .get(path.resolve(currentPath, k.slice(1)))
-                                .toString()
+                        const vals = this.docfs.get(
+                            path.resolve(currentPath, k.slice(1))
                         ) as ValueList;
                         if (vals.indexOf(next) !== -1) {
                             const nextNode = node.children[k];
@@ -171,9 +167,7 @@ export class NBTWalker {
             .filter(v => v !== "");
         const fragReader = new ArrayReader(fragPath);
         const nextPath = path.resolve(currentPath, node.ref);
-        const newNode = JSON.parse(
-            this.docfs.get(nextPath).toString()
-        ) as NBTNode;
+        const newNode = this.docfs.get(nextPath) as NBTNode;
         const evalNode = this.getNextNode(newNode, fragReader, node.ref);
         return this.getNextNode(evalNode, reader, currentPath);
     }
