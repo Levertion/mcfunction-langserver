@@ -8,7 +8,6 @@ import {
 } from "../misc_functions/promisified_fs";
 import { typed_keys } from "../misc_functions/third_party/typed_keys";
 import { WorkspaceSecurity } from "../types";
-import { setupFiles } from "./load_nbt";
 import { GlobalData } from "./types";
 
 const cacheFolder = path.join(__dirname, "cache");
@@ -16,17 +15,14 @@ const cacheFolder = path.join(__dirname, "cache");
 const cacheFileNames: { [K in keyof GlobalData]: string } = {
     blocks: "blocks.json",
     commands: "commands.json",
-    doc_fs: "",
     items: "items.json",
     meta_info: "meta_info.json",
     resources: "resources.json"
 };
 
-const cacheFileKeys = typed_keys(cacheFileNames).filter(v => v !== "doc_fs");
-
 export async function readCache(): Promise<GlobalData> {
     const data: GlobalData = {} as GlobalData;
-    const keys = cacheFileKeys;
+    const keys = typed_keys(cacheFileNames);
     const promises: Array<Thenable<GlobalData[keyof GlobalData]>> = [];
     for (const key of keys) {
         promises.push(
@@ -35,7 +31,6 @@ export async function readCache(): Promise<GlobalData> {
             )
         );
     }
-    promises.push(setupFiles());
     const results = await Promise.all(promises);
     for (const key of keys) {
         // @ts-ignore This is allowed
@@ -50,7 +45,7 @@ export async function cacheData(data: GlobalData): Promise<void> {
     } catch (_) {
         // Don't use the error, which is normally thrown if the folder doesn't exist
     }
-    const keys: Array<keyof typeof cacheFileNames> = cacheFileKeys;
+    const keys: Array<keyof typeof cacheFileNames> = typed_keys(cacheFileNames);
     await Promise.all(
         keys.map(async key =>
             writeJSON(path.join(cacheFolder, cacheFileNames[key]), data[key])
