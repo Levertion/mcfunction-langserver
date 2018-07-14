@@ -21,7 +21,7 @@ export type ValueList = string[];
 const rootNodePath = require.resolve("mc-nbt-paths/root.json");
 
 export class NBTWalker {
-    private docfs: MemoryFS;
+    private readonly docfs: MemoryFS;
     private readonly parsed: NBTTag<any>;
     private readonly root: string;
 

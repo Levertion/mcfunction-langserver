@@ -3,7 +3,7 @@ import { readJSONRaw } from "../../../misc_functions/promisified_fs";
 
 export class MemoryFS {
     private data: { [internalPath: string]: any };
-    private root: string;
+    private readonly root: string;
 
     public constructor(root: string, internal?: MemoryFS["data"]) {
         this.root = root;
