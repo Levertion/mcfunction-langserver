@@ -36,7 +36,7 @@ export class NBTWalker {
     }
 
     public getFinalNode(nbtpath: string[]): NBTNode | undefined {
-        const rootNode = this.docfs.get(this.root) as NBTNode;
+        const rootNode = this.docfs.get<NBTNode>(this.root);
         return this.getNextNode(
             rootNode,
             new ArrayReader(nbtpath),
@@ -84,9 +84,9 @@ export class NBTWalker {
             } else {
                 for (const k of Object.keys(node.children)) {
                     if (k.startsWith("$")) {
-                        const vals = this.docfs.get(
+                        const vals = this.docfs.get<ValueList>(
                             path.resolve(currentPath, k.slice(1))
-                        ) as ValueList;
+                        );
                         if (vals.indexOf(next) !== -1) {
                             const nextNode = node.children[k];
                             return this.getNextNode(
@@ -167,7 +167,7 @@ export class NBTWalker {
             .filter(v => v !== "");
         const fragReader = new ArrayReader(fragPath);
         const nextPath = path.resolve(currentPath, node.ref);
-        const newNode = this.docfs.get(nextPath) as NBTNode;
+        const newNode = this.docfs.get<NBTNode>(nextPath);
         const evalNode = this.getNextNode(newNode, fragReader, node.ref);
         return this.getNextNode(evalNode, reader, currentPath);
     }

@@ -15,7 +15,6 @@
         "no-object-literal-type-assertion": false,
         "no-unsafe-any": false,
         "restrict-plus-operands": false,
-        "no-void-expression": [true, "ignore-arrow-function-shorthand"],
-        "no-unnecessary-type-assertion": false
+        "no-void-expression": [true, "ignore-arrow-function-shorthand"]
     }
 }
