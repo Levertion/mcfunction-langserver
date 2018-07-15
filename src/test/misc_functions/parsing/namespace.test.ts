@@ -3,6 +3,7 @@ import { StringReader } from "../../../brigadier_components/string_reader";
 import {
     namespaceStart,
     parseNamespace,
+    parseNamespaceOption,
     readNamespaceText
 } from "../../../misc_functions/parsing/namespace";
 import { returnAssert } from "../../assertions";
@@ -62,55 +63,87 @@ describe("Namespace Parsing Functions", () => {
             assert.strictEqual(reader.cursor, 7);
         });
     });
-    describe("parseNamespace", () => {
-        describe("Valid path", () => {
-            it("should parse a namespace successfully, accepting it if it's a valid option", () => {
-                const reader = new StringReader("mc:succeeds");
-                const result = parseNamespace(
-                    reader,
-                    [{ namespace: "mc", path: "succeeds" }],
-                    false
-                );
-                if (returnAssert(result, succeeds)) {
-                    assert.deepStrictEqual(result.data, {
+    describe("parseNamespaceOption()", () => {
+        it("should allow a parsed option, suggesting that option", () => {
+            const reader = new StringReader("mc:succeeds");
+            const result = parseNamespaceOption(reader, [
+                { namespace: "mc", path: "succeeds" }
+            ]);
+            if (
+                returnAssert(result, {
+                    succeeds: true,
+                    suggestions: ["mc:succeeds"]
+                })
+            ) {
+                assert.deepStrictEqual(result.data, {
+                    literal: {
                         namespace: "mc",
                         path: "succeeds"
-                    });
-                }
-            });
-            it("should parse a namespace successfully, reject it if it's an invalid option", () => {
-                const reader = new StringReader("mc:fails");
-                const result = parseNamespace(
-                    reader,
-                    [{ namespace: "mc", path: "succeeds" }],
-                    false
-                );
-                if (!returnAssert(result, { succeeds: false })) {
-                    assert.deepStrictEqual(result.data, {
-                        namespace: "mc",
-                        path: "fails"
-                    });
-                }
+                    },
+                    values: [
+                        {
+                            namespace: "mc",
+                            path: "succeeds"
+                        }
+                    ]
+                });
+            }
+        });
+        it("should reject it if it's an invalid option", () => {
+            const reader = new StringReader("mc:fails");
+            const result = parseNamespaceOption(reader, [
+                { namespace: "mc", path: "succeeds" }
+            ]);
+            if (!returnAssert(result, { succeeds: false })) {
+                assert.deepStrictEqual(result.data, {
+                    namespace: "mc",
+                    path: "fails"
+                });
+            }
+        });
+        it("should fail with an invalid path", () => {
+            const reader = new StringReader("mc:fail:surplus");
+            const result = parseNamespaceOption(reader, []);
+            returnAssert(result, {
+                errors: [
+                    {
+                        code: "argument.id.invalid",
+                        range: {
+                            end: 8,
+                            start: 7
+                        }
+                    }
+                ],
+                succeeds: false
             });
         });
-        describe("Invalid path", () => {
-            it("should fail, giving the correct error", () => {
-                const reader = new StringReader("mc:fail:surplus");
-                const result = parseNamespace(reader, [], false);
-                returnAssert(result, {
+    });
+    describe("parseNamespace", () => {
+        it("should fail with an invalid path", () => {
+            const reader = new StringReader("mc:fail:surplus");
+            const result = parseNamespaceOption(reader, []);
+            if (
+                !returnAssert(result, {
                     errors: [
                         {
                             code: "argument.id.invalid",
-                            range: { start: 7, end: 8 }
+                            range: {
+                                end: 8,
+                                start: 7
+                            }
                         }
                     ],
                     succeeds: false
-                });
-            });
-            it("should fail with multiple errors", () => {
-                const reader = new StringReader("mc:fail:surplus:");
-                const result = parseNamespace(reader, [], false);
-                returnAssert(result, {
+                })
+            ) {
+                assert.equal(result.data, undefined);
+            }
+        });
+        it("should fail with multiple errors", () => {
+            const reader = new StringReader("mc:fail:surplus:");
+            const result = parseNamespace(reader);
+            if (
+                !returnAssert(result, {
                     errors: [
                         {
                             code: "argument.id.invalid",
@@ -122,8 +155,20 @@ describe("Namespace Parsing Functions", () => {
                         }
                     ],
                     succeeds: false
+                })
+            ) {
+                assert.deepEqual(result.data, undefined);
+            }
+        });
+        it("should succeed with a valid path", () => {
+            const reader = new StringReader("mc:succeeds");
+            const result = parseNamespace(reader);
+            if (returnAssert(result, succeeds)) {
+                assert.deepEqual(result.data, {
+                    namespace: "mc",
+                    path: "succeeds"
                 });
-            });
+            }
         });
     });
 });

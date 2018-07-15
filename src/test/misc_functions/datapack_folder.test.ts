@@ -2,10 +2,12 @@ import * as assert from "assert";
 import * as path from "path";
 import {
     getKindAndNamespace,
+    getPath,
     parseDataPath
 } from "../../misc_functions/datapack_folder";
+import { unwrap } from "../assertions";
 
-describe("Calculate Data Folder (Misc)", () => {
+describe("parseDataPath() (Misc)", () => {
     it("should parse a path with a valid datapack (posix)", () => {
         assert.deepStrictEqual(
             parseDataPath("/home/datapacks/pack/folder/file.ext", path.posix),
@@ -94,7 +96,7 @@ describe("Calculate Data Folder (Misc)", () => {
     });
 });
 
-describe("getKindAndNamespace (Misc)", () => {
+describe("getKindAndNamespace() (Misc)", () => {
     it("should get the correct kind and namespace (posix)", () => {
         assert.deepStrictEqual(
             getKindAndNamespace(
@@ -234,6 +236,32 @@ describe("getKindAndNamespace (Misc)", () => {
         assert.strictEqual(
             getKindAndNamespace("data\\namespace\\functions\\path.notfunction"),
             undefined
+        );
+    });
+});
+
+describe("getPath() (Misc)", () => {
+    function testGetPath(s: string, pthModule: typeof path.posix): void {
+        const parsed = unwrap(parseDataPath(s, pthModule));
+        const kindNspc = unwrap(getKindAndNamespace(parsed.rest, pthModule));
+        const result = getPath(
+            kindNspc.location,
+            pthModule.join(parsed.packsFolder, parsed.pack),
+            kindNspc.kind,
+            pthModule
+        );
+        assert.strictEqual(s, result);
+    }
+    it("should give a correct path (posix)", () => {
+        testGetPath(
+            "/home/datapacks/pack/data/namespace/functions/path.mcfunction",
+            path.posix
+        );
+    });
+    it("should give a correct path (win32)", () => {
+        testGetPath(
+            "C:\\Users\\username\\datapacks\\pack\\data\\namespace\\functions\\path.mcfunction",
+            path.win32
         );
     });
 });

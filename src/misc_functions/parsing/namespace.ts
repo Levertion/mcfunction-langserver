@@ -1,3 +1,4 @@
+import { CompletionItemKind } from "vscode-languageserver";
 import {
     convertToNamespace,
     namespacesEqual,
@@ -8,7 +9,7 @@ import { CommandErrorBuilder } from "../../brigadier_components/errors";
 import { StringReader } from "../../brigadier_components/string_reader";
 import { DEFAULT_NAMESPACE } from "../../consts";
 import { NamespacedName } from "../../data/types";
-import { CE, ReturnedInfo } from "../../types";
+import { CE, ReturnedInfo, Suggestion } from "../../types";
 
 const NAMESPACEEXCEPTIONS = {
     invalid_id: new CommandErrorBuilder(
@@ -16,6 +17,8 @@ const NAMESPACEEXCEPTIONS = {
         "Invalid character '%s' in location %s"
     )
 };
+
+const allowedPath = /[^a-z0-9_.-]/g;
 
 export function readNamespaceText(reader: StringReader): string {
     const namespaceChars = /^[0-9a-z_:/\.-]$/;
@@ -43,26 +46,47 @@ export function namespaceStart(
     }
 }
 
-/**
- * Parse a namespace from a reader out of options
- * Returns the parsed namespace if parses correctly
- * doesn't add an error for non-option namespace
- */
-export function parseNamespace(
-    reader: StringReader,
+export function namespaceSuggestions(
     options: NamespacedName[],
-    suggesting: boolean
-): ReturnedInfo<NamespacedName, CE, NamespacedName | undefined> {
+    value: NamespacedName,
+    start: number
+): Suggestion[] {
+    const result: Suggestion[] = [];
+    for (const option of options) {
+        if (namespaceStart(option, value)) {
+            result.push({ text: stringifyNamespace(option), start });
+        }
+    }
+    return result;
+}
+
+export function namespaceSuggestionString(
+    options: string[],
+    value: NamespacedName,
+    start: number
+): Suggestion[] {
+    return namespaceSuggestions(
+        // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
+        options.map(v => convertToNamespace(v)),
+        value,
+        start
+    );
+}
+
+export function parseNamespace(
+    reader: StringReader
+): ReturnedInfo<NamespacedName> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const text = readNamespaceText(reader);
     const namespace = convertToNamespace(text);
-    const expr = /[^a-z0-9_.-]/g;
     let next: RegExpExecArray | null;
     let failed = false;
+    // Give an error for each invalid character
     do {
-        next = expr.exec(namespace.path);
+        next = allowedPath.exec(namespace.path);
         if (next) {
+            // Relies on the fact that convertToNamespace splits on the first
             const i = text.indexOf(":") + 1 + next.index + start;
             failed = true;
             helper.addErrors(
@@ -72,19 +96,47 @@ export function parseNamespace(
     } while (next);
     if (failed) {
         return helper.fail();
-    }
-    let successful = false;
-    for (const val of options) {
-        if (namespacesEqual(val, namespace)) {
-            successful = true;
-        }
-        if (suggesting && !reader.canRead() && namespaceStart(val, namespace)) {
-            helper.addSuggestions({ start, text: stringifyNamespace(val) });
-        }
-    }
-    if (successful) {
-        return helper.succeed(namespace);
     } else {
-        return helper.failWithData(namespace);
+        return helper.succeed(namespace);
+    }
+}
+
+interface OptionResult<T> {
+    literal: NamespacedName;
+    values: T[];
+}
+
+export function parseNamespaceOption<T extends NamespacedName>(
+    reader: StringReader,
+    options: T[],
+    completionKind?: CompletionItemKind
+): ReturnedInfo<OptionResult<T>, CE, NamespacedName | undefined> {
+    const helper = new ReturnHelper();
+    const start = reader.cursor;
+    const namespace = parseNamespace(reader);
+    const results: T[] = [];
+    if (helper.merge(namespace)) {
+        for (const val of options) {
+            if (namespacesEqual(val, namespace.data)) {
+                results.push(val);
+            }
+            if (!reader.canRead() && namespaceStart(val, namespace.data)) {
+                helper.addSuggestion(
+                    start,
+                    stringifyNamespace(val),
+                    completionKind
+                );
+            }
+        }
+        if (results.length > 0) {
+            return helper.succeed<OptionResult<T>>({
+                literal: namespace.data,
+                values: results
+            });
+        } else {
+            return helper.failWithData(namespace.data);
+        }
+    } else {
+        return helper.failWithData(undefined);
     }
 }
