@@ -65,7 +65,7 @@ export async function storeSecurity(
 
 export async function readSecurity(): Promise<WorkspaceSecurity> {
     try {
-        return readJSONRaw(path.join(cacheFolder, "security.json"));
+        return await readJSONRaw(path.join(cacheFolder, "security.json"));
     } catch (error) {
         return {};
     }
