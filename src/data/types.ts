@@ -92,6 +92,7 @@ export interface Datapack {
     data: Resources;
     id: DataPackID;
     mcmeta?: McmetaFile;
+    name: string;
 }
 
 export interface McmetaFile {
@@ -111,6 +112,10 @@ export interface LocalData extends PacksInfo {
 }
 
 export interface MinecraftResource extends NamespacedName {
+    /**
+     * Namespace will be defined for a MinecraftResource
+     */
+    namespace: string;
     /**
      * The datapack this resource is related to.
      * If undefined, must be the vanilla datapack

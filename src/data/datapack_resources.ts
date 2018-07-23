@@ -11,9 +11,11 @@ import {
 } from "../misc_functions/promisified_fs";
 import { typed_keys } from "../misc_functions/third_party/typed_keys";
 import { ReturnSuccess } from "../types";
+import { mapPacksInfo } from "./extractor/mapfunctions";
 import {
     Datapack,
     DataPackID,
+    GlobalData,
     McmetaFile,
     MinecraftResource,
     PacksInfo,
@@ -64,14 +66,6 @@ export async function getNamespaceResources(
                             .slice(0, -realExtension.length)
                             .replace(path.sep, SLASH)
                     };
-                    if (!!resourceInfo.readJson) {
-                        const jsonData = await readJSON(file);
-                        if (helper.merge(jsonData)) {
-                            // @ts-ignore The resources are only officially allowed to be MinecraftResources.
-                            // However, they are cast to DataResources at a later time if applicable.
-                            newResource.data = jsonData.data;
-                        }
-                    }
                     nameSpaceContents.push(newResource);
                 })
             );
@@ -84,7 +78,8 @@ export async function getNamespaceResources(
 
 async function buildDataPack(
     packFolder: string,
-    id: DataPackID
+    id: DataPackID,
+    packName: string
 ): Promise<ReturnSuccess<Datapack>> {
     const helper = new ReturnHelper();
     const dataFolder = path.join(packFolder, DATAFOLDER);
@@ -92,7 +87,7 @@ async function buildDataPack(
         readJSON<McmetaFile>(path.join(packFolder, MCMETAFILE)),
         getPackResources(dataFolder, id)
     ]);
-    const result: Datapack = { id, data: packResources.data };
+    const result: Datapack = { id, data: packResources.data, name: packName };
     helper.merge(packResources);
     if (helper.merge(mcmeta)) {
         result.mcmeta = mcmeta.data;
@@ -123,7 +118,8 @@ async function getPackResources(
 }
 
 export async function getPacksInfo(
-    location: string
+    location: string,
+    globalData: GlobalData
 ): Promise<ReturnSuccess<PacksInfo>> {
     const packNames = await subDirectories(location);
     const helper = new ReturnHelper();
@@ -132,14 +128,15 @@ export async function getPacksInfo(
     const promises: Array<Promise<void>> = packs.map(
         async ([packID, packName]) => {
             const loc = path.join(location, packName);
-            const packData = await buildDataPack(loc, packID);
+            const packData = await buildDataPack(loc, packID, packName);
             helper.merge(packData);
             result.packs[packID] = packData.data;
             result.packnamesmap[packName] = packID;
         }
     );
     await Promise.all(promises);
-    return helper.succeed(result);
+    const otherResult = await mapPacksInfo(result, globalData);
+    return helper.mergeChain(otherResult).succeed(otherResult.data);
 }
 
 async function subDirectories(baseFolder: string): Promise<string[]> {

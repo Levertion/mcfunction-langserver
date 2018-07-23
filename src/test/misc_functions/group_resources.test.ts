@@ -15,6 +15,7 @@ const dummyData: CommmandData = {
         }
     } as any,
     localData: {
+        current: 0,
         location: "",
         packnamesmap: { testpack: 0, pack2: 1 },
         packs: {
@@ -38,7 +39,8 @@ const dummyData: CommmandData = {
                         }
                     ]
                 },
-                id: 0
+                id: 0,
+                name: "testpack"
             },
             1: {
                 data: {
@@ -46,7 +48,8 @@ const dummyData: CommmandData = {
                         { namespace: "secondpath", path: "path", pack: 1 }
                     ]
                 },
-                id: 1
+                id: 1,
+                name: "pack2"
             }
         }
     }

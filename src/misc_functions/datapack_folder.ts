@@ -1,6 +1,19 @@
 import * as defaultPath from "path";
-import { DATAFOLDER, SLASH } from "../consts";
-import { NamespacedName, Resources } from "../data/types";
+import { DATAFOLDER, SLASH, TAG_START } from "../consts";
+import {
+    DataResource,
+    GlobalData,
+    MinecraftResource,
+    NamespacedName,
+    PacksInfo,
+    Resources,
+    Tag
+} from "../data/types";
+import { ReturnSuccess } from "../types";
+import { getMatching, getResourcesSplit } from "./group_resources";
+import { convertToNamespace } from "./namespace";
+import { readJSON } from "./promisified_fs";
+import { ReturnHelper } from "./returnhelper";
 import { typed_keys } from "./third_party/typed_keys";
 
 /** A minimal path module for use in this file */
@@ -44,22 +57,62 @@ export function parseDataPath(
     return undefined;
 }
 
-interface ResourceInfo<U = string> {
+interface ResourceInfo<U extends keyof Resources> {
     extension: string;
     path: [U] | string[]; // Custom tuple improves autocomplete mostly.
-    readJson?: boolean;
+    mapFunction?(
+        value: NonNullable<Resources[U]> extends Array<infer T> ? T : never,
+        packroot: string,
+        globalData: GlobalData,
+        packsInfo?: PacksInfo
+    ): Promise<ReturnSuccess<typeof value>>;
 }
 
 export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
     advancements: { extension: ".json", path: ["advancements"] },
     block_tags: {
         extension: ".json",
-        path: ["tags", "blocks"],
-        readJson: true
+        mapFunction: async (v, packroot, globalData, packsInfo) =>
+            readTag(
+                v,
+                packroot,
+                "block_tags",
+                getResourcesSplit("block_tags", globalData, packsInfo),
+                s => globalData.blocks.hasOwnProperty(s)
+            ),
+        path: ["tags", "blocks"]
     },
-    function_tags: { extension: ".json", path: ["tags", "functions"] },
+    function_tags: {
+        extension: ".json",
+        mapFunction: async (v, packroot, globalData, packsInfo) => {
+            const functions = getResourcesSplit(
+                "functions",
+                globalData,
+                packsInfo
+            );
+            return readTag(
+                v,
+                packroot,
+                "function_tags",
+                getResourcesSplit("function_tags", globalData, packsInfo),
+                s => getMatching(functions, convertToNamespace(s)).length > 0
+            );
+        },
+        path: ["tags", "functions"]
+    },
     functions: { extension: ".mcfunction", path: ["functions"] },
-    item_tags: { extension: ".json", path: ["tags", "items"] },
+    item_tags: {
+        extension: ".json",
+        mapFunction: async (v, packroot, globalData, packsInfo) =>
+            readTag(
+                v,
+                packroot,
+                "item_tags",
+                getResourcesSplit("item_tags", globalData, packsInfo),
+                s => globalData.items.indexOf(s) !== -1
+            ),
+        path: ["tags", "items"]
+    },
     loot_tables: { extension: ".json", path: ["loot_tables"] },
     recipes: { extension: ".json", path: ["recipes"] },
     structures: { extension: ".nbt", path: ["structures"] }
@@ -67,7 +120,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
 
 interface KindNamespace {
     kind: keyof Resources;
-    location: NamespacedName;
+    location: NamespacedName & { namespace: string };
 }
 
 export function getKindAndNamespace(
@@ -107,4 +160,127 @@ export function getKindAndNamespace(
         }
     }
     return undefined;
+}
+
+export function getPath(
+    resource: MinecraftResource,
+    packroot: string,
+    kind: keyof Resources,
+    path: PathModule = defaultPath
+): string {
+    return path.join(
+        packroot,
+        DATAFOLDER,
+        resource.namespace,
+        ...resourceTypes[kind].path,
+        resource.path
+            .replace(SLASH, path.sep)
+            .concat(resourceTypes[kind].extension)
+    );
+}
+
+export function buildPath(
+    resource: MinecraftResource,
+    packs: PacksInfo,
+    kind: keyof Resources,
+    path: PathModule = defaultPath
+): string | undefined {
+    if (resource.pack) {
+        const pack = packs.packs[resource.pack];
+        return getPath(
+            resource,
+            path.join(packs.location, pack.name),
+            kind,
+            path
+        );
+    } else {
+        return undefined;
+    }
+}
+
+async function readTag(
+    resource: MinecraftResource,
+    packRoot: string,
+    type: keyof Resources,
+    options: MinecraftResource[],
+    isKnown: (value: string) => boolean
+): Promise<ReturnSuccess<DataResource<Tag> | MinecraftResource>> {
+    const helper = new ReturnHelper();
+    const filePath = getPath(resource, packRoot, type);
+    const tag = await readJSON<Tag>(filePath);
+    if (helper.merge(tag)) {
+        if (
+            helper.addFileErrorIfFalse(
+                !!tag.data.values,
+                filePath,
+                "InvalidTagNoValues",
+                `tag does not have a values key: ${JSON.stringify(tag.data)}`
+            )
+        ) {
+            if (
+                helper.addFileErrorIfFalse(
+                    Array.isArray(tag.data.values),
+                    filePath,
+                    "InvalidTagValuesNotArray",
+                    `tag values is not an array: ${JSON.stringify(
+                        tag.data.values
+                    )}`
+                )
+            ) {
+                if (
+                    helper.addFileErrorIfFalse(
+                        // tslint:disable-next-line:strict-type-predicates
+                        tag.data.values.every(v => typeof v === "string"),
+                        filePath,
+                        "InvalidTagValuesNotString",
+                        `tag values contains a non string value: ${JSON.stringify(
+                            tag.data.values
+                        )}`
+                    )
+                ) {
+                    const seen = new Set<string>();
+                    const duplicates = new Set<string>();
+                    const unknowns = new Set<string>();
+                    for (const value of tag.data.values) {
+                        if (seen.has(value)) {
+                            duplicates.add(value);
+                        }
+                        seen.add(value);
+                        if (value.startsWith(TAG_START)) {
+                            const result = getMatching(
+                                options,
+                                convertToNamespace(value)
+                            );
+                            if (result.length === 0) {
+                                unknowns.add(value);
+                            }
+                        } else if (!isKnown(value)) {
+                            unknowns.add(value);
+                        }
+                    }
+                    helper.addFileErrorIfFalse(
+                        duplicates.size === 0,
+                        filePath,
+                        "InvalidTagValuesDuplicates",
+                        `Tag contains duplicate values: "${[...duplicates].join(
+                            '", "'
+                        )}"`
+                    );
+                    helper.addFileErrorIfFalse(
+                        unknowns.size === 0,
+                        filePath,
+                        "InvalidTagValuesUnknown",
+                        `Tag contains unknown values: "${[...unknowns].join(
+                            '", "'
+                        )}"`
+                    );
+                    return helper.succeed({
+                        ...resource,
+                        data: tag.data
+                    });
+                }
+            }
+        }
+    }
+    return helper.succeed(resource);
 }

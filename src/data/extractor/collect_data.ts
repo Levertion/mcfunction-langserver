@@ -5,8 +5,11 @@ shim();
 import { promisify } from "util";
 
 import { DATAFOLDER } from "../../consts";
+import { ReturnHelper } from "../../misc_functions";
+import { ReturnSuccess } from "../../types";
 import { getNamespaceResources } from "../datapack_resources";
 import { BlocksPropertyInfo, CommandTree, GlobalData } from "../types";
+import { runMapFunctions } from "./mapfunctions";
 const readFileAsync = promisify(fs.readFile);
 
 type DataSaveResult<T extends keyof GlobalData> = [T, GlobalData[T]];
@@ -14,7 +17,8 @@ type DataSaveResult<T extends keyof GlobalData> = [T, GlobalData[T]];
 export async function collectData(
     version: string,
     dataDir: string
-): Promise<GlobalData> {
+): Promise<ReturnSuccess<GlobalData>> {
+    const helper = new ReturnHelper();
     const result: GlobalData = { meta_info: { version } } as GlobalData;
     const cleanups = await Promise.all([
         getBlocks(dataDir),
@@ -25,7 +29,10 @@ export async function collectData(
     for (const dataType of cleanups) {
         result[dataType[0]] = dataType[1];
     }
-    return result;
+    const resources = await runMapFunctions(result.resources, result, dataDir);
+    return helper
+        .mergeChain(resources)
+        .succeed({ ...result, resources: resources.data });
 }
 
 //#region Resources

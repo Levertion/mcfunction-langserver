@@ -348,6 +348,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, "");
+                assert.strictEqual(reader.cursor, 4);
             }
         });
         it("should throw an error if there is no opening quote", () => {
@@ -368,6 +369,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, "hello");
+                assert.strictEqual(reader.cursor, 7);
             }
         });
         it("should return an empty string when there is an empty quoted string", () => {
@@ -375,6 +377,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, "");
+                assert.strictEqual(reader.cursor, 2);
             }
         });
         it("should allow escaped quotes", () => {
@@ -382,6 +385,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, 'quote"here');
+                assert.strictEqual(reader.cursor, 13);
             }
         });
         it("should allow escaped backslashes", () => {
@@ -389,6 +393,7 @@ describe("string-reader", () => {
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
                 assert.strictEqual(result.data, "backslash\\here");
+                assert.strictEqual(reader.cursor, 17);
             }
         });
         it("should not allow surplus escapes", () => {
@@ -514,7 +519,46 @@ describe("string-reader", () => {
         });
     });
     describe("readOption", () => {
-        // TODO
+        it("should work properly", () => {
+            const reader = new StringReader("test");
+            const result = reader.readOption(["test", "other"]);
+            if (
+                returnAssert(result, {
+                    succeeds: true,
+                    suggestions: ["test"]
+                })
+            ) {
+                assert.equal(result.data, "test");
+            }
+        });
+        it("should give an error with an unknown value", () => {
+            const reader = new StringReader("test");
+            const result = reader.readOption(["nottest", "other"]);
+            if (
+                returnAssert(result, {
+                    errors: [
+                        {
+                            code: "parsing.expected.option",
+                            range: { start: 0, end: 4 }
+                        }
+                    ],
+                    succeeds: false
+                })
+            ) {
+                assert.equal(result.data, "test");
+            }
+        });
+        it("should not give an error when addError is false and there is an unknown value", () => {
+            const reader = new StringReader("test");
+            const result = reader.readOption(["nottest", "other"], false);
+            if (
+                returnAssert(result, {
+                    succeeds: false
+                })
+            ) {
+                assert.equal(result.data, "test");
+            }
+        });
     });
     describe("readWhileFunction()", () => {
         it("should not read the first character if the callback fails on it", () => {

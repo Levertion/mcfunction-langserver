@@ -1,4 +1,5 @@
-import { isSuccessful, ReturnHelper } from "../misc_functions";
+import { CompletionItemKind } from "vscode-languageserver";
+import { ReturnHelper } from "../misc_functions";
 import { typed_keys } from "../misc_functions/third_party/typed_keys";
 import { CE, ReturnedInfo, Suggestion } from "../types";
 import { CommandErrorBuilder } from "./errors";
@@ -107,8 +108,7 @@ export class StringReader {
                 maxlen = opt.length;
             }
             const out = this.expect(opt);
-            if (isSuccessful(out)) {
-                helper.merge(out);
+            if (helper.merge(out)) {
                 return helper.succeed(opt);
             }
             this.cursor = start;
@@ -237,7 +237,8 @@ export class StringReader {
      */
     public readOption<T extends string>(
         options: T[],
-        addError: boolean = true
+        addError: boolean = true,
+        completion?: CompletionItemKind
     ): ReturnedInfo<T, CE, string | false> {
         const start = this.cursor;
         const helper = new ReturnHelper();
@@ -254,6 +255,7 @@ export class StringReader {
                     ...options
                         .filter(v => v.startsWith(remaining))
                         .map<Suggestion>(v => ({
+                            kind: completion,
                             start,
                             text: `${QUOTE}${v}${QUOTE}`
                         }))
@@ -272,6 +274,7 @@ export class StringReader {
                 ...options
                     .filter(v => v.startsWith(result.data))
                     .map<Suggestion>(v => ({
+                        kind: completion,
                         start,
                         text:
                             quoted || v.includes('"') || v.includes("\\")
@@ -336,6 +339,7 @@ export class StringReader {
             } else if (c === ESCAPE) {
                 escaped = true;
             } else if (c === QUOTE) {
+                this.skip();
                 return helper.succeed(result);
             } else {
                 result += c;

@@ -4,13 +4,15 @@ import { Parser } from "../types";
 
 /**
  * Incomplete:
- * https://github.com/Levertion/mcfunction-langserver/issues/11
+ * https://github.com/Levertion/mcfunction-langserver/projects/1
  */
 const implementedParsers: { [id: string]: string } = {
     "brigadier:bool": "./brigadier/bool",
     "brigadier:float": "./brigadier/float",
     "brigadier:integer": "./brigadier/integer",
     "brigadier:string": "./brigadier/string",
+    "minecraft:block_predicate": "./minecraft/block/predicate",
+    "minecraft:block_state": "./minecraft/block/state",
     "minecraft:nbt": "./minecraft/nbt",
     "minecraft:nbt_path": "./minecraft/nbt_path",
     "minecraft:swizzle": "./minecraft/swizzle"

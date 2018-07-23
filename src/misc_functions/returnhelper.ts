@@ -90,12 +90,26 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         return this;
     }
 
+    public addFileErrorIfFalse(
+        option: boolean,
+        filePath: string,
+        group: string,
+        message: string
+    ): option is true {
+        if (!option) {
+            this.addMisc({ group, message, filePath, kind: "FileError" });
+        } else {
+            this.addMisc({ group, filePath, kind: "ClearError" });
+        }
+        return option;
+    }
     public addMisc(...others: MiscInfo[]): this {
         if (this.suggesting === undefined || !this.suggesting) {
             this.data.misc.push(...others);
         }
         return this;
     }
+
     public addSuggestion(
         start: number,
         text: string,
@@ -103,7 +117,12 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         description?: string
     ): this {
         if (this.suggesting === undefined || this.suggesting) {
-            this.addSuggestions({ start, text, kind, description });
+            this.addSuggestions({
+                description,
+                kind,
+                start,
+                text
+            });
         }
         return this;
     }
@@ -125,11 +144,7 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     }
 
     public failWithData<T>(data: T): ReturnFailure<T, Errorkind> {
-        return {
-            ...this.getShared(),
-            data,
-            kind: failure as Failure
-        };
+        return { ...this.getShared(), data, kind: failure as Failure };
     }
     public getShared(): ReturnData<Errorkind> {
         return this.data;
@@ -139,23 +154,28 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     }
     public merge<T>(
         merge: ReturnedInfo<T, Errorkind, any>,
-        blockSuggestions: boolean = false
+        suggestOverride?: boolean
     ): merge is ReturnSuccess<T, Errorkind> {
-        if (typeof this.suggesting === "boolean") {
-            if (this.suggesting) {
-                if (!blockSuggestions) {
+        this.mergeChain(merge, suggestOverride);
+        return isSuccessful(merge);
+    }
+
+    public mergeChain(
+        merge: ReturnedInfo<any, Errorkind>,
+        suggestOverride?: boolean
+    ): this {
+        for (const val of [suggestOverride, this.suggesting]) {
+            if (typeof val === "boolean") {
+                if (val) {
                     this.mergeSuggestions(merge);
                 }
-            } else {
-                this.mergeSafe(merge);
-            }
-        } else {
-            if (!blockSuggestions) {
-                this.mergeSuggestions(merge);
+                return this;
             }
             this.mergeSafe(merge);
         }
-        return isSuccessful(merge);
+        this.mergeSuggestions(merge);
+        this.mergeSafe(merge);
+        return this;
     }
 
     public succeed<T extends undefined>(
@@ -163,11 +183,7 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     ): ReturnSuccess<undefined, Errorkind>;
     public succeed<T>(data: T): ReturnSuccess<T, Errorkind>;
     public succeed<T>(data: T): ReturnSuccess<T, Errorkind> {
-        return {
-            ...this.getShared(),
-            data,
-            kind: success as Success
-        };
+        return { ...this.getShared(), data, kind: success as Success };
     }
 
     private mergeSafe(merge: ReturnData<Errorkind>): void {

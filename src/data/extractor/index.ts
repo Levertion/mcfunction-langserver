@@ -5,6 +5,8 @@ import { shim } from "util.promisify";
 shim();
 import { promisify } from "util";
 
+import { ReturnHelper } from "../../misc_functions";
+import { ReturnSuccess } from "../../types";
 import { cacheData } from "../cache_management";
 import { GlobalData } from "../types";
 import { collectData } from "./collect_data";
@@ -33,16 +35,17 @@ const mkdtmpAsync = promisify(fs.mkdtemp);
  */
 export async function collectGlobalData(
     currentversion: string = ""
-): Promise<GlobalData> {
+): Promise<ReturnSuccess<GlobalData>> {
     if (mcLangSettings.data.enabled) {
         const javaPath = await checkJavaPath();
         const dir = await mkdtmpAsync(path.join(tmpdir(), "mcfunction"));
         const jarInfo = await getPathToJar(dir, currentversion);
         const datadir = await runGenerator(javaPath, dir, jarInfo.jarPath);
         mcLangLog("Generator Finished");
+        const helper = new ReturnHelper();
         const data = await collectData(jarInfo.version, datadir);
-        await cacheData(data);
-        return data;
+        await cacheData(data.data);
+        return helper.mergeChain(data).succeed(data.data);
     } else {
         throw new Error(
             "Data Obtainer disabled in settings. To obtain data automatically, please enable it."

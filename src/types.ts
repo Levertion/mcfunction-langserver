@@ -2,7 +2,7 @@ import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
 import { CompletionItemKind } from "vscode-languageserver";
 import { BlankCommandError, CommandError } from "./brigadier_components/errors";
 import { StringReader } from "./brigadier_components/string_reader";
-import { CommandNodePath, GlobalData, PacksInfo } from "./data/types";
+import { CommandNodePath, GlobalData, LocalData } from "./data/types";
 import { PackLocationSegments } from "./misc_functions";
 
 //#region Document
@@ -50,7 +50,7 @@ export interface CommmandData {
     /**
      * Data from datapacks
      */
-    localData?: PacksInfo;
+    localData?: LocalData;
 }
 
 export interface Suggestion {
@@ -115,7 +115,8 @@ interface SubActionBase<U extends string, T> extends DataInterval<T> {
 }
 export type SubAction =
     | SubActionBase<"hover", string>
-    | SubActionBase<"format", string>;
+    | SubActionBase<"format", string>
+    | SubActionBase<"source", string>;
 //  | SubActionBase<"highlight", HighlightScope>;
 //  | SubActionBase<"rename", RenameRequest>;
 //#endregion

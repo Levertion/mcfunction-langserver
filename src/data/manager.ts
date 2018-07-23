@@ -3,7 +3,7 @@ import {
     FileChangeType
 } from "vscode-languageserver";
 
-import { extname } from "path";
+import { extname, join } from "path";
 import { MCMETAFILE } from "../consts";
 import {
     getKindAndNamespace,
@@ -24,6 +24,7 @@ import {
     Datapack,
     DataPackID,
     GlobalData,
+    LocalData,
     McmetaFile,
     MinecraftResource,
     PacksInfo
@@ -62,14 +63,14 @@ export class DataManager {
 
     public getPackFolderData(
         folder: PackLocationSegments | undefined
-    ): PacksInfo | undefined {
+    ): LocalData | undefined {
         if (
             !!folder &&
             this.packDataComplete.hasOwnProperty(folder.packsFolder)
         ) {
             const info = this.packDataComplete[folder.packsFolder];
 
-            return info;
+            return { ...info, current: info.packnamesmap[folder.pack] };
         }
         return undefined;
     }
@@ -80,102 +81,126 @@ export class DataManager {
         const helper = new ReturnHelper(false);
         const firsts = new Set<string>();
         const promises = event.changes.map(async change => {
-            const parsedPath = parseDataPath(change.uri);
-            if (parsedPath) {
-                interface InlineData {
-                    data: PacksInfo;
-                    pack: Datapack;
-                    packID: DataPackID;
-                }
-                const getData = async (): Promise<InlineData> => {
-                    const first = await this.readPackFolderData(
-                        parsedPath.packsFolder
-                    );
-                    if (first) {
-                        firsts.add(parsedPath.packsFolder);
+            try {
+                const parsedPath = parseDataPath(change.uri);
+                if (parsedPath) {
+                    interface InlineData {
+                        data: PacksInfo;
+                        pack: Datapack;
+                        packID: DataPackID;
                     }
-                    const data = this.getPackFolderData(parsedPath);
-                    if (!data) {
-                        throw new Error(
-                            "Could not load data from datapacks folder"
+                    const getData = async (): Promise<InlineData> => {
+                        const first = await this.readPackFolderData(
+                            parsedPath.packsFolder
                         );
-                    }
-                    const packID = data.packnamesmap[parsedPath.pack];
-                    const pack = data.packs[packID];
-                    return { data, pack, packID };
-                };
+                        if (first) {
+                            firsts.add(parsedPath.packsFolder);
+                        }
+                        const data = this.getPackFolderData(parsedPath);
+                        if (!data) {
+                            throw new Error(
+                                "Could not load data from datapacks folder"
+                            );
+                        }
+                        const packID = data.packnamesmap[parsedPath.pack];
+                        const pack = data.packs[packID];
+                        return { data, pack, packID };
+                    };
 
-                if (parsedPath.rest === MCMETAFILE) {
-                    const { pack } = await getData();
-                    if (!firsts.has(parsedPath.packsFolder)) {
-                        const res = await readJSON<McmetaFile>(change.uri);
-                        pack.mcmeta = helper.merge(res) ? res.data : undefined;
-                    }
-                } else {
-                    const namespace = getKindAndNamespace(parsedPath.rest);
-                    if (namespace) {
-                        const { pack, packID } = await getData();
+                    if (parsedPath.rest === MCMETAFILE) {
+                        const { pack } = await getData();
                         if (!firsts.has(parsedPath.packsFolder)) {
-                            const shouldUpdateContents =
-                                change.type === FileChangeType.Changed &&
-                                resourceTypes[namespace.kind].readJson;
-                            let contents = pack.data[namespace.kind];
-                            if (
-                                (change.type === FileChangeType.Deleted ||
-                                    shouldUpdateContents) &&
-                                !!contents
-                            ) {
-                                for (let i = 0; i < contents.length; i++) {
-                                    const element = contents[i];
-                                    if (
-                                        namespacesEqual(
-                                            element,
-                                            namespace.location
-                                        )
-                                    ) {
-                                        contents.splice(i, 1);
-                                        break;
-                                    }
-                                }
-                            }
-                            if (
-                                change.type === FileChangeType.Created ||
-                                shouldUpdateContents
-                            ) {
-                                if (!contents) {
-                                    contents = pack.data[namespace.kind] = [];
-                                }
-                                const newResource: MinecraftResource = {
-                                    ...namespace.location,
-                                    pack: packID
-                                };
-                                const actual = extname(change.uri);
-                                const expected =
-                                    resourceTypes[namespace.kind].extension;
-                                if (actual === expected) {
-                                    if (
-                                        resourceTypes[namespace.kind].readJson
-                                    ) {
-                                        const data = await readJSON(change.uri);
-                                        if (helper.merge(data)) {
-                                            // @ts-ignore
-                                            newResource.data = data.data;
+                            const res = await readJSON<McmetaFile>(change.uri);
+                            pack.mcmeta = helper.merge(res)
+                                ? res.data
+                                : undefined;
+                        }
+                    } else {
+                        const namespace = getKindAndNamespace(parsedPath.rest);
+                        if (namespace) {
+                            const { pack, packID, data } = await getData();
+                            if (!firsts.has(parsedPath.packsFolder)) {
+                                const shouldUpdateContents =
+                                    change.type === FileChangeType.Changed &&
+                                    resourceTypes[namespace.kind].mapFunction;
+                                let contents = pack.data[namespace.kind];
+                                if (
+                                    (change.type === FileChangeType.Deleted ||
+                                        shouldUpdateContents) &&
+                                    !!contents
+                                ) {
+                                    for (let i = 0; i < contents.length; i++) {
+                                        const element = contents[i];
+                                        if (
+                                            namespacesEqual(
+                                                element,
+                                                namespace.location
+                                            )
+                                        ) {
+                                            contents.splice(i, 1);
+                                            break;
                                         }
                                     }
-                                    contents.push(newResource);
-                                } else {
-                                    helper.addMisc(
-                                        createExtensionFileError(
-                                            change.uri,
-                                            expected,
-                                            actual
-                                        )
-                                    );
+                                }
+                                if (
+                                    change.type === FileChangeType.Created ||
+                                    shouldUpdateContents
+                                ) {
+                                    if (!contents) {
+                                        contents = pack.data[
+                                            namespace.kind
+                                        ] = [];
+                                    }
+                                    const newResource: MinecraftResource = {
+                                        ...namespace.location,
+                                        pack: packID
+                                    };
+                                    const actual = extname(change.uri);
+                                    const expected =
+                                        resourceTypes[namespace.kind].extension;
+                                    if (actual === expected) {
+                                        const mapFunction =
+                                            // tslint:disable-next-line:no-unbound-method We control this function, so we know it won't use the this keyword.
+                                            resourceTypes[namespace.kind]
+                                                .mapFunction;
+                                        if (mapFunction) {
+                                            const result = await mapFunction(
+                                                newResource,
+                                                join(
+                                                    parsedPath.packsFolder,
+                                                    parsedPath.pack
+                                                ),
+                                                this.globalData,
+                                                data
+                                            );
+                                            if (helper.merge(result)) {
+                                                contents.push(result.data);
+                                            }
+                                        } else {
+                                            contents.push(newResource);
+                                        }
+                                    } else {
+                                        helper.addMisc(
+                                            createExtensionFileError(
+                                                change.uri,
+                                                expected,
+                                                actual
+                                            )
+                                        );
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            } catch (error) {
+                mcLangLog(
+                    `Change ${JSON.stringify(
+                        change
+                    )} could not be completed, due to '${JSON.stringify(
+                        error
+                    )}'`
+                );
             }
         });
         await Promise.all(promises);
@@ -188,8 +213,10 @@ export class DataManager {
             version = this.globalData.meta_info.version;
         }
         try {
+            const helper = new ReturnHelper();
             const data = await collectGlobalData(version);
-            this.globalDataInternal = data;
+            helper.merge(data);
+            this.globalDataInternal = data.data;
             return true;
         } catch (error) {
             return error.toString();
@@ -219,7 +246,10 @@ export class DataManager {
     ): Promise<ReturnedInfo<void>> {
         const helper = new ReturnHelper();
         if (!this.packDataPromises.hasOwnProperty(folder)) {
-            this.packDataPromises[folder] = getPacksInfo(folder);
+            this.packDataPromises[folder] = getPacksInfo(
+                folder,
+                this.globalData
+            );
             const result = await this.packDataPromises[folder];
             this.packDataComplete[folder] = result.data;
             helper.merge(result);
