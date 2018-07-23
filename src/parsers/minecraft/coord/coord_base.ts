@@ -18,7 +18,16 @@ const NO_LOCAL = new CommandErrorBuilder(
     "Local coords are not allowed"
 );
 
-export class CoordBaseParser implements Parser {
+const LOCAL = "^";
+const RELATIVE = "~";
+
+export interface CoordRules {
+    count: 2 | 3;
+    float: boolean;
+    local: boolean;
+}
+
+export class CoordParser implements Parser {
     private readonly rules: CoordRules;
 
     public constructor(rules: CoordRules) {
@@ -42,9 +51,9 @@ export class CoordBaseParser implements Parser {
                 );
             }
             switch (reader.peek()) {
-                case "~":
+                case RELATIVE:
                     if (hasLocal) {
-                        return helper.fail(
+                        helper.addErrors(
                             MIXED.create(reader.cursor, reader.cursor + 1)
                         );
                     }
@@ -54,14 +63,14 @@ export class CoordBaseParser implements Parser {
                         return helper.fail();
                     }
                     break;
-                case "^":
+                case LOCAL:
                     if (hasWorld) {
-                        return helper.fail(
+                        helper.addErrors(
                             MIXED.create(reader.cursor, reader.cursor + 1)
                         );
                     }
                     if (!this.rules.local) {
-                        return helper.fail(
+                        helper.addErrors(
                             NO_LOCAL.create(reader.cursor, reader.cursor + 1)
                         );
                     }
@@ -72,21 +81,24 @@ export class CoordBaseParser implements Parser {
                     }
                     break;
                 default:
-                    if (hasLocal) {
-                        return helper.fail(
-                            MIXED.create(reader.cursor, reader.cursor + 1)
-                        );
-                    }
                     if (!reader.canRead()) {
-                        helper.addSuggestions(
-                            {
+                        if (!hasWorld) {
+                            helper.addSuggestions({
                                 start: reader.cursor,
-                                text: "~"
-                            },
-                            {
+                                text: LOCAL
+                            });
+                        }
+                        if (!hasLocal) {
+                            helper.addSuggestions({
                                 start: reader.cursor,
-                                text: "^"
-                            }
+                                text: RELATIVE
+                            });
+                        }
+                        break;
+                    }
+                    if (hasLocal) {
+                        helper.addErrors(
+                            MIXED.create(reader.cursor, reader.cursor + 1)
                         );
                     }
                     hasWorld = true;
@@ -120,10 +132,4 @@ export class CoordBaseParser implements Parser {
         }
         return this.rules.float ? reader.readFloat() : reader.readInt();
     }
-}
-
-export interface CoordRules {
-    count: 2 | 3;
-    float: boolean;
-    local: boolean;
 }

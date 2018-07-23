@@ -1,7 +1,6 @@
-import { Parser } from "../../../types";
-import { CoordBaseParser } from "./coord_base";
+import { CoordParser } from "./coord_base";
 
-export const blockPosParser: Parser = new CoordBaseParser({
+export = new CoordParser({
     count: 3,
     float: false,
     local: true
