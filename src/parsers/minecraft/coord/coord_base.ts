@@ -1,7 +1,7 @@
 import { CommandErrorBuilder } from "../../../brigadier_components/errors";
 import { StringReader } from "../../../brigadier_components/string_reader";
 import { ReturnHelper } from "../../../misc_functions";
-import { Parser, ReturnedInfo } from "../../../types";
+import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
 
 const MIXED = new CommandErrorBuilder(
     "argument.pos.mixed",
@@ -34,8 +34,11 @@ export class CoordParser implements Parser {
         this.rules = rules;
     }
 
-    public parse(reader: StringReader): ReturnedInfo<undefined> {
-        const helper = new ReturnHelper();
+    public parse(
+        reader: StringReader,
+        info: ParserInfo
+    ): ReturnedInfo<undefined> {
+        const helper = new ReturnHelper(info);
         let hasLocal = false;
         let hasWorld = false;
         const start = reader.cursor;
@@ -50,25 +53,19 @@ export class CoordParser implements Parser {
                     )
                 );
             }
+            const cstart = reader.cursor;
             switch (reader.peek()) {
                 case RELATIVE:
-                    if (hasLocal) {
-                        helper.addErrors(
-                            MIXED.create(reader.cursor, reader.cursor + 1)
-                        );
-                    }
                     hasWorld = true;
                     reader.skip();
                     if (!helper.merge(this.parseNumber(reader))) {
                         return helper.fail();
                     }
+                    if (hasLocal) {
+                        helper.addErrors(MIXED.create(cstart, reader.cursor));
+                    }
                     break;
                 case LOCAL:
-                    if (hasWorld) {
-                        helper.addErrors(
-                            MIXED.create(reader.cursor, reader.cursor + 1)
-                        );
-                    }
                     if (!this.rules.local) {
                         helper.addErrors(
                             NO_LOCAL.create(reader.cursor, reader.cursor + 1)
@@ -78,6 +75,9 @@ export class CoordParser implements Parser {
                     reader.skip();
                     if (!helper.merge(this.parseNumber(reader))) {
                         return helper.fail();
+                    }
+                    if (hasWorld) {
+                        helper.addErrors(MIXED.create(cstart, reader.cursor));
                     }
                     break;
                 default:
@@ -96,14 +96,12 @@ export class CoordParser implements Parser {
                         }
                         break;
                     }
-                    if (hasLocal) {
-                        helper.addErrors(
-                            MIXED.create(reader.cursor, reader.cursor + 1)
-                        );
-                    }
                     hasWorld = true;
                     if (!helper.merge(this.parseNumber(reader, false))) {
                         return helper.fail();
+                    }
+                    if (hasLocal) {
+                        helper.addErrors(MIXED.create(cstart, reader.cursor));
                     }
             }
             if (

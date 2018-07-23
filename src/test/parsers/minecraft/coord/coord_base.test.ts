@@ -1,8 +1,6 @@
-import * as assert from "assert";
-import { StringReader } from "../../../../brigadier_components/string_reader";
-import { isSuccessful } from "../../../../misc_functions";
 import { CoordParser } from "../../../../parsers/minecraft/coord/coord_base";
-import { assertErrors } from "../../../assertions";
+import { testParser } from "../../../assertions";
+import { succeeds } from "../../../blanks";
 
 describe("Coordinate tests", () => {
     describe("parse()", () => {
@@ -12,30 +10,29 @@ describe("Coordinate tests", () => {
                 float: false,
                 local: true
             });
+            const tester = testParser(parser)();
             ["~1 ~", "2 3", "5 ~", "~ ~"].forEach(v =>
                 it(`should work for coord ${v}`, () => {
-                    assert.ok(isSuccessful(parser.parse(new StringReader(v))));
+                    tester(v, succeeds);
                 })
             );
             it("should return a mix error for coord '1 ^4'", () => {
-                const out = parser.parse(new StringReader("1 ^4"));
-                assertErrors(
-                    [
+                tester("1 ^4", {
+                    errors: [
                         {
                             code: "argument.pos.mixed",
                             range: {
-                                end: 3,
+                                end: 4,
                                 start: 2
                             }
                         }
                     ],
-                    out.errors
-                );
+                    succeeds: true
+                });
             });
             it("should return a mix error for coord '~1 ^4'", () => {
-                const out = parser.parse(new StringReader("~1 ^4"));
-                assertErrors(
-                    [
+                tester("~1 ^4", {
+                    errors: [
                         {
                             code: "argument.pos.mixed",
                             range: {
@@ -44,13 +41,12 @@ describe("Coordinate tests", () => {
                             }
                         }
                     ],
-                    out.errors
-                );
+                    succeeds: true
+                });
             });
             it("should return an incomplete error for coord '~2 '", () => {
-                const out = parser.parse(new StringReader("~2 "));
-                assertErrors(
-                    [
+                tester("~2 ", {
+                    errors: [
                         {
                             code: "argument.pos.incomplete",
                             range: {
@@ -59,13 +55,12 @@ describe("Coordinate tests", () => {
                             }
                         }
                     ],
-                    out.errors
-                );
+                    succeeds: false
+                });
             });
             it("should return an invalid int error for coord '1.3 1'", () => {
-                const out = parser.parse(new StringReader("1.3 1 "));
-                assertErrors(
-                    [
+                tester("1.3 1", {
+                    errors: [
                         {
                             code: "parsing.int.invalid",
                             range: {
@@ -74,8 +69,8 @@ describe("Coordinate tests", () => {
                             }
                         }
                     ],
-                    out.errors
-                );
+                    succeeds: false
+                });
             });
         });
         describe("settings: {count: 3, float: true , local: true }", () => {
@@ -84,6 +79,7 @@ describe("Coordinate tests", () => {
                 float: true,
                 local: true
             });
+            const tester = testParser(parser)();
             [
                 "1 2 3",
                 "~1 ~2 3",
@@ -93,7 +89,7 @@ describe("Coordinate tests", () => {
                 "^.1 ^ ^3"
             ].forEach(v =>
                 it(`sould work for coord ${v}`, () => {
-                    assert.ok(isSuccessful(parser.parse(new StringReader(v))));
+                    tester(v, succeeds);
                 })
             );
         });
@@ -103,15 +99,15 @@ describe("Coordinate tests", () => {
                 float: true,
                 local: false
             });
+            const tester = testParser(parser)();
             ["~1 ~", "2 3", "5 ~20", "~ ~"].forEach(v =>
                 it(`should work for coord ${v}`, () => {
-                    assert.ok(isSuccessful(parser.parse(new StringReader(v))));
+                    tester(v, succeeds);
                 })
             );
             it("should return a no local error for coord '^ ^3'", () => {
-                const out = parser.parse(new StringReader("^ ^3"));
-                assertErrors(
-                    [
+                tester("^ ^3", {
+                    errors: [
                         {
                             code: "argument.pos.nolocal",
                             range: {
@@ -127,8 +123,8 @@ describe("Coordinate tests", () => {
                             }
                         }
                     ],
-                    out.errors
-                );
+                    succeeds: true
+                });
             });
         });
     });
