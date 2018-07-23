@@ -19,7 +19,7 @@ const NO_LOCAL = new CommandErrorBuilder(
 );
 
 export class CoordBaseParser implements Parser {
-    private rules: CoordRules;
+    private readonly rules: CoordRules;
 
     public constructor(rules: CoordRules) {
         this.rules = rules;
@@ -31,6 +31,16 @@ export class CoordBaseParser implements Parser {
         let hasWorld = false;
         const start = reader.cursor;
         for (let i = 0; i < this.rules.count; i++) {
+            if (!reader.canRead()) {
+                return helper.fail(
+                    INCOMPLETE.create(
+                        start,
+                        reader.cursor,
+                        i + 1,
+                        this.rules.count
+                    )
+                );
+            }
             switch (reader.peek()) {
                 case "~":
                     if (hasLocal) {
@@ -80,13 +90,13 @@ export class CoordBaseParser implements Parser {
                         );
                     }
                     hasWorld = true;
-                    if (!helper.merge(this.parseNumber(reader))) {
+                    if (!helper.merge(this.parseNumber(reader, false))) {
                         return helper.fail();
                     }
             }
             if (
-                !reader.canRead() ||
-                (!helper.merge(reader.expect(" ")) && i < this.rules.count - 1)
+                (!reader.canRead() || !helper.merge(reader.expect(" "))) &&
+                i < this.rules.count - 1
             ) {
                 return helper.fail(
                     INCOMPLETE.create(
@@ -97,17 +107,22 @@ export class CoordBaseParser implements Parser {
                     )
                 );
             }
-            reader.skip();
         }
         return helper.succeed();
     }
 
-    private parseNumber(reader: StringReader): ReturnedInfo<number> {
+    private parseNumber(
+        reader: StringReader,
+        allowBlank: boolean = true
+    ): ReturnedInfo<number> {
+        if ((!reader.canRead() || reader.peek().match(/\s/)) && allowBlank) {
+            return new ReturnHelper().succeed(0);
+        }
         return this.rules.float ? reader.readFloat() : reader.readInt();
     }
 }
 
-interface CoordRules {
+export interface CoordRules {
     count: 2 | 3;
     float: boolean;
     local: boolean;
