@@ -14,6 +14,7 @@ const implementedParsers: { [id: string]: string } = {
     "minecraft:block_pos": "./minecraft/coord/block_pos",
     "minecraft:block_predicate": "./minecraft/block/predicate",
     "minecraft:block_state": "./minecraft/block/state",
+    "minecraft:message": "./minecraft/message",
     "minecraft:rotation": "./minecraft/coord/rotation",
     "minecraft:vec2": "./minecraft/coord/vec2",
     "minecraft:vec3": "./minecraft/coord/vec3"
