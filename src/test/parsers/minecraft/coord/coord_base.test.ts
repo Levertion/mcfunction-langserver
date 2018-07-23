@@ -1,12 +1,12 @@
 import * as assert from "assert";
-import { StringReader } from "../../../brigadier_components/string_reader";
-import { isSuccessful } from "../../../misc_functions";
+import { StringReader } from "../../../../brigadier_components/string_reader";
+import { isSuccessful } from "../../../../misc_functions";
 import {
     CoordBaseParser,
     CoordRules
-} from "../../../parsers/minecraft/coord/coord_base";
-import { ReturnedInfo } from "../../../types";
-import { assertErrors } from "../../assertions";
+} from "../../../../parsers/minecraft/coord/coord_base";
+import { ReturnedInfo } from "../../../../types";
+import { assertErrors } from "../../../assertions";
 
 const toString = (v: CoordRules) =>
     `{count: ${v.count}, float: ${v.float}, local: ${v.local}}`;
