@@ -36,7 +36,7 @@ describe("Coordinate tests", () => {
                         {
                             code: "argument.pos.mixed",
                             range: {
-                                end: 4,
+                                end: 5,
                                 start: 3
                             }
                         }
@@ -55,7 +55,17 @@ describe("Coordinate tests", () => {
                             }
                         }
                     ],
-                    succeeds: false
+                    succeeds: false,
+                    suggestions: [
+                        {
+                            start: 3,
+                            text: "~"
+                        },
+                        {
+                            start: 2,
+                            text: " "
+                        }
+                    ]
                 });
             });
             it("should return an invalid int error for coord '1.3 1'", () => {

@@ -27,6 +27,30 @@ export interface CoordRules {
     local: boolean;
 }
 
+const fail = (
+    reader: StringReader,
+    helper: ReturnHelper,
+    count: number,
+    hasWorld: boolean,
+    hasLocal: boolean,
+    start: number,
+    i: number
+) => {
+    if (!hasWorld) {
+        helper.addSuggestions({
+            start: reader.cursor,
+            text: LOCAL
+        });
+    }
+    if (!hasLocal) {
+        helper.addSuggestions({
+            start: reader.cursor,
+            text: RELATIVE
+        });
+    }
+    return helper.fail(INCOMPLETE.create(start, reader.cursor, i + 1, count));
+};
+
 export class CoordParser implements Parser {
     private readonly rules: CoordRules;
 
@@ -44,15 +68,17 @@ export class CoordParser implements Parser {
         const start = reader.cursor;
         for (let i = 0; i < this.rules.count; i++) {
             if (!reader.canRead()) {
-                return helper.fail(
-                    INCOMPLETE.create(
-                        start,
-                        reader.cursor,
-                        i + 1,
-                        this.rules.count
-                    )
+                return fail(
+                    reader,
+                    helper,
+                    this.rules.count,
+                    hasWorld,
+                    hasLocal,
+                    start,
+                    0
                 );
             }
+
             const cstart = reader.cursor;
             switch (reader.peek()) {
                 case RELATIVE:
@@ -81,21 +107,6 @@ export class CoordParser implements Parser {
                     }
                     break;
                 default:
-                    if (!reader.canRead()) {
-                        if (!hasWorld) {
-                            helper.addSuggestions({
-                                start: reader.cursor,
-                                text: LOCAL
-                            });
-                        }
-                        if (!hasLocal) {
-                            helper.addSuggestions({
-                                start: reader.cursor,
-                                text: RELATIVE
-                            });
-                        }
-                        break;
-                    }
                     hasWorld = true;
                     if (!helper.merge(this.parseNumber(reader, false))) {
                         return helper.fail();
@@ -104,17 +115,19 @@ export class CoordParser implements Parser {
                         helper.addErrors(MIXED.create(cstart, reader.cursor));
                     }
             }
+
             if (
-                (!reader.canRead() || !helper.merge(reader.expect(" "))) &&
-                i < this.rules.count - 1
+                i < this.rules.count - 1 &&
+                (!reader.canRead() || !helper.merge(reader.expect(" ")))
             ) {
-                return helper.fail(
-                    INCOMPLETE.create(
-                        start,
-                        reader.cursor,
-                        i + 1,
-                        this.rules.count
-                    )
+                return fail(
+                    reader,
+                    helper,
+                    this.rules.count,
+                    hasWorld,
+                    hasLocal,
+                    start,
+                    i
                 );
             }
         }
