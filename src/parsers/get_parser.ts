@@ -11,8 +11,12 @@ const implementedParsers: { [id: string]: string } = {
     "brigadier:float": "./brigadier/float",
     "brigadier:integer": "./brigadier/integer",
     "brigadier:string": "./brigadier/string",
+    "minecraft:block_pos": "./minecraft/coord/block_pos",
     "minecraft:block_predicate": "./minecraft/block/predicate",
-    "minecraft:block_state": "./minecraft/block/state"
+    "minecraft:block_state": "./minecraft/block/state",
+    "minecraft:rotation": "./minecraft/coord/rotation",
+    "minecraft:vec2": "./minecraft/coord/vec2",
+    "minecraft:vec3": "./minecraft/coord/vec3"
 };
 
 export function getParser(node: CommandNode): Parser | undefined {
