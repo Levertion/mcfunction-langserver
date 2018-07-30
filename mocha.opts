@@ -1,5 +1,5 @@
 --ui tdd
 --colors
 --timeout 999999
---require ./out/test/logging_setup.js
+--require ./out/test/logging-setup.js
 out/test/**/*.test.js
