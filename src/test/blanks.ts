@@ -1,5 +1,5 @@
 import { GlobalData } from "../data/types";
-import { PackLocationSegments } from "../misc_functions";
+import { PackLocationSegments } from "../misc-functions";
 import { CommmandData } from "../types";
 import { ReturnAssertionInfo, TestParserInfo } from "./assertions";
 

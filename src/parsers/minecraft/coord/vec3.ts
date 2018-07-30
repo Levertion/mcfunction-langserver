@@ -1,4 +1,4 @@
-import { CoordParser } from "./coord_base";
+import { CoordParser } from "./coord-base";
 
 export = new CoordParser({
     count: 3,

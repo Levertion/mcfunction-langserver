@@ -1,6 +1,9 @@
 import * as assert from "assert";
 import { join } from "path";
-import { CompletionItemKind, CompletionList } from "vscode-languageserver";
+import {
+    CompletionItemKind,
+    CompletionList
+} from "vscode-languageserver/lib/main";
 import { computeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
 import { pack_segments } from "./blanks";
@@ -41,7 +44,7 @@ describe("ComputeCompletions()", () => {
                     __dirname,
                     "parsers",
                     "tests",
-                    "dummy1_parser"
+                    "dummy1"
                 )
             }
         } as any;

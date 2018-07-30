@@ -1,5 +1,5 @@
-import { CompletionItemKind } from "vscode-languageserver";
-import { ReturnHelper } from "../misc_functions";
+import { CompletionItemKind } from "vscode-languageserver/lib/main";
+import { ReturnHelper } from "../misc-functions";
 import { Parser } from "../types";
 
 const parser: Parser = {
