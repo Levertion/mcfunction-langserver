@@ -10,7 +10,7 @@
         "compile": "tsc -p tsconfig.json",
         "lint": "tslint --project .",
         "precommit": "pretty-quick --staged",
-        "prettier": "prettier **/*.{ts,json}",
+        "prettier": "prettier **/*.{ts,json,yml}",
         "prettier:write": "npm run prettier -- --write",
         "contributors:add": "all-contributors add",
         "contributors:generate": "all-contributors generate"
@@ -31,7 +31,7 @@
         "request": "^2.83.0",
         "request-promise-native": "^1.0.5",
         "util.promisify": "^1.0.0",
-        "vscode-languageserver": "^4.0.0"
+        "vscode-languageserver": "^4.4.0"
     },
     "devDependencies": {
         "@types/mocha": "5.2.5",

@@ -1,5 +1,5 @@
-import { resourceTypes, ReturnHelper } from "../../misc_functions";
-import { typed_keys } from "../../misc_functions/third_party/typed_keys";
+import { resourceTypes, ReturnHelper } from "../../misc-functions";
+import { typed_keys } from "../../misc-functions/third_party/typed-keys";
 
 import { join } from "path";
 import { ReturnSuccess } from "../../types";

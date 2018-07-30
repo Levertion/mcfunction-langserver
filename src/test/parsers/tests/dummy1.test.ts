@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { testParser } from "../../assertions";
-import * as dummyparser from "./dummy1_parser";
+import * as dummyparser from "./dummy1";
 
 const dummyParserTester = testParser(dummyparser);
 

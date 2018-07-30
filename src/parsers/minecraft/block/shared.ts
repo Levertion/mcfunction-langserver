@@ -1,7 +1,10 @@
-import { CompletionItemKind, DiagnosticSeverity } from "vscode-languageserver";
+import {
+    CompletionItemKind,
+    DiagnosticSeverity
+} from "vscode-languageserver/lib/main";
 
-import { CommandErrorBuilder } from "../../../brigadier_components/errors";
-import { StringReader } from "../../../brigadier_components/string_reader";
+import { CommandErrorBuilder } from "../../../brigadier/errors";
+import { StringReader } from "../../../brigadier/string-reader";
 import {
     BlocksPropertyInfo,
     NamespacedName,
@@ -11,11 +14,11 @@ import {
     namespaceSuggestionString,
     ReturnHelper,
     stringifyNamespace
-} from "../../../misc_functions";
+} from "../../../misc-functions";
 import {
     buildTagActions,
     parseNamespaceOrTag
-} from "../../../misc_functions/parsing/nmsp_tag";
+} from "../../../misc-functions/parsing/nmsp-tag";
 import { ParserInfo, ReturnedInfo, Suggestion } from "../../../types";
 
 interface PropertyExceptions {

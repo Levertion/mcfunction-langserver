@@ -1,7 +1,7 @@
 import {
     DidChangeWatchedFilesParams,
     FileChangeType
-} from "vscode-languageserver";
+} from "vscode-languageserver/lib/main";
 
 import { extname, join } from "path";
 import { MCMETAFILE } from "../consts";
@@ -12,12 +12,12 @@ import {
     parseDataPath,
     resourceTypes,
     ReturnHelper
-} from "../misc_functions";
-import { createExtensionFileError } from "../misc_functions/file_errors";
-import { readJSON } from "../misc_functions/promisified_fs";
+} from "../misc-functions";
+import { createExtensionFileError } from "../misc-functions/file-errors";
+import { readJSON } from "../misc-functions/promisified-fs";
 import { ReturnedInfo, ReturnSuccess } from "../types";
-import { readCache } from "./cache_management";
-import { getPacksInfo } from "./datapack_resources";
+import { readCache } from "./cache";
+import { getPacksInfo } from "./datapack-resources";
 import { collectGlobalData } from "./extractor";
 import {
     Datapack,

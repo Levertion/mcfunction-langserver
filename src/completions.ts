@@ -2,15 +2,15 @@ import {
     CompletionItem,
     CompletionItemKind,
     CompletionList
-} from "vscode-languageserver";
+} from "vscode-languageserver/lib/main";
 
-import { StringReader } from "./brigadier_components/string_reader";
+import { StringReader } from "./brigadier/string-reader";
 import { COMMENT_START } from "./consts";
 import { DataManager } from "./data/manager";
 import { CommandNodePath, CommandTree } from "./data/types";
-import { createParserInfo } from "./misc_functions/creators";
-import { followPath, getNextNode } from "./misc_functions/node_tree";
-import { getParser } from "./parsers/get_parser";
+import { createParserInfo } from "./misc-functions/creators";
+import { followPath, getNextNode } from "./misc-functions/node-tree";
+import { getParser } from "./parsers/get-parser";
 import {
     CommandContext,
     CommmandData,

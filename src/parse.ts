@@ -1,8 +1,8 @@
 import { EventEmitter } from "events";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
 
-import { CommandErrorBuilder } from "./brigadier_components/errors";
-import { StringReader } from "./brigadier_components/string_reader";
+import { CommandErrorBuilder } from "./brigadier/errors";
+import { StringReader } from "./brigadier/string-reader";
 import { COMMENT_START, SPACE } from "./consts";
 import { DataManager } from "./data/manager";
 import {
@@ -16,8 +16,8 @@ import {
     getNextNode,
     isSuccessful,
     ReturnHelper
-} from "./misc_functions";
-import { getParser } from "./parsers/get_parser";
+} from "./misc-functions";
+import { getParser } from "./parsers/get-parser";
 import {
     CommandContext,
     CommmandData,

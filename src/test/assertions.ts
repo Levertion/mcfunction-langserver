@@ -1,9 +1,9 @@
 import { AssertionError, equal, strictEqual } from "assert";
-import { CommandError } from "../brigadier_components/errors";
-import { StringReader } from "../brigadier_components/string_reader";
+import { CommandError } from "../brigadier/errors";
+import { StringReader } from "../brigadier/string-reader";
 import { NamespacedName } from "../data/types";
-import { isSuccessful, namespacesEqual } from "../misc_functions";
-import { typed_keys } from "../misc_functions/third_party/typed_keys";
+import { isSuccessful, namespacesEqual } from "../misc-functions";
+import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import {
     CE,
     ContextChange,

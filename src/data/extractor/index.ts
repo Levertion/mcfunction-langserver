@@ -5,13 +5,13 @@ import { shim } from "util.promisify";
 shim();
 import { promisify } from "util";
 
-import { ReturnHelper } from "../../misc_functions";
+import { ReturnHelper } from "../../misc-functions";
 import { ReturnSuccess } from "../../types";
-import { cacheData } from "../cache_management";
+import { cacheData } from "../cache";
 import { GlobalData } from "../types";
-import { collectData } from "./collect_data";
+import { collectData } from "./collect-data";
 import { getPathToJar } from "./download";
-import { checkJavaPath, runGenerator } from "./extract_data";
+import { checkJavaPath, runGenerator } from "./extract-data";
 
 const mkdtmpAsync = promisify(fs.mkdtemp);
 
