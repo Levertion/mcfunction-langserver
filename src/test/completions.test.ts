@@ -44,7 +44,7 @@ describe("ComputeCompletions()", () => {
                     __dirname,
                     "parsers",
                     "tests",
-                    "dummy1_parser"
+                    "dummy1"
                 )
             }
         } as any;
