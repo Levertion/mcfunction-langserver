@@ -2,19 +2,19 @@ import { COLORS } from "../../../../colors";
 import { ListSupplier } from "../lists";
 
 export = class Supplier implements ListSupplier {
-    private slot: string[] = [];
+    private slots: string[] = [];
 
     public get(): string[] {
-        return this.slot;
+        return this.slots;
     }
 
     public init(): void {
-        this.slot = [];
+        this.slots = [];
 
-        this.slot.push("list", "sidebar", "belowName");
+        this.slots.push("list", "sidebar", "belowName");
 
         for (const s of COLORS) {
-            this.slot.push(`sidebar.team.${s}`);
+            this.slots.push(`sidebar.team.${s}`);
         }
     }
 };

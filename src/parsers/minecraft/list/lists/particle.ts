@@ -1,6 +1,6 @@
 import { ListSupplier } from "../lists";
 
-const particle = [
+const particles = [
     "minecraft:ambient_entity_effect",
     "minecraft:angry_villager",
     "minecraft:barrier",
@@ -53,7 +53,7 @@ const particle = [
 ];
 
 const supplier: ListSupplier = {
-    get: () => particle,
+    get: () => particles,
     init: () => undefined
 };
 

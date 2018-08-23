@@ -1,6 +1,6 @@
 import { ListSupplier } from "../lists";
 
-const ench = [
+const enchs = [
     "minecraft:protection",
     "minecraft:fire_protection",
     "minecraft:feather_falling",
@@ -38,7 +38,7 @@ const ench = [
 ];
 
 const supplier: ListSupplier = {
-    get: () => ench,
+    get: () => enchs,
     init: () => undefined
 };
 

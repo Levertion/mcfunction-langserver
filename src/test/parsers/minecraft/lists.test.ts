@@ -6,16 +6,16 @@ import { Lists, ListSupplier } from "../../../parsers/minecraft/list/lists";
 import { ParserInfo } from "../../../types";
 import { testParser } from "../../assertions";
 
-const supplier: ListSupplier & { inited: boolean } = {
-    inited: false,
+const supplier: ListSupplier & { initialized: boolean } = {
+    initialized: false,
     get(): string[] {
-        if (!this.inited) {
+        if (!this.initialized) {
             assert.fail("supplier not inited");
         }
         return ["foo", "bar", "baz", "hello", "world"];
     },
     init(): void {
-        this.inited = true;
+        this.initialized = true;
     }
 };
 
