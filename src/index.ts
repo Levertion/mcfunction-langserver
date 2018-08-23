@@ -10,11 +10,11 @@ import {
     IPCMessageReader,
     IPCMessageWriter,
     TextDocumentSyncKind
-} from "vscode-languageserver";
-import { mergeDeep } from "./misc_functions/third_party/merge_deep";
+} from "vscode-languageserver/lib/main";
+import { mergeDeep } from "./misc-functions/third_party/merge-deep";
 
 import { computeCompletions } from "./completions";
-import { readSecurity } from "./data/cache_management";
+import { readSecurity } from "./data/cache";
 import { DataManager } from "./data/manager";
 import {
     actOnSecurity,
@@ -25,7 +25,7 @@ import {
     securityIssues,
     setup_logging,
     splitLines
-} from "./misc_functions/";
+} from "./misc-functions";
 import { parseDocument, parseLines } from "./parse";
 import { FunctionInfo, MiscInfo, WorkspaceSecurity } from "./types";
 

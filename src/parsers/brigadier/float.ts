@@ -1,5 +1,5 @@
-import { CommandErrorBuilder } from "../../brigadier_components/errors";
-import { ReturnHelper } from "../../misc_functions";
+import { CommandErrorBuilder } from "../../brigadier/errors";
+import { ReturnHelper } from "../../misc-functions";
 import { Parser } from "../../types";
 
 const JAVAMINFLOAT = -2139095039;

@@ -1,4 +1,4 @@
-import { ReturnHelper } from "../../misc_functions";
+import { ReturnHelper } from "../../misc-functions";
 import { Parser } from "../../types";
 
 const parser: Parser = {

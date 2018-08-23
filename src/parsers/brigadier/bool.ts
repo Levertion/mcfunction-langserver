@@ -1,5 +1,5 @@
-import { CompletionItemKind } from "vscode-languageserver";
-import { prepareForParser } from "../../misc_functions";
+import { CompletionItemKind } from "vscode-languageserver/lib/main";
+import { prepareForParser } from "../../misc-functions";
 import { Parser } from "../../types";
 
 const parser: Parser = {
