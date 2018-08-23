@@ -1,7 +1,7 @@
 import {
     DidChangeWatchedFilesParams,
     FileChangeType
-} from "vscode-languageserver/lib/main";
+} from "vscode-languageserver";
 
 import { extname, join } from "path";
 import { MCMETAFILE } from "../consts";
@@ -19,6 +19,7 @@ import { ReturnedInfo, ReturnSuccess } from "../types";
 import { readCache } from "./cache";
 import { getPacksInfo } from "./datapack-resources";
 import { collectGlobalData } from "./extractor";
+import { loadNonCached } from "./noncached";
 import {
     Datapack,
     DataPackID,
@@ -57,9 +58,7 @@ export class DataManager {
     }
     //#endregion
     //#region Constructor
-
     //#endregion
-
     public getPackFolderData(
         folder: PackLocationSegments | undefined
     ): LocalData | undefined {
@@ -225,7 +224,8 @@ export class DataManager {
     public async readCache(): Promise<boolean> {
         try {
             const cache = await readCache();
-            this.globalDataInternal = cache;
+            const noncache = await loadNonCached();
+            this.globalDataInternal = { ...cache, ...noncache };
             mcLangLog("Cache Successfully read");
             return true;
         } catch (error) {

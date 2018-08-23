@@ -16,6 +16,16 @@ export interface GlobalData {
     resources: Resources;
 }
 
+export type Cacheable = Pick<
+    GlobalData,
+    "commands" | "blocks" | "items" | "meta_info" | "resources"
+>;
+
+export type NonCacheable = Pick<
+    GlobalData,
+    Exclude<keyof GlobalData, keyof Cacheable>
+>;
+
 //#region Command Tree
 /**
  * A node with children.
@@ -52,7 +62,6 @@ export interface CommandNode extends MCNode<CommandNode> {
 }
 
 //#endregion Command Tree
-
 //#region BlockInfo
 /**
  * Available blocks
@@ -65,7 +74,6 @@ export interface SingleBlockPropertyInfo {
     [property: string]: string[];
 }
 //#endregion
-
 //#region Items
 /**
  * The items which can be obtained.
@@ -73,7 +81,6 @@ export interface SingleBlockPropertyInfo {
  */
 export type AvailableItems = string[];
 //#endregion
-
 //#region Resources
 export interface Datapack {
     data: Resources;
