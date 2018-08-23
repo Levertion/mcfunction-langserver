@@ -1,9 +1,11 @@
 import * as fs from "fs";
+import * as path from "path";
 import { shim } from "util.promisify";
 shim();
 import { promisify } from "util";
-import { createJSONFileError, ReturnHelper } from ".";
 import { ReturnedInfo } from "../types";
+import { createJSONFileError } from "./file-errors";
+import { ReturnHelper } from "./return-helper";
 
 export const readFileAsync = promisify(fs.readFile);
 export const saveFileAsync = promisify(fs.writeFile);
@@ -35,4 +37,29 @@ export async function readJSON<T>(filePath: string): Promise<ReturnedInfo<T>> {
     } catch (e) {
         return helper.addMisc(createJSONFileError(filePath, e)).fail();
     }
+}
+
+export async function walkDir(currentPath: string): Promise<string[]> {
+    const subFolders: string[] = [];
+    try {
+        subFolders.push(...(await readDirAsync(currentPath)));
+    } catch (error) {
+        return [];
+    }
+    const promises = subFolders.map(async sub => {
+        try {
+            const files: string[] = [];
+            const subFile = path.join(currentPath, sub);
+            if ((await statAsync(subFile)).isDirectory()) {
+                files.push(...(await walkDir(subFile)));
+            } else {
+                files.push(subFile);
+            }
+            return files;
+        } catch (error) {
+            return [];
+        }
+    });
+    const results = await Promise.all(promises);
+    return ([] as string[]).concat(...results);
 }

@@ -8,11 +8,11 @@ import {
 } from "../misc-functions/promisified-fs";
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import { WorkspaceSecurity } from "../types";
-import { GlobalData } from "./types";
+import { Cacheable, GlobalData } from "./types";
 
 const cacheFolder = path.join(__dirname, "cache");
 
-const cacheFileNames: { [K in keyof GlobalData]: string } = {
+const cacheFileNames: { [K in keyof Cacheable]: string } = {
     blocks: "blocks.json",
     commands: "commands.json",
     items: "items.json",
@@ -20,22 +20,16 @@ const cacheFileNames: { [K in keyof GlobalData]: string } = {
     resources: "resources.json"
 };
 
-export async function readCache(): Promise<GlobalData> {
-    const data: GlobalData = {} as GlobalData;
+export async function readCache(): Promise<Cacheable> {
+    const data: Cacheable = {} as Cacheable;
     const keys = typed_keys(cacheFileNames);
-    const promises: Array<Thenable<GlobalData[keyof GlobalData]>> = [];
-    for (const key of keys) {
-        promises.push(
-            readJSONRaw<GlobalData[typeof key]>(
+    await Promise.all(
+        keys.map(async key => {
+            data[key] = await readJSONRaw<Cacheable[typeof key]>(
                 path.join(cacheFolder, cacheFileNames[key])
-            )
-        );
-    }
-    const results = await Promise.all(promises);
-    for (const key of keys) {
-        // @ts-ignore This is allowed
-        data[key] = results.shift();
-    }
+            );
+        })
+    );
     return data;
 }
 
