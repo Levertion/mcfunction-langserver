@@ -1,5 +1,6 @@
 import { GlobalData } from "../data/types";
 import { PackLocationSegments } from "../misc-functions";
+import { Lists } from "../parsers/minecraft/list/lists";
 import { CommmandData } from "../types";
 import { ReturnAssertionInfo, TestParserInfo } from "./assertions";
 
@@ -28,5 +29,6 @@ export const emptyGlobal: GlobalData = {
     commands: { type: "root" },
     items: [],
     meta_info: { version: "" },
-    resources: {}
+    resources: {},
+    static_lists: new Lists()
 };

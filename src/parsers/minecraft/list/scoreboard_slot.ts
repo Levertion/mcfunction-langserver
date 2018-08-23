@@ -2,8 +2,8 @@ import { CommandErrorBuilder } from "../../../brigadier/errors";
 import { ListParser } from "./list";
 
 const exc = new CommandErrorBuilder(
-    "argument.color.invalid",
-    "Unknown color '%s'"
+    "argument.scoreboardDisplaySlot.invalid",
+    "Unknown display slot '%s'"
 );
 
-export = new ListParser("minecraft:color", exc);
+export = new ListParser("minecraft:scoreboard_slot", exc);

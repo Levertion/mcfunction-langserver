@@ -1,4 +1,9 @@
+import { CommandErrorBuilder } from "../../../brigadier/errors";
 import { ListParser } from "./list";
-import { EFFECT } from "./lists";
 
-export = new ListParser(EFFECT);
+const exc = new CommandErrorBuilder(
+    "effect.effectNotFound",
+    "Unknown effect: %s"
+);
+
+export = new ListParser("minecraft:mob_effect", exc);

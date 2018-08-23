@@ -2,8 +2,8 @@ import { CommandErrorBuilder } from "../../../brigadier/errors";
 import { ListParser } from "./list";
 
 const exc = new CommandErrorBuilder(
-    "argument.color.invalid",
-    "Unknown color '%s'"
+    "particle.notFound",
+    "Unknown particle: %s"
 );
 
-export = new ListParser("minecraft:color", exc);
+export = new ListParser("minecraft:particle", exc);

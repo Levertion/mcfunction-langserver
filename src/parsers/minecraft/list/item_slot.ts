@@ -1,4 +1,6 @@
+import { CommandErrorBuilder } from "../../../brigadier/errors";
 import { ListParser } from "./list";
-import { ITEM_SLOT } from "./lists";
 
-export = new ListParser(ITEM_SLOT);
+const exc = new CommandErrorBuilder("slot.unknown", "Unknown slot '%s'");
+
+export = new ListParser("minecraft:item_slot", exc);
