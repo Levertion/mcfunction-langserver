@@ -3,7 +3,7 @@ import { NonCacheable } from "./types";
 
 export async function loadNonCached(): Promise<NonCacheable> {
     const lists: Lists = new Lists();
-    await lists.registerLists();
+    lists.registerLists();
 
     return {
         static_lists: lists
