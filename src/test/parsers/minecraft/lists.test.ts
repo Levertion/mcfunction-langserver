@@ -2,7 +2,11 @@ import * as assert from "assert";
 import { CommandErrorBuilder } from "../../../brigadier/errors";
 import { GlobalData } from "../../../data/types";
 import { ListParser } from "../../../parsers/minecraft/list/list";
-import { Lists, ListSupplier } from "../../../parsers/minecraft/list/lists";
+import {
+    Lists,
+    lists,
+    ListSupplier
+} from "../../../parsers/minecraft/list/lists";
 import { ParserInfo } from "../../../types";
 import { testParser } from "../../assertions";
 
@@ -26,27 +30,16 @@ class TestList extends Lists {
     }
 }
 
-const alists: { [key: string]: string } = {
-    "minecraft:color": "./lists/color",
-    "minecraft:entity_anchor": "./lists/entity-anchor",
-    "minecraft:item_enchantment": "./lists/enchantment",
-    "minecraft:item_slot": "./lists/item-slot",
-    "minecraft:mob_effect": "./lists/effect",
-    "minecraft:operation": "./lists/operation",
-    "minecraft:particle": "./lists/particle",
-    "minecraft:scoreboard_slot": "./lists/scoreboard-slot"
-};
-
 describe("list tests", () => {
     describe("parse()", () => {
         const parser = new ListParser(
             "foo:bar",
             new CommandErrorBuilder("arg.ex", "example error")
         );
-        const lists = new TestList();
-        lists.registerLists();
+        const listsobj = new TestList();
+        listsobj.registerLists();
         const globalData = {
-            static_lists: lists
+            static_lists: listsobj
         } as GlobalData;
         const parserInfo = {
             data: {
@@ -84,8 +77,8 @@ describe("list tests", () => {
         it("should have valid paths", () => {
             const list = new Lists();
             list.registerLists();
-            for (const s of Object.keys(alists)) {
-                assert.ok(list.getList(s) !== undefined);
+            for (const s of Object.keys(lists)) {
+                assert(!!list.getList(s));
             }
         });
     });

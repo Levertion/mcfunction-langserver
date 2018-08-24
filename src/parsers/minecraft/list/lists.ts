@@ -5,7 +5,7 @@ export interface ListSupplier {
     init(): void;
 }
 
-const lists: { [key: string]: string } = {
+export const lists: { [key: string]: string } = {
     "minecraft:color": "./lists/color",
     "minecraft:entity_anchor": "./lists/entity-anchor",
     "minecraft:item_enchantment": "./lists/enchantment",
@@ -30,7 +30,7 @@ export class Lists {
     public registerLists(): void {
         this.suppliers = {};
         for (const list of typed_keys(lists)) {
-            const supplier = require(`${lists[list]}`) as ListSupplier;
+            const supplier = require(lists[list]) as ListSupplier;
             supplier.init();
             this.suppliers[list] = supplier;
         }
