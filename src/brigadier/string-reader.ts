@@ -206,17 +206,34 @@ export class StringReader {
     public readOption<T extends string>(
         options: T[],
         addError: boolean = true,
-        completion?: CompletionItemKind
+        completion?: CompletionItemKind,
+        quoted: "both" | "no" | "yes" = "both"
     ): ReturnedInfo<T, CE, string | false> {
         const start = this.cursor;
         const helper = new ReturnHelper();
-        let quoted = false;
+        let isquoted = false;
         if (this.peek() === QUOTE) {
-            quoted = true;
+            isquoted = true;
         }
-        const result = this.readString();
+        let resultaux: ReturnedInfo<string>;
+        switch (quoted) {
+            case "both":
+                resultaux = this.readString();
+                break;
+            case "yes":
+                resultaux = this.readQuotedString();
+                break;
+            case "no":
+                resultaux = new ReturnHelper(false).succeed(
+                    this.readUnquotedString()
+                );
+                break;
+            default:
+                resultaux = this.readString();
+        }
+        const result = resultaux;
         if (!helper.merge(result, false)) {
-            if (quoted && !this.canRead()) {
+            if (isquoted && !this.canRead()) {
                 const remaining = this.string.substring(start + 1);
                 // Note that if there are quotes and backslashes, this will fail
                 helper.addSuggestions(
@@ -245,7 +262,7 @@ export class StringReader {
                         kind: completion,
                         start,
                         text:
-                            quoted || v.includes('"') || v.includes("\\")
+                            isquoted || v.includes('"') || v.includes("\\")
                                 ? QUOTE +
                                   v.replace("\\", "\\\\").replace('"', '\\"') +
                                   QUOTE

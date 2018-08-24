@@ -8,7 +8,7 @@ import {
 } from "../misc-functions/promisified-fs";
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import { WorkspaceSecurity } from "../types";
-import { Cacheable, GlobalData } from "./types";
+import { Cacheable } from "./types";
 
 const cacheFolder = path.join(__dirname, "cache");
 
@@ -33,7 +33,7 @@ export async function readCache(): Promise<Cacheable> {
     return data;
 }
 
-export async function cacheData(data: GlobalData): Promise<void> {
+export async function cacheData(data: Cacheable): Promise<void> {
     try {
         await mkdirAsync(cacheFolder, "777");
     } catch (_) {
