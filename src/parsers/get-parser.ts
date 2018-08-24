@@ -14,8 +14,16 @@ const implementedParsers: { [id: string]: string } = {
     "minecraft:block_pos": "./minecraft/coord/block-pos",
     "minecraft:block_predicate": "./minecraft/block/predicate",
     "minecraft:block_state": "./minecraft/block/state",
+    "minecraft:color": "./minecraft/list/color",
+    "minecraft:entity_anchor": "./minecraft/list/entity_anchor",
+    "minecraft:item_enchantment": "./minecraft/list/enchantment",
+    "minecraft:item_slot": "./minecraft/list/item_slot",
     "minecraft:message": "./minecraft/message",
+    "minecraft:mob_effect": "./minecraft/list/effect",
+    "minecraft:operation": "./minecraft/list/operation",
+    "minecraft:particle": "./minecraft/list/particle",
     "minecraft:rotation": "./minecraft/coord/rotation",
+    "minecraft:scoreboard_slot": "./minecraft/list/scoreboard_slot",
     "minecraft:vec2": "./minecraft/coord/vec2",
     "minecraft:vec3": "./minecraft/coord/vec3"
 };

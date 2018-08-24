@@ -29,10 +29,10 @@ export class Lists {
 
     public registerLists(): void {
         this.suppliers = {};
-        for (const s of typed_keys(lists)) {
-            const supplier = require(`./lists/${s}`) as ListSupplier;
+        for (const list of typed_keys(lists)) {
+            const supplier = require(`./lists/${lists[list]}`) as ListSupplier;
             supplier.init();
-            this.suppliers[s] = supplier;
+            this.suppliers[list] = supplier;
         }
     }
 }
