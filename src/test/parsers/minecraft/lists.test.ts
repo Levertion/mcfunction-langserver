@@ -26,6 +26,17 @@ class TestList extends Lists {
     }
 }
 
+const alists: { [key: string]: string } = {
+    "minecraft:color": "./lists/color",
+    "minecraft:entity_anchor": "./lists/entity-anchor",
+    "minecraft:item_enchantment": "./lists/enchantment",
+    "minecraft:item_slot": "./lists/item-slot",
+    "minecraft:mob_effect": "./lists/effect",
+    "minecraft:operation": "./lists/operation",
+    "minecraft:particle": "./lists/particle",
+    "minecraft:scoreboard_slot": "./lists/scoreboard-slot"
+};
+
 describe("list tests", () => {
     describe("parse()", () => {
         const parser = new ListParser(
@@ -69,6 +80,13 @@ describe("list tests", () => {
                 ],
                 succeeds: false
             });
+        });
+        it("should have valid paths", () => {
+            const list = new Lists();
+            list.registerLists();
+            for (const s of Object.keys(alists)) {
+                assert.ok(list.getList(s) !== undefined);
+            }
         });
     });
 });

@@ -7,13 +7,13 @@ export interface ListSupplier {
 
 const lists: { [key: string]: string } = {
     "minecraft:color": "./lists/color",
-    "minecraft:entity_anchor": "./lists/entity_anchor",
+    "minecraft:entity_anchor": "./lists/entity-anchor",
     "minecraft:item_enchantment": "./lists/enchantment",
-    "minecraft:item_slot": "./lists/item_slot",
+    "minecraft:item_slot": "./lists/item-slot",
     "minecraft:mob_effect": "./lists/effect",
     "minecraft:operation": "./lists/operation",
     "minecraft:particle": "./lists/particle",
-    "minecraft:scoreboard_slot": "./lists/scoreboard_slot"
+    "minecraft:scoreboard_slot": "./lists/scoreboard-slot"
 };
 
 export class Lists {
@@ -30,7 +30,7 @@ export class Lists {
     public registerLists(): void {
         this.suppliers = {};
         for (const list of typed_keys(lists)) {
-            const supplier = require(`./lists/${lists[list]}`) as ListSupplier;
+            const supplier = require(`${lists[list]}`) as ListSupplier;
             supplier.init();
             this.suppliers[list] = supplier;
         }

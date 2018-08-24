@@ -1,6 +1,6 @@
 import { ListSupplier } from "../lists";
 
-export = class Supplier implements ListSupplier {
+class Supplier implements ListSupplier {
     private slots: string[] = [];
 
     public get(): string[] {
@@ -44,4 +44,6 @@ export = class Supplier implements ListSupplier {
 
         this.slots.push("weapon", "weapon.mainhand", "weapon.offhand");
     }
-};
+}
+
+export = new Supplier();
