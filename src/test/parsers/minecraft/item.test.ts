@@ -9,7 +9,9 @@ const global: GlobalData = {
         "test:item_two",
         "test:item_three",
         "test:item_four",
-        "test:item_four_one"
+        "test:item_four_one",
+        "minecraft:apple",
+        "minecraft:coal"
     ],
     meta_info: {
         version: "3"
@@ -105,6 +107,17 @@ describe("item parser (no tags)", () => {
                     }
                 ],
                 succeeds: true
+            });
+        });
+        it("should succeed with an item with the 'miencraft' namespace", () => {
+            tester("minecraft:coal", {
+                succeeds: true,
+                suggestions: [
+                    {
+                        start: 0,
+                        text: "minecraft:coal"
+                    }
+                ]
             });
         });
     });

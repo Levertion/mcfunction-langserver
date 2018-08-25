@@ -43,6 +43,7 @@ export class ItemParser implements Parser {
             this.useTags ? "item_tags" : NOTAG
         );
         if (helper.merge(parsed)) {
+            const items: string[] = [];
             if (parsed.data.resolved && parsed.data.values) {
                 helper.merge(
                     buildTagActions(
@@ -52,6 +53,9 @@ export class ItemParser implements Parser {
                         properties.data.localData
                     )
                 );
+                parsed.data.values.forEach(v => {
+                    items.push(...(v.data || { values: [] }).values);
+                });
             } else {
                 if (properties.suggesting && !reader.canRead()) {
                     helper.addSuggestions(
@@ -63,12 +67,14 @@ export class ItemParser implements Parser {
                     );
                 }
                 const name = stringifyNamespace(parsed.data.parsed);
-                if (!properties.data.globalData.items.find(v => v === name)) {
+                if (properties.data.globalData.items.indexOf(name) < 0) {
                     helper.addErrors(
                         UNKNOWNITEM.create(start, reader.cursor, name)
                     );
                 }
+                items.push(name);
             }
+            // Put NBT here & use `items`
         } else {
             if (parsed.data) {
                 helper.addErrors(
@@ -78,11 +84,11 @@ export class ItemParser implements Parser {
                         stringifyNamespace(parsed.data)
                     )
                 );
+                // Suggest only the `none` NBT
             } else {
                 return helper.fail();
             }
         }
-        // Put NBT here
         return helper.succeed();
     }
 }
