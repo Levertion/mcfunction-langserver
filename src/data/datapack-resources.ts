@@ -12,14 +12,15 @@ import {
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import { ReturnSuccess } from "../types";
 import { mapPacksInfo } from "./extractor/mapfunctions";
+import { loadNBT } from "./nbt/nbt-cache";
 import {
     Datapack,
     DataPackID,
     GlobalData,
     McmetaFile,
     MinecraftResource,
-    PacksInfo,
-    Resources
+    Resources,
+    WorldInfo
 } from "./types";
 
 export async function getNamespaceResources(
@@ -120,11 +121,12 @@ async function getPackResources(
 export async function getPacksInfo(
     location: string,
     globalData: GlobalData
-): Promise<ReturnSuccess<PacksInfo>> {
+): Promise<ReturnSuccess<WorldInfo>> {
     const packNames = await subDirectories(location);
     const helper = new ReturnHelper();
     const packs = [...packNames.entries()];
-    const result: PacksInfo = { location, packnamesmap: {}, packs: {} };
+    const nbt = await loadNBT(path.resolve(location, "../"));
+    const result: WorldInfo = { location, packnamesmap: {}, packs: {}, nbt };
     const promises: Array<Promise<void>> = packs.map(
         async ([packID, packName]) => {
             const loc = path.join(location, packName);

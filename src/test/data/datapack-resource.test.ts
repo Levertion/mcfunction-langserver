@@ -1,7 +1,7 @@
 import * as assert from "assert";
 import * as path from "path";
 import { getPacksInfo } from "../../data/datapack-resources";
-import { Datapack, MinecraftResource, PacksInfo } from "../../data/types";
+import { Datapack, MinecraftResource, WorldInfo } from "../../data/types";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
 import { assertMembers, assertNamespaces, returnAssert } from "../assertions";
 import { emptyGlobal } from "../blanks";
@@ -49,7 +49,7 @@ describe("Datapack Resource Testing", () => {
 });
 
 function assertPacksInfo(
-    result: PacksInfo,
+    result: WorldInfo,
     location: string,
     packs: { [key: string]: Datapack }
 ): void {

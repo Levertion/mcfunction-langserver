@@ -17,6 +17,7 @@ const dummyData: CommmandData = {
     localData: {
         current: 0,
         location: "",
+        nbt: {},
         packnamesmap: { testpack: 0, pack2: 1 },
         packs: {
             0: {

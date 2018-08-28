@@ -12,9 +12,9 @@ import { TAG_START } from "../../consts";
 import {
     DataResource,
     NamespacedName,
-    PacksInfo,
     Resources,
-    Tag
+    Tag,
+    WorldInfo
 } from "../../data/types";
 import { CE, ParserInfo, ReturnedInfo, ReturnSuccess } from "../../types";
 import {
@@ -119,7 +119,7 @@ export function buildTagActions(
     tags: Array<DataResource<Tag>>,
     low: number,
     high: number,
-    localData?: PacksInfo
+    localData?: WorldInfo
 ): ReturnSuccess<void> {
     const helper = new ReturnHelper();
     for (const resource of tags) {
