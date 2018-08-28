@@ -28,7 +28,6 @@
     },
     "dependencies": {
         "long": "^4.0.0",
-        "node-int64": "^0.4.0",
         "node-interval-tree": "^1.3.3",
         "request": "^2.83.0",
         "request-promise-native": "^1.0.5",
