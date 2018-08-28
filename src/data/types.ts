@@ -1,4 +1,5 @@
 import { Lists } from "../parsers/minecraft/list/lists";
+import { Level, Scoreboard } from "./nbt/nbt-types";
 
 /**
  * Types for data
@@ -23,6 +24,11 @@ export type Cacheable = Pick<
     GlobalData,
     "commands" | "blocks" | "items" | "meta_info" | "resources"
 >;
+
+export interface NBT {
+    level?: Level;
+    scoreboard?: Scoreboard;
+}
 
 export type NonCacheable = Pick<
     GlobalData,
@@ -98,13 +104,14 @@ export interface McmetaFile {
 
 export type DataPackID = number;
 
-export interface PacksInfo {
+export interface WorldInfo {
     location: string;
+    nbt: NBT;
     packnamesmap: { [name: string]: DataPackID };
     packs: { [packID: number]: Datapack };
 }
 
-export interface LocalData extends PacksInfo {
+export interface LocalData extends WorldInfo {
     current: DataPackID;
 }
 

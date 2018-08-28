@@ -5,9 +5,9 @@ import {
     GlobalData,
     MinecraftResource,
     NamespacedName,
-    PacksInfo,
     Resources,
-    Tag
+    Tag,
+    WorldInfo
 } from "../data/types";
 import { ReturnSuccess } from "../types";
 import { getMatching, getResourcesSplit } from "./group-resources";
@@ -64,7 +64,7 @@ interface ResourceInfo<U extends keyof Resources> {
         value: NonNullable<Resources[U]> extends Array<infer T> ? T : never,
         packroot: string,
         globalData: GlobalData,
-        packsInfo?: PacksInfo
+        packsInfo?: WorldInfo
     ): Promise<ReturnSuccess<typeof value>>;
 }
 
@@ -181,7 +181,7 @@ export function getPath(
 
 export function buildPath(
     resource: MinecraftResource,
-    packs: PacksInfo,
+    packs: WorldInfo,
     kind: keyof Resources,
     path: PathModule = defaultPath
 ): string | undefined {

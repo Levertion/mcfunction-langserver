@@ -2,8 +2,8 @@ import {
     GlobalData,
     MinecraftResource,
     NamespacedName,
-    PacksInfo,
-    Resources
+    Resources,
+    WorldInfo
 } from "../data/types";
 import { CommmandData } from "../types";
 import { namespacesEqual } from "./namespace";
@@ -20,7 +20,7 @@ export function getResourcesofType<
 
 export function getResourcesSplit<
     T extends MinecraftResource = MinecraftResource
->(type: keyof Resources, globalData: GlobalData, packsInfo?: PacksInfo): T[] {
+>(type: keyof Resources, globalData: GlobalData, packsInfo?: WorldInfo): T[] {
     const results: MinecraftResource[] = [];
     const globalResources = globalData.resources[type];
     if (!!globalResources) {

@@ -27,7 +27,7 @@ import {
     LocalData,
     McmetaFile,
     MinecraftResource,
-    PacksInfo
+    WorldInfo
 } from "./types";
 
 export class DataManager {
@@ -47,10 +47,10 @@ export class DataManager {
     //#region Data Management
     private globalDataInternal: GlobalData = {} as GlobalData;
 
-    private readonly packDataComplete: { [root: string]: PacksInfo } = {};
+    private readonly packDataComplete: { [root: string]: WorldInfo } = {};
 
     private readonly packDataPromises: {
-        [root: string]: Promise<ReturnSuccess<PacksInfo>>;
+        [root: string]: Promise<ReturnSuccess<WorldInfo>>;
     } = {};
 
     public get globalData(): GlobalData {
@@ -83,7 +83,7 @@ export class DataManager {
                 const parsedPath = parseDataPath(change.uri);
                 if (parsedPath) {
                     interface InlineData {
-                        data: PacksInfo;
+                        data: WorldInfo;
                         pack: Datapack;
                         packID: DataPackID;
                     }
