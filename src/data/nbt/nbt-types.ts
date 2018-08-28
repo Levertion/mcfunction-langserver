@@ -11,9 +11,36 @@ export interface Scoreboard {
 }
 
 export interface ScoreboardData {
+    DisplaySlots: DisplaySlots;
     Objectives: Objective[];
     PlayerScores: PlayerScore[];
     Teams: Team[];
+}
+
+export interface DisplaySlots {
+    /** list */
+    slot_0: string;
+    /** sidebar */
+    slot_1: string;
+    /** belowName */
+    slot_10: string;
+
+    slot_11: string;
+    slot_12: string;
+    slot_13: string;
+    slot_14: string;
+    slot_15: string;
+    slot_16: string;
+    slot_17: string;
+    slot_18: string;
+    slot_2: string;
+    slot_3: string;
+    slot_4: string;
+    slot_5: string;
+    slot_6: string;
+    slot_7: string;
+    slot_8: string;
+    slot_9: string;
 }
 
 export interface Objective {

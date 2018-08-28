@@ -35,10 +35,8 @@ export class BufferStream {
 
     public getLong(): Long {
         const arr = this.buf.subarray(this.index, this.index + 8);
-        const outt: number[] = [];
-        arr.forEach(v => outt.push(v));
         this.index += 8;
-        return Long.fromBytesBE(outt);
+        return Long.fromBytesBE([...arr]);
     }
 
     public getShort(): number {

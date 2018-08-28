@@ -30,8 +30,7 @@ const nbtlist = (buffer: BufferStream) => {
     const id = buffer.getByte();
     const len = buffer.getInt();
     const parser = tags[id];
-    type tagtype = typeof parser;
-    const out: tagtype[] = [];
+    const out: any[] = [];
     for (let i = 0; i < len; i++) {
         out.push(parser(buffer));
     }

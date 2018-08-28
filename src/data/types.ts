@@ -25,7 +25,7 @@ export type Cacheable = Pick<
     "commands" | "blocks" | "items" | "meta_info" | "resources"
 >;
 
-export interface NBT {
+export interface WorldNBT {
     level?: Level;
     scoreboard?: Scoreboard;
 }
@@ -106,7 +106,7 @@ export type DataPackID = number;
 
 export interface WorldInfo {
     location: string;
-    nbt: NBT;
+    nbt: WorldNBT;
     packnamesmap: { [name: string]: DataPackID };
     packs: { [packID: number]: Datapack };
 }

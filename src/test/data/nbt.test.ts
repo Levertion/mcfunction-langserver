@@ -1,14 +1,15 @@
 import * as Long from "long";
 
 import * as assert from "assert";
-import * as fs from "fs";
+
 import { isNumber } from "util";
 import { loadNBT } from "../../data/nbt/nbt-cache";
 import { LevelData } from "../../data/nbt/nbt-types";
 import { parse } from "../../data/nbt/parser";
+import { readFileAsync } from "../../misc-functions";
 
 interface BigTest {
-    // Sorry for the long line
+    // This name is from the test file provided by Notch
     "byteArrayTest (the first 1000 values of (n*n*255+n*7)%100, starting with n=0 (0, 62, 34, 16, 8, ...))": number[];
     byteTest: number;
     doubleTest: number;
@@ -40,13 +41,7 @@ const bigtest: BigTest = {
         number
     >(1000)
         .fill(0)
-        .map(
-            (
-                // @ts-ignore
-                v,
-                n
-            ) => (n * n * 255 + n * 7) % 100
-        ),
+        .map((_, n) => (n * n * 255 + n * 7) % 100),
     byteTest: 127,
     doubleTest: 0.493128713218231,
     floatTest: 0.4982315,
@@ -80,7 +75,7 @@ const bigtest: BigTest = {
 describe("(binary) nbt parser tests", async () => {
     //
     it("should parse bigtest.nbt", async () => {
-        const data = fs.readFileSync("test_data/test_nbt/bigtest.nbt");
+        const data = await readFileAsync("test_data/test_nbt/bigtest.nbt");
         const nbt: BigTest = await parse<BigTest>(data);
         for (const rkey of Object.keys(nbt)) {
             const key = rkey as keyof BigTest;

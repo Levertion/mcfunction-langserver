@@ -1,11 +1,11 @@
 import * as path from "path";
 import { readFileAsync } from "../../misc-functions";
-import { NBT } from "../types";
+import { WorldNBT } from "../types";
 import { Level, Scoreboard } from "./nbt-types";
 import { parse } from "./parser";
 
-export async function loadNBT(worldLoc: string): Promise<NBT> {
-    const nbt: NBT = {} as NBT;
+export async function loadNBT(worldLoc: string): Promise<WorldNBT> {
+    const nbt: WorldNBT = {} as WorldNBT;
 
     const levelpath = path.resolve(worldLoc, "./level.dat");
     try {
