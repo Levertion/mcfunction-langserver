@@ -41,7 +41,7 @@
         "@types/node": "8.10.28",
         "@types/request-promise-native": "1.0.15",
         "@types/rimraf": "2.0.2",
-        "@types/sprintf-js": "^1.1.0",
+        "@types/sprintf-js": "1.1.0",
         "all-contributors-cli": "5.4.0",
         "husky": "0.14.3",
         "mocha": "5.2.0",
