@@ -141,11 +141,13 @@ export function parseBlockArgument(
             if (!helper.merge(propsResult)) {
                 return helper.fail();
             }
-            const nbt = parseNBT(reader, info, {
-                id: (parsedResult.resolved || []).map(stringifyNamespace),
-                type: "block"
-            });
-            helper.merge(nbt);
+            if (reader.peek() === "{") {
+                const nbt = parseNBT(reader, info, {
+                    id: (parsedResult.resolved || []).map(stringifyNamespace),
+                    type: "block"
+                });
+                helper.merge(nbt);
+            }
         } else {
             stringifiedName = stringifyNamespace(parsed.data.parsed);
             if (info.suggesting && !reader.canRead()) {
@@ -172,18 +174,21 @@ export function parseBlockArgument(
             if (!helper.merge(result)) {
                 return helper.fail();
             }
-            if (props) {
-                const nbt = parseNBT(reader, info, {
-                    id: stringifiedName,
-                    type: "block"
-                });
-                helper.merge(nbt);
-            } else {
-                const nbt = parseNBT(reader, info, {
-                    id: "none",
-                    type: "block"
-                });
-                helper.merge(nbt);
+
+            if (reader.peek() === "{") {
+                if (props) {
+                    const nbt = parseNBT(reader, info, {
+                        id: stringifiedName,
+                        type: "block"
+                    });
+                    helper.merge(nbt);
+                } else {
+                    const nbt = parseNBT(reader, info, {
+                        id: "none",
+                        type: "block"
+                    });
+                    helper.merge(nbt);
+                }
             }
         }
     } else {
@@ -205,11 +210,13 @@ export function parseBlockArgument(
             if (!helper.merge(propsResult)) {
                 return helper.fail();
             }
-            const nbt = parseNBT(reader, info, {
-                id: "none",
-                type: "block"
-            });
-            helper.merge(nbt);
+            if (reader.peek() === "{") {
+                const nbt = parseNBT(reader, info, {
+                    id: "none",
+                    type: "block"
+                });
+                helper.merge(nbt);
+            }
         } else {
             // Parsing of the namespace failed
             return helper.fail();

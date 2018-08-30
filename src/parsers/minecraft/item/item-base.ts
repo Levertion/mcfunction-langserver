@@ -75,11 +75,13 @@ export class ItemParser implements Parser {
                 }
                 items.push(name);
             }
-            const nbt = parseNBT(reader, properties, {
-                id: items,
-                type: "item"
-            });
-            helper.merge(nbt);
+            if (reader.peek() === "{") {
+                const nbt = parseNBT(reader, properties, {
+                    id: items,
+                    type: "item"
+                });
+                helper.merge(nbt);
+            }
         } else {
             if (parsed.data) {
                 helper.addErrors(
@@ -89,11 +91,13 @@ export class ItemParser implements Parser {
                         stringifyNamespace(parsed.data)
                     )
                 );
-                const nbt = parseNBT(reader, properties, {
-                    id: "none",
-                    type: "item"
-                });
-                helper.merge(nbt);
+                if (reader.peek() === "{") {
+                    const nbt = parseNBT(reader, properties, {
+                        id: "none",
+                        type: "item"
+                    });
+                    helper.merge(nbt);
+                }
             } else {
                 return helper.fail();
             }
