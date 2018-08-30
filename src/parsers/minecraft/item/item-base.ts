@@ -8,6 +8,7 @@ import {
     stringifyNamespace
 } from "../../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
+import { parseNBT } from "../nbt/nbt";
 
 const NOTAG = new CommandErrorBuilder(
     "argument.item.tag.disallowed",
@@ -74,7 +75,11 @@ export class ItemParser implements Parser {
                 }
                 items.push(name);
             }
-            // Put NBT here & use `items`
+            const nbt = parseNBT(reader, properties, {
+                id: items,
+                type: "item"
+            });
+            helper.merge(nbt);
         } else {
             if (parsed.data) {
                 helper.addErrors(
@@ -84,7 +89,11 @@ export class ItemParser implements Parser {
                         stringifyNamespace(parsed.data)
                     )
                 );
-                // Suggest only the `none` NBT
+                const nbt = parseNBT(reader, properties, {
+                    id: "none",
+                    type: "item"
+                });
+                helper.merge(nbt);
             } else {
                 return helper.fail();
             }

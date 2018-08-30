@@ -7,6 +7,14 @@ import { ParserInfo, SuggestResult } from "../../../../types";
 
 describe("nbt parser test", () => {
     describe("parse()", async () => {
+        const info: ParserInfo = {
+            data: {
+                globalData: {
+                    nbt_docs: await setupFiles()
+                }
+            }
+        } as ParserInfo;
+
         it("should parse correctly", () => {
             const reader = new StringReader("{foo:{bar:baz}}");
             const out = parser.parse(reader, {
@@ -19,11 +27,9 @@ describe("nbt parser test", () => {
             assert.ok(out.kind);
         });
 
-        const v = await setupFiles();
-
         it("should return correct suggestions", () => {
             const reader = new StringReader("{display:{");
-            const out = parseNBT(reader, v, { type: "item" });
+            const out = parseNBT(reader, info, { type: "item" });
             assert.deepStrictEqual(out.suggestions, [
                 {
                     description: "A JSON text component for the items name",

@@ -1,8 +1,8 @@
+import { isArray } from "util";
 import { StringReader } from "../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../misc-functions";
 import { ContextPath, resolvePaths } from "../../../misc-functions/context";
-import { Parser, ReturnedInfo } from "../../../types";
-import { MemoryFS } from "./doc-fs";
+import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
 import { NBTWalker } from "./doc-walker";
 import { NBTTagCompound } from "./tag/compound-tag";
 import { addSuggestionsToHelper } from "./util/nbt-util";
@@ -10,7 +10,7 @@ import { addSuggestionsToHelper } from "./util/nbt-util";
 type CtxPathFunc = (args: string[]) => NBTContextData;
 
 interface NBTContextData {
-    id?: string;
+    id?: string | string[];
     type: "entity" | "item" | "block";
 }
 
@@ -25,21 +25,32 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
 
 export function parseNBT(
     reader: StringReader,
-    docFS: MemoryFS,
+    info: ParserInfo,
     data?: NBTContextData
 ): ReturnedInfo<undefined> {
-    const helper = new ReturnHelper();
+    const helper = new ReturnHelper(info);
     const tag = new NBTTagCompound({});
     const reply = tag.parse(reader);
+    const docFS = info.data.globalData.nbt_docs;
 
     if (helper.merge(reply)) {
-        // Parsing is complete and nothing can be added
-    } else {
-        if (!!data) {
-            const walker = new NBTWalker(
-                reply.data.parsed || new NBTTagCompound({}),
-                docFS
-            );
+        return helper.succeed();
+    }
+    if (!!data) {
+        const walker = new NBTWalker(
+            reply.data.parsed || new NBTTagCompound({}),
+            docFS
+        );
+        if (isArray(data.id)) {
+            for (const id of data.id) {
+                const node = walker.getFinalNode(
+                    [data.type, id || "none"].concat(reply.data.path || [])
+                );
+                if (!!node) {
+                    addSuggestionsToHelper(node, helper, reader);
+                }
+            }
+        } else {
             const node = walker.getFinalNode(
                 [data.type, data.id || "none"].concat(reply.data.path || [])
             );
@@ -48,13 +59,13 @@ export function parseNBT(
             }
         }
     }
-    return helper.hasErrors() ? helper.fail() : helper.succeed();
+    return helper.fail();
 }
 
 export const parser: Parser = {
     parse: (reader, prop) => {
         const ctxdatafn = resolvePaths(paths, prop.path || []);
         const data = !ctxdatafn ? undefined : ctxdatafn([]);
-        return parseNBT(reader, prop.data.globalData.nbt_docs, data);
+        return parseNBT(reader, prop, data);
     }
 };

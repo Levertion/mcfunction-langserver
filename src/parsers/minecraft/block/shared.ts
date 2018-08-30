@@ -20,6 +20,7 @@ import {
     parseNamespaceOrTag
 } from "../../../misc-functions/parsing/nmsp-tag";
 import { ParserInfo, ReturnedInfo, Suggestion } from "../../../types";
+import { parseNBT } from "../nbt/nbt";
 
 interface PropertyExceptions {
     duplicate: CommandErrorBuilder;
@@ -140,6 +141,11 @@ export function parseBlockArgument(
             if (!helper.merge(propsResult)) {
                 return helper.fail();
             }
+            const nbt = parseNBT(reader, info, {
+                id: (parsedResult.resolved || []).map(stringifyNamespace),
+                type: "block"
+            });
+            helper.merge(nbt);
         } else {
             stringifiedName = stringifyNamespace(parsed.data.parsed);
             if (info.suggesting && !reader.canRead()) {
@@ -166,6 +172,19 @@ export function parseBlockArgument(
             if (!helper.merge(result)) {
                 return helper.fail();
             }
+            if (props) {
+                const nbt = parseNBT(reader, info, {
+                    id: stringifiedName,
+                    type: "block"
+                });
+                helper.merge(nbt);
+            } else {
+                const nbt = parseNBT(reader, info, {
+                    id: "none",
+                    type: "block"
+                });
+                helper.merge(nbt);
+            }
         }
     } else {
         if (parsed.data) {
@@ -186,6 +205,11 @@ export function parseBlockArgument(
             if (!helper.merge(propsResult)) {
                 return helper.fail();
             }
+            const nbt = parseNBT(reader, info, {
+                id: "none",
+                type: "block"
+            });
+            helper.merge(nbt);
         } else {
             // Parsing of the namespace failed
             return helper.fail();
