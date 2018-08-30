@@ -70,7 +70,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 [LIST_END, LIST_VALUE_SEP],
                 true,
                 undefined,
-                "no"
+                "option"
             );
             if (!helper.merge(opt)) {
                 return helper.failWithData({ parsed: this, correct: 1 });

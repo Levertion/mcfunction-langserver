@@ -201,12 +201,17 @@ export class StringReader {
     }
     /**
      * Expect a string from a selection
+     * @param quoted how should the string be handled.
+     * - `both`: StringReader::readString()
+     * - `option`: expect an option, but don't advance cursor if fails
+     * - `yes`: StringReader::readQuotedString()
+     * - `no`: StringReader::readUnquotedString()
      */
     public readOption<T extends string>(
         options: T[],
         addError: boolean = true,
         completion?: CompletionItemKind,
-        quoted: "both" | "no" | "yes" = "both"
+        quoted: "both" | "option" | "yes" | "no" = "both"
     ): ReturnedInfo<T, CE, string | false> {
         const start = this.cursor;
         const helper = new ReturnHelper();
@@ -222,6 +227,22 @@ export class StringReader {
             case "yes":
                 resultaux = this.readQuotedString();
                 break;
+            case "option": {
+                // tslint:disable-next-line:no-unnecessary-initializer copt needs to be 'initialized'
+                let copt: string | undefined = undefined;
+                for (const opt of options) {
+                    if (this.getRemaining().startsWith(opt)) {
+                        copt = opt;
+                        this.cursor += opt.length;
+                        break;
+                    }
+                }
+                resultaux =
+                    copt === undefined
+                        ? new ReturnHelper(false).fail()
+                        : new ReturnHelper(false).succeed(copt);
+                break;
+            }
             case "no":
                 resultaux = new ReturnHelper(false).succeed(
                     this.readUnquotedString()

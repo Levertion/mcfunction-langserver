@@ -72,7 +72,7 @@ export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
                 [ARRAY_END, ARRAY_VALUE_SEP],
                 true,
                 undefined,
-                "no"
+                "option"
             );
             if (!helper.merge(opt)) {
                 return helper.failWithData({ parsed: this, correct: 2 });

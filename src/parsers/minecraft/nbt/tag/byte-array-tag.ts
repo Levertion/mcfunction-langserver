@@ -72,7 +72,7 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
                 [ARRAY_END, ARRAY_VALUE_SEP],
                 true,
                 undefined,
-                "no"
+                "option"
             );
             if (!helper.merge(opt)) {
                 return helper.failWithData({ parsed: this, correct: 2 });

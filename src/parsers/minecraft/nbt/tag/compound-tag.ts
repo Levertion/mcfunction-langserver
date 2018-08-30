@@ -118,7 +118,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 [COMPOUND_END, COMPOUND_PAIR_SEP],
                 true,
                 undefined,
-                "no"
+                "option"
             );
             if (!helper.merge(opt)) {
                 return helper.failWithData({ parsed: this, correct: 2 });
