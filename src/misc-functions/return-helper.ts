@@ -168,8 +168,9 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
             if (typeof val === "boolean") {
                 if (val) {
                     this.mergeSuggestions(merge);
+                } else {
+                    this.mergeSafe(merge);
                 }
-                this.mergeSafe(merge);
                 return this;
             }
         }
