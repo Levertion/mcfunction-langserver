@@ -1,9 +1,9 @@
 import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
-import { CompletionItemKind } from "vscode-languageserver";
-import { BlankCommandError, CommandError } from "./brigadier_components/errors";
-import { StringReader } from "./brigadier_components/string_reader";
+import { CompletionItemKind } from "vscode-languageserver/lib/main";
+import { BlankCommandError, CommandError } from "./brigadier/errors";
+import { StringReader } from "./brigadier/string-reader";
 import { CommandNodePath, GlobalData, LocalData } from "./data/types";
-import { PackLocationSegments } from "./misc_functions";
+import { PackLocationSegments } from "./misc-functions";
 
 //#region Document
 export interface FunctionInfo {

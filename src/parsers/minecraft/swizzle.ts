@@ -1,7 +1,7 @@
 import { power } from "js-combinatorics";
-import { CommandErrorBuilder } from "../../brigadier_components/errors";
-import { StringReader } from "../../brigadier_components/string_reader";
-import { ReturnHelper } from "../../misc_functions";
+import { CommandErrorBuilder } from "../../brigadier/errors";
+import { StringReader } from "../../brigadier/string-reader";
+import { ReturnHelper } from "../../misc-functions";
 import { Parser } from "../../types";
 
 const values = ["x", "y", "z"];

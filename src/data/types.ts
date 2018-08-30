@@ -1,4 +1,6 @@
-import { MemoryFS } from "../parsers/minecraft/nbt/doc_fs";
+import { Lists } from "../parsers/minecraft/list/lists";
+import { MemoryFS } from "../parsers/minecraft/nbt/doc-fs";
+import { Level, Scoreboard } from "./nbt/nbt-types";
 
 /**
  * Types for data
@@ -17,12 +19,18 @@ export interface GlobalData {
     meta_info: { version: string };
     nbt_docs: MemoryFS;
     resources: Resources;
+    static_lists: Lists;
 }
 
 export type Cacheable = Pick<
     GlobalData,
     "commands" | "blocks" | "items" | "meta_info" | "resources"
 >;
+
+export interface WorldNBT {
+    level?: Level;
+    scoreboard?: Scoreboard;
+}
 
 export type NonCacheable = Pick<
     GlobalData,
@@ -65,7 +73,6 @@ export interface CommandNode extends MCNode<CommandNode> {
 }
 
 //#endregion Command Tree
-
 //#region BlockInfo
 /**
  * Available blocks
@@ -78,7 +85,6 @@ export interface SingleBlockPropertyInfo {
     [property: string]: string[];
 }
 //#endregion
-
 //#region Items
 /**
  * The items which can be obtained.
@@ -86,7 +92,6 @@ export interface SingleBlockPropertyInfo {
  */
 export type AvailableItems = string[];
 //#endregion
-
 //#region Resources
 export interface Datapack {
     data: Resources;
@@ -101,13 +106,14 @@ export interface McmetaFile {
 
 export type DataPackID = number;
 
-export interface PacksInfo {
+export interface WorldInfo {
     location: string;
+    nbt: WorldNBT;
     packnamesmap: { [name: string]: DataPackID };
     packs: { [packID: number]: Datapack };
 }
 
-export interface LocalData extends PacksInfo {
+export interface LocalData extends WorldInfo {
     current: DataPackID;
 }
 

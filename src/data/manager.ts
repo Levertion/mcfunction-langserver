@@ -12,12 +12,12 @@ import {
     parseDataPath,
     resourceTypes,
     ReturnHelper
-} from "../misc_functions";
-import { createExtensionFileError } from "../misc_functions/file_errors";
-import { readJSON } from "../misc_functions/promisified_fs";
+} from "../misc-functions";
+import { createExtensionFileError } from "../misc-functions/file-errors";
+import { readJSON } from "../misc-functions/promisified-fs";
 import { ReturnedInfo, ReturnSuccess } from "../types";
-import { readCache } from "./cache_management";
-import { getPacksInfo } from "./datapack_resources";
+import { readCache } from "./cache";
+import { getPacksInfo } from "./datapack-resources";
 import { collectGlobalData } from "./extractor";
 import { loadNonCached } from "./noncached";
 import {
@@ -27,7 +27,7 @@ import {
     LocalData,
     McmetaFile,
     MinecraftResource,
-    PacksInfo
+    WorldInfo
 } from "./types";
 
 export class DataManager {
@@ -47,10 +47,10 @@ export class DataManager {
     //#region Data Management
     private globalDataInternal: GlobalData = {} as GlobalData;
 
-    private readonly packDataComplete: { [root: string]: PacksInfo } = {};
+    private readonly packDataComplete: { [root: string]: WorldInfo } = {};
 
     private readonly packDataPromises: {
-        [root: string]: Promise<ReturnSuccess<PacksInfo>>;
+        [root: string]: Promise<ReturnSuccess<WorldInfo>>;
     } = {};
 
     public get globalData(): GlobalData {
@@ -58,9 +58,7 @@ export class DataManager {
     }
     //#endregion
     //#region Constructor
-
     //#endregion
-
     public getPackFolderData(
         folder: PackLocationSegments | undefined
     ): LocalData | undefined {
@@ -85,7 +83,7 @@ export class DataManager {
                 const parsedPath = parseDataPath(change.uri);
                 if (parsedPath) {
                     interface InlineData {
-                        data: PacksInfo;
+                        data: WorldInfo;
                         pack: Datapack;
                         packID: DataPackID;
                     }

@@ -1,6 +1,7 @@
 import * as path from "path";
-import { walkDir } from "../misc_functions/promisified_fs";
-import { MemoryFS } from "../parsers/minecraft/nbt/doc_fs";
+import { walkDir } from "../misc-functions/promisified-fs";
+import { Lists } from "../parsers/minecraft/list/lists";
+import { MemoryFS } from "../parsers/minecraft/nbt/doc-fs";
 import { NonCacheable } from "./types";
 
 export const rootNodePath = require.resolve("mc-nbt-paths/root.json");
@@ -18,6 +19,8 @@ export async function setupFiles(dir: string = modulePath): Promise<MemoryFS> {
 }
 
 export async function loadNonCached(): Promise<NonCacheable> {
+    const lists: Lists = new Lists();
+    lists.registerLists();
     const [nbtDocs] = await Promise.all([setupFiles()]);
-    return { nbt_docs: nbtDocs };
+    return { nbt_docs: nbtDocs, static_lists: lists };
 }

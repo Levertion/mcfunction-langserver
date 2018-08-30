@@ -1,15 +1,15 @@
-import { resourceTypes, ReturnHelper } from "../../misc_functions";
-import { typed_keys } from "../../misc_functions/third_party/typed_keys";
+import { resourceTypes, ReturnHelper } from "../../misc-functions";
+import { typed_keys } from "../../misc-functions/third_party/typed-keys";
 
 import { join } from "path";
 import { ReturnSuccess } from "../../types";
-import { GlobalData, PacksInfo, Resources } from "../types";
+import { GlobalData, Resources, WorldInfo } from "../types";
 
 export async function runMapFunctions(
     resources: Resources,
     globalData: GlobalData,
     packRoot: string,
-    localData?: PacksInfo
+    localData?: WorldInfo
 ): Promise<ReturnSuccess<Resources>> {
     const result: Resources = {};
     const helper = new ReturnHelper();
@@ -42,11 +42,11 @@ export async function runMapFunctions(
 }
 
 export async function mapPacksInfo(
-    packsInfo: PacksInfo,
+    packsInfo: WorldInfo,
     global: GlobalData
-): Promise<ReturnSuccess<PacksInfo>> {
+): Promise<ReturnSuccess<WorldInfo>> {
     const helper = new ReturnHelper();
-    const result: PacksInfo = { ...packsInfo, packs: {} };
+    const result: WorldInfo = { ...packsInfo, packs: {} };
     const promises = typed_keys(packsInfo.packs).map(async packID => {
         const element = packsInfo.packs[packID];
         const subresult = await runMapFunctions(

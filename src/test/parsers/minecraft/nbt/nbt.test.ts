@@ -1,7 +1,7 @@
 import * as assert from "assert";
-import { StringReader } from "../../../../brigadier_components/string_reader";
+import { StringReader } from "../../../../brigadier/string-reader";
 import { setupFiles } from "../../../../data/noncached";
-import { MemoryFS } from "../../../../parsers/minecraft/nbt/doc_fs";
+import { MemoryFS } from "../../../../parsers/minecraft/nbt/doc-fs";
 import { parseNBT, parser } from "../../../../parsers/minecraft/nbt/nbt";
 import { ParserInfo, SuggestResult } from "../../../../types";
 

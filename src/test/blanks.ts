@@ -1,6 +1,7 @@
 import { GlobalData } from "../data/types";
-import { PackLocationSegments } from "../misc_functions";
-import { MemoryFS } from "../parsers/minecraft/nbt/doc_fs";
+import { PackLocationSegments } from "../misc-functions";
+import { Lists } from "../parsers/minecraft/list/lists";
+import { MemoryFS } from "../parsers/minecraft/nbt/doc-fs";
 import { CommmandData } from "../types";
 import { ReturnAssertionInfo, TestParserInfo } from "./assertions";
 
@@ -30,5 +31,6 @@ export const emptyGlobal: GlobalData = {
     items: [],
     meta_info: { version: "" },
     nbt_docs: new MemoryFS("", {}),
-    resources: {}
+    resources: {},
+    static_lists: new Lists()
 };

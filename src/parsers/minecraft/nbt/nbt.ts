@@ -1,11 +1,11 @@
-import { StringReader } from "../../../brigadier_components/string_reader";
-import { ReturnHelper } from "../../../misc_functions";
-import { ContextPath, resolvePaths } from "../../../misc_functions/context";
+import { StringReader } from "../../../brigadier/string-reader";
+import { ReturnHelper } from "../../../misc-functions";
+import { ContextPath, resolvePaths } from "../../../misc-functions/context";
 import { Parser, ReturnedInfo } from "../../../types";
-import { MemoryFS } from "./doc_fs";
-import { NBTWalker } from "./doc_walker";
-import { NBTTagCompound } from "./tag/compound_tag";
-import { addSuggestionsToHelper } from "./util/nbt_util";
+import { MemoryFS } from "./doc-fs";
+import { NBTWalker } from "./doc-walker";
+import { NBTTagCompound } from "./tag/compound-tag";
+import { addSuggestionsToHelper } from "./util/nbt-util";
 
 type CtxPathFunc = (args: string[]) => NBTContextData;
 
