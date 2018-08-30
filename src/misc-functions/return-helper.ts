@@ -169,9 +169,9 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
                 if (val) {
                     this.mergeSuggestions(merge);
                 }
+                this.mergeSafe(merge);
                 return this;
             }
-            this.mergeSafe(merge);
         }
         this.mergeSuggestions(merge);
         this.mergeSafe(merge);
