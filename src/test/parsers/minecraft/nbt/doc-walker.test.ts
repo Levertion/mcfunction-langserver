@@ -10,20 +10,19 @@ describe("Documentation Walker Tests", () => {
         const nbt = new NBTTagCompound({ var1: new NBTTagString("func_test") });
         const dataPath = path.resolve(
             __dirname,
-            "../../../../../test_data/test_docs/root.json"
+            "../../../../../test_data/test_docs"
         );
 
         const v = await setupFiles(path.dirname(dataPath));
 
-        const walker = new NBTWalker(nbt, v, dataPath);
+        const walker = new NBTWalker(nbt, v, "root.json");
         it("should return the correct node for the basic doc", () => {
             const node = walker.getFinalNode(["basic_test"]);
             if (!node) {
                 assert.fail("node is undefined");
                 return;
             }
-            assert.ok("description" in node);
-            assert.ok(node.description === "basic_test OK");
+            assert.strictEqual(node.description, "basic_test OK");
         });
 
         it("should return the correct node for nested nodes", () => {
@@ -32,8 +31,7 @@ describe("Documentation Walker Tests", () => {
                 assert.fail("node is undefined");
                 return;
             }
-            assert.ok("description" in node);
-            assert.ok(node.description === "nest_test OK");
+            assert.strictEqual(node.description, "nest_test OK");
         });
 
         it("should return the correct node for the ref property", () => {
@@ -42,8 +40,7 @@ describe("Documentation Walker Tests", () => {
                 assert.fail("node is undefined");
                 return;
             }
-            assert.ok("description" in node);
-            assert.ok(node.description === "ref_test OK");
+            assert.strictEqual(node.description, "ref_test OK");
         });
 
         it("should return the correct node for the child_ref property", () => {
@@ -52,8 +49,7 @@ describe("Documentation Walker Tests", () => {
                 assert.fail("node is undefined");
                 return;
             }
-            assert.ok("description" in node);
-            assert.ok(node.description === "child_ref_test OK");
+            assert.strictEqual(node.description, "child_ref_test OK");
         });
 
         it("should return the correct node for the child_ref property but self", () => {
@@ -62,8 +58,7 @@ describe("Documentation Walker Tests", () => {
                 assert.fail("node is undefined");
                 return;
             }
-            assert.ok("description" in node);
-            assert.ok(node.description === "child_ref_self_test OK");
+            assert.strictEqual(node.description, "child_ref_self_test OK");
         });
 
         it("should return the correct node for lists", () => {
@@ -72,8 +67,7 @@ describe("Documentation Walker Tests", () => {
                 assert.fail("node is undefined");
                 return;
             }
-            assert.ok("description" in node);
-            assert.ok(node.description === "list_test OK");
+            assert.strictEqual(node, "list_test OK");
         });
 
         it("should return the correct node for funcs", () => {
@@ -82,8 +76,7 @@ describe("Documentation Walker Tests", () => {
                 assert.fail("node is undefined");
                 return;
             }
-            assert.ok("description" in node);
-            assert.ok(node.description === "func_test OK");
+            assert.strictEqual(node.description, "func_test OK");
         });
     });
 });
