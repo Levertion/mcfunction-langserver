@@ -11,7 +11,6 @@ import {
     IPCMessageWriter,
     TextDocumentSyncKind
 } from "vscode-languageserver/lib/main";
-import { mergeDeep } from "./misc-functions/third_party/merge-deep";
 
 import { computeCompletions } from "./completions";
 import { readSecurity } from "./data/cache";
@@ -26,6 +25,7 @@ import {
     setup_logging,
     splitLines
 } from "./misc-functions";
+import { mergeDeep } from "./misc-functions/third_party/merge-deep";
 import { parseDocument, parseLines } from "./parse";
 import { FunctionInfo, MiscInfo, WorkspaceSecurity } from "./types";
 

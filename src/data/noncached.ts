@@ -8,7 +8,7 @@ export const rootNodePath = require.resolve("mc-nbt-paths/root.json");
 export const modulePath = path.dirname(rootNodePath);
 
 export async function setupFiles(dir: string = modulePath): Promise<MemoryFS> {
-    const docfs = new MemoryFS(modulePath);
+    const docfs = new MemoryFS(dir);
     const paths = await walkDir(dir);
     const promises: Array<Promise<void>> = [];
     for (const p of paths) {

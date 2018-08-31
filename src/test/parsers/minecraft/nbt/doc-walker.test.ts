@@ -1,21 +1,28 @@
 import * as assert from "assert";
 import * as path from "path";
 import { setupFiles } from "../../../../data/noncached";
+import { MemoryFS } from "../../../../parsers/minecraft/nbt/doc-fs";
 import { NBTWalker } from "../../../../parsers/minecraft/nbt/doc-walker";
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound-tag";
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string-tag";
 
 describe("Documentation Walker Tests", () => {
     describe("getFinalNode()", async () => {
-        const nbt = new NBTTagCompound({ var1: new NBTTagString("func_test") });
-        const dataPath = path.resolve(
-            __dirname,
-            "../../../../../test_data/test_docs"
-        );
+        before(async () => {
+            const nbt = new NBTTagCompound({
+                var1: new NBTTagString("func_test")
+            });
+            const dataPath = path.resolve(
+                __dirname,
+                "../../../../../test_data/test_docs"
+            );
+            v = await setupFiles(dataPath);
+            walker = new NBTWalker(nbt, v, "root.json");
+        });
 
-        const v = await setupFiles(path.dirname(dataPath));
+        let v: MemoryFS;
+        let walker: NBTWalker;
 
-        const walker = new NBTWalker(nbt, v, "root.json");
         it("should return the correct node for the basic doc", () => {
             const node = walker.getFinalNode(["basic_test"]);
             if (!node) {
