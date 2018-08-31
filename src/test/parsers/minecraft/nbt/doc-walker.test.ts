@@ -74,7 +74,7 @@ describe("Documentation Walker Tests", () => {
                 assert.fail("node is undefined");
                 return;
             }
-            assert.strictEqual(node, "list_test OK");
+            assert.strictEqual(node.description, "list_test OK");
         });
 
         it("should return the correct node for funcs", () => {

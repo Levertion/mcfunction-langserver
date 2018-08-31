@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as url from "url";
+import { SLASH } from "../../../consts";
 import { MemoryFS } from "./doc-fs";
 import { runNodeFunction } from "./doc-walker-func";
 import {
@@ -19,6 +20,24 @@ import { ArrayReader } from "./util/array-reader";
 export type ValueList = string[];
 
 export class NBTWalker {
+    private static join(...args: string[]): string {
+        const pth: string[] = [];
+        for (const arg of args) {
+            const split = arg.split(SLASH);
+            for (const section of split) {
+                switch (section) {
+                    case ".":
+                        break;
+                    case "..":
+                        pth.pop();
+                        break;
+                    default:
+                        pth.push(section);
+                }
+            }
+        }
+        return pth.join(SLASH);
+    }
     private readonly docfs: MemoryFS;
     private readonly parsed: NBTTag<any>;
     private readonly root: string;
@@ -83,7 +102,7 @@ export class NBTWalker {
                 for (const k of Object.keys(node.children)) {
                     if (k.startsWith("$")) {
                         const vals = this.docfs.get<ValueList>(
-                            path.resolve(currentPath, k.slice(1))
+                            NBTWalker.join(currentPath, k.slice(1))
                         );
                         if (vals.indexOf(next) !== -1) {
                             const nextNode = node.children[k];
@@ -117,7 +136,7 @@ export class NBTWalker {
             return undefined;
         }
         for (const s of node.child_ref) {
-            const childPath = path.resolve(currentPath, s);
+            const childPath = NBTWalker.join(currentPath, s);
             const refNode = this.getNextNodeRef(
                 {
                     ref: childPath
@@ -128,8 +147,8 @@ export class NBTWalker {
             if (
                 refNode !== undefined &&
                 isCompoundNode(refNode) &&
-                !!refNode.child_ref &&
-                next in refNode.child_ref
+                !!refNode.children &&
+                next in refNode.children
             ) {
                 return this.getNextNode(refNode, reader, childPath);
             }
@@ -164,7 +183,7 @@ export class NBTWalker {
             .split("/")
             .filter(v => v !== "");
         const fragReader = new ArrayReader(fragPath);
-        const nextPath = path.resolve(currentPath, node.ref);
+        const nextPath = NBTWalker.join(currentPath, node.ref);
         const newNode = this.docfs.get<NBTNode>(nextPath);
         const evalNode = this.getNextNode(newNode, fragReader, node.ref);
         return this.getNextNode(evalNode, reader, currentPath);
