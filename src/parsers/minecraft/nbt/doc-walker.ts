@@ -18,8 +18,6 @@ import { ArrayReader } from "./util/array-reader";
 
 export type ValueList = string[];
 
-const rootNodePath = require.resolve("mc-nbt-paths/root.json");
-
 export class NBTWalker {
     private readonly docfs: MemoryFS;
     private readonly parsed: NBTTag<any>;
@@ -28,7 +26,7 @@ export class NBTWalker {
     public constructor(
         parsed: NBTTag<any>,
         docfs: MemoryFS,
-        root: string = rootNodePath
+        root: string = "root.json"
     ) {
         this.parsed = parsed;
         this.root = root;
