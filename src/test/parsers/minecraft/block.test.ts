@@ -1,5 +1,5 @@
 import { ok } from "assert";
-import { parseBlockArgument } from "../../../parsers/minecraft/block/shared";
+import { parseBlockArgument } from "../../../parsers/minecraft/block";
 import { CommmandData, Parser } from "../../../types";
 import { testParser } from "../../assertions";
 import { blankproperties, succeeds } from "../../blanks";

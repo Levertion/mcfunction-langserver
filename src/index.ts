@@ -110,19 +110,32 @@ async function ensureSecure(settings: {
         global.mcLangSettings,
         settings.mcfunction
     ) as McFunctionSettings;
-    const issues = securityIssues(newsettings, secure);
-    if (issues.length > 0) {
-        // Failed security checkup challenge
-        const safetocontinue = await actOnSecurity(issues, connection, secure);
-        if (!safetocontinue) {
-            connection.sendNotification(
-                "mcfunction/shutdown",
-                `Shutting down because of insecure settings: '${issues.join(
-                    "', '"
-                )}'`
+
+    try {
+        const issues = securityIssues(newsettings, secure);
+        if (issues.length > 0) {
+            // Failed security checkup challenge
+            const safeToContinue = await actOnSecurity(
+                issues,
+                connection,
+                secure
             );
-            return;
+            if (!safeToContinue) {
+                connection.sendNotification(
+                    "mcfunction/shutdown",
+                    `Shutting down because of insecure settings: '${issues.join(
+                        "', '"
+                    )}'`
+                );
+                return;
+            }
         }
+    } catch (error) {
+        connection.sendNotification(
+            "mcfunction/shutdown",
+            `Shutting down because of insecure settings: '${error}'`
+        );
+        return;
     }
     global.mcLangSettings = newsettings;
 }

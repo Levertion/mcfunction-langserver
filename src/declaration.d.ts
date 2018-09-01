@@ -83,7 +83,8 @@ interface McFunctionSettings extends LocalMcFunctionSettings {
         snapshots: boolean;
     };
     /**
-     * Custom parsers to be used
+     * Custom parsers to be used.
+     * Note that external users of the server should not support this setting
      */
     parsers: {
         [name: string]: string;

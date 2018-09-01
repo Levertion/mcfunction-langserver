@@ -1,4 +1,4 @@
-import { CoordParser } from "../../../parsers/minecraft/coord/coord-base";
+import { CoordParser } from "../../../parsers/minecraft/coordinates";
 import { testParser } from "../../assertions";
 import { succeeds } from "../../blanks";
 

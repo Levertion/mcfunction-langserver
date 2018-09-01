@@ -18,11 +18,13 @@ export function securityIssues(
             results.push("JavaPath");
         }
     }
-    if (!!settings.parsers && security.CustomParsers !== true) {
-        const names = Object.keys(settings.parsers);
+    if (!!settings.parsers /* && security.CustomParsers !== true */) {
+        /* const names = Object.keys(settings.parsers);
         if (names.length > 0) {
             results.push("CustomParsers");
-        }
+        } */
+        throw new Error(`Custom parsers are not supported for client implementations.
+To request this feature be enabled, open an issue at https://github.com/Levertion/mcfunction-langserver`);
     }
     return results;
 }
