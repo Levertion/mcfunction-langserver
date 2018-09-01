@@ -75,7 +75,6 @@ export function parseTag(
             return helper.succeed(correctTag);
         }
     } else {
-        helper.merge(lastResult);
         return helper.failWithData(lastResult.data);
     }
 }

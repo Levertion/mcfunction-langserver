@@ -1,0 +1,14 @@
+{
+    "type": "root",
+    "children": {
+        "langserver:nbt": {
+            "type": "compound",
+            "children": {
+                "customTag": {
+                    "type": "string",
+                    "suggestions": ["one", "two", "Hello World"]
+                }
+            }
+        }
+    }
+}

@@ -1,6 +1,6 @@
-import { NBTTagCompound } from "./tag/compound-tag";
-import { NBTTagList } from "./tag/list-tag";
-import { NBTTag } from "./tag/nbt-tag";
+import { NBTTagCompound } from "../tag/compound-tag";
+import { NBTTagList } from "../tag/list-tag";
+import { NBTTag } from "../tag/nbt-tag";
 
 export interface NBTFunction {
     id: string;
@@ -45,7 +45,7 @@ export interface ListNode extends NodeBase {
 }
 
 export interface CompoundNode extends NodeBase {
-    readonly child_ref: string[];
+    readonly child_ref?: string[];
     readonly children: { [key: string]: NBTNode };
     readonly type: "compound";
 }
@@ -54,6 +54,8 @@ export interface RootNode extends NodeBase {
     readonly children: { [key: string]: NBTNode };
     readonly type: "root";
 }
+
+export type ValueList = string[];
 
 export type NBTNode =
     | NoPropertyNode

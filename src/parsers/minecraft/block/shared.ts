@@ -106,6 +106,7 @@ const exceptions = {
     )
 };
 
+// tslint:disable:cyclomatic-complexity
 export function parseBlockArgument(
     reader: StringReader,
     info: ParserInfo,
@@ -146,7 +147,9 @@ export function parseBlockArgument(
                     id: (parsedResult.resolved || []).map(stringifyNamespace),
                     type: "block"
                 });
-                helper.merge(nbt);
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
+                }
             }
         } else {
             stringifiedName = stringifyNamespace(parsed.data.parsed);
@@ -174,20 +177,13 @@ export function parseBlockArgument(
             if (!helper.merge(result)) {
                 return helper.fail();
             }
-
             if (reader.peek() === "{") {
-                if (props) {
-                    const nbt = parseNBT(reader, info, {
-                        id: stringifiedName,
-                        type: "block"
-                    });
-                    helper.merge(nbt);
-                } else {
-                    const nbt = parseNBT(reader, info, {
-                        id: "none",
-                        type: "block"
-                    });
-                    helper.merge(nbt);
+                const nbt = parseNBT(reader, info, {
+                    id: props ? stringifiedName : "none",
+                    type: "block"
+                });
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
                 }
             }
         }
@@ -215,7 +211,9 @@ export function parseBlockArgument(
                     id: "none",
                     type: "block"
                 });
-                helper.merge(nbt);
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
+                }
             }
         } else {
             // Parsing of the namespace failed

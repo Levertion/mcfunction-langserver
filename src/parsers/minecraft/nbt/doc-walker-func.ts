@@ -1,8 +1,8 @@
 import * as path from "path";
 import { sprintf } from "sprintf-js";
-import { FunctionNode, getNBTTagFromTree } from "./doc-walker-util";
 import { NBTTag } from "./tag/nbt-tag";
 import { NBTTagString } from "./tag/string-tag";
+import { FunctionNode, getNBTTagFromTree } from "./util/doc-walker-util";
 
 interface PathFunctions {
     [key: string]: PathFunc;

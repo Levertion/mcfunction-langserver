@@ -7,7 +7,7 @@ import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound-t
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string-tag";
 
 describe("Documentation Walker Tests", () => {
-    describe("getFinalNode()", async () => {
+    describe("getFinalNode()", () => {
         before(async () => {
             const nbt = new NBTTagCompound({
                 var1: new NBTTagString("func_test")

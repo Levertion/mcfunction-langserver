@@ -18,6 +18,10 @@ export class MemoryFS {
         return this.data[internalPath];
     }
 
+    public getRoot(): string {
+        return this.root;
+    }
+
     public isEmpty(): boolean {
         return Object.keys(this.data).length === 0;
     }

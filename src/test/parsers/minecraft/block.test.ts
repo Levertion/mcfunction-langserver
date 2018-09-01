@@ -1,5 +1,8 @@
 import { ok } from "assert";
+import { setupFiles } from "../../../data/noncached";
+import { GlobalData } from "../../../data/types";
 import { parseBlockArgument } from "../../../parsers/minecraft/block/shared";
+import { MemoryFS } from "../../../parsers/minecraft/nbt/doc-fs";
 import { CommmandData, Parser } from "../../../types";
 import { testParser } from "../../assertions";
 import { blankproperties, succeeds } from "../../blanks";
@@ -11,85 +14,95 @@ const parser: Parser = {
 
 const blockArgumentTester = testParser(parser);
 
-const data: CommmandData = {
-    globalData: {
-        blocks: {
-            "langserver:multi": {
-                otherprop: ["lang", "propvalue"],
-                prop1: ["value", "value2", "other"]
+let data: CommmandData;
+
+describe("sharedBlockParser", () => {
+    data = {
+        globalData: {
+            blocks: {
+                "langserver:multi": {
+                    otherprop: ["lang", "propvalue"],
+                    prop1: ["value", "value2", "other"]
+                },
+                "langserver:noprops": {},
+                "langserver:props": {
+                    prop: ["value", "value2", "other"]
+                },
+                "minecraft:lang": {},
+                "minecraft:test": { state: ["react", "redux"] }
             },
-            "langserver:noprops": {},
-            "langserver:props": {
-                prop: ["value", "value2", "other"]
-            },
-            "minecraft:lang": {},
-            "minecraft:test": { state: ["react", "redux"] }
+            resources: {
+                block_tags: [
+                    { namespace: "test", path: "empty" },
+                    {
+                        data: { values: [] },
+                        namespace: "test",
+                        path: "empty_values"
+                    },
+                    {
+                        data: {
+                            values: [
+                                "langserver:multi",
+                                "langserver:props",
+                                "test"
+                            ]
+                        },
+                        namespace: "test",
+                        path: "plain"
+                    },
+                    { namespace: "minecraft", path: "empty" },
+                    {
+                        data: {
+                            values: ["minecraft:test", "langserver:noprops"]
+                        },
+                        namespace: "minecraft",
+                        path: "plain"
+                    },
+                    {
+                        data: { values: ["langserver:props", "#plain"] },
+                        namespace: "test",
+                        path: "othertags"
+                    },
+                    {
+                        data: {
+                            values: ["langserver:props", "#test:plain"]
+                        },
+                        namespace: "test",
+                        path: "duplicated_block"
+                    },
+                    {
+                        data: {
+                            values: [
+                                "langserver:multi",
+                                "unknown",
+                                "langserver:notablock"
+                            ]
+                        },
+                        namespace: "test",
+                        path: "invalid_block"
+                    }
+                ]
+            }
         },
-        resources: {
-            block_tags: [
-                { namespace: "test", path: "empty" },
-                {
-                    data: { values: [] },
-                    namespace: "test",
-                    path: "empty_values"
-                },
-                {
+        localData: {
+            packs: {
+                0: {
                     data: {
-                        values: ["langserver:multi", "langserver:props", "test"]
-                    },
-                    namespace: "test",
-                    path: "plain"
-                },
-                { namespace: "minecraft", path: "empty" },
-                {
-                    data: { values: ["minecraft:test", "langserver:noprops"] },
-                    namespace: "minecraft",
-                    path: "plain"
-                },
-                {
-                    data: { values: ["langserver:props", "#plain"] },
-                    namespace: "test",
-                    path: "othertags"
-                },
-                {
-                    data: {
-                        values: ["langserver:props", "#test:plain"]
-                    },
-                    namespace: "test",
-                    path: "duplicated_block"
-                },
-                {
-                    data: {
-                        values: [
-                            "langserver:multi",
-                            "unknown",
-                            "langserver:notablock"
+                        block_tags: [
+                            {
+                                data: {
+                                    values: ["#plain", "langserver:multi"]
+                                },
+                                namespace: "localdata",
+                                path: "token"
+                            }
                         ]
-                    },
-                    namespace: "test",
-                    path: "invalid_block"
-                }
-            ]
-        }
-    },
-    localData: {
-        packs: {
-            0: {
-                data: {
-                    block_tags: [
-                        {
-                            data: { values: ["#plain", "langserver:multi"] },
-                            namespace: "localdata",
-                            path: "token"
-                        }
-                    ]
+                    }
                 }
             }
         }
-    }
-} as any;
+    } as any;
 
-describe("sharedBlockParser", () => {
     describe("Tags allowed", () => {
         const test = blockArgumentTester({
             ...blankproperties,
@@ -159,6 +172,74 @@ describe("sharedBlockParser", () => {
                     }
                 ],
                 succeeds: false
+            });
+        });
+    });
+
+    describe("block & NBT tests", () => {
+        let memfs: MemoryFS;
+        let test: ReturnType<typeof blockArgumentTester>;
+
+        before(async () => {
+            memfs = await setupFiles("test_data/snbt_test");
+            test = blockArgumentTester({
+                data: {
+                    globalData: ({
+                        blocks: {
+                            "langserver:nbt": {},
+                            "langserver:nbt_prop": {
+                                prop: ["1", "2", "3"]
+                            }
+                        },
+                        nbt_docs: memfs
+                    } as any) as GlobalData
+                }
+            });
+        });
+        it("should parse correctly with NBT", () => {
+            test('langserver:nbt{customTag:"Hello World"}', {
+                succeeds: true,
+                suggestions: [
+                    {
+                        start: 38,
+                        text: "}"
+                    }
+                ]
+            });
+        });
+        it("should parse correctly with properties and NBT", () => {
+            test('langserver:nbt_prop[prop=1]{customTag:"Hello World"}', {
+                succeeds: true,
+                suggestions: [
+                    {
+                        start: 51,
+                        text: "}"
+                    }
+                ]
+            });
+        });
+        it("should give the correct suggestions for tag names", () => {
+            test("langserver:nbt{", {
+                errors: [
+                    {
+                        code: "argument.nbt.compound.nokey",
+                        range: {
+                            end: 15,
+                            start: 14
+                        }
+                    }
+                ],
+                succeeds: false,
+                suggestions: [
+                    {
+                        start: 15,
+                        text: "customTag"
+                    },
+                    {
+                        start: 14,
+                        text: "{"
+                    }
+                ]
             });
         });
     });

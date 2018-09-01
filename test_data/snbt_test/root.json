@@ -1,0 +1,9 @@
+{
+    "$schema": "https://raw.githubusercontent.com/MrYurihi/mc-nbt-paths/master/schema/schema.json",
+    "type": "root",
+    "children": {
+        "block": {
+            "ref": "blocks/block.json"
+        }
+    }
+}

@@ -2,6 +2,8 @@ import * as path from "path";
 import * as url from "url";
 import { MemoryFS } from "./doc-fs";
 import { runNodeFunction } from "./doc-walker-func";
+import { NBTTag } from "./tag/nbt-tag";
+import { ArrayReader } from "./util/array-reader";
 import {
     CompoundNode,
     FunctionNode,
@@ -10,13 +12,12 @@ import {
     isListNode,
     isRefNode,
     isRootNode,
+    ListNode,
     NBTNode,
-    RefNode
-} from "./doc-walker-util";
-import { NBTTag } from "./tag/nbt-tag";
-import { ArrayReader } from "./util/array-reader";
-
-export type ValueList = string[];
+    RefNode,
+    RootNode,
+    ValueList
+} from "./util/doc-walker-util";
 
 export class NBTWalker {
     private readonly docfs: MemoryFS;
@@ -29,17 +30,121 @@ export class NBTWalker {
         root: string = "root.json"
     ) {
         this.parsed = parsed;
-        this.root = root;
         this.docfs = docfs;
+        this.root = root;
     }
 
     public getFinalNode(nbtpath: string[]): NBTNode | undefined {
         const rootNode = this.docfs.get<NBTNode>(this.root);
-        return this.getNextNode(
-            rootNode,
-            new ArrayReader(nbtpath),
-            path.dirname(this.root)
-        );
+        const reader = new ArrayReader(nbtpath);
+        return this.getNextNode(rootNode, reader, this.root);
+    }
+
+    private evalCompoundNode(
+        node: CompoundNode,
+        reader: ArrayReader,
+        currentPath: string
+    ): NBTNode | undefined {
+        const next = reader.read();
+        if (next in node.children) {
+            return this.getNextNode(node.children[next], reader, currentPath);
+        } else if (node.child_ref) {
+            for (const ref of node.child_ref) {
+                const newPath = path.join(currentPath, ref);
+                const cnode = this.nextNodeRef(
+                    {
+                        ref
+                    },
+                    currentPath
+                );
+                if (cnode === undefined) {
+                    break;
+                }
+                if (isCompoundNode(cnode)) {
+                    const outnode = this.evalCompoundNode(
+                        cnode,
+                        new ArrayReader([next]),
+                        newPath
+                    );
+                    if (outnode) {
+                        return outnode;
+                    }
+                }
+            }
+        }
+        return undefined;
+    }
+
+    private evalFunctionNode(
+        node: FunctionNode,
+        reader: ArrayReader,
+        currentPath: string
+    ): NBTNode | undefined {
+        const refNode = this.functionNodeAsRef(node, reader.getRead());
+        return this.evalRefNode(refNode, reader, currentPath);
+    }
+
+    private evalListNode(
+        node: ListNode,
+        reader: ArrayReader,
+        currentPath: string
+    ): NBTNode | undefined {
+        const next = reader.read();
+        if (/\d+/.test(next)) {
+            return this.getNextNode(node.item, reader, currentPath);
+        }
+        return undefined;
+    }
+
+    private evalRefNode(
+        node: RefNode,
+        reader: ArrayReader,
+        currentPath: string
+    ): NBTNode | undefined {
+        const newPath = path.join(currentPath, "..", node.ref);
+        const newNode = this.nextNodeRef(node, currentPath);
+        return this.getNextNode(newNode, reader, newPath);
+    }
+
+    private evalRootNode(
+        node: RootNode,
+        reader: ArrayReader,
+        currentPath: string
+    ): NBTNode | undefined {
+        const next = reader.read();
+        if (next in node.children) {
+            return this.getNextNode(node.children[next], reader, currentPath);
+        } else {
+            for (const key of Object.keys(node.children)) {
+                if (key.startsWith("$")) {
+                    const listName = key.substring(1);
+                    const vals = this.docfs.get<ValueList>(
+                        path.join(currentPath, listName)
+                    );
+                    if (vals.indexOf(next) >= 0) {
+                        return this.getNextNode(
+                            node.children[key],
+                            reader,
+                            currentPath
+                        );
+                    }
+                }
+            }
+        }
+        return undefined;
+    }
+
+    private functionNodeAsRef(node: FunctionNode, nbtPath: string[]): RefNode {
+        return {
+            description: node.description,
+            ref: runNodeFunction(
+                this.parsed,
+                nbtPath,
+                node,
+                node.function.params
+            ),
+            suggestions: node.suggestions
+        };
     }
 
     private getNextNode(
@@ -49,64 +154,33 @@ export class NBTWalker {
     ): NBTNode | undefined {
         if (reader.end() && node !== undefined) {
             if (isRefNode(node)) {
-                return this.getNextNodeRef(node, reader, currentPath);
+                return this.nextNodeRef(node, currentPath);
             } else if (isFunctionNode(node)) {
-                return this.getNextNodeFunction(node, reader, currentPath);
-            }
-            return node;
-        }
-        if (node === undefined) {
-            return undefined;
-        }
-        const next = reader.peek();
-        if (isRefNode(node)) {
-            return this.getNextNodeRef(node, reader, currentPath);
-        } else if (isFunctionNode(node)) {
-            return this.getNextNodeFunction(node, reader, currentPath);
-        } else if (isCompoundNode(node)) {
-            if (next in node.children) {
-                reader.skip();
-                return this.getNextNode(
-                    node.children[next],
-                    reader,
+                return this.nextNodeRef(
+                    this.functionNodeAsRef(node, reader.getRead()),
                     currentPath
                 );
             } else {
-                return this.getNextNodeChildRef(node, reader, currentPath);
+                return node;
             }
+        } else if (node === undefined) {
+            return undefined;
         } else if (isRootNode(node)) {
-            if (next in node.children) {
-                const nextNode = node.children[next];
-                reader.skip();
-                return this.getNextNode(nextNode, reader, currentPath);
-            } else {
-                for (const k of Object.keys(node.children)) {
-                    if (k.startsWith("$")) {
-                        const vals = this.docfs.get<ValueList>(
-                            path.join(currentPath, k.slice(1))
-                        );
-                        if (vals.indexOf(next) !== -1) {
-                            const nextNode = node.children[k];
-                            return this.getNextNode(
-                                nextNode,
-                                reader,
-                                currentPath
-                            );
-                        }
-                    }
-                }
-            }
+            return this.evalRootNode(node, reader, currentPath);
+        } else if (isCompoundNode(node)) {
+            return this.evalCompoundNode(node, reader, currentPath);
         } else if (isListNode(node)) {
-            if (/\d+/.test(next)) {
-                reader.skip();
-                return node.item;
-            }
+            return this.evalListNode(node, reader, currentPath);
+        } else if (isRefNode(node)) {
+            return this.evalRefNode(node, reader, currentPath);
+        } else if (isFunctionNode(node)) {
+            return this.evalFunctionNode(node, reader, currentPath);
         } else {
             return node;
         }
-        return undefined;
     }
 
+    /*
     private getNextNodeChildRef(
         node: CompoundNode,
         reader: ArrayReader,
@@ -136,37 +210,20 @@ export class NBTWalker {
         }
         return undefined;
     }
+    */
 
-    private getNextNodeFunction(
-        node: FunctionNode,
-        arr: ArrayReader,
-        currentPath: string
-    ): NBTNode | undefined {
-        const newNode: RefNode = {
-            ref: runNodeFunction(
-                this.parsed,
-                arr.getRead(),
-                node,
-                node.function.params
-            )
-        };
-        return this.getNextNodeRef(newNode, arr, currentPath);
-    }
-
-    private getNextNodeRef(
+    private nextNodeRef(
         node: RefNode,
-        reader: ArrayReader,
         currentPath: string
     ): NBTNode | undefined {
-        const refUrl = url.parse(node.ref);
-        const fragPath = (refUrl.hash || "#")
-            .slice(1)
-            .split("/")
+        const refpath = url.parse(node.ref);
+        const fragPath = (refpath.hash || "#")
+            .substring(1)
+            .split(/[\\/]/)
             .filter(v => v !== "");
         const fragReader = new ArrayReader(fragPath);
-        const nextPath = path.join(currentPath, node.ref);
+        const nextPath = path.join(currentPath, "..", node.ref);
         const newNode = this.docfs.get<NBTNode>(nextPath);
-        const evalNode = this.getNextNode(newNode, fragReader, node.ref);
-        return this.getNextNode(evalNode, reader, currentPath);
+        return this.getNextNode(newNode, fragReader, nextPath);
     }
 }

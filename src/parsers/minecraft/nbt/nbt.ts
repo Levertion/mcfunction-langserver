@@ -20,6 +20,19 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
             type: "entity"
         }),
         path: ["data", "merge", "entity", "target", "nbt"]
+    },
+    {
+        data: () => ({
+            type: "block"
+        }),
+        path: ["data", "merge", "block", "pos", "nbt"]
+    },
+    {
+        data: args => ({
+            id: args[1],
+            type: "entity"
+        }),
+        path: ["summon", "entity", "pos", "nbt"]
     }
 ];
 
@@ -30,36 +43,39 @@ export function parseNBT(
 ): ReturnedInfo<undefined> {
     const helper = new ReturnHelper(info);
     const tag = new NBTTagCompound({});
-    const reply = tag.parse(reader);
     const docFS = info.data.globalData.nbt_docs;
+    const reply = tag.parse(reader);
 
     if (helper.merge(reply)) {
         return helper.succeed();
-    }
-    if (!!data) {
-        const walker = new NBTWalker(
-            reply.data.parsed || new NBTTagCompound({}),
-            docFS
-        );
-        if (isArray(data.id)) {
-            for (const id of data.id) {
-                const node = walker.getFinalNode(
-                    [data.type, id || "none"].concat(reply.data.path || [])
-                );
+    } else {
+        if (!!data && info.suggesting) {
+            const walker = new NBTWalker(
+                reply.data.parsed || new NBTTagCompound({}),
+                docFS
+            );
+            if (isArray(data.id)) {
+                for (const id of data.id) {
+                    const node = walker.getFinalNode(
+                        [data.type, id || "none"].concat(reply.data.path || [])
+                    );
+                    if (!!node) {
+                        addSuggestionsToHelper(node, helper, reader);
+                    }
+                }
+            } else {
+                const node = walker.getFinalNode([
+                    data.type,
+                    data.id || "none",
+                    ...(reply.data.path || [])
+                ]);
                 if (!!node) {
                     addSuggestionsToHelper(node, helper, reader);
                 }
             }
-        } else {
-            const node = walker.getFinalNode(
-                [data.type, data.id || "none"].concat(reply.data.path || [])
-            );
-            if (!!node) {
-                addSuggestionsToHelper(node, helper, reader);
-            }
         }
+        return helper.fail();
     }
-    return helper.fail();
 }
 
 export const parser: Parser = {

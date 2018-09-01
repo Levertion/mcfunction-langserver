@@ -1,6 +1,9 @@
 {
     "type": "compound",
     "children": {
+        "badkey": {
+            "description": "child_ref_test BAD"
+        },
         "key0": {
             "description": "child_ref_test OK"
         }

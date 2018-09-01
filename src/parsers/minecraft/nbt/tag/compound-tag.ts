@@ -28,6 +28,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
 
     public parse(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
+        const start = reader.cursor;
         const compStart = reader.expect(COMPOUND_START);
         if (!helper.merge(compStart)) {
             return helper.failWithData({ correct: 0, parsed: this });
@@ -38,7 +39,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             reader.skipWhitespace();
 
             if (!reader.canRead()) {
-                helper.addErrors(NO_KEY.create(reader.cursor, reader.cursor));
+                helper.addErrors(NO_KEY.create(start, reader.cursor));
                 return helper.failWithData({
                     correct: 2,
                     keys,
@@ -77,13 +78,13 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             reader.skipWhitespace();
 
             if (!reader.canRead()) {
-                helper.addErrors(NO_VAL.create(reader.cursor, reader.cursor));
-                helper.failWithData({
+                helper.addErrors(NO_VAL.create(keyS, reader.cursor));
+                return helper.failWithData({
                     correct: 2,
                     keys,
                     parsed: this,
-                    part: "value",
-                    path: [key]
+                    part: "value" as "value",
+                    path: [key.data]
                 });
             }
 
