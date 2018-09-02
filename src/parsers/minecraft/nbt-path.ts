@@ -15,7 +15,7 @@ const badChar = new CommandErrorBuilder(
     "Bad character '%s'"
 );
 
-export const parser: Parser = {
+const parser: Parser = {
     parse: (
         reader: StringReader,
         prop: ParserInfo
@@ -75,3 +75,5 @@ export const parser: Parser = {
         return helper.hasErrors() ? helper.fail() : helper.succeed();
     }
 };
+
+export = parser;
