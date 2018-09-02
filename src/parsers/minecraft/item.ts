@@ -1,13 +1,13 @@
-import { CommandErrorBuilder } from "../../../brigadier/errors";
-import { StringReader } from "../../../brigadier/string-reader";
+import { CommandErrorBuilder } from "../../brigadier/errors";
+import { StringReader } from "../../brigadier/string-reader";
 import {
     buildTagActions,
     namespaceSuggestionString,
     parseNamespaceOrTag,
     ReturnHelper,
     stringifyNamespace
-} from "../../../misc-functions";
-import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
+} from "../../misc-functions";
+import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 
 const NOTAG = new CommandErrorBuilder(
     "argument.item.tag.disallowed",
@@ -74,7 +74,6 @@ export class ItemParser implements Parser {
                 }
                 items.push(name);
             }
-            // Put NBT here & use `items`
         } else {
             if (parsed.data) {
                 helper.addErrors(
@@ -84,7 +83,6 @@ export class ItemParser implements Parser {
                         stringifyNamespace(parsed.data)
                     )
                 );
-                // Suggest only the `none` NBT
             } else {
                 return helper.fail();
             }
@@ -92,3 +90,6 @@ export class ItemParser implements Parser {
         return helper.succeed();
     }
 }
+
+export const stack = new ItemParser(false);
+export const predicate = new ItemParser(true);

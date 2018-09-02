@@ -1,7 +1,7 @@
-import { CommandErrorBuilder } from "../../../brigadier/errors";
-import { StringReader } from "../../../brigadier/string-reader";
-import { ReturnHelper } from "../../../misc-functions";
-import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
+import { CommandErrorBuilder } from "../../brigadier/errors";
+import { StringReader } from "../../brigadier/string-reader";
+import { ReturnHelper } from "../../misc-functions";
+import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 
 const MIXED = new CommandErrorBuilder(
     "argument.pos.mixed",
@@ -144,3 +144,27 @@ export class CoordParser implements Parser {
         return this.rules.float ? reader.readFloat() : reader.readInt();
     }
 }
+
+export const rotation = new CoordParser({
+    count: 2,
+    float: true,
+    local: false
+});
+
+export const vec2 = new CoordParser({
+    count: 2,
+    float: true,
+    local: true
+});
+
+export const vec3 = new CoordParser({
+    count: 3,
+    float: true,
+    local: true
+});
+
+export const blockPos = new CoordParser({
+    count: 3,
+    float: false,
+    local: true
+});

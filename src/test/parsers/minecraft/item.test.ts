@@ -1,6 +1,8 @@
 import { GlobalData } from "../../../data/types";
-import * as itemparser from "../../../parsers/minecraft/item/item";
-import * as predparser from "../../../parsers/minecraft/item/predicate";
+import {
+    predicate as predicateParser,
+    stack as stackParser
+} from "../../../parsers/minecraft/item";
 import { testParser } from "../../assertions";
 
 const global: GlobalData = {
@@ -35,7 +37,7 @@ const global: GlobalData = {
 } as any;
 
 describe("item parser (no tags)", () => {
-    const tester = testParser(itemparser)({
+    const tester = testParser(stackParser)({
         data: {
             globalData: global
         }
@@ -124,7 +126,7 @@ describe("item parser (no tags)", () => {
 });
 describe("item predicate parser", () => {
     describe("parse", () => {
-        const tester = testParser(predparser)({
+        const tester = testParser(predicateParser)({
             data: {
                 globalData: global
             }
