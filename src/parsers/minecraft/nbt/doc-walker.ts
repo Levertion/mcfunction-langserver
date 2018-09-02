@@ -1,4 +1,4 @@
-import * as path from "path";
+import { posix as path } from "path";
 import * as url from "url";
 import { MemoryFS } from "./doc-fs";
 import { runNodeFunction } from "./doc-walker-func";
@@ -216,10 +216,10 @@ export class NBTWalker {
         node: RefNode,
         currentPath: string
     ): NBTNode | undefined {
-        const refpath = url.parse(node.ref);
-        const fragPath = (refpath.hash || "#")
+        const refurl = url.parse(node.ref);
+        const fragPath = (refurl.hash || "#")
             .substring(1)
-            .split(/[\\/]/)
+            .split("/")
             .filter(v => v !== "");
         const fragReader = new ArrayReader(fragPath);
         const nextPath = path.join(currentPath, "..", node.ref);

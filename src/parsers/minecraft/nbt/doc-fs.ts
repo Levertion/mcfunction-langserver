@@ -3,6 +3,9 @@ import { readJSONRaw } from "../../../misc-functions/promisified-fs";
 
 export class MemoryFS {
     private data: { [internalPath: string]: any };
+    /**
+     * The real filesystem path of the root folder
+     */
     private readonly root: string;
 
     public constructor(root: string, internal?: MemoryFS["data"]) {
@@ -38,7 +41,9 @@ export class MemoryFS {
     }
 
     public setExternal(realPath: string, data: any): void {
-        const internalPath = path.relative(this.root, realPath);
+        const internalPath = path
+            .relative(this.root, realPath)
+            .replace(path.sep, path.posix.sep);
         this.data[internalPath] = data;
     }
 }
