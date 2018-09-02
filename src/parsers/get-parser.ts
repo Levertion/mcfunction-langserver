@@ -7,6 +7,7 @@ import * as literalParser from "./literal";
 import * as blockParsers from "./minecraft/block";
 import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
+import * as listParsers from "./minecraft/lists";
 
 /**
  * Incomplete:
@@ -20,18 +21,18 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_pos": coordParsers.blockPos,
     "minecraft:block_predicate": blockParsers.predicateParser,
     "minecraft:block_state": blockParsers.stateParser,
-    "minecraft:color": require("./minecraft/list/color"),
-    "minecraft:entity_anchor": require("./minecraft/list/entity-anchor"),
-    "minecraft:item_enchantment": require("./minecraft/list/item-enchantment"),
+    "minecraft:color": listParsers.colorParser,
+    "minecraft:entity_anchor": listParsers.entityAnchorParser,
+    "minecraft:item_enchantment": listParsers.enchantmentParser,
     "minecraft:item_predicate": itemParsers.predicate,
-    "minecraft:item_slot": require("./minecraft/list/item-slot"),
+    "minecraft:item_slot": listParsers.itemSlotParser,
     "minecraft:item_stack": itemParsers.stack,
     "minecraft:message": require("./minecraft/message"),
-    "minecraft:mob_effect": require("./minecraft/list/mob-effect"),
-    "minecraft:operation": require("./minecraft/list/operation"),
-    "minecraft:particle": require("./minecraft/list/particle"),
+    "minecraft:mob_effect": listParsers.mobEffectParser,
+    "minecraft:operation": listParsers.operationParser,
+    "minecraft:particle": listParsers.particleParser,
     "minecraft:rotation": coordParsers.rotation,
-    "minecraft:scoreboard_slot": require("./minecraft/list/scoreboard-slot"),
+    "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
     "minecraft:vec2": coordParsers.vec2,
     "minecraft:vec3": coordParsers.vec3
 };
