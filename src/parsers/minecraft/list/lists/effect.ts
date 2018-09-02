@@ -33,9 +33,7 @@ const effects = [
     "minecraft:dolphins_grace"
 ];
 
-const supplier: ListSupplier = {
+export const effectSupplier: ListSupplier = {
     get: () => effects,
     init: () => undefined
 };
-
-export = supplier;

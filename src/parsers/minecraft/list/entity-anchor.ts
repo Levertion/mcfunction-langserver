@@ -6,4 +6,4 @@ const exc = new CommandErrorBuilder(
     "Invalid entity anchor position %s"
 );
 
-export = new ListParser("minecraft:entity_anchor", exc);
+export const parser = new ListParser("minecraft:entity_anchor", exc);

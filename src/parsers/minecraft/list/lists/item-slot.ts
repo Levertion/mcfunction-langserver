@@ -46,4 +46,4 @@ class Supplier implements ListSupplier {
     }
 }
 
-export = new Supplier();
+export const itemSlotSupplier = new Supplier();

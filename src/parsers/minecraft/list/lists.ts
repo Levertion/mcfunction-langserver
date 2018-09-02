@@ -1,19 +1,27 @@
 import { typed_keys } from "../../../misc-functions/third_party/typed-keys";
+import { colorSupplier } from "./lists/color";
+import { effectSupplier } from "./lists/effect";
+import { enchantmentSupplier } from "./lists/enchantment";
+import { entityAnchorSupplier } from "./lists/entity-anchor";
+import { itemSlotSupplier } from "./lists/item-slot";
+import { operationSupplier } from "./lists/operation";
+import { particleSupplier } from "./lists/particle";
+import { scoreboardSlotSupplier } from "./lists/scoreboard-slot";
 
 export interface ListSupplier {
     get(): string[];
     init(): void;
 }
 
-export const lists: { [key: string]: string } = {
-    "minecraft:color": "./lists/color",
-    "minecraft:entity_anchor": "./lists/entity-anchor",
-    "minecraft:item_enchantment": "./lists/enchantment",
-    "minecraft:item_slot": "./lists/item-slot",
-    "minecraft:mob_effect": "./lists/effect",
-    "minecraft:operation": "./lists/operation",
-    "minecraft:particle": "./lists/particle",
-    "minecraft:scoreboard_slot": "./lists/scoreboard-slot"
+export const lists: { [key: string]: ListSupplier } = {
+    "minecraft:color": colorSupplier,
+    "minecraft:entity_anchor": entityAnchorSupplier,
+    "minecraft:item_enchantment": enchantmentSupplier,
+    "minecraft:item_slot": itemSlotSupplier,
+    "minecraft:mob_effect": effectSupplier,
+    "minecraft:operation": operationSupplier,
+    "minecraft:particle": particleSupplier,
+    "minecraft:scoreboard_slot": scoreboardSlotSupplier
 };
 
 export class Lists {
@@ -30,7 +38,7 @@ export class Lists {
     public registerLists(): void {
         this.suppliers = {};
         for (const list of typed_keys(lists)) {
-            const supplier = require(lists[list]) as ListSupplier;
+            const supplier = JSON.parse(JSON.stringify(lists[list]));
             supplier.init();
             this.suppliers[list] = supplier;
         }

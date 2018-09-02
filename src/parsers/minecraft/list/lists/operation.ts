@@ -2,9 +2,7 @@ import { ListSupplier } from "../lists";
 
 const ops = ["+=", "-=", "*=", "/=", "%=", "=", ">", "<", "><"];
 
-const supplier: ListSupplier = {
+export const operationSupplier: ListSupplier = {
     get: () => ops,
     init: () => undefined
 };
-
-export = supplier;

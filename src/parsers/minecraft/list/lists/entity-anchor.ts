@@ -2,9 +2,7 @@ import { ListSupplier } from "../lists";
 
 const anchors = ["feet", "eyes"];
 
-const supplier: ListSupplier = {
+export const entityAnchorSupplier: ListSupplier = {
     get: () => anchors,
     init: () => undefined
 };
-
-export = supplier;

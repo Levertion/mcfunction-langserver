@@ -37,9 +37,7 @@ const enchs = [
     "minecraft:vanishing_curse"
 ];
 
-const supplier: ListSupplier = {
+export const enchantmentSupplier: ListSupplier = {
     get: () => enchs,
     init: () => undefined
 };
-
-export = supplier;

@@ -6,4 +6,4 @@ const exc = new CommandErrorBuilder(
     "Unknown display slot '%s'"
 );
 
-export = new ListParser("minecraft:scoreboard_slot", exc);
+export const parser = new ListParser("minecraft:scoreboard_slot", exc);

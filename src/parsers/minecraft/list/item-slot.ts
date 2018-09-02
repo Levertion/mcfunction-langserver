@@ -3,4 +3,4 @@ import { ListParser } from "./list";
 
 const exc = new CommandErrorBuilder("slot.unknown", "Unknown slot '%s'");
 
-export = new ListParser("minecraft:item_slot", exc);
+export const parser = new ListParser("minecraft:item_slot", exc);

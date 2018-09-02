@@ -6,4 +6,4 @@ const exc = new CommandErrorBuilder(
     "Unknown enchantment: %s"
 );
 
-export = new ListParser("minecraft:item_enchantment", exc);
+export const parser = new ListParser("minecraft:item_enchantment", exc);

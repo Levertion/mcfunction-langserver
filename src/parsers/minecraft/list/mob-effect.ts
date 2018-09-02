@@ -6,4 +6,4 @@ const exc = new CommandErrorBuilder(
     "Unknown effect: %s"
 );
 
-export = new ListParser("minecraft:mob_effect", exc);
+export const parser = new ListParser("minecraft:mob_effect", exc);

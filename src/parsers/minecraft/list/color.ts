@@ -6,4 +6,4 @@ const exc = new CommandErrorBuilder(
     "Unknown color '%s'"
 );
 
-export = new ListParser("minecraft:color", exc);
+export const parser = new ListParser("minecraft:color", exc);

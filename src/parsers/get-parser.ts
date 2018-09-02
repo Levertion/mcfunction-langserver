@@ -28,7 +28,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:item_stack": itemParsers.stack,
     "minecraft:message": require("./minecraft/message"),
     "minecraft:mob_effect": require("./minecraft/list/mob-effect"),
-    // "minecraft:operation": require("./minecraft/list/operation"),
+    "minecraft:operation": require("./minecraft/list/operation"),
     "minecraft:particle": require("./minecraft/list/particle"),
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": require("./minecraft/list/scoreboard-slot"),

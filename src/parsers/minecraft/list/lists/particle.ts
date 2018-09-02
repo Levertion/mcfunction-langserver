@@ -52,9 +52,7 @@ const particles = [
     "minecraft:nautilus"
 ];
 
-const supplier: ListSupplier = {
+export const particleSupplier: ListSupplier = {
     get: () => particles,
     init: () => undefined
 };
-
-export = supplier;
