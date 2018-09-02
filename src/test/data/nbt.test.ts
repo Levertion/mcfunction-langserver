@@ -72,8 +72,7 @@ const bigtest: BigTest = {
     stringTest: "HELLO WORLD THIS IS A TEST STRING ÅÄÖ!"
 };
 
-describe("(binary) nbt parser tests", async () => {
-    //
+describe("(binary) nbt parser tests", () => {
     it("should parse bigtest.nbt", async () => {
         const data = await readFileAsync("test_data/test_nbt/bigtest.nbt");
         const nbt: BigTest = await parse<BigTest>(data);
