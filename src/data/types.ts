@@ -1,4 +1,3 @@
-import { Lists } from "../parsers/minecraft/list/lists";
 import { MemoryFS } from "../parsers/minecraft/nbt/doc-fs";
 import { Level, Scoreboard } from "./nbt/nbt-types";
 
@@ -19,7 +18,6 @@ export interface GlobalData {
     meta_info: { version: string };
     nbt_docs: MemoryFS;
     resources: Resources;
-    static_lists: Lists;
 }
 
 export type Cacheable = Pick<

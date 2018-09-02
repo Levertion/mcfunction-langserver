@@ -1,62 +1,22 @@
-import * as assert from "assert";
 import { CommandErrorBuilder } from "../../../brigadier/errors";
-import { GlobalData } from "../../../data/types";
-import { ListParser } from "../../../parsers/minecraft/list/list";
-import {
-    Lists,
-    lists,
-    ListSupplier
-} from "../../../parsers/minecraft/list/lists";
-import { ParserInfo } from "../../../types";
+import { ListParser } from "../../../parsers/minecraft/lists";
 import { testParser } from "../../assertions";
 
-const supplier: ListSupplier & { initialized: boolean } = {
-    initialized: false,
-    get(): string[] {
-        if (!this.initialized) {
-            assert.fail("supplier not inited");
-        }
-        return ["foo", "bar", "baz", "hello", "world"];
-    },
-    init(): void {
-        this.initialized = true;
-    }
-};
-
-class TestList extends Lists {
-    public registerLists(): void {
-        supplier.init();
-        this.suppliers = { "foo:bar": supplier };
-    }
-}
+const list = ["foo", "bar", "baz", "hello", "world"];
 
 describe("list tests", () => {
     describe("parse()", () => {
         const parser = new ListParser(
-            "foo:bar",
+            list,
             new CommandErrorBuilder("arg.ex", "example error")
         );
-        const listsobj = new TestList();
-        listsobj.registerLists();
-        const globalData = {
-            static_lists: listsobj
-        } as GlobalData;
-        const parserInfo = {
-            data: {
-                globalData
-            }
-        } as ParserInfo;
-        const tester = testParser(parser)(parserInfo);
-        ["foo", "bar", "hello"].forEach(v =>
-            it(`'${v}' should parse correctly`, () => {
+
+        const tester = testParser(parser)();
+        list.forEach(v =>
+            it(`should parse '${v}' correctly`, () => {
                 tester(v, {
                     succeeds: true,
-                    suggestions: [
-                        {
-                            start: 0,
-                            text: v
-                        }
-                    ]
+                    suggestions: [v]
                 });
             })
         );
@@ -74,12 +34,20 @@ describe("list tests", () => {
                 succeeds: false
             });
         });
-        it("should have valid paths", () => {
-            const list = new Lists();
-            list.registerLists();
-            for (const s of Object.keys(lists)) {
-                assert(!!list.getList(s));
-            }
+        it("should suggest all values for an empty string", () => {
+            tester("", {
+                errors: [
+                    {
+                        code: "arg.ex",
+                        range: {
+                            end: 0,
+                            start: 0
+                        }
+                    }
+                ],
+                succeeds: false,
+                suggestions: list
+            });
         });
     });
 });

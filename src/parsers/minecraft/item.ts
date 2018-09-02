@@ -1,14 +1,14 @@
-import { CommandErrorBuilder } from "../../../brigadier/errors";
-import { StringReader } from "../../../brigadier/string-reader";
+import { CommandErrorBuilder } from "../../brigadier/errors";
+import { StringReader } from "../../brigadier/string-reader";
 import {
     buildTagActions,
     namespaceSuggestionString,
     parseNamespaceOrTag,
     ReturnHelper,
     stringifyNamespace
-} from "../../../misc-functions";
-import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
-import { parseNBT } from "../nbt/nbt";
+} from "../../misc-functions";
+import { Parser, ParserInfo, ReturnedInfo } from "../../types";
+import { parseNBT } from "./nbt/nbt";
 
 const NOTAG = new CommandErrorBuilder(
     "argument.item.tag.disallowed",
@@ -105,3 +105,6 @@ export class ItemParser implements Parser {
         return helper.succeed();
     }
 }
+
+export const stack = new ItemParser(false);
+export const predicate = new ItemParser(true);

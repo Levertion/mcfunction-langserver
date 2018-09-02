@@ -1,77 +1,78 @@
-import * as path from "path";
+/* tslint:disable:no-require-imports */
+
 import { CommandNode } from "../data/types";
 import { Parser } from "../types";
+
+import * as literalParser from "./literal";
+import * as blockParsers from "./minecraft/block";
+import * as coordParsers from "./minecraft/coordinates";
+import * as itemParsers from "./minecraft/item";
+import * as listParsers from "./minecraft/lists";
+
+import { parser as NBTParser } from "./minecraft/nbt/nbt";
 
 /**
  * Incomplete:
  * https://github.com/Levertion/mcfunction-langserver/projects/1
  */
-const implementedParsers: { [id: string]: string } = {
-    "brigadier:bool": "./brigadier/bool",
-    "brigadier:float": "./brigadier/float",
-    "brigadier:integer": "./brigadier/integer",
-    "brigadier:string": "./brigadier/string",
-    "minecraft:block_pos": "./minecraft/coord/block-pos",
-    "minecraft:block_predicate": "./minecraft/block/predicate",
-    "minecraft:block_state": "./minecraft/block/state",
-    "minecraft:color": "./minecraft/list/color",
-    "minecraft:entity_anchor": "./minecraft/list/entity-anchor",
-    "minecraft:item_enchantment": "./minecraft/list/enchantment",
-    "minecraft:item_predicate": "./minecraft/item/predicate",
-    "minecraft:item_slot": "./minecraft/list/item-slot",
-    "minecraft:item_stack": "./minecraft/item/item",
-    "minecraft:message": "./minecraft/message",
-    "minecraft:mob_effect": "./minecraft/list/effect",
-    "minecraft:nbt": "./minecraft/nbt/nbt-parser",
-    "minecraft:nbt_path": "./minecraft/nbt-path",
-    "minecraft:operation": "./minecraft/list/operation",
-    "minecraft:particle": "./minecraft/list/particle",
-    "minecraft:rotation": "./minecraft/coord/rotation",
-    "minecraft:scoreboard_slot": "./minecraft/list/scoreboard-slot",
-    "minecraft:swizzle": "./minecraft/swizzle",
-    "minecraft:vec2": "./minecraft/coord/vec2",
-    "minecraft:vec3": "./minecraft/coord/vec3"
+const implementedParsers: { [id: string]: Parser } = {
+    "brigadier:bool": require("./brigadier/bool"),
+    "brigadier:float": require("./brigadier/float"),
+    "brigadier:integer": require("./brigadier/integer"),
+    "brigadier:string": require("./brigadier/string"),
+    "minecraft:block_pos": coordParsers.blockPos,
+    "minecraft:block_predicate": blockParsers.predicateParser,
+    "minecraft:block_state": blockParsers.stateParser,
+    "minecraft:color": listParsers.colorParser,
+    "minecraft:entity_anchor": listParsers.entityAnchorParser,
+    "minecraft:item_enchantment": listParsers.enchantmentParser,
+    "minecraft:item_predicate": itemParsers.predicate,
+    "minecraft:item_slot": listParsers.itemSlotParser,
+    "minecraft:item_stack": itemParsers.stack,
+    "minecraft:message": require("./minecraft/message"),
+    "minecraft:mob_effect": listParsers.mobEffectParser,
+    "minecraft:nbt": NBTParser,
+    "minecraft:nbt-path": require("./minecraft/nbt-path"),
+    "minecraft:operation": listParsers.operationParser,
+    "minecraft:particle": listParsers.particleParser,
+    "minecraft:rotation": coordParsers.rotation,
+    "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
+    "minecraft:vec2": coordParsers.vec2,
+    "minecraft:vec3": coordParsers.vec3
 };
 
 export function getParser(node: CommandNode): Parser | undefined {
-    let parserPath = "";
     switch (node.type) {
         case "literal":
-            parserPath = "./literal";
-            break;
+            return literalParser;
         case "argument":
             if (!!node.parser) {
-                parserPath = getArgParserPath(node.parser);
+                return getArgParser(node.parser);
             }
             break;
         default:
-            mcLangLog(
-                `Invalid node type: ${node.type} in ${JSON.stringify(node)}`
-            );
-    }
-    if (parserPath.length > 0) {
-        try {
-            return require(parserPath);
-        } catch (error) {
-            mcLangLog(`No parser was found at ${parserPath}. Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues,\
-along with: '${JSON.stringify(error)}'.`);
-        }
     }
     return undefined;
 }
 
-function getArgParserPath(id: string): string {
+function getArgParser(id: string): Parser | undefined {
     if (
         !!global.mcLangSettings && // Protection for tests when settings are undefined
         !!global.mcLangSettings.parsers &&
         global.mcLangSettings.parsers.hasOwnProperty(id)
     ) {
-        return global.mcLangSettings.parsers[id];
-    } else if (implementedParsers.hasOwnProperty(id)) {
-        return path.join(__dirname, implementedParsers[id]);
-    } else {
-        mcLangLog(`Argument with parser id ${id} has no associated parser.
-Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
-        return "";
+        try {
+            return require(global.mcLangSettings.parsers[id]);
+        } catch (_) {
+            mcLangLog(
+                `${global.mcLangSettings.parsers[id]} could not be loaded`
+            );
+        }
     }
+    if (implementedParsers.hasOwnProperty(id)) {
+        return implementedParsers[id];
+    }
+    mcLangLog(`Argument with parser id ${id} has no associated parser.
+Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
+    return undefined;
 }
