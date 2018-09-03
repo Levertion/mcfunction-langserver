@@ -1,9 +1,9 @@
 import * as assert from "assert";
-import * as stringArgumentParser from "../../../parsers/brigadier/string";
+import { stringParser } from "../../../parsers/brigadier";
 import { testParser } from "../../assertions";
 import { succeeds } from "../../blanks";
 
-const stringTest = testParser(stringArgumentParser);
+const stringTest = testParser(stringParser);
 
 describe("String Argument Parser", () => {
     describe("parse()", () => {

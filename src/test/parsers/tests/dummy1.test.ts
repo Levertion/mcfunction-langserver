@@ -1,8 +1,8 @@
 import * as assert from "assert";
 import { testParser } from "../../assertions";
-import * as dummyparser from "./dummy1";
+import { dummyParser } from "./dummy1";
 
-const dummyParserTester = testParser(dummyparser);
+const dummyParserTester = testParser(dummyParser);
 
 describe("dummyParser1", () => {
     describe("parse", () => {

@@ -1,23 +1,23 @@
-/* tslint:disable:no-require-imports */
-
 import { CommandNode } from "../data/types";
 import { Parser } from "../types";
 
-import * as literalParser from "./literal";
+import * as brigadierParsers from "./brigadier";
+import { literalParser } from "./literal";
 import * as blockParsers from "./minecraft/block";
 import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
+import { messageParser } from "./minecraft/message";
 
 /**
  * Incomplete:
  * https://github.com/Levertion/mcfunction-langserver/projects/1
  */
 const implementedParsers: { [id: string]: Parser } = {
-    "brigadier:bool": require("./brigadier/bool"),
-    "brigadier:float": require("./brigadier/float"),
-    "brigadier:integer": require("./brigadier/integer"),
-    "brigadier:string": require("./brigadier/string"),
+    "brigadier:bool": brigadierParsers.boolParser,
+    "brigadier:float": brigadierParsers.floatParser,
+    "brigadier:integer": brigadierParsers.intParser,
+    "brigadier:string": brigadierParsers.stringParser,
     "minecraft:block_pos": coordParsers.blockPos,
     "minecraft:block_predicate": blockParsers.predicateParser,
     "minecraft:block_state": blockParsers.stateParser,
@@ -27,7 +27,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:item_predicate": itemParsers.predicate,
     "minecraft:item_slot": listParsers.itemSlotParser,
     "minecraft:item_stack": itemParsers.stack,
-    "minecraft:message": require("./minecraft/message"),
+    "minecraft:message": messageParser,
     "minecraft:mob_effect": listParsers.mobEffectParser,
     "minecraft:operation": listParsers.operationParser,
     "minecraft:particle": listParsers.particleParser,
@@ -53,12 +53,12 @@ export function getParser(node: CommandNode): Parser | undefined {
 
 function getArgParser(id: string): Parser | undefined {
     if (
-        !!global.mcLangSettings && // Protection for tests when settings are undefined
+        !!global.mcLangSettings &&
         !!global.mcLangSettings.parsers &&
         global.mcLangSettings.parsers.hasOwnProperty(id)
     ) {
         try {
-            return require(global.mcLangSettings.parsers[id]);
+            return global.mcLangSettings.parsers[id];
         } catch (_) {
             mcLangLog(
                 `${global.mcLangSettings.parsers[id]} could not be loaded`

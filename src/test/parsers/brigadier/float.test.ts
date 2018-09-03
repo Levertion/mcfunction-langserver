@@ -1,9 +1,9 @@
 import * as assert from "assert";
-import * as floatArgumentParser from "../../../parsers/brigadier/float";
+import { floatParser } from "../../../parsers/brigadier";
 import { testParser } from "../../assertions";
 import { blankproperties } from "../../blanks";
 
-const floatTester = testParser(floatArgumentParser);
+const floatTester = testParser(floatParser);
 describe("Float Argument Parser", () => {
     function validFloatTests(
         s: string,

@@ -1,7 +1,7 @@
-import * as boolArgumentParser from "../../../parsers/brigadier/bool";
+import { boolParser } from "../../../parsers/brigadier";
 import { testParser } from "../../assertions";
 
-const boolTester = testParser(boolArgumentParser);
+const boolTester = testParser(boolParser);
 const testWithBasicProps = boolTester();
 
 describe("Boolean Argument Parser", () => {
