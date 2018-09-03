@@ -1,9 +1,9 @@
 import * as assert from "assert";
-import { join } from "path";
 import { GlobalData } from "../data/types";
 import { parseCommand } from "../parse";
 import { ParseNode, StoredParseResult } from "../types";
 import { assertErrors, ErrorInfo } from "./assertions";
+import { dummyParser } from "./parsers/tests/dummy1";
 
 const fakeGlobal: GlobalData = {} as any;
 
@@ -36,12 +36,7 @@ describe("parseCommand()", () => {
     before(() => {
         global.mcLangSettings = {
             parsers: {
-                "langserver:dummy1": join(
-                    __dirname,
-                    "parsers",
-                    "tests",
-                    "dummy1"
-                )
+                "langserver:dummy1": dummyParser
             }
         } as any;
     });

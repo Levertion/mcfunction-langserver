@@ -1,7 +1,7 @@
 import { ReturnHelper } from "../../misc-functions";
 import { Parser } from "../../types";
 
-const parser: Parser = {
+export const stringParser: Parser = {
     parse: (reader, properties) => {
         const helper = new ReturnHelper(properties);
         switch (properties.node_properties.type) {
@@ -20,5 +20,3 @@ const parser: Parser = {
         }
     }
 };
-
-export = parser;

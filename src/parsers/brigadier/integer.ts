@@ -16,7 +16,7 @@ const INTEGEREXCEPTIONS = {
     )
 };
 
-const parser: Parser = {
+export const intParser: Parser = {
     parse: (reader, properties) => {
         const helper = new ReturnHelper(properties);
         const start = reader.cursor;
@@ -58,5 +58,3 @@ const parser: Parser = {
         return helper.succeed();
     }
 };
-
-export = parser;

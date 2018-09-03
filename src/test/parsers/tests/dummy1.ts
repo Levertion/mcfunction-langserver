@@ -5,7 +5,7 @@ import { Parser } from "../../../types";
  * Used for testing.
  * Do not attempt to use an actual command tree using this.
  */
-const parser: Parser = {
+export const dummyParser: Parser = {
     parse: (reader, props) => {
         const helper = new ReturnHelper(props);
         const num: number = (props.node_properties.number as number) || 3;
@@ -22,5 +22,3 @@ const parser: Parser = {
         }
     }
 };
-
-export = parser;
