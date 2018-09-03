@@ -1,8 +1,8 @@
 import * as assert from "assert";
-import * as integerArgumentParser from "../../../parsers/brigadier/integer";
+import { intParser } from "../../../parsers/brigadier";
 import { testParser } from "../../assertions";
 
-const integerTest = testParser(integerArgumentParser);
+const integerTest = testParser(intParser);
 
 describe("Integer Argument Parser", () => {
     function validIntTests(

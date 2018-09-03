@@ -1,5 +1,4 @@
 import * as assert from "assert";
-import { join } from "path";
 import {
     CompletionItemKind,
     CompletionList
@@ -7,6 +6,7 @@ import {
 import { computeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
 import { pack_segments } from "./blanks";
+import { dummyParser } from "./parsers/tests/dummy1";
 
 const data = DataManager.newWithData(
     {
@@ -40,12 +40,7 @@ describe("ComputeCompletions()", () => {
     before(() => {
         global.mcLangSettings = {
             parsers: {
-                "langserver:dummy1": join(
-                    __dirname,
-                    "parsers",
-                    "tests",
-                    "dummy1"
-                )
+                "langserver:dummy1": dummyParser
             }
         } as any;
     });

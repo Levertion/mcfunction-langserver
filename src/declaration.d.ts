@@ -86,8 +86,8 @@ interface McFunctionSettings extends LocalMcFunctionSettings {
      * Custom parsers to be used.
      * Note that external users of the server should not support this setting
      */
-    parsers: {
-        [name: string]: string;
+    parsers?: {
+        [name: string]: import("./types").Parser;
     };
 }
 
