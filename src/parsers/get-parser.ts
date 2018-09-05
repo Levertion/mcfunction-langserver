@@ -9,6 +9,7 @@ import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
 
+import { parser as NBTPathParser } from "./minecraft/nbt-path";
 import { parser as NBTParser } from "./minecraft/nbt/nbt";
 
 /**
@@ -32,7 +33,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:message": messageParser,
     "minecraft:mob_effect": listParsers.mobEffectParser,
     "minecraft:nbt": NBTParser,
-    "minecraft:nbt-path": require("./minecraft/nbt-path"),
+    "minecraft:nbt-path": NBTPathParser,
     "minecraft:operation": listParsers.operationParser,
     "minecraft:particle": listParsers.particleParser,
     "minecraft:rotation": coordParsers.rotation,
