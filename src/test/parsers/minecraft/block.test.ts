@@ -1,7 +1,7 @@
 import { ok } from "assert";
 import { setupFiles } from "../../../data/noncached";
 import { GlobalData } from "../../../data/types";
-import { parseBlockArgument } from "../../../parsers/minecraft/block/shared";
+import { parseBlockArgument } from "../../../parsers/minecraft/block";
 import { MemoryFS } from "../../../parsers/minecraft/nbt/doc-fs";
 import { CommmandData, Parser } from "../../../types";
 import { testParser } from "../../assertions";

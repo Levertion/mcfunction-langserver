@@ -20,6 +20,7 @@ import {
     parseNamespaceOrTag
 } from "../../misc-functions/parsing/nmsp-tag";
 import { Parser, ParserInfo, ReturnedInfo, Suggestion } from "../../types";
+import { parseNBT } from "./nbt/nbt";
 
 export const predicateParser: Parser = {
     parse: (reader, info) => parseBlockArgument(reader, info, true)
@@ -113,6 +114,7 @@ const exceptions = {
     )
 };
 
+// tslint:disable:cyclomatic-complexity
 export function parseBlockArgument(
     reader: StringReader,
     info: ParserInfo,
@@ -148,6 +150,15 @@ export function parseBlockArgument(
             if (!helper.merge(propsResult)) {
                 return helper.fail();
             }
+            if (reader.peek() === "{") {
+                const nbt = parseNBT(reader, info, {
+                    id: (parsedResult.resolved || []).map(stringifyNamespace),
+                    type: "block"
+                });
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
+                }
+            }
         } else {
             stringifiedName = stringifyNamespace(parsed.data.parsed);
             if (info.suggesting && !reader.canRead()) {
@@ -174,6 +185,15 @@ export function parseBlockArgument(
             if (!helper.merge(result)) {
                 return helper.fail();
             }
+            if (reader.peek() === "{") {
+                const nbt = parseNBT(reader, info, {
+                    id: props ? stringifiedName : "none",
+                    type: "block"
+                });
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
+                }
+            }
         }
     } else {
         if (parsed.data) {
@@ -193,6 +213,15 @@ export function parseBlockArgument(
             );
             if (!helper.merge(propsResult)) {
                 return helper.fail();
+            }
+            if (reader.peek() === "{") {
+                const nbt = parseNBT(reader, info, {
+                    id: "none",
+                    type: "block"
+                });
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
+                }
             }
         } else {
             // Parsing of the namespace failed
