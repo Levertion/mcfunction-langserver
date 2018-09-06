@@ -117,9 +117,10 @@ export function addSuggestionsToHelper(
             });
         }
     }
-    if (isCompoundNode(node)) {
+    if (isCompoundNode(node) && node.children !== undefined) {
         helper.addSuggestions(
             ...Object.keys(node.children).map<SuggestResult>(v => ({
+                // @ts-ignore
                 description: node.children[v].description,
                 start: reader.cursor,
                 text: v
