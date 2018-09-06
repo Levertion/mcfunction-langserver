@@ -189,7 +189,9 @@ export class NBTWalker {
         if (!node.child_ref) {
             return node;
         }
-        const newNode = JSON.parse(JSON.stringify(node)) as CompoundNode;
+        const newChildren = JSON.parse(
+            JSON.stringify(node.children)
+        ) as CompoundNode["children"];
         for (const ref of node.child_ref) {
             const refNode = this.nextNodeRef(
                 {
@@ -202,11 +204,16 @@ export class NBTWalker {
             } else if (isCompoundNode(refNode)) {
                 const evalNode = this.mergeChildRef(refNode, ref);
                 for (const child of Object.keys(evalNode.children)) {
-                    newNode.children[child] = evalNode.children[child];
+                    newChildren[child] = evalNode.children[child];
                 }
             }
         }
-        return newNode;
+        return {
+            children: newChildren,
+            description: node.description,
+            suggestions: node.suggestions,
+            type: "compound"
+        };
     }
 
     private nextNodeRef(
