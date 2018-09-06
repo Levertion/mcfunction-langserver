@@ -160,6 +160,8 @@ export class NBTWalker {
                     this.functionNodeAsRef(node, reader.getRead()),
                     currentPath
                 );
+            } else if (isCompoundNode(node) && node.child_ref) {
+                return this.mergeChildRef(node, currentPath);
             } else {
                 return node;
             }
@@ -180,37 +182,32 @@ export class NBTWalker {
         }
     }
 
-    /*
-    private getNextNodeChildRef(
+    private mergeChildRef(
         node: CompoundNode,
-        reader: ArrayReader,
         currentPath: string
-    ): NBTNode | undefined {
-        const next = reader.read();
+    ): CompoundNode {
         if (!node.child_ref) {
-            return undefined;
+            return node;
         }
-        for (const s of node.child_ref) {
-            const childPath = path.join(currentPath, s);
-            const refNode = this.getNextNodeRef(
+        const newNode = JSON.parse(JSON.stringify(node)) as CompoundNode;
+        for (const ref of node.child_ref) {
+            const refNode = this.nextNodeRef(
                 {
-                    ref: childPath
+                    ref
                 },
-                new ArrayReader([]),
                 currentPath
             );
-            if (
-                refNode !== undefined &&
-                isCompoundNode(refNode) &&
-                !!refNode.children &&
-                next in refNode.children
-            ) {
-                return this.getNextNode(refNode, reader, childPath);
+            if (!refNode) {
+                continue;
+            } else if (isCompoundNode(refNode)) {
+                const evalNode = this.mergeChildRef(refNode, ref);
+                for (const child of Object.keys(evalNode.children)) {
+                    newNode.children[child] = evalNode.children[child];
+                }
             }
         }
-        return undefined;
+        return newNode;
     }
-    */
 
     private nextNodeRef(
         node: RefNode,
