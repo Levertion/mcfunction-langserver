@@ -192,7 +192,8 @@ export class NBTWalker {
         const newChildren = JSON.parse(
             JSON.stringify(node.children || {})
         ) as Exclude<CompoundNode["children"], undefined>;
-        for (const ref of node.child_ref) {
+        for (const aref of node.child_ref) {
+            const ref = path.join(currentPath, aref);
             const refNode = this.nextNodeRef(
                 {
                     ref

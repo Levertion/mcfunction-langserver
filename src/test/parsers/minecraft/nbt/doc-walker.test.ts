@@ -8,6 +8,9 @@ import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string-tag";
 
 describe("Documentation Walker Tests", () => {
     describe("getFinalNode()", () => {
+        let v: MemoryFS;
+        let walker: NBTWalker;
+
         before(async () => {
             const nbt = new NBTTagCompound({
                 var1: new NBTTagString("func_test")
@@ -19,9 +22,6 @@ describe("Documentation Walker Tests", () => {
             v = await setupFiles(dataPath);
             walker = new NBTWalker(nbt, v, "root.json");
         });
-
-        let v: MemoryFS;
-        let walker: NBTWalker;
 
         it("should return the correct node for the basic doc", () => {
             const node = walker.getFinalNode(["basic_test"]);
