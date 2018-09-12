@@ -122,6 +122,7 @@ export function parseNamespaceOption<T extends NamespacedName>(
             start,
             completionKind
         );
+        helper.merge(results);
         if (results.data.length > 0) {
             return helper.succeed<OptionResult<T>>({
                 literal: namespace.data,
