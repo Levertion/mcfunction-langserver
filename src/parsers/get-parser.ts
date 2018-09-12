@@ -8,6 +8,7 @@ import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
+import { functionParser } from "./minecraft/resources";
 
 /**
  * Incomplete:
@@ -23,6 +24,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
+    "minecraft:function": functionParser,
     "minecraft:item_enchantment": listParsers.enchantmentParser,
     "minecraft:item_predicate": itemParsers.predicate,
     "minecraft:item_slot": listParsers.itemSlotParser,

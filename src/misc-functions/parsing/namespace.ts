@@ -9,7 +9,7 @@ import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { DEFAULT_NAMESPACE } from "../../consts";
 import { NamespacedName } from "../../data/types";
-import { CE, ReturnedInfo, Suggestion } from "../../types";
+import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
 
 const NAMESPACEEXCEPTIONS = {
     invalid_id: new CommandErrorBuilder(
@@ -114,24 +114,18 @@ export function parseNamespaceOption<T extends NamespacedName>(
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const namespace = parseNamespace(reader);
-    const results: T[] = [];
     if (helper.merge(namespace)) {
-        for (const val of options) {
-            if (namespacesEqual(val, namespace.data)) {
-                results.push(val);
-            }
-            if (!reader.canRead() && namespaceStart(val, namespace.data)) {
-                helper.addSuggestion(
-                    start,
-                    stringifyNamespace(val),
-                    completionKind
-                );
-            }
-        }
-        if (results.length > 0) {
+        const results = processParsedNamespaceOption(
+            namespace.data,
+            options,
+            !reader.canRead(),
+            start,
+            completionKind
+        );
+        if (results.data.length > 0) {
             return helper.succeed<OptionResult<T>>({
                 literal: namespace.data,
-                values: results
+                values: results.data
             });
         } else {
             return helper.failWithData(namespace.data);
@@ -139,4 +133,28 @@ export function parseNamespaceOption<T extends NamespacedName>(
     } else {
         return helper.failWithData(undefined);
     }
+}
+
+export function processParsedNamespaceOption<T extends NamespacedName>(
+    namespace: NamespacedName,
+    options: T[],
+    suggest: boolean,
+    start: number,
+    completionKind?: CompletionItemKind
+): ReturnSuccess<T[]> {
+    const results: T[] = [];
+    const helper = new ReturnHelper();
+    for (const val of options) {
+        if (namespacesEqual(val, namespace)) {
+            results.push(val);
+        }
+        if (suggest && namespaceStart(val, namespace)) {
+            helper.addSuggestion(
+                start,
+                stringifyNamespace(val),
+                completionKind
+            );
+        }
+    }
+    return helper.succeed(results);
 }
