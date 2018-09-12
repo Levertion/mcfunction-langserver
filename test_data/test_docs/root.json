@@ -1,14 +1,21 @@
 {
-    "type": "compound",
+    "$schema": "../../node_modules/mc-nbt-paths/schema/schema.json",
+    "type": "root",
     "children": {
         "basic_test": {
+            "type": "no-nbt",
             "description": "basic_test OK"
         },
         "nest_test": {
             "type": "compound",
             "children": {
                 "key0": {
+                    "type": "no-nbt",
                     "description": "nest_test OK"
+                },
+                "key1": {
+                    "type": "no-nbt",
+                    "description": "nest_test BAD"
                 }
             }
         },
@@ -27,13 +34,25 @@
             "ref": "./root.json#self_frag_ok"
         },
         "self_frag_ok": {
+            "type": "no-nbt",
             "description": "self_frag_test OK"
         },
         "child_ref_test": {
             "type": "compound",
             "child_ref": ["./child_ref_test.json"],
             "children": {
+                "bad": {
+                    "type": "no-nbt",
+                    "description": "child_ref_test BAD"
+                }
+            }
+        },
+        "child_ref_self_test": {
+            "type": "compound",
+            "child_ref": ["./child_ref_test.json"],
+            "children": {
                 "key1": {
+                    "type": "no-nbt",
                     "description": "child_ref_self_test OK"
                 }
             }
@@ -41,6 +60,7 @@
         "list_test": {
             "type": "list",
             "item": {
+                "type": "no-nbt",
                 "description": "list_test OK"
             }
         },
@@ -51,6 +71,24 @@
                     "ref": "./%s.json",
                     "default": "./func_test_fail.json",
                     "tag_path": "./var1"
+                }
+            }
+        },
+        "ref_references_test": {
+            "ref": "#ref_references_test/key2",
+            "references": {
+                "key2": {
+                    "type": "no-nbt",
+                    "description": "ref_references_test OK"
+                }
+            }
+        },
+        "root_group_test": {
+            "type": "root",
+            "children": {
+                "$./root_group_test.json": {
+                    "type": "no-nbt",
+                    "description": "root_group_test OK"
                 }
             }
         }

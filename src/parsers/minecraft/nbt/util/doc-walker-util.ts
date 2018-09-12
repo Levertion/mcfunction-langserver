@@ -9,6 +9,7 @@ export interface NBTFunction {
 
 export interface NodeBase {
     readonly description?: string;
+    readonly references?: { [key: string]: any };
     readonly suggestions?: Array<
         | string
         | { description?: string; value: string }
@@ -55,7 +56,7 @@ export interface RootNode extends NodeBase {
     readonly type: "root";
 }
 
-export type ValueList = string[];
+export type ValueList = Array<string | { description: string; value: string }>;
 
 export type NBTNode =
     | NoPropertyNode

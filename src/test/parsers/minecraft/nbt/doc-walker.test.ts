@@ -6,6 +6,15 @@ import { NBTWalker } from "../../../../parsers/minecraft/nbt/doc-walker";
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound-tag";
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string-tag";
 
+const test = (walker: NBTWalker, name: string, extpath: string[] = []) => {
+    const node = walker.getFinalNode([name, ...extpath]);
+    if (!node) {
+        assert.fail("node is undefined");
+        return;
+    }
+    assert.strictEqual(node.description, `${name} OK`);
+};
+
 describe("Documentation Walker Tests", () => {
     describe("getFinalNode()", () => {
         let v: MemoryFS;
@@ -24,66 +33,39 @@ describe("Documentation Walker Tests", () => {
         });
 
         it("should return the correct node for the basic doc", () => {
-            const node = walker.getFinalNode(["basic_test"]);
-            if (!node) {
-                assert.fail("node is undefined");
-                return;
-            }
-            assert.strictEqual(node.description, "basic_test OK");
+            test(walker, "basic_test");
         });
 
         it("should return the correct node for nested nodes", () => {
-            const node = walker.getFinalNode(["nest_test", "key0"]);
-            if (!node) {
-                assert.fail("node is undefined");
-                return;
-            }
-            assert.strictEqual(node.description, "nest_test OK");
+            test(walker, "nest_test", ["key0"]);
         });
 
         it("should return the correct node for the ref property", () => {
-            const node = walker.getFinalNode(["ref_test"]);
-            if (!node) {
-                assert.fail("node is undefined");
-                return;
-            }
-            assert.strictEqual(node.description, "ref_test OK");
+            test(walker, "ref_test");
         });
 
         it("should return the correct node for the child_ref property", () => {
-            const node = walker.getFinalNode(["child_ref_test", "key0"]);
-            if (!node) {
-                assert.fail("node is undefined");
-                return;
-            }
-            assert.strictEqual(node.description, "child_ref_test OK");
+            test(walker, "child_ref_test", ["key0"]);
         });
 
         it("should return the correct node for the child_ref property but self", () => {
-            const node = walker.getFinalNode(["child_ref_test", "key1"]);
-            if (!node) {
-                assert.fail("node is undefined");
-                return;
-            }
-            assert.strictEqual(node.description, "child_ref_self_test OK");
+            test(walker, "child_ref_self_test", ["key1"]);
         });
 
         it("should return the correct node for lists", () => {
-            const node = walker.getFinalNode(["list_test", "0"]);
-            if (!node) {
-                assert.fail("node is undefined");
-                return;
-            }
-            assert.strictEqual(node.description, "list_test OK");
+            test(walker, "list_test", ["0"]);
         });
 
         it("should return the correct node for funcs", () => {
-            const node = walker.getFinalNode(["func_test"]);
-            if (!node) {
-                assert.fail("node is undefined");
-                return;
-            }
-            assert.strictEqual(node.description, "func_test OK");
+            test(walker, "func_test");
+        });
+
+        it("should return the correct node for ref pointing to `references`", () => {
+            test(walker, "ref_references_test");
+        });
+
+        it("should return the correct node for root node groups", () => {
+            test(walker, "root_group_test", ["key3"]);
         });
     });
 });
