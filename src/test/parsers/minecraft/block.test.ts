@@ -238,6 +238,10 @@ describe("sharedBlockParser", () => {
                     {
                         start: 14,
                         text: "{"
+                    },
+                    {
+                        start: 15,
+                        text: "}"
                     }
                 ]
             });

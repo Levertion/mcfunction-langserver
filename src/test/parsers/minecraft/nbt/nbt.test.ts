@@ -1,9 +1,8 @@
-import * as assert from "assert";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { setupFiles } from "../../../../data/noncached";
 import { parseNBT, parser } from "../../../../parsers/minecraft/nbt/nbt";
 import { ParserInfo, SuggestResult } from "../../../../types";
-import { testParser } from "../../../assertions";
+import { assertSuggestions, testParser } from "../../../assertions";
 
 describe("nbt parser test", () => {
     describe("parse()", () => {
@@ -44,10 +43,14 @@ describe("nbt parser test", () => {
         it("should return correct suggestions", () => {
             const reader = new StringReader("{display:{");
             const out = parseNBT(reader, reginfo, { type: "item" });
-            assert.deepStrictEqual(out.suggestions, [
+            assertSuggestions(out.suggestions, [
                 {
                     start: 9,
                     text: "{"
+                },
+                {
+                    start: 10,
+                    text: "}"
                 },
                 {
                     description: "A JSON text component for the items name",

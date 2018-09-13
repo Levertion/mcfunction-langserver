@@ -33,7 +33,11 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
         if (!reader.canRead()) {
             helper.addSuggestion(reader.cursor, LIST_END);
             helper.addErrors(NOVAL.create(start, reader.cursor));
-            return helper.failWithData({ parsed: this, correct: 1 });
+            return helper.failWithData({ parsed: this, correct: 2 });
+        }
+        if (reader.peek() === LIST_END) {
+            reader.skip();
+            return helper.succeed(2);
         }
         let type: NBTTag<any>["tagType"] | undefined;
         let next = reader.peek();
@@ -47,7 +51,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 value = tag.data as NBTTag<any>;
             } else {
                 return helper.failWithData({
-                    correct: 1,
+                    correct: 2,
                     parsed: this,
                     path: [
                         this.val.length.toString(),
@@ -60,7 +64,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 type = value.tagType;
             } else if (type !== value.tagType) {
                 helper.addErrors(MIXED.create(start, reader.cursor));
-                return helper.failWithData({ parsed: this, correct: 1 });
+                return helper.failWithData({ parsed: this, correct: 2 });
             }
 
             this.val.push(value);
@@ -73,12 +77,12 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 "option"
             );
             if (!helper.merge(opt)) {
-                return helper.failWithData({ parsed: this, correct: 1 });
+                return helper.failWithData({ parsed: this, correct: 2 });
             } else {
                 next = opt.data;
             }
         }
-        return helper.succeed(1);
+        return helper.succeed(2);
     }
 
     public tagEq(tag: NBTTag<any>): boolean {

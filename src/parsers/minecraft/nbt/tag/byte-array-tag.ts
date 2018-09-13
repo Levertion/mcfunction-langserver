@@ -37,8 +37,13 @@ export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
             return helper.failWithData({ correct: CorrectLevel.NO });
         }
         if (!reader.canRead()) {
+            helper.addSuggestion(reader.cursor, ARRAY_END);
             helper.addErrors(EXCEPTIONS.NO_VALUE.create(start, reader.cursor));
             return helper.failWithData({ parsed: this, correct: 2 });
+        }
+        if (reader.peek() === ARRAY_END) {
+            reader.skip();
+            return helper.succeed(2);
         }
         let next = reader.peek();
         while (next !== ARRAY_END) {
