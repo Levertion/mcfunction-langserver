@@ -75,13 +75,15 @@ export const functionParser: Parser = {
             if (!parsed.data) {
                 return helper.fail();
             } else {
-                return helper.fail(
-                    exceptions.unknown_tag.create(
-                        start,
-                        reader.cursor,
-                        stringifyNamespace(parsed.data)
+                return helper
+                    .addErrors(
+                        exceptions.unknown_tag.create(
+                            start,
+                            reader.cursor,
+                            stringifyNamespace(parsed.data)
+                        )
                     )
-                );
+                    .succeed();
             }
         }
     }
@@ -105,13 +107,15 @@ const bossbarParser: Parser = {
                 return helper.succeed();
             } else {
                 if (result.data) {
-                    return helper.fail(
-                        exceptions.nobossbar.create(
-                            start,
-                            reader.cursor,
-                            stringifyNamespace(result.data)
+                    return helper
+                        .addErrors(
+                            exceptions.nobossbar.create(
+                                start,
+                                reader.cursor,
+                                stringifyNamespace(result.data)
+                            )
                         )
-                    );
+                        .succeed();
                 } else {
                     return helper.fail();
                 }
@@ -170,15 +174,16 @@ export const resourceParser: Parser = {
                     return helper.succeed();
                 } else {
                     if (result.data) {
-                        helper.addErrors(
-                            // @ts-ignore type inference failure
-                            (kind.issue as CommandErrorBuilder).create(
-                                start,
-                                reader.cursor,
-                                stringifyNamespace(result.data)
+                        return helper
+                            .addErrors(
+                                // @ts-ignore type inference failure
+                                (kind.issue as CommandErrorBuilder).create(
+                                    start,
+                                    reader.cursor,
+                                    stringifyNamespace(result.data)
+                                )
                             )
-                        );
-                        return helper.succeed();
+                            .succeed();
                     } else {
                         return helper.fail();
                     }
