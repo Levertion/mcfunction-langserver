@@ -284,7 +284,9 @@ export class StringReader {
                         text:
                             isquoted || v.includes('"') || v.includes("\\")
                                 ? QUOTE +
-                                  v.replace("\\", "\\\\").replace('"', '\\"') +
+                                  v
+                                      .replace(/\\/g, "\\\\")
+                                      .replace(/"/g, '\\"') +
                                   QUOTE
                                 : v
                     }))

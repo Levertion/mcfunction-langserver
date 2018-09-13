@@ -65,7 +65,7 @@ export async function getNamespaceResources(
                         pack: id,
                         path: internalUri
                             .slice(0, -realExtension.length)
-                            .replace(path.sep, SLASH)
+                            .replace(new RegExp(`\\${path.sep}`, "g"), SLASH)
                     };
                     nameSpaceContents.push(newResource);
                 })

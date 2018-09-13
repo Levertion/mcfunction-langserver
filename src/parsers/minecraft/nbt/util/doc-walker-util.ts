@@ -78,7 +78,10 @@ export const parseRefPath = (
         .substring(1)
         .split("/")
         .filter(v => v !== "");
-    const nextPath = path.join(cpd, refurl.path || path.basename(currentPath));
+    const nextPath = path.posix.join(
+        cpd,
+        refurl.path || path.basename(currentPath)
+    );
     return [nextPath, fragPath];
 };
 

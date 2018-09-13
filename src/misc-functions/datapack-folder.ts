@@ -146,7 +146,7 @@ export function getKindAndNamespace(
                                 ...further.slice(0, -1),
                                 last.slice(0, -typeInfo.extension.length)
                             )
-                            .replace(path.sep, SLASH);
+                            .replace(new RegExp(`\\${path.sep}`, "g"), SLASH);
                         return {
                             kind,
                             location: {
@@ -174,7 +174,7 @@ export function getPath(
         resource.namespace,
         ...resourceTypes[kind].path,
         resource.path
-            .replace(SLASH, path.sep)
+            .replace(new RegExp(`\\${SLASH}`, "g"), path.sep)
             .concat(resourceTypes[kind].extension)
     );
 }

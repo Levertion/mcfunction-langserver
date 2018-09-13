@@ -42,7 +42,10 @@ describe("nbt parser test", () => {
 
         it("should return correct suggestions", () => {
             const reader = new StringReader("{display:{");
-            const out = parseNBT(reader, reginfo, { type: "item" });
+            const out = parseNBT(reader, reginfo, {
+                id: "minecraft:apple",
+                type: "item"
+            });
             assertSuggestions(out.suggestions, [
                 {
                     start: 9,
