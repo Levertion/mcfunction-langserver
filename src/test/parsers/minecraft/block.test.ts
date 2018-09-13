@@ -5,7 +5,7 @@ import { parseBlockArgument } from "../../../parsers/minecraft/block";
 import { MemoryFS } from "../../../parsers/minecraft/nbt/doc-fs";
 import { CommmandData, Parser } from "../../../types";
 import { testParser } from "../../assertions";
-import { blankproperties, succeeds } from "../../blanks";
+import { blankproperties } from "../../blanks";
 
 const parser: Parser = {
     parse: (reader, info) =>
@@ -114,7 +114,14 @@ describe("sharedBlockParser", () => {
             test("#test:empty", {
                 start: 1,
                 succeeds: true,
-                suggestions: ["test:empty", "test:empty_values"]
+                suggestions: [
+                    "test:empty",
+                    "test:empty_values",
+                    {
+                        start: 11,
+                        text: "{"
+                    }
+                ]
             });
         });
         it("should give an error for an unknown tag", () => {
@@ -125,7 +132,13 @@ describe("sharedBlockParser", () => {
                         range: { start: 0, end: 13 }
                     }
                 ],
-                succeeds: true
+                succeeds: true,
+                suggestions: [
+                    {
+                        start: 13,
+                        text: "{"
+                    }
+                ]
             });
         });
         it("should suggest the correct properties", () => {
@@ -189,7 +202,8 @@ describe("sharedBlockParser", () => {
                             "langserver:nbt": {},
                             "langserver:nbt_prop": {
                                 prop: ["1", "2", "3"]
-                            }
+                            },
+                            "langserver:nbt_two": {}
                         },
                         nbt_docs: memfs
                     } as any) as GlobalData
@@ -246,6 +260,53 @@ describe("sharedBlockParser", () => {
                 ]
             });
         });
+        it("should suggest a `{` if there is none at the end", () => {
+            test("langserver:nbt_two", {
+                succeeds: true,
+                suggestions: [
+                    {
+                        start: 0,
+                        text: "langserver:nbt_two"
+                    },
+                    {
+                        start: 18,
+                        text: "{"
+                    }
+                ]
+            });
+        });
+        it("should give the correct tag names for merged child_ref", () => {
+            test("langserver:nbt_two{", {
+                errors: [
+                    {
+                        code: "argument.nbt.compound.nokey",
+                        range: {
+                            end: 19,
+                            start: 18
+                        }
+                    }
+                ],
+                succeeds: false,
+                suggestions: [
+                    {
+                        start: 18,
+                        text: "{"
+                    },
+                    {
+                        start: 19,
+                        text: "}"
+                    },
+                    {
+                        start: 19,
+                        text: "key0"
+                    },
+                    {
+                        start: 19,
+                        text: "key1"
+                    }
+                ]
+            });
+        });
     });
 });
 
@@ -253,23 +314,31 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
     it("should allow a plain block", () => {
         test("langserver:noprops", {
             succeeds: true,
-            suggestions: ["langserver:noprops"]
+            suggestions: ["langserver:noprops", { start: 18, text: "{" }]
         });
     });
     it("should successfully parse an empty properties", () => {
         test("langserver:noprops[]", {
-            succeeds: true
+            succeeds: true,
+            suggestions: [{ start: 20, text: "{" }]
         });
     });
     it("should successfully parse an empty properties with whitespace", () => {
-        test("langserver:noprops[  ]", { succeeds: true });
+        test("langserver:noprops[  ]", {
+            succeeds: true,
+            suggestions: [{ start: 22, text: "{" }]
+        });
     });
     it("should successfully parse a single block's properties", () => {
-        test("langserver:props[prop=value]", { succeeds: true });
+        test("langserver:props[prop=value]", {
+            succeeds: true,
+            suggestions: [{ start: 28, text: "{" }]
+        });
     });
     it("should successfully parse a single block's properties with quotes", () => {
         test('langserver:props["prop"="value"]', {
-            succeeds: true
+            succeeds: true,
+            suggestions: [{ start: 32, text: "{" }]
         });
     });
     it("should give the correct error for an unknown property", () => {
@@ -280,7 +349,8 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                     range: { start: 17, end: 24 }
                 }
             ],
-            succeeds: true
+            succeeds: true,
+            suggestions: [{ start: 31, text: "{" }]
         });
     });
     it("should give an error for an incorrect property value", () => {
@@ -291,11 +361,15 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                     range: { start: 22, end: 29 }
                 }
             ],
-            succeeds: true
+            succeeds: true,
+            suggestions: [{ start: 30, text: "{" }]
         });
     });
     it("should allow multiple properties", () => {
-        test("langserver:multi[otherprop=propvalue,prop1=other]", succeeds);
+        test("langserver:multi[otherprop=propvalue,prop1=other]", {
+            succeeds: true,
+            suggestions: [{ start: 49, text: "{" }]
+        });
     });
     it("should give an error for duplicate properties", () => {
         test("langserver:multi[otherprop=propvalue,otherprop=lang]", {
@@ -305,7 +379,8 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                     range: { start: 37, end: 46 }
                 }
             ],
-            succeeds: true
+            succeeds: true,
+            suggestions: [{ start: 52, text: "{" }]
         });
     });
     it("should give an error when the properties are not closed", () => {
@@ -332,7 +407,11 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
             suggestions: [
                 "langserver:multi",
                 "langserver:noprops",
-                "langserver:props"
+                "langserver:props",
+                {
+                    start: 11,
+                    text: "{"
+                }
             ]
         });
     });
@@ -343,7 +422,11 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                 "langserver:multi",
                 "langserver:noprops",
                 "langserver:props",
-                "minecraft:lang"
+                "minecraft:lang",
+                {
+                    start: 4,
+                    text: "{"
+                }
             ]
         });
     });

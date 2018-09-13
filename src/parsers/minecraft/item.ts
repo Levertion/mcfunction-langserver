@@ -81,6 +81,8 @@ export class ItemParser implements Parser {
                     type: "item"
                 });
                 helper.merge(nbt);
+            } else {
+                helper.addSuggestion(reader.cursor, "{");
             }
         } else {
             if (parsed.data) {
@@ -97,6 +99,8 @@ export class ItemParser implements Parser {
                         type: "item"
                     });
                     helper.merge(nbt);
+                } else {
+                    helper.addSuggestion(reader.cursor, "{");
                 }
             } else {
                 return helper.fail();

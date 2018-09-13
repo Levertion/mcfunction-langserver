@@ -1,4 +1,5 @@
 {
+    "$schema": "https://raw.githubusercontent.com/MrYurihi/mc-nbt-paths/master/schema/schema.json",
     "type": "root",
     "children": {
         "langserver:nbt": {
@@ -7,6 +8,26 @@
                 "customTag": {
                     "type": "string",
                     "suggestions": ["one", "two", "Hello World"]
+                }
+            }
+        },
+        "langserver:nbt_two": {
+            "type": "compound",
+            "child_ref": ["#langserver:parent_one", "#langserver:parent_two"]
+        },
+        "langserver:parent_one": {
+            "type": "compound",
+            "children": {
+                "key0": {
+                    "type": "string"
+                }
+            }
+        },
+        "langserver:parent_two": {
+            "type": "compound",
+            "children": {
+                "key1": {
+                    "type": "int"
                 }
             }
         }

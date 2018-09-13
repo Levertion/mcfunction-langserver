@@ -56,7 +56,7 @@ export class NBTWalker {
             );
         } else if (node.child_ref) {
             for (const ref of node.child_ref) {
-                const newPath = path.join(currentPath, "..", ref);
+                const [newPath] = parseRefPath(ref, currentPath);
                 const cnode = this.nextNodeRef(ref, currentPath);
                 if (cnode === undefined) {
                     break;
@@ -110,7 +110,7 @@ export class NBTWalker {
         currentPath: string,
         allowReferences: boolean
     ): NBTNode | undefined {
-        const newPath = path.join(currentPath, "..", node.ref);
+        const [newPath] = parseRefPath(node.ref, currentPath);
         const newNode = this.nextNodeRef(node.ref, currentPath);
         return this.getNextNode(newNode, reader, newPath, allowReferences);
     }
@@ -134,7 +134,7 @@ export class NBTWalker {
                 if (key.startsWith("$")) {
                     const listName = key.substring(1);
                     const vals = this.docfs.get<ValueList>(
-                        path.join(currentPath, "..", listName)
+                        parseRefPath(listName, currentPath)[0]
                     );
                     if (
                         vals.findIndex(v => {
@@ -249,8 +249,7 @@ export class NBTWalker {
         const newChildren = JSON.parse(
             JSON.stringify(node.children || {})
         ) as Exclude<CompoundNode["children"], undefined>;
-        for (const aref of node.child_ref) {
-            const ref = path.join(currentPath, "..", aref);
+        for (const ref of node.child_ref) {
             const refNode = this.nextNodeRef(ref, currentPath);
             if (!refNode) {
                 continue;
@@ -272,18 +271,20 @@ export class NBTWalker {
     }
 
     private nextNodeRef(ref: string, currentPath: string): NBTNode | undefined {
-        const refurl = url.parse(ref);
-        const fragPath = (refurl.hash || "#")
-            .substring(1)
-            .split("/")
-            .filter(v => v !== "");
+        const [nextPath, fragPath] = parseRefPath(ref, currentPath);
         const fragReader = new ArrayReader(fragPath);
-        const nextPath = path.join(
-            currentPath,
-            "..",
-            refurl.path || currentPath
-        );
         const newNode = this.docfs.get<NBTNode>(nextPath);
         return this.getNextNode(newNode, fragReader, nextPath, true);
     }
 }
+
+const parseRefPath = (ref: string, currentPath: string): [string, string[]] => {
+    const cpd = path.dirname(currentPath);
+    const refurl = url.parse(ref);
+    const fragPath = (refurl.hash || "#")
+        .substring(1)
+        .split("/")
+        .filter(v => v !== "");
+    const nextPath = path.join(cpd, refurl.path || path.basename(currentPath));
+    return [nextPath, fragPath];
+};

@@ -5,6 +5,7 @@ import { MemoryFS } from "../../../../parsers/minecraft/nbt/doc-fs";
 import { NBTWalker } from "../../../../parsers/minecraft/nbt/doc-walker";
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound-tag";
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string-tag";
+import { CompoundNode } from "../../../../parsers/minecraft/nbt/util/doc-walker-util";
 
 const test = (walker: NBTWalker, name: string, extpath: string[] = []) => {
     const node = walker.getFinalNode([name, ...extpath]);
@@ -62,6 +63,29 @@ describe("Documentation Walker Tests", () => {
 
         it("should return the correct node for ref pointing to `references`", () => {
             test(walker, "ref_references_test");
+        });
+
+        it("should merge child_ref correctly", () => {
+            const node = walker.getFinalNode(["child_ref_test"]);
+            assert.deepStrictEqual(node, {
+                children: {
+                    bad: {
+                        description: "child_ref_test BAD",
+                        type: "no-nbt"
+                    },
+                    badkey: {
+                        description: "child_ref_test BAD",
+                        type: "no-nbt"
+                    },
+                    key0: {
+                        description: "child_ref_test OK",
+                        type: "no-nbt"
+                    }
+                },
+                description: undefined,
+                suggestions: undefined,
+                type: "compound"
+            } as CompoundNode);
         });
 
         it("should return the correct node for root node groups", () => {

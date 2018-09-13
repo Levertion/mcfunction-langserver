@@ -158,6 +158,8 @@ export function parseBlockArgument(
                 if (!helper.merge(nbt)) {
                     return helper.fail();
                 }
+            } else {
+                helper.addSuggestion(reader.cursor, "{");
             }
         } else {
             stringifiedName = stringifyNamespace(parsed.data.parsed);
@@ -193,6 +195,8 @@ export function parseBlockArgument(
                 if (!helper.merge(nbt)) {
                     return helper.fail();
                 }
+            } else {
+                helper.addSuggestion(reader.cursor, "{");
             }
         }
     } else {
@@ -222,6 +226,8 @@ export function parseBlockArgument(
                 if (!helper.merge(nbt)) {
                     return helper.fail();
                 }
+            } else {
+                helper.addSuggestion(reader.cursor, "{");
             }
         } else {
             // Parsing of the namespace failed
