@@ -48,7 +48,14 @@ const fail = (
             text: RELATIVE
         });
     }
-    return helper.fail(INCOMPLETE.create(start, reader.cursor, i + 1, count));
+    return helper.fail(
+        INCOMPLETE.create(
+            start,
+            reader.cursor,
+            (i + 1).toString(),
+            count.toString()
+        )
+    );
 };
 
 export class CoordParser implements Parser {

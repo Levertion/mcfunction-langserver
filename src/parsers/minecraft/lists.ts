@@ -39,7 +39,11 @@ export class ListParser implements Parser {
             return helper.succeed();
         } else {
             return helper.fail(
-                this.error.create(start, reader.cursor, optResult.data)
+                this.error.create(
+                    start,
+                    reader.cursor,
+                    optResult.data.toString()
+                )
             );
         }
     }
