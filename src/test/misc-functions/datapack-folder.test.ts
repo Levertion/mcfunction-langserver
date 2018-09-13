@@ -5,7 +5,7 @@ import {
     getPath,
     parseDataPath
 } from "../../misc-functions/datapack-folder";
-import { unwrap } from "../assertions";
+import { convertToResource, unwrap } from "../assertions";
 
 describe("parseDataPath() (Misc)", () => {
     it("should parse a path with a valid datapack (posix)", () => {
@@ -105,7 +105,7 @@ describe("getKindAndNamespace() (Misc)", () => {
             ),
             {
                 kind: "functions",
-                location: { namespace: "namespace", path: "path" }
+                location: convertToResource("namespace:path")
             }
         );
     });
@@ -117,7 +117,7 @@ describe("getKindAndNamespace() (Misc)", () => {
             ),
             {
                 kind: "functions",
-                location: { namespace: "namespace", path: "path" }
+                location: convertToResource("namespace:path")
             }
         );
     });
@@ -129,7 +129,7 @@ describe("getKindAndNamespace() (Misc)", () => {
             ),
             {
                 kind: "functions",
-                location: { namespace: "namespace", path: "path" }
+                location: convertToResource("namespace:path")
             }
         );
     });

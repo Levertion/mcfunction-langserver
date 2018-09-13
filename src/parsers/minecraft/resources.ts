@@ -21,7 +21,7 @@ const exceptions = {
         "Unknown advancement: %s"
     ),
     nobossbar: new CommandErrorBuilder(
-        "",
+        "commands.bossbar.unknown",
         "No bossbar exists with the ID '%s'"
     ),
     recipe_notfound: new CommandErrorBuilder(

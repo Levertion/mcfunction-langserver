@@ -8,6 +8,7 @@ import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
+import * as namespaceParsers from "./minecraft/namespace-list";
 import { functionParser, resourceParser } from "./minecraft/resources";
 
 /**
@@ -24,15 +25,16 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
+    "minecraft:entity_summon": namespaceParsers.summonParser,
     "minecraft:function": functionParser,
-    "minecraft:item_enchantment": listParsers.enchantmentParser,
+    "minecraft:item_enchantment": namespaceParsers.enchantmentParser,
     "minecraft:item_predicate": itemParsers.predicate,
     "minecraft:item_slot": listParsers.itemSlotParser,
     "minecraft:item_stack": itemParsers.stack,
     "minecraft:message": messageParser,
-    "minecraft:mob_effect": listParsers.mobEffectParser,
+    "minecraft:mob_effect": namespaceParsers.mobEffectParser,
     "minecraft:operation": listParsers.operationParser,
-    "minecraft:particle": listParsers.particleParser,
+    "minecraft:particle": namespaceParsers.particleParser,
     "minecraft:resource_location": resourceParser,
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
