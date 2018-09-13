@@ -1,8 +1,13 @@
-import { AssertionError, equal, strictEqual } from "assert";
+import { AssertionError, equal, notStrictEqual, strictEqual } from "assert";
 import { CommandError } from "../brigadier/errors";
 import { StringReader } from "../brigadier/string-reader";
-import { NamespacedName } from "../data/types";
-import { isSuccessful, namespacesEqual } from "../misc-functions";
+import { NAMESPACE } from "../consts";
+import { DataResource, MinecraftResource, NamespacedName } from "../data/types";
+import {
+    convertToNamespace,
+    isSuccessful,
+    namespacesEqual
+} from "../misc-functions";
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import {
     CE,
@@ -275,4 +280,20 @@ export function assertMembers<T, U>(
             });
         }
     }
+}
+
+/**
+ * Helper function for definining resources
+ */
+export function convertToResource<T>(
+    input: string,
+    data?: T,
+    splitChar: string = NAMESPACE
+): DataResource<T> {
+    const result = convertToNamespace(input, splitChar);
+    notStrictEqual(result.namespace, undefined);
+    if (data) {
+        return { ...(result as MinecraftResource), data };
+    }
+    return result as MinecraftResource;
 }

@@ -20,7 +20,7 @@ describe("list tests", () => {
                 });
             })
         );
-        it("should throw an error for a different input", () => {
+        it("should fail for a different input", () => {
             tester("badinput", {
                 errors: [
                     {
