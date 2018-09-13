@@ -61,7 +61,7 @@ export class CommandErrorBuilder {
     public create(
         start: number,
         end: number,
-        ...substitutions: any[]
+        ...substitutions: string[]
     ): CommandError {
         const diagnosis: CommandError = Object.assign(
             this.createBlank(...substitutions),
@@ -70,7 +70,7 @@ export class CommandErrorBuilder {
         return diagnosis;
     }
 
-    public createBlank(...substitutions: any[]): BlankCommandError {
+    public createBlank(...substitutions: string[]): BlankCommandError {
         return {
             _e: "1",
             code: this.code,

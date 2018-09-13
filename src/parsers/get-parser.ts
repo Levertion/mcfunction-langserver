@@ -8,6 +8,7 @@ import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
+import { functionParser, resourceParser } from "./minecraft/resources";
 
 import { parser as NBTPathParser } from "./minecraft/nbt-path";
 import { parser as NBTParser } from "./minecraft/nbt/nbt";
@@ -26,6 +27,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
+    "minecraft:function": functionParser,
     "minecraft:item_enchantment": listParsers.enchantmentParser,
     "minecraft:item_predicate": itemParsers.predicate,
     "minecraft:item_slot": listParsers.itemSlotParser,
@@ -36,6 +38,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:nbt-path": NBTPathParser,
     "minecraft:operation": listParsers.operationParser,
     "minecraft:particle": listParsers.particleParser,
+    "minecraft:resource_location": resourceParser,
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
     "minecraft:vec2": coordParsers.vec2,

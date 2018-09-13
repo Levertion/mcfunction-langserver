@@ -40,8 +40,8 @@ export const intParser: Parser = {
                 INTEGEREXCEPTIONS.TOOBIG.create(
                     start,
                     reader.cursor,
-                    max,
-                    result.data
+                    max.toString(),
+                    result.data.toString()
                 )
             );
         }
@@ -50,8 +50,8 @@ export const intParser: Parser = {
                 INTEGEREXCEPTIONS.TOOSMALL.create(
                     start,
                     reader.cursor,
-                    min,
-                    result.data
+                    min.toString(),
+                    result.data.toString()
                 )
             );
         }
