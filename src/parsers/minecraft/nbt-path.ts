@@ -4,7 +4,7 @@ import { ReturnHelper } from "../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 import { NBTWalker } from "./nbt/doc-walker";
 import { NBTTagCompound } from "./nbt/tag/compound-tag";
-import { addSuggestionsToHelper } from "./nbt/util/nbt-util";
+import { getNBTSuggestions } from "./nbt/util/nbt-util";
 
 const COMPACC = ".";
 const ARROPEN = "[";
@@ -32,7 +32,7 @@ export const parser: Parser = {
         } else {
             const node = walker.getFinalNode([]);
             if (!!node) {
-                addSuggestionsToHelper(node, helper, reader);
+                helper.mergeChain(getNBTSuggestions(node, reader.cursor));
             }
         }
         while (reader.canRead() && !/\s/.test(reader.peek())) {
@@ -44,7 +44,9 @@ export const parser: Parser = {
                 } else {
                     const node = walker.getFinalNode([]);
                     if (!!node) {
-                        addSuggestionsToHelper(node, helper, reader);
+                        helper.mergeChain(
+                            getNBTSuggestions(node, reader.cursor)
+                        );
                     }
                 }
             } else if (next === ARROPEN) {
@@ -54,7 +56,9 @@ export const parser: Parser = {
                 } else {
                     const node = walker.getFinalNode([]);
                     if (!!node) {
-                        addSuggestionsToHelper(node, helper, reader);
+                        helper.mergeChain(
+                            getNBTSuggestions(node, reader.cursor)
+                        );
                     }
                 }
                 if (!helper.merge(reader.expect(ARRCLOSE))) {

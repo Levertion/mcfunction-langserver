@@ -1,9 +1,9 @@
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { SuggestResult } from "../../../../types";
+import { ReturnSuccess, SuggestResult } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import { NBTTag } from "../tag/nbt-tag";
-import { isCompoundNode, NBTNode } from "./doc-walker-util";
+import { isCompoundNode, isListNode, NBTNode } from "./doc-walker-util";
 
 export const ARRAY_START = "[";
 export const ARRAY_END = "]";
@@ -68,25 +68,25 @@ const parseNumberNBT = (float: boolean) => (reader: StringReader) => {
 export const parseFloatNBT = parseNumberNBT(true);
 export const parseIntNBT = parseNumberNBT(false);
 
-export function addSuggestionsToHelper(
+export function getNBTSuggestions(
     node: NBTNode,
-    helper: ReturnHelper,
-    reader: StringReader
-): void {
-    if (!!node.suggestions) {
+    cursor: number
+): ReturnSuccess<undefined> {
+    const helper = new ReturnHelper();
+    if (node.suggestions) {
         const sugg = node.suggestions;
-        if (!!sugg) {
+        if (sugg) {
             sugg.forEach(v => {
                 if (typeof v === "string") {
-                    helper.addSuggestion(reader.cursor, v);
+                    helper.addSuggestion(cursor, v);
                 } else if ("function" in v) {
                     runSuggestFunction(
                         v.function.id,
                         v.function.params
-                    ).forEach(v2 => helper.addSuggestion(reader.cursor, v2));
+                    ).forEach(v2 => helper.addSuggestion(cursor, v2));
                 } else {
                     helper.addSuggestion(
-                        reader.cursor,
+                        cursor,
                         v.value,
                         undefined,
                         v.description
@@ -95,14 +95,17 @@ export function addSuggestionsToHelper(
             });
         }
     }
-    if (isCompoundNode(node) && node.children !== undefined) {
+    if (isCompoundNode(node) && node.children) {
         helper.addSuggestions(
             ...Object.keys(node.children).map<SuggestResult>(v => ({
                 // @ts-ignore
                 description: node.children[v].description,
-                start: reader.cursor,
+                start: cursor,
                 text: v
             }))
         );
+    } else if (isListNode(node) && node.item) {
+        helper.mergeChain(getNBTSuggestions(node.item, cursor));
     }
+    return helper.succeed();
 }

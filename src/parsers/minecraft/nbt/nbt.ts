@@ -5,11 +5,11 @@ import { ContextPath, resolvePaths } from "../../../misc-functions/context";
 import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
 import { NBTWalker } from "./doc-walker";
 import { NBTTagCompound } from "./tag/compound-tag";
-import { addSuggestionsToHelper } from "./util/nbt-util";
+import { getNBTSuggestions } from "./util/nbt-util";
 
 type CtxPathFunc = (args: string[]) => NBTContextData;
 
-interface NBTContextData {
+export interface NBTContextData {
     id?: string | string[];
     type: "entity" | "item" | "block";
 }
@@ -60,7 +60,9 @@ export function parseNBT(
                         [data.type, id || "none"].concat(reply.data.path || [])
                     );
                     if (!!node) {
-                        addSuggestionsToHelper(node, helper, reader);
+                        helper.mergeChain(
+                            getNBTSuggestions(node, reader.cursor)
+                        );
                     }
                 }
             } else {
@@ -70,7 +72,7 @@ export function parseNBT(
                     ...(reply.data.path || [])
                 ]);
                 if (!!node) {
-                    addSuggestionsToHelper(node, helper, reader);
+                    helper.mergeChain(getNBTSuggestions(node, reader.cursor));
                 }
             }
         }
