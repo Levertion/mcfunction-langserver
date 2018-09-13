@@ -1,3 +1,5 @@
+import * as path from "path";
+import * as url from "url";
 import { NBTTagCompound } from "../tag/compound-tag";
 import { NBTTagList } from "../tag/list-tag";
 import { NBTTag } from "../tag/nbt-tag";
@@ -65,6 +67,20 @@ export type NBTNode =
     | ListNode
     | RefNode
     | FunctionNode;
+
+export const parseRefPath = (
+    ref: string,
+    currentPath: string
+): [string, string[]] => {
+    const cpd = path.dirname(currentPath);
+    const refurl = url.parse(ref);
+    const fragPath = (refurl.hash || "#")
+        .substring(1)
+        .split("/")
+        .filter(v => v !== "");
+    const nextPath = path.join(cpd, refurl.path || path.basename(currentPath));
+    return [nextPath, fragPath];
+};
 
 export function getNBTTagFromTree(
     tag: NBTTag<any>,

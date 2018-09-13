@@ -1,5 +1,3 @@
-import { posix as path } from "path";
-import * as url from "url";
 import { MemoryFS } from "./doc-fs";
 import { runNodeFunction } from "./doc-walker-func";
 import { NBTTag } from "./tag/nbt-tag";
@@ -14,6 +12,7 @@ import {
     isRootNode,
     ListNode,
     NBTNode,
+    parseRefPath,
     RefNode,
     RootNode,
     ValueList
@@ -277,14 +276,3 @@ export class NBTWalker {
         return this.getNextNode(newNode, fragReader, nextPath, true);
     }
 }
-
-const parseRefPath = (ref: string, currentPath: string): [string, string[]] => {
-    const cpd = path.dirname(currentPath);
-    const refurl = url.parse(ref);
-    const fragPath = (refurl.hash || "#")
-        .substring(1)
-        .split("/")
-        .filter(v => v !== "");
-    const nextPath = path.join(cpd, refurl.path || path.basename(currentPath));
-    return [nextPath, fragPath];
-};
