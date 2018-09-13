@@ -33,7 +33,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
         if (!helper.merge(compStart)) {
             return helper.failWithData({ correct: 0, parsed: this });
         }
-        let next = COMPOUND_START;
+        let next = reader.peek();
         const keys = [];
         while (next !== COMPOUND_END) {
             reader.skipWhitespace();
