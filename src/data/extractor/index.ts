@@ -6,7 +6,7 @@ import { promisify } from "util";
 import { ReturnHelper } from "../../misc-functions";
 import { ReturnSuccess } from "../../types";
 import { cacheData } from "../cache";
-import { GlobalData } from "../types";
+import { Cacheable } from "../types";
 import { collectData } from "./collect-data";
 import { getPathToJar } from "./download";
 import { checkJavaPath, runGenerator } from "./extract-data";
@@ -33,7 +33,7 @@ const mkdtmpAsync = promisify(fs.mkdtemp);
  */
 export async function collectGlobalData(
     currentversion: string = ""
-): Promise<ReturnSuccess<GlobalData>> {
+): Promise<ReturnSuccess<Cacheable>> {
     if (mcLangSettings.data.enabled) {
         const javaPath = await checkJavaPath();
         const dir = await mkdtmpAsync(path.join(tmpdir(), "mcfunction"));

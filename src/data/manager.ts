@@ -213,8 +213,9 @@ export class DataManager {
         try {
             const helper = new ReturnHelper();
             const data = await collectGlobalData(version);
+            const noncache = await loadNonCached();
             helper.merge(data);
-            this.globalDataInternal = data.data;
+            this.globalDataInternal = { ...data.data, ...noncache };
             return true;
         } catch (error) {
             return error.toString();
