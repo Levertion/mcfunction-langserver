@@ -43,7 +43,7 @@ export class MemoryFS {
     public setExternal(realPath: string, data: any): void {
         const internalPath = path
             .relative(this.root, realPath)
-            .replace(path.sep, path.posix.sep);
+            .replace(path.win32.sep, path.posix.sep);
         this.data[internalPath] = data;
     }
 }

@@ -1,14 +1,24 @@
 import * as assert from "assert";
+import { walkDir } from "../../../../misc-functions";
 import { MemoryFS } from "../../../../parsers/minecraft/nbt/doc-fs";
 
 describe("MemoryFS tests", () => {
     describe("load()", () => {
         it("should get the correct data from the file", async () => {
-            const memfs = new MemoryFS("test_data");
-            await memfs.load("test_data/fs_test.json");
+            const memfs = new MemoryFS("test_data/fs_test");
+            const paths = await walkDir("test_data/fs_test");
+            for (const p of paths) {
+                await memfs.load(p);
+            }
             assert.deepStrictEqual(memfs.get("fs_test.json"), {
                 description: "DocFS OK"
             });
+            assert.deepStrictEqual(
+                memfs.get("fs_nest_test/fs_nest_test.json"),
+                {
+                    description: "DocFS nesting OK"
+                }
+            );
         });
     });
     describe("get() & set()", () => {
