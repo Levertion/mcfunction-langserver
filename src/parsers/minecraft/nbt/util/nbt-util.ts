@@ -1,6 +1,6 @@
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { ReturnedInfo, SuggestResult } from "../../../../types";
+import { SuggestResult } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import { NBTTag } from "../tag/nbt-tag";
 import { isCompoundNode, NBTNode } from "./doc-walker-util";
@@ -34,61 +34,39 @@ export enum CorrectLevel {
     YES
 }
 
-export function parseIntNBT(reader: StringReader): ReturnedInfo<number> {
-    const helper = new ReturnHelper();
+const parseNumberNBT = (float: boolean) => (reader: StringReader) => {
     const start = reader.cursor;
-    let out = 0;
     try {
+        const helper = new ReturnHelper();
         const f = reader.readFloat();
-        if (reader.peek().toLowerCase() !== "e") {
-            throw undefined;
+        if (!helper.merge(f)) {
+            throw undefined; // This gets caught
         }
-        reader.skip();
+        const e = reader.readOption(["E", "e"], true, undefined, "option");
+        if (!helper.merge(e)) {
+            throw undefined; // This gets caught
+        }
+        // Returns beyond here because it must be scientific notation
         const exp = reader.readInt();
-        if (helper.merge(exp) && helper.merge(f)) {
-            out = f.data * Math.pow(10, exp.data);
+        if (helper.merge(exp)) {
+            return helper.succeed(f.data * Math.pow(10, exp.data));
+        } else {
+            return helper.fail();
         }
     } catch (e) {
         reader.cursor = start;
-        const int = reader.readInt();
+        const helper = new ReturnHelper();
+        const int = float ? reader.readFloat() : reader.readInt();
         if (helper.merge(int)) {
-            out = int.data;
+            return helper.succeed(int.data);
+        } else {
+            return helper.fail();
         }
     }
-    if (helper.hasErrors()) {
-        return helper.fail();
-    } else {
-        return helper.succeed(out);
-    }
-}
+};
 
-export function parseFloatNBT(reader: StringReader): ReturnedInfo<number> {
-    const helper = new ReturnHelper();
-    const start = reader.cursor;
-    let out = 0;
-    try {
-        const f = reader.readFloat();
-        if (reader.peek().toLowerCase() !== "e") {
-            throw undefined;
-        }
-        reader.skip();
-        const exp = reader.readInt();
-        if (helper.merge(exp) && helper.merge(f)) {
-            out = f.data * Math.pow(10, exp.data);
-        }
-    } catch (e) {
-        reader.cursor = start;
-        const int = reader.readFloat();
-        if (helper.merge(int)) {
-            out = int.data;
-        }
-    }
-    if (helper.hasErrors()) {
-        return helper.fail();
-    } else {
-        return helper.succeed(out);
-    }
-}
+export const parseFloatNBT = parseNumberNBT(true);
+export const parseIntNBT = parseNumberNBT(false);
 
 export function addSuggestionsToHelper(
     node: NBTNode,

@@ -35,11 +35,7 @@ export const parser: Parser = {
                 addSuggestionsToHelper(node, helper, reader);
             }
         }
-        while (
-            !helper.hasErrors() &&
-            reader.canRead() &&
-            !/\s/.test(reader.peek())
-        ) {
+        while (reader.canRead() && !/\s/.test(reader.peek())) {
             const next = reader.read();
             if (next === COMPACC) {
                 const str = reader.readString();
@@ -61,17 +57,17 @@ export const parser: Parser = {
                         addSuggestionsToHelper(node, helper, reader);
                     }
                 }
-                helper.merge(reader.expect(ARRCLOSE));
+                if (!helper.merge(reader.expect(ARRCLOSE))) {
+                    return helper.fail();
+                }
             } else {
-                helper.addErrors(
+                return helper.fail(
                     badChar.create(reader.cursor - 1, reader.cursor, next)
                 );
             }
         }
-        if (!helper.hasErrors()) {
-            helper.addSuggestion(reader.cursor, ".");
-            helper.addSuggestion(reader.cursor, "[");
-        }
-        return helper.hasErrors() ? helper.fail() : helper.succeed();
+        helper.addSuggestion(reader.cursor, ".");
+        helper.addSuggestion(reader.cursor, "[");
+        return helper.succeed();
     }
 };

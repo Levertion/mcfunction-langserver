@@ -22,12 +22,14 @@ export const parser: Parser = {
         const arr = reader.readUnquotedString().split("");
         for (const s of arr) {
             if (values.indexOf(s) === -1) {
-                helper.addErrors(INVALID_CHAR.create(start, reader.cursor, s));
+                return helper.fail(
+                    INVALID_CHAR.create(start, reader.cursor, s)
+                );
             }
         }
         for (const v of values) {
             if (arr.indexOf(v) !== arr.lastIndexOf(v)) {
-                helper.addErrors(DUPLICATE.create(start, reader.cursor, v));
+                return helper.fail(DUPLICATE.create(start, reader.cursor, v));
             }
         }
         const text = reader.string.substring(start, reader.cursor);
@@ -35,10 +37,6 @@ export const parser: Parser = {
             .map(v => text + v.join(""))
             .filter(v => v !== "");
         suggestions.forEach(v => helper.addSuggestion(0, v));
-        if (helper.hasErrors()) {
-            return helper.fail();
-        } else {
-            return helper.succeed();
-        }
+        return helper.succeed();
     }
 };

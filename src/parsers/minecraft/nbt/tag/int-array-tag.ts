@@ -80,12 +80,6 @@ export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
                 next = opt.data;
             }
         }
-        if (helper.hasErrors()) {
-            return helper.failWithData({
-                correct: CorrectLevel.YES,
-                parsed: this
-            });
-        }
         return helper.succeed(CorrectLevel.YES);
     }
 

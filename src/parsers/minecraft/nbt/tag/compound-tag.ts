@@ -127,9 +127,6 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                 next = opt.data;
             }
         }
-        if (helper.hasErrors()) {
-            return helper.failWithData({ parsed: this, correct: 2 });
-        }
         return helper.succeed(2);
     }
 

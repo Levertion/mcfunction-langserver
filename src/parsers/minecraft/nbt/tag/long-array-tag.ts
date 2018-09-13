@@ -80,12 +80,6 @@ export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
                 next = opt.data;
             }
         }
-        if (helper.hasErrors()) {
-            return helper.failWithData({
-                correct: CorrectLevel.YES,
-                parsed: this
-            });
-        }
         return helper.succeed(CorrectLevel.YES);
     }
 

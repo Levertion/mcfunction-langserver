@@ -78,11 +78,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 next = opt.data;
             }
         }
-        if (helper.hasErrors()) {
-            return helper.failWithData({ parsed: this, correct: 1 });
-        } else {
-            return helper.succeed(1);
-        }
+        return helper.succeed(1);
     }
 
     public tagEq(tag: NBTTag<any>): boolean {
