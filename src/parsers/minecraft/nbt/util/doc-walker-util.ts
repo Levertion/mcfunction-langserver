@@ -5,17 +5,18 @@ import { NBTTagList } from "../tag/list-tag";
 import { NBTTag } from "../tag/nbt-tag";
 
 export interface NBTFunction {
-    id: string;
-    params: any;
+    readonly id: string;
+    readonly params: any;
 }
 
 export interface NodeBase {
     readonly description?: string;
-    readonly references?: { [key: string]: any };
+    readonly filePath: string;
+    readonly references?: { readonly [key: string]: any };
     readonly suggestions?: Array<
         | string
-        | { description?: string; value: string }
-        | { function: NBTFunction }
+        | { readonly description?: string; readonly value: string }
+        | { readonly function: NBTFunction }
     >;
 }
 
@@ -49,12 +50,12 @@ export interface ListNode extends NodeBase {
 
 export interface CompoundNode extends NodeBase {
     readonly child_ref?: string[];
-    readonly children?: { [key: string]: NBTNode };
+    readonly children?: { readonly [key: string]: NBTNode };
     readonly type: "compound";
 }
 
 export interface RootNode extends NodeBase {
-    readonly children: { [key: string]: NBTNode };
+    readonly children: { readonly [key: string]: NBTNode };
     readonly type: "root";
 }
 
@@ -126,4 +127,42 @@ export function isRootNode(node: NBTNode): node is RootNode {
 
 export function isListNode(node: NBTNode): node is ListNode {
     return isTypedNode(node) && node.type === "list";
+}
+
+export function isNoPropertyNode(node: NBTNode): node is NoPropertyNode {
+    return (
+        isTypedNode(node) &&
+        !isListNode(node) &&
+        !isRootNode(node) &&
+        !isCompoundNode(node)
+    );
+}
+
+export function addFilePath(node: NBTNode, filePath: string): NBTNode {
+    let out: NBTNode;
+    if (isCompoundNode(node) || isRootNode(node)) {
+        const children: { [key: string]: NBTNode } = {};
+        if (node.children) {
+            for (const k of Object.keys(node.children)) {
+                children[k] = addFilePath(node.children[k], filePath);
+            }
+        }
+        out = {
+            ...node,
+            children,
+            filePath
+        };
+    } else if (isListNode(node)) {
+        out = {
+            ...node,
+            filePath,
+            item: addFilePath(node.item, filePath)
+        };
+    } else {
+        out = {
+            ...node,
+            filePath
+        };
+    }
+    return out;
 }

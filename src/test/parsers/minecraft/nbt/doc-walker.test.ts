@@ -71,18 +71,22 @@ describe("Documentation Walker Tests", () => {
                 children: {
                     bad: {
                         description: "child_ref_test BAD",
+                        filePath: "root.json",
                         type: "no-nbt"
                     },
                     badkey: {
                         description: "child_ref_test BAD",
+                        filePath: "child_ref_test.json",
                         type: "no-nbt"
                     },
                     key0: {
                         description: "child_ref_test OK",
+                        filePath: "child_ref_test.json",
                         type: "no-nbt"
                     }
                 },
                 description: undefined,
+                filePath: "root.json",
                 suggestions: undefined,
                 type: "compound"
             } as CompoundNode);
