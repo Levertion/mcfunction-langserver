@@ -1,15 +1,9 @@
-import * as path from "path";
+import { dummyParser } from "./parsers/tests/dummy1";
 
 function setup_logging(): void {
     global.mcLangSettings = ({
         parsers: {
-            "langserver:dummy1": path.join(
-                __dirname,
-                "parse",
-                "parsers",
-                "tests",
-                "dummy1_parser"
-            )
+            "langserver:dummy1": dummyParser
         }
     } as any) as McFunctionSettings;
     const logger = (message: string) => {
