@@ -44,15 +44,15 @@ const exceptions = {
 
 export const functionParser: Parser = {
     parse: (reader, info) => {
-        const helper = new ReturnHelper();
+        const helper = new ReturnHelper(info);
         const start = reader.cursor;
-        const options = getResourcesofType(info.data, "functions");
         const parsed = parseNamespaceOrTag(reader, info, "function_tags");
         if (helper.merge(parsed)) {
             const data = parsed.data;
             if (data.resolved && data.values) {
                 return helper.succeed();
             } else {
+                const options = getResourcesofType(info.data, "functions");
                 const postProcess = processParsedNamespaceOption(
                     data.parsed,
                     options,
@@ -62,7 +62,7 @@ export const functionParser: Parser = {
                 );
                 if (postProcess.data.length === 0) {
                     helper.addErrors(
-                        exceptions.unknown_tag.create(
+                        exceptions.unknown_function.create(
                             start,
                             reader.cursor,
                             stringifyNamespace(data.parsed)
@@ -95,9 +95,9 @@ const idParser: Parser = {
 
 const bossbarParser: Parser = {
     parse: (reader, info) => {
+        const helper = new ReturnHelper(info);
         if (info.data.localData && info.data.localData.nbt.level) {
             const start = reader.cursor;
-            const helper = new ReturnHelper();
             const bars = info.data.localData.nbt.level.Data.CustomBossEvents;
             const options = Object.keys(bars).map((v, _) =>
                 convertToNamespace(v)
@@ -121,7 +121,7 @@ const bossbarParser: Parser = {
                 }
             }
         } else {
-            return parseNamespace(reader);
+            return helper.return(parseNamespace(reader));
         }
     }
 };
@@ -164,7 +164,7 @@ export const resourceParser: Parser = {
         const kind = startPaths(resourceKinds, info.path);
         if (kind) {
             if (typeof kind.resource === "object") {
-                return kind.resource.parse(reader, info);
+                return helper.return(kind.resource.parse(reader, info));
             } else {
                 const result = parseNamespaceOption(
                     reader,
