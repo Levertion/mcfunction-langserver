@@ -15,8 +15,8 @@ import {
 import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
 
 export class NamespaceListParser implements Parser {
-    private error: CommandErrorBuilder;
-    private options: string[];
+    private readonly error: CommandErrorBuilder;
+    private readonly options: string[];
     public constructor(options: string[], errorBuilder: CommandErrorBuilder) {
         this.options = options;
         this.error = errorBuilder;
