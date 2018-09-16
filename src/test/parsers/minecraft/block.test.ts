@@ -1,7 +1,7 @@
 import { ok } from "assert";
 import { parseBlockArgument } from "../../../parsers/minecraft/block";
 import { CommmandData, Parser } from "../../../types";
-import { testParser } from "../../assertions";
+import { convertToResource, testParser } from "../../assertions";
 import { blankproperties, succeeds } from "../../blanks";
 
 const parser: Parser = {
@@ -27,48 +27,28 @@ const data: CommmandData = {
         },
         resources: {
             block_tags: [
-                { namespace: "test", path: "empty" },
-                {
-                    data: { values: [] },
-                    namespace: "test",
-                    path: "empty_values"
-                },
-                {
-                    data: {
-                        values: ["langserver:multi", "langserver:props", "test"]
-                    },
-                    namespace: "test",
-                    path: "plain"
-                },
-                { namespace: "minecraft", path: "empty" },
-                {
-                    data: { values: ["minecraft:test", "langserver:noprops"] },
-                    namespace: "minecraft",
-                    path: "plain"
-                },
-                {
-                    data: { values: ["langserver:props", "#plain"] },
-                    namespace: "test",
-                    path: "othertags"
-                },
-                {
-                    data: {
-                        values: ["langserver:props", "#test:plain"]
-                    },
-                    namespace: "test",
-                    path: "duplicated_block"
-                },
-                {
-                    data: {
-                        values: [
-                            "langserver:multi",
-                            "unknown",
-                            "langserver:notablock"
-                        ]
-                    },
-                    namespace: "test",
-                    path: "invalid_block"
-                }
+                convertToResource("test:empty"),
+                convertToResource("test:empty_values", { values: [] }),
+                convertToResource("test:plain", {
+                    values: ["langserver:multi", "langserver:props", "test"]
+                }),
+                convertToResource("minecraft:empty"),
+                convertToResource("minecraft:plain", {
+                    values: ["minecraft:test", "langserver:noprops"]
+                }),
+                convertToResource("test:othertags", {
+                    values: ["langserver:props", "#plain"]
+                }),
+                convertToResource("test:duplicated_block", {
+                    values: ["langserver:props", "#test:plain"]
+                }),
+                convertToResource("test:invalid_block", {
+                    values: [
+                        "langserver:multi",
+                        "unknown",
+                        "langserver:notablock"
+                    ]
+                })
             ]
         }
     },
@@ -77,11 +57,9 @@ const data: CommmandData = {
             0: {
                 data: {
                     block_tags: [
-                        {
-                            data: { values: ["#plain", "langserver:multi"] },
-                            namespace: "localdata",
-                            path: "token"
-                        }
+                        convertToResource("localdata:token", {
+                            values: ["#plain", "langserver:multi"]
+                        })
                     ]
                 }
             }

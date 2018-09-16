@@ -2,10 +2,14 @@ import * as assert from "assert";
 
 import { CommandErrorBuilder } from "../../../brigadier/errors";
 import { StringReader } from "../../../brigadier/string-reader";
-import { namespacesEqual } from "../../../misc-functions";
+import { convertToNamespace, namespacesEqual } from "../../../misc-functions";
 import { parseNamespaceOrTag } from "../../../misc-functions/parsing/nmsp-tag";
 import { ParserInfo } from "../../../types";
-import { assertNamespaces, returnAssert } from "../../assertions";
+import {
+    assertNamespaces,
+    convertToResource,
+    returnAssert
+} from "../../assertions";
 import { blankproperties, succeeds } from "../../blanks";
 
 const data: ParserInfo = {
@@ -14,16 +18,12 @@ const data: ParserInfo = {
         globalData: {
             resources: {
                 block_tags: [
-                    {
-                        data: { values: ["#outside:tock", "minecraft:stone"] },
-                        namespace: "minecraft",
-                        path: "tick"
-                    },
-                    {
-                        data: { values: ["minecraft:white_wool"] },
-                        namespace: "outside",
-                        path: "tock"
-                    }
+                    convertToResource("minecraft:tick", {
+                        values: ["#outside:tock", "minecraft:stone"]
+                    }),
+                    convertToResource("outside:tock", {
+                        values: ["minecraft:white_wool"]
+                    })
                 ]
             }
         },
@@ -32,11 +32,9 @@ const data: ParserInfo = {
                 0: {
                     data: {
                         block_tags: [
-                            {
-                                data: { values: ["minecraft:red_wool"] },
-                                namespace: "outside",
-                                path: "tock"
-                            }
+                            convertToResource("outside:tock", {
+                                values: ["minecraft:red_wool"]
+                            })
                         ]
                     },
                     name: "test1"
@@ -60,10 +58,10 @@ describe("parseNamespaceOrTag", () => {
         );
         if (returnAssert(result, succeeds)) {
             assert(
-                namespacesEqual(result.data.parsed, {
-                    namespace: "minecraft",
-                    path: "stone"
-                })
+                namespacesEqual(
+                    result.data.parsed,
+                    convertToNamespace("minecraft:stone")
+                )
             );
         }
     });
@@ -136,9 +134,9 @@ describe("parseNamespaceOrTag", () => {
             });
             assertNamespaces(
                 [
-                    { namespace: "minecraft", path: "stone" },
-                    { namespace: "minecraft", path: "white_wool" },
-                    { namespace: "minecraft", path: "red_wool" }
+                    convertToResource("minecraft:stone"),
+                    convertToResource("minecraft:white_wool"),
+                    convertToResource("minecraft:red_wool")
                 ],
                 result.data.resolved
             );

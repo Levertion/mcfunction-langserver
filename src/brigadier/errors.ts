@@ -6,10 +6,6 @@ import { MCFormat } from "../misc-functions";
  */
 export interface BlankCommandError {
     /**
-     * Signifies that the error is a command error.
-     */
-    _e: "1";
-    /**
      * The code of this error, usable for translation?
      */
     code: string;
@@ -72,21 +68,12 @@ export class CommandErrorBuilder {
 
     public createBlank(...substitutions: string[]): BlankCommandError {
         return {
-            _e: "1",
             code: this.code,
             severity: this.severity,
             substitutions,
             text: MCFormat(this.default, ...substitutions)
         };
     }
-}
-
-/**
- * Test if `T` is a command error
- * @param T The thing to test
- */
-export function isCommandError(T: any): T is CommandError {
-    return T._e === "1";
 }
 
 /**

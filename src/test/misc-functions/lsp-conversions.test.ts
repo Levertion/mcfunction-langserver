@@ -19,7 +19,6 @@ describe("Language Server Conversions (Misc)", () => {
             assert.deepStrictEqual(
                 commandErrorToDiagnostic(
                     {
-                        _e: "1",
                         code: "mcfunction.test",
                         range: { start: 10, end: 100 },
                         severity: DiagnosticSeverity.Error,

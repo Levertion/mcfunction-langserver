@@ -1,6 +1,6 @@
 import { getResourcesofType } from "../../misc-functions/group-resources";
 import { CommmandData } from "../../types";
-import { assertNamespaces } from "../assertions";
+import { assertNamespaces, convertToResource } from "../assertions";
 
 const dummyData: CommmandData = {
     globalData: {
@@ -11,7 +11,7 @@ const dummyData: CommmandData = {
                     path: "test"
                 }
             ],
-            functions: [{ namespace: "minecraft", path: "test2" }]
+            functions: [convertToResource("minecraft:test2")]
         }
     } as any,
     localData: {
@@ -61,11 +61,11 @@ describe("Group Resources (Misc)", () => {
         const result = getResourcesofType(dummyData, "advancements");
         assertNamespaces(
             [
-                { namespace: "minecraft", path: "test" },
-                { namespace: "local", path: "test" },
-                { namespace: "local", path: "testfolder/testchild" },
-                { namespace: "other", path: "secondtest" },
-                { namespace: "secondpath", path: "path" }
+                convertToResource("minecraft:test"),
+                convertToResource("local:test"),
+                convertToResource("local:testfolder/testchild"),
+                convertToResource("other:secondtest"),
+                convertToResource("secondpath:path")
             ],
             result
         );
