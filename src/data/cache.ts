@@ -10,7 +10,7 @@ import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import { WorkspaceSecurity } from "../types";
 import { Cacheable } from "./types";
 
-const cacheFolder = path.join(__dirname, "cache");
+const cacheFolder = path.join(process.cwd(), "cache");
 
 const cacheFileNames: { [K in keyof Cacheable]: string } = {
     blocks: "blocks.json",

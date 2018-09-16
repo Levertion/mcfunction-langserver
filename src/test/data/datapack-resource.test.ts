@@ -12,7 +12,7 @@ import {
 import { emptyGlobal } from "../blanks";
 
 // Tests are run from within the lib folder, but data is in the root
-const rootFolder = path.join(__dirname, "..", "..", "..", "test_data");
+const rootFolder = path.join(process.cwd(), "test_data");
 describe("Datapack Resource Testing", () => {
     it("should return the correct data", async () => {
         const datapacks = path.join(rootFolder, "test_world", "datapacks");

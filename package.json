@@ -4,12 +4,13 @@
     "version": "0.0.1",
     "author": "Levertion",
     "license": "MIT",
-    "main": "out/index.js",
+    "main": "dist/index.js",
     "scripts": {
+        "precommit": "pretty-quick --staged && npm run check && npm run test && npm run lint",
+        "build": "parcel build src/index.ts --target=node",
         "test": "mocha --opts ./mocha.opts",
-        "compile": "tsc -p tsconfig.json",
+        "check": "tsc -p tsconfig.json --noEmit",
         "lint": "tslint --project .",
-        "precommit": "pretty-quick --staged",
         "prettier": "prettier **/*.{ts,json,yml}",
         "prettier:write": "npm run prettier -- --write",
         "contributors:add": "all-contributors add",
@@ -19,6 +20,9 @@
         "type": "git",
         "url": "https://github.com/Levertion/mcfunction-langserver/"
     },
+    "files": [
+        "dist"
+    ],
     "keywords": [
         "Minecraft"
     ],
@@ -45,9 +49,11 @@
         "all-contributors-cli": "5.4.0",
         "husky": "0.14.3",
         "mocha": "5.2.0",
+        "parcel": "^1.9.7",
         "prettier": "1.14.2",
         "pretty-quick": "1.6.0",
         "rimraf": "2.6.2",
+        "ts-mocha": "^2.0.0",
         "tslint": "5.11.0",
         "tslint-config-prettier": "1.15.0",
         "typescript": "3.0.3",
