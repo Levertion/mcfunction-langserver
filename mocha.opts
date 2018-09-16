@@ -1,5 +1,6 @@
 --ui tdd
 --colors
 --timeout 999999
---require ./out/test/logging-setup.js
-out/test/**/*.test.js
+--require ts-mocha
+--require ./src/test/logging-setup.ts
+src/test/**/*.test.ts
