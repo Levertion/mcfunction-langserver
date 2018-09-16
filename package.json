@@ -20,6 +20,9 @@
         "type": "git",
         "url": "https://github.com/Levertion/mcfunction-langserver/"
     },
+    "files": [
+        "dist"
+    ],
     "keywords": [
         "Minecraft"
     ],
