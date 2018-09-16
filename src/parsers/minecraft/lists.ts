@@ -4,13 +4,7 @@ import { StringReader } from "../../brigadier/string-reader";
 import { COLORS } from "../../colors";
 import { itemSlots } from "../../data/lists/item-slot";
 import { scoreboardSlots } from "../../data/lists/scoreboard-slot";
-import {
-    anchors,
-    effects,
-    enchantments,
-    operations,
-    particles
-} from "../../data/lists/statics";
+import { anchors, operations } from "../../data/lists/statics";
 import { ReturnHelper } from "../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 
@@ -61,32 +55,14 @@ const entityAnchorError = new CommandErrorBuilder(
 );
 export const entityAnchorParser = new ListParser(anchors, entityAnchorError);
 
-const enchantmentError = new CommandErrorBuilder(
-    "enchantment.unknown",
-    "Unknown enchantment: %s"
-);
-export const enchantmentParser = new ListParser(enchantments, enchantmentError);
-
 const slotError = new CommandErrorBuilder("slot.unknown", "Unknown slot '%s'");
 export const itemSlotParser = new ListParser(itemSlots, slotError);
-
-const mobEffectError = new CommandErrorBuilder(
-    "effect.effectNotFound",
-    "Unknown effect: %s"
-);
-export const mobEffectParser = new ListParser(effects, mobEffectError);
 
 const operationError = new CommandErrorBuilder(
     "arguments.operation.invalid",
     "Invalid operation"
 );
 export const operationParser = new ListParser(operations, operationError);
-
-const particleError = new CommandErrorBuilder(
-    "particle.notFound",
-    "Unknown particle: %s"
-);
-export const particleParser = new ListParser(particles, particleError);
 
 const scoreboardSlotError = new CommandErrorBuilder(
     "argument.scoreboardDisplaySlot.invalid",

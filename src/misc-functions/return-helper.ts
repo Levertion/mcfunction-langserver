@@ -162,19 +162,36 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         merge: ReturnedInfo<any, Errorkind>,
         suggestOverride?: boolean
     ): this {
-        for (const val of [suggestOverride, this.suggesting]) {
-            if (typeof val === "boolean") {
-                if (val) {
-                    this.mergeSuggestions(merge);
-                } else {
-                    this.mergeSafe(merge);
-                }
-                return this;
+        let suggest: boolean | undefined;
+        if (suggestOverride !== undefined) {
+            suggest = suggestOverride;
+        } else {
+            if (this.suggesting !== undefined) {
+                suggest = this.suggesting;
             }
         }
-        this.mergeSuggestions(merge);
-        this.mergeSafe(merge);
+        switch (suggest) {
+            case true:
+                this.mergeSuggestions(merge);
+                break;
+            case false:
+                this.mergeSafe(merge);
+                break;
+            default:
+                this.mergeSuggestions(merge);
+                this.mergeSafe(merge);
+        }
         return this;
+    }
+
+    public return<T, E>(
+        other: ReturnedInfo<T, Errorkind, E>
+    ): ReturnedInfo<T, Errorkind, E> {
+        if (this.merge(other)) {
+            return this.succeed(other.data);
+        } else {
+            return this.failWithData(other.data);
+        }
     }
 
     public succeed<T extends undefined>(
