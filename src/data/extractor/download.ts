@@ -1,6 +1,7 @@
+// tslint:disable:no-require-imports
 import * as fs from "fs";
 import * as path from "path";
-import * as requestPromise from "request-promise-native";
+// #import * as requestPromise from "request-promise-native";
 
 export async function getPathToJar(
     tempdir: string,
@@ -19,7 +20,7 @@ export async function downloadJar(
 ): Promise<JarInfo> {
     const versionInfo = await getLatestVersionInfo();
     if (versionInfo.id !== currentversion) {
-        const singleVersion: SingleVersionInformation = await requestPromise(
+        const singleVersion: SingleVersionInformation = await (require("request-promise-native") as typeof import("request-promise-native"))(
             versionInfo.url,
             {
                 json: true
@@ -29,7 +30,7 @@ export async function downloadJar(
             tmpDirName,
             `minecraft-function-${versionInfo.id}.jar`
         );
-        const requestPromised = requestPromise(
+        const requestPromised = (require("request-promise-native") as typeof import("request-promise-native"))(
             singleVersion.downloads.server.url
         );
         requestPromised.pipe(fs.createWriteStream(jarPath));
@@ -59,9 +60,11 @@ interface SingleVersionInformation {
 }
 
 async function getLatestVersionInfo(): Promise<VersionInfo> {
-    const manifest: VersionsManifest = await requestPromise(
+    const manifest: VersionsManifest = await (require("request-promise-native") as typeof import("request-promise-native"))(
         "https://launchermeta.mojang.com/mc/game/version_manifest.json",
-        { json: true }
+        {
+            json: true
+        }
     ).promise();
     const version = findVersion(getVersionId(manifest), manifest);
     return version;
