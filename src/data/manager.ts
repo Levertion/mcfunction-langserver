@@ -217,7 +217,8 @@ export class DataManager {
             this.globalDataInternal = data.data;
             return true;
         } catch (error) {
-            return error.toString();
+            return `Error loading global data: ${error.stack ||
+                error.toString()}`;
         }
     }
 
