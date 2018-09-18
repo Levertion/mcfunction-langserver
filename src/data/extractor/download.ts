@@ -1,6 +1,7 @@
 // tslint:disable:no-require-imports
 import * as fs from "fs";
 import * as path from "path";
+// @ts-ignore `import *` syntax is broken in this case as requestPromise would be a function
 import requestPromise from "request-promise-native";
 
 export async function getPathToJar(
