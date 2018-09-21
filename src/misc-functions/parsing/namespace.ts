@@ -7,7 +7,6 @@ import {
 } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-
 import { NamespacedName } from "../../data/types";
 import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
 import { isNamespaceDefault, namesEqual } from "../namespace";
