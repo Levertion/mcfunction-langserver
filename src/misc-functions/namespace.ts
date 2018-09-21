@@ -5,14 +5,20 @@ export function namespacesEqual(
     first: NamespacedName,
     second: NamespacedName
 ): boolean {
+    return namesEqual(first, second) && first.path === second.path;
+}
+
+export function namesEqual(
+    first: NamespacedName,
+    second: NamespacedName
+): boolean {
     return (
-        (first.namespace === second.namespace ||
-            (isDefault(first) && isDefault(second))) &&
-        first.path === second.path
+        first.namespace === second.namespace ||
+        (isNamespaceDefault(first) && isNamespaceDefault(second))
     );
 }
 
-function isDefault(name: NamespacedName): boolean {
+export function isNamespaceDefault(name: NamespacedName): boolean {
     return name.namespace === undefined || name.namespace === DEFAULT_NAMESPACE;
 }
 

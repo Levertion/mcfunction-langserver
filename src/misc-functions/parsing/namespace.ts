@@ -7,9 +7,10 @@ import {
 } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { DEFAULT_NAMESPACE } from "../../consts";
+
 import { NamespacedName } from "../../data/types";
 import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
+import { isNamespaceDefault, namesEqual } from "../namespace";
 
 const NAMESPACEEXCEPTIONS = {
     invalid_id: new CommandErrorBuilder(
@@ -32,17 +33,13 @@ export function namespaceStart(
     base: NamespacedName,
     test: NamespacedName
 ): boolean {
-    // Note that base namespace should not be undefined in any reasonable circumstances
     if (test.namespace === undefined) {
         return (
-            (base.namespace === DEFAULT_NAMESPACE &&
-                base.path.startsWith(test.path)) ||
+            (isNamespaceDefault(base) && base.path.startsWith(test.path)) ||
             (!!base.namespace && base.namespace.startsWith(test.path))
         );
     } else {
-        return (
-            base.namespace === test.namespace && base.path.startsWith(test.path)
-        );
+        return namesEqual(base, test) && base.path.startsWith(test.path);
     }
 }
 
