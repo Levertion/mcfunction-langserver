@@ -119,6 +119,7 @@ export function buildTagActions(
     tags: Array<DataResource<Tag>>,
     low: number,
     high: number,
+    type: keyof Resources,
     localData?: WorldInfo
 ): ReturnSuccess<void> {
     const helper = new ReturnHelper();
@@ -134,7 +135,7 @@ ${JSON.stringify(resource.data, undefined, 4)}
             });
         }
         if (localData) {
-            const location = buildPath(resource, localData, "block_tags");
+            const location = buildPath(resource, localData, type);
             if (location) {
                 helper.addActions({
                     data: location,

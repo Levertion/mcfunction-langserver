@@ -19,7 +19,7 @@ export async function readJSONRaw<T>(filePath: string): Promise<T> {
 }
 
 export async function writeJSON(filepath: string, o: object): Promise<void> {
-    await saveFileAsync(filepath, JSON.stringify(o));
+    await saveFileAsync(filepath, JSON.stringify(o, undefined, 4));
 }
 
 export async function readJSON<T>(filePath: string): Promise<ReturnedInfo<T>> {

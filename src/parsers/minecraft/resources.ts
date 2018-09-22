@@ -2,6 +2,7 @@ import { CompletionItemKind } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { Resources } from "../../data/types";
 import {
+    buildTagActions,
     ContextPath,
     convertToNamespace,
     getResourcesofType,
@@ -50,6 +51,15 @@ export const functionParser: Parser = {
         if (helper.merge(parsed)) {
             const data = parsed.data;
             if (data.resolved && data.values) {
+                helper.merge(
+                    buildTagActions(
+                        data.values,
+                        start,
+                        reader.cursor,
+                        "item_tags",
+                        info.data.localData
+                    )
+                );
                 return helper.succeed();
             } else {
                 const options = getResourcesofType(info.data, "functions");
