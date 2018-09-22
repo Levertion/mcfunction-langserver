@@ -2,23 +2,28 @@ import { EventEmitter } from "events";
 import { promisify } from "util";
 import { shim } from "util.promisify";
 shim();
+import { Interval, IntervalTree } from "node-interval-tree";
 import {
     CompletionList,
     createConnection,
     Diagnostic,
     DidChangeWatchedFilesNotification,
+    Hover,
     IPCMessageReader,
     IPCMessageWriter,
+    Position,
+    TextDocumentPositionParams,
     TextDocumentSyncKind
 } from "vscode-languageserver/lib/main";
-import { mergeDeep } from "./misc-functions/third_party/merge-deep";
 
 import { computeCompletions } from "./completions";
 import { readSecurity } from "./data/cache";
 import { DataManager } from "./data/manager";
+import { CommandNode } from "./data/types";
 import {
     actOnSecurity,
     commandErrorToDiagnostic,
+    followPath,
     isSuccessful,
     parseDataPath,
     runChanges,
@@ -26,8 +31,16 @@ import {
     setup_logging,
     splitLines
 } from "./misc-functions";
+import { mergeDeep } from "./misc-functions/third_party/merge-deep";
 import { parseDocument, parseLines } from "./parse";
-import { FunctionInfo, MiscInfo, WorkspaceSecurity } from "./types";
+import {
+    CommandLine,
+    FunctionInfo,
+    MiscInfo,
+    ParseNode,
+    SubAction,
+    WorkspaceSecurity
+} from "./types";
 
 const connection = createConnection(
     new IPCMessageReader(process),
@@ -57,6 +70,7 @@ connection.onInitialize(() => {
             completionProvider: {
                 resolveProvider: false
             },
+            hoverProvider: true,
             textDocumentSync: {
                 change: TextDocumentSyncKind.Incremental,
                 openClose: true
@@ -76,12 +90,9 @@ connection.onDidChangeConfiguration(async params => {
     }
     await ensureSecure(params.settings);
     const reparseall = () => {
-        for (const uri in documents) {
-            if (documents.has(uri)) {
-                const doc = documents.get(uri) as FunctionInfo;
-                parseDocument(doc, manager, parseCompletionEvents, uri);
-                sendDiagnostics(uri);
-            }
+        for (const [uri, doc] of documents.entries()) {
+            parseDocument(doc, manager, parseCompletionEvents, uri);
+            sendDiagnostics(uri);
         }
     };
     if (startinglocal) {
@@ -300,3 +311,117 @@ connection.onCompletion(params => {
         )().then<CompletionList>(computeCompletionsLocal);
     }
 });
+
+connection.onHover(params => {
+    if (started) {
+        const docLine = getLine(params);
+        if (docLine) {
+            function computeIntervalHovers<T extends Interval>(
+                intervals: T[],
+                commandLine: CommandLine,
+                line: number,
+                map: (intervals: T[]) => Hover["contents"]
+            ): Hover {
+                const end: Position = {
+                    character: intervals.reduce(
+                        (acc, v) => Math.max(acc, v.high),
+                        0
+                    ),
+                    line
+                };
+                const start: Position = {
+                    character: intervals.reduce(
+                        (acc, v) => Math.min(acc, v.low),
+                        commandLine.text.length
+                    ),
+                    line
+                };
+                return {
+                    contents: map(intervals),
+                    range: { start, end }
+                };
+            }
+            const hovers = getActionsOfKind(docLine, params.position, "hover");
+            if (hovers.length > 0) {
+                return computeIntervalHovers(
+                    hovers,
+                    docLine,
+                    params.position.line,
+                    i => i.map(v => v.data)
+                );
+            } else {
+                const tree = getNodeTree(docLine);
+                if (tree) {
+                    const matching = tree.search(
+                        params.position.character,
+                        params.position.character
+                    );
+                    if (matching.length > 0) {
+                        return computeIntervalHovers(
+                            matching,
+                            docLine,
+                            params.position.line,
+                            i =>
+                                i.map<string>(node => {
+                                    const data = followPath(
+                                        manager.globalData.commands,
+                                        node.path
+                                    ) as CommandNode;
+                                    return `${
+                                        data.type === "literal"
+                                            ? "literal"
+                                            : `\`${data.parser}\` parser`
+                                    } on path '${node.path.join(", ")}'`;
+                                })
+                        );
+                    }
+                }
+            }
+        }
+    }
+    return undefined;
+});
+
+function getLine(params: TextDocumentPositionParams): CommandLine | undefined {
+    const doc = documents.get(params.textDocument.uri);
+    if (doc) {
+        const line = doc.lines[params.position.line];
+
+        return line;
+    }
+    return undefined;
+}
+
+function getActionsOfKind(
+    line: CommandLine,
+    position: Position,
+    kind: SubAction["type"]
+): SubAction[] {
+    if (line.parseInfo) {
+        if (!line.actions) {
+            line.actions = new IntervalTree();
+            for (const action of line.parseInfo.actions) {
+                line.actions.insert(action);
+            }
+        }
+        const tree = line.actions;
+        return tree
+            .search(position.character, position.character)
+            .filter(v => v.type === kind);
+    }
+    return [];
+}
+
+function getNodeTree(line: CommandLine): IntervalTree<ParseNode> | undefined {
+    if (line.nodes) {
+        return line.nodes;
+    }
+    if (line.parseInfo) {
+        const tree = new IntervalTree<ParseNode>();
+        for (const node of line.parseInfo.nodes) {
+            tree.insert(node);
+        }
+        return tree;
+    }
+    return undefined;
+}

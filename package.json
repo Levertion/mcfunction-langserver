@@ -6,7 +6,7 @@
     "license": "MIT",
     "main": "dist/index.js",
     "scripts": {
-        "precommit": "pretty-quick --staged && npm run check && npm run test && npm run lint",
+        "precommit": "pretty-quick --staged && npm run check && npm run test && npm run lint && npm run build && git add dist",
         "build": "parcel build src/index.ts --target=node",
         "test": "mocha --opts ./mocha.opts",
         "check": "tsc -p tsconfig.json --noEmit",
