@@ -18,7 +18,7 @@ const NAMESPACEEXCEPTIONS = {
     )
 };
 
-const allowedPath = /[^a-z0-9_.-]/g;
+const disallowedPath = /[^0-9a-z_/\.-]/g;
 
 export function readNamespaceText(reader: StringReader): string {
     const namespaceChars = /^[0-9a-z_:/\.-]$/;
@@ -80,7 +80,7 @@ export function parseNamespace(
     let failed = false;
     // Give an error for each invalid character
     do {
-        next = allowedPath.exec(namespace.path);
+        next = disallowedPath.exec(namespace.path);
         if (next) {
             // Relies on the fact that convertToNamespace splits on the first
             const i = text.indexOf(":") + 1 + next.index + start;
