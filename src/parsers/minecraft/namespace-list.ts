@@ -1,6 +1,7 @@
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import {
+    dimensions,
     effects,
     enchantments,
     entities,
@@ -77,3 +78,13 @@ const particleError = new CommandErrorBuilder(
     "Unknown particle: %s"
 );
 export const particleParser = new NamespaceListParser(particles, particleError);
+
+const dimensionError = new CommandErrorBuilder(
+    "argument.dimension.invalid",
+    "Unknown dimension: '%s'"
+);
+
+export const dimensionParser = new NamespaceListParser(
+    dimensions,
+    dimensionError
+);
