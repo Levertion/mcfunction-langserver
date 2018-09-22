@@ -33,23 +33,43 @@ describe("Namespace Parsing Functions", () => {
         describe("test namespace undefined", () => {
             it("should allow a starting path with the default namespace", () => {
                 assert(
-                    namespaceStart(convertToNamespace("minecraft:testing"), {
-                        path: "test"
-                    })
+                    namespaceStart(
+                        convertToNamespace("minecraft:testing"),
+                        convertToNamespace("test")
+                    )
                 );
             });
             it("should disallow a starting path with a non-default namespace", () => {
                 assert(
-                    !namespaceStart(convertToNamespace("other:testing"), {
-                        path: "test"
-                    })
+                    !namespaceStart(
+                        convertToNamespace("other:testing"),
+                        convertToNamespace("test")
+                    )
                 );
             });
             it("should allow a namespace starting with the path", () => {
                 assert(
-                    namespaceStart(convertToNamespace("testing:path"), {
-                        path: "test"
-                    })
+                    namespaceStart(
+                        convertToNamespace("testing:path"),
+                        convertToNamespace("test")
+                    )
+                );
+            });
+        });
+
+        describe("base namespace undefined", () => {
+            it("should act as if there was a minecraft namespace", () => {
+                assert(
+                    namespaceStart(
+                        convertToNamespace("hello"),
+                        convertToNamespace("minecraft:he")
+                    )
+                );
+                assert(
+                    namespaceStart(
+                        convertToNamespace("hello"),
+                        convertToNamespace("he")
+                    )
                 );
             });
         });
