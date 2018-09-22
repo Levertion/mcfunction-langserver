@@ -90,8 +90,10 @@ export const objectiveParser: Parser = {
                         return helper.fail();
                     }
                 }
+                return helper.succeed();
             }
         }
+        reader.readUnquotedString();
         return helper.succeed();
     }
 };
@@ -138,6 +140,8 @@ ${JSON.stringify(team, undefined, 4)}
                     }
                 }
             }
+        } else {
+            reader.readUnquotedString();
         }
         return helper.succeed();
     }
