@@ -25,6 +25,7 @@ export interface CommandLine {
      * A cache of the tree of actions
      */
     actions?: IntervalTree<SubAction>;
+    nodes?: IntervalTree<ParseNode>;
     parseInfo?: StoredParseResult | false;
     text: string;
 }

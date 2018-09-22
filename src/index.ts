@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import { promisify } from "util";
 import { shim } from "util.promisify";
 shim();
+import { IntervalTree } from "node-interval-tree";
 import {
     CompletionList,
     createConnection,
@@ -9,16 +10,19 @@ import {
     DidChangeWatchedFilesNotification,
     IPCMessageReader,
     IPCMessageWriter,
+    Position,
+    TextDocumentPositionParams,
     TextDocumentSyncKind
 } from "vscode-languageserver/lib/main";
-import { mergeDeep } from "./misc-functions/third_party/merge-deep";
 
 import { computeCompletions } from "./completions";
 import { readSecurity } from "./data/cache";
 import { DataManager } from "./data/manager";
+import { CommandNode } from "./data/types";
 import {
     actOnSecurity,
     commandErrorToDiagnostic,
+    followPath,
     isSuccessful,
     parseDataPath,
     runChanges,
@@ -26,8 +30,16 @@ import {
     setup_logging,
     splitLines
 } from "./misc-functions";
+import { mergeDeep } from "./misc-functions/third_party/merge-deep";
 import { parseDocument, parseLines } from "./parse";
-import { FunctionInfo, MiscInfo, WorkspaceSecurity } from "./types";
+import {
+    CommandLine,
+    FunctionInfo,
+    MiscInfo,
+    ParseNode,
+    SubAction,
+    WorkspaceSecurity
+} from "./types";
 
 const connection = createConnection(
     new IPCMessageReader(process),
@@ -57,6 +69,7 @@ connection.onInitialize(() => {
             completionProvider: {
                 resolveProvider: false
             },
+            hoverProvider: true,
             textDocumentSync: {
                 change: TextDocumentSyncKind.Incremental,
                 openClose: true
@@ -300,3 +313,109 @@ connection.onCompletion(params => {
         )().then<CompletionList>(computeCompletionsLocal);
     }
 });
+
+connection.onHover(params => {
+    if (started) {
+        const docLine = getLine(params);
+        if (docLine) {
+            const hovers = getActionsOfKind(docLine, params.position, "hover");
+            if (hovers.length > 0) {
+                const line = params.position.line;
+                const end = {
+                    character: hovers.reduce(
+                        (acc, v) => Math.max(acc, v.high),
+                        0
+                    ),
+                    line
+                };
+                const start = {
+                    character: hovers.reduce(
+                        (acc, v) => Math.min(acc, v.low),
+                        docLine.text.length
+                    ),
+                    line
+                };
+                return {
+                    contents: hovers.map(v => v.data),
+                    range: { start, end }
+                };
+            } else {
+                const tree = getNodeTree(docLine);
+                if (tree) {
+                    const matching = tree.search(
+                        params.position.character,
+                        params.position.character
+                    );
+                    return {
+                        contents: matching.map<string>(node => {
+                            const data = followPath(
+                                manager.globalData.commands,
+                                node.path
+                            ) as CommandNode;
+                            return `${
+                                data.type === "literal"
+                                    ? "literal"
+                                    : data.parser
+                            } parser on path '${node.path.join()}'`;
+                        }),
+                        range: {
+                            end: {
+                                character: matching[0].high,
+                                line: params.position.line
+                            },
+                            start: {
+                                character: matching[0].low,
+                                line: params.position.line
+                            }
+                        }
+                    };
+                }
+            }
+        }
+    }
+    return undefined;
+});
+
+function getLine(params: TextDocumentPositionParams): CommandLine | undefined {
+    const doc = documents.get(params.textDocument.uri);
+    if (doc) {
+        const line = doc.lines[params.position.line];
+
+        return line;
+    }
+    return undefined;
+}
+
+function getActionsOfKind(
+    line: CommandLine,
+    position: Position,
+    kind: SubAction["type"]
+): SubAction[] {
+    if (line.parseInfo) {
+        if (!line.actions) {
+            line.actions = new IntervalTree();
+            for (const action of line.parseInfo.actions) {
+                line.actions.insert(action);
+            }
+        }
+        const tree = line.actions;
+        return tree
+            .search(position.character, position.character)
+            .filter(v => v.type === kind);
+    }
+    return [];
+}
+
+function getNodeTree(line: CommandLine): IntervalTree<ParseNode> | undefined {
+    if (line.nodes) {
+        return line.nodes;
+    }
+    if (line.parseInfo) {
+        const tree = new IntervalTree<ParseNode>();
+        for (const node of line.parseInfo.nodes) {
+            tree.insert(node);
+        }
+        return tree;
+    }
+    return undefined;
+}

@@ -227,15 +227,16 @@ export function parseLines(
         const line = document.lines[lineNo];
         const packsInfo = data.getPackFolderData(document.pack_segments);
         let localData: LocalData | undefined;
-        if (packsInfo) {
+        if (packsInfo && document.pack_segments) {
             localData = {
                 ...packsInfo,
-                // tslint:disable-next-line:no-non-null-assertion If packsinfo is defined, so is document.pack_segments
-                current: packsInfo.packnamesmap[document.pack_segments!.pack]
+                current: packsInfo.packnamesmap[document.pack_segments.pack]
             };
         }
         const result = parseCommand(line.text, data.globalData, localData);
         line.parseInfo = result ? result : false;
+        line.actions = undefined;
+        line.nodes = undefined;
         emitter.emit(`${documentUri}:${lineNo}`);
     }
 }
