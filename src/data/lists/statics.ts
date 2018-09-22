@@ -221,3 +221,5 @@ export const entities = [
     "lightning_bolt",
     "trident"
 ];
+
+export const dimensions = ["overworld", "the_nether", "the_end"];
