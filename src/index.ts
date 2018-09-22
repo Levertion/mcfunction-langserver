@@ -2,12 +2,13 @@ import { EventEmitter } from "events";
 import { promisify } from "util";
 import { shim } from "util.promisify";
 shim();
-import { IntervalTree } from "node-interval-tree";
+import { Interval, IntervalTree } from "node-interval-tree";
 import {
     CompletionList,
     createConnection,
     Diagnostic,
     DidChangeWatchedFilesNotification,
+    Hover,
     IPCMessageReader,
     IPCMessageWriter,
     Position,
@@ -89,12 +90,9 @@ connection.onDidChangeConfiguration(async params => {
     }
     await ensureSecure(params.settings);
     const reparseall = () => {
-        for (const uri in documents) {
-            if (documents.has(uri)) {
-                const doc = documents.get(uri) as FunctionInfo;
-                parseDocument(doc, manager, parseCompletionEvents, uri);
-                sendDiagnostics(uri);
-            }
+        for (const [uri, doc] of documents.entries()) {
+            parseDocument(doc, manager, parseCompletionEvents, uri);
+            sendDiagnostics(uri);
         }
     };
     if (startinglocal) {
@@ -318,27 +316,39 @@ connection.onHover(params => {
     if (started) {
         const docLine = getLine(params);
         if (docLine) {
-            const hovers = getActionsOfKind(docLine, params.position, "hover");
-            if (hovers.length > 0) {
-                const line = params.position.line;
-                const end = {
-                    character: hovers.reduce(
+            function computeIntervalHovers<T extends Interval>(
+                intervals: T[],
+                commandLine: CommandLine,
+                line: number,
+                map: (intervals: T[]) => Hover["contents"]
+            ): Hover {
+                const end: Position = {
+                    character: intervals.reduce(
                         (acc, v) => Math.max(acc, v.high),
                         0
                     ),
                     line
                 };
-                const start = {
-                    character: hovers.reduce(
+                const start: Position = {
+                    character: intervals.reduce(
                         (acc, v) => Math.min(acc, v.low),
-                        docLine.text.length
+                        commandLine.text.length
                     ),
                     line
                 };
                 return {
-                    contents: hovers.map(v => v.data),
+                    contents: map(intervals),
                     range: { start, end }
                 };
+            }
+            const hovers = getActionsOfKind(docLine, params.position, "hover");
+            if (hovers.length > 0) {
+                return computeIntervalHovers(
+                    hovers,
+                    docLine,
+                    params.position.line,
+                    i => i.map(v => v.data)
+                );
             } else {
                 const tree = getNodeTree(docLine);
                 if (tree) {
@@ -346,29 +356,25 @@ connection.onHover(params => {
                         params.position.character,
                         params.position.character
                     );
-                    return {
-                        contents: matching.map<string>(node => {
-                            const data = followPath(
-                                manager.globalData.commands,
-                                node.path
-                            ) as CommandNode;
-                            return `${
-                                data.type === "literal"
-                                    ? "literal"
-                                    : data.parser
-                            } parser on path '${node.path.join()}'`;
-                        }),
-                        range: {
-                            end: {
-                                character: matching[0].high,
-                                line: params.position.line
-                            },
-                            start: {
-                                character: matching[0].low,
-                                line: params.position.line
-                            }
-                        }
-                    };
+                    if (matching.length > 0) {
+                        return computeIntervalHovers(
+                            matching,
+                            docLine,
+                            params.position.line,
+                            i =>
+                                i.map<string>(node => {
+                                    const data = followPath(
+                                        manager.globalData.commands,
+                                        node.path
+                                    ) as CommandNode;
+                                    return `${
+                                        data.type === "literal"
+                                            ? "literal"
+                                            : `\`${data.parser}\` parser`
+                                    } on path '${node.path.join(", ")}'`;
+                                })
+                        );
+                    }
                 }
             }
         }
