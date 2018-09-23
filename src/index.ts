@@ -92,6 +92,7 @@ connection.onDidChangeConfiguration(async params => {
     await ensureSecure(params.settings);
     const reparseall = () => {
         for (const [uri, doc] of documents.entries()) {
+            loadData(uri);
             parseDocument(doc, manager, parseCompletionEvents, uri);
             sendDiagnostics(uri);
         }
@@ -152,6 +153,35 @@ async function ensureSecure(settings: {
     global.mcLangSettings = newsettings;
 }
 
+function loadData(uri: string): void {
+    const doc = documents.get(uri);
+    if (doc && doc.pack_segments) {
+        const segments = doc.pack_segments;
+        manager
+            .readPackFolderData(segments.packsFolder)
+            .then(first => {
+                if (isSuccessful(first)) {
+                    connection.client.register(
+                        DidChangeWatchedFilesNotification.type,
+                        {
+                            watchers: [
+                                {
+                                    globPattern: `${segments.packsFolder}/**/*`
+                                }
+                            ]
+                        }
+                    );
+                }
+                parseDocument(doc, manager, parseCompletionEvents, uri);
+                sendDiagnostics(uri);
+                handleMiscInfo(first.misc);
+            })
+            .catch(e => {
+                mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
+            });
+    }
+}
+
 connection.onDidOpenTextDocument(params => {
     const uri = params.textDocument.uri;
     const uriClass = Uri.parse(uri);
@@ -174,42 +204,17 @@ connection.onDidOpenTextDocument(params => {
             lines: splitLines(params.textDocument.text),
             pack_segments: dataPackSegments
         });
-        if (!!dataPackSegments) {
-            manager
-                .readPackFolderData(dataPackSegments.packsFolder)
-                .then(first => {
-                    if (isSuccessful(first)) {
-                        connection.client.register(
-                            DidChangeWatchedFilesNotification.type,
-                            {
-                                watchers: [
-                                    {
-                                        globPattern: `${
-                                            dataPackSegments.packsFolder
-                                        }/**/*`
-                                    }
-                                ]
-                            }
-                        );
-                    }
-                    parsethis();
-                    handleMiscInfo(first.misc);
-                })
-                .catch(e => {
-                    mcLangLog(
-                        `Getting pack folder data failed for reason: '${e}'`
-                    );
-                });
-        } else if (started) {
-            parsethis();
+        if (started) {
+            loadData(uri);
         }
+        parsethis();
     } else {
         documents.set(uri, {
             lines: splitLines(params.textDocument.text),
             pack_segments: undefined
         });
-        parsethis();
     }
+    parsethis();
 });
 
 connection.onDidChangeTextDocument(params => {

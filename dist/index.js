@@ -3361,6 +3361,7 @@ connection.onDidChangeConfiguration(async params => {
     await ensureSecure(params.settings);
     const reparseall = () => {
         for (const [uri, doc] of documents.entries()) {
+            loadData(uri);
             parse_1.parseDocument(doc, manager, parseCompletionEvents, uri);
             sendDiagnostics(uri);
         }
@@ -3400,6 +3401,26 @@ async function ensureSecure(settings) {
     }
     global.mcLangSettings = newsettings;
 }
+function loadData(uri) {
+    const doc = documents.get(uri);
+    if (doc && doc.pack_segments) {
+        const segments = doc.pack_segments;
+        manager.readPackFolderData(segments.packsFolder).then(first => {
+            if (misc_functions_1.isSuccessful(first)) {
+                connection.client.register(main_1.DidChangeWatchedFilesNotification.type, {
+                    watchers: [{
+                        globPattern: `${segments.packsFolder}/**/*`
+                    }]
+                });
+            }
+            parse_1.parseDocument(doc, manager, parseCompletionEvents, uri);
+            sendDiagnostics(uri);
+            handleMiscInfo(first.misc);
+        }).catch(e => {
+            mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
+        });
+    }
+}
 connection.onDidOpenTextDocument(params => {
     const uri = params.textDocument.uri;
     const uriClass = vscode_uri_1.default.parse(uri);
@@ -3417,30 +3438,17 @@ connection.onDidOpenTextDocument(params => {
             lines: misc_functions_1.splitLines(params.textDocument.text),
             pack_segments: dataPackSegments
         });
-        if (!!dataPackSegments) {
-            manager.readPackFolderData(dataPackSegments.packsFolder).then(first => {
-                if (misc_functions_1.isSuccessful(first)) {
-                    connection.client.register(main_1.DidChangeWatchedFilesNotification.type, {
-                        watchers: [{
-                            globPattern: `${dataPackSegments.packsFolder}/**/*`
-                        }]
-                    });
-                }
-                parsethis();
-                handleMiscInfo(first.misc);
-            }).catch(e => {
-                mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
-            });
-        } else if (started) {
-            parsethis();
+        if (started) {
+            loadData(uri);
         }
+        parsethis();
     } else {
         documents.set(uri, {
             lines: misc_functions_1.splitLines(params.textDocument.text),
             pack_segments: undefined
         });
-        parsethis();
     }
+    parsethis();
 });
 connection.onDidChangeTextDocument(params => {
     const uri = params.textDocument.uri;
