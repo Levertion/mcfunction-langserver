@@ -3605,7 +3605,7 @@ connection.onDefinition(params => {
         const start = { line: 0, character: 0 };
         return actions.map(a => ({
             range: { start, end: start },
-            uri: a.data
+            uri: vscode_uri_1.default.file(a.data).toString()
         }));
     }
     return [];

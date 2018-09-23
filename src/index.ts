@@ -410,7 +410,7 @@ connection.onDefinition(params => {
         const start: Position = { line: 0, character: 0 };
         return actions.map<Location>(a => ({
             range: { start, end: start },
-            uri: a.data as any
+            uri: Uri.file(a.data as any).toString()
         }));
     }
     return [];
