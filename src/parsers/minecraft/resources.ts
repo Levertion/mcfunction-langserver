@@ -2,6 +2,7 @@ import { CompletionItemKind } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { Resources } from "../../data/types";
 import {
+    buildPath,
     buildTagActions,
     ContextPath,
     convertToNamespace,
@@ -48,6 +49,7 @@ export const functionParser: Parser = {
         const helper = new ReturnHelper(info);
         const start = reader.cursor;
         const parsed = parseNamespaceOrTag(reader, info, "function_tags");
+        const localData = info.data.localData;
         if (helper.merge(parsed)) {
             const data = parsed.data;
             if (data.resolved && data.values) {
@@ -56,8 +58,8 @@ export const functionParser: Parser = {
                         data.values,
                         start,
                         reader.cursor,
-                        "item_tags",
-                        info.data.localData
+                        "function_tags",
+                        localData
                     )
                 );
                 return helper.succeed();
@@ -78,6 +80,23 @@ export const functionParser: Parser = {
                             stringifyNamespace(data.parsed)
                         )
                     );
+                }
+                if (localData) {
+                    for (const func of postProcess.data) {
+                        const location = buildPath(
+                            func,
+                            localData,
+                            "functions"
+                        );
+                        if (location) {
+                            helper.addActions({
+                                data: location,
+                                high: reader.cursor,
+                                low: start,
+                                type: "source"
+                            });
+                        }
+                    }
                 }
                 return helper.mergeChain(postProcess).succeed();
             }

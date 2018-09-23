@@ -2048,16 +2048,30 @@ exports.functionParser = {
         const helper = new misc_functions_1.ReturnHelper(info);
         const start = reader.cursor;
         const parsed = misc_functions_1.parseNamespaceOrTag(reader, info, "function_tags");
+        const localData = info.data.localData;
         if (helper.merge(parsed)) {
             const data = parsed.data;
             if (data.resolved && data.values) {
-                helper.merge(misc_functions_1.buildTagActions(data.values, start, reader.cursor, "item_tags", info.data.localData));
+                helper.merge(misc_functions_1.buildTagActions(data.values, start, reader.cursor, "function_tags", localData));
                 return helper.succeed();
             } else {
                 const options = misc_functions_1.getResourcesofType(info.data, "functions");
                 const postProcess = misc_functions_1.processParsedNamespaceOption(data.parsed, options, info.suggesting && !reader.canRead(), start, vscode_languageserver_1.CompletionItemKind.Method);
                 if (postProcess.data.length === 0) {
                     helper.addErrors(exceptions.unknown_function.create(start, reader.cursor, misc_functions_1.stringifyNamespace(data.parsed)));
+                }
+                if (localData) {
+                    for (const func of postProcess.data) {
+                        const location = misc_functions_1.buildPath(func, localData, "functions");
+                        if (location) {
+                            helper.addActions({
+                                data: location,
+                                high: reader.cursor,
+                                low: start,
+                                type: "source"
+                            });
+                        }
+                    }
                 }
                 return helper.mergeChain(postProcess).succeed();
             }
