@@ -3343,6 +3343,7 @@ connection.onInitialize(() => {
             completionProvider: {
                 resolveProvider: false
             },
+            definitionProvider: true,
             hoverProvider: true,
             textDocumentSync: {
                 change: main_1.TextDocumentSyncKind.Incremental,

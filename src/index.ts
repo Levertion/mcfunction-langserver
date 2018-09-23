@@ -72,6 +72,7 @@ connection.onInitialize(() => {
             completionProvider: {
                 resolveProvider: false
             },
+            definitionProvider: true,
             hoverProvider: true,
             textDocumentSync: {
                 change: TextDocumentSyncKind.Incremental,
