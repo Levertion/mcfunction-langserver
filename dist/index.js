@@ -176,6 +176,8 @@ exports.DEFAULT_NAMESPACE = "minecraft";
 exports.NAMESPACE = ":";
 exports.DATAFOLDER = "data";
 exports.SLASH = "/";
+exports.SLASHREGEX = /\//g;
+exports.SLASHREPLACEREGEX = /\\/g;
 exports.MCMETAFILE = "pack.mcmeta";
 // Blocks
 exports.TAG_START = "#";
@@ -637,7 +639,7 @@ function getKindAndNamespace(rest, path = defaultPath) {
                 if (further.length > 0) {
                     const last = further[further.length - 1];
                     if (path.extname(last) === typeInfo.extension) {
-                        const pth = path.join(...further.slice(0, -1), last.slice(0, -typeInfo.extension.length)).replace(path.sep, consts_1.SLASH);
+                        const pth = path.join(...further.slice(0, -1), last.slice(0, -typeInfo.extension.length)).replace(consts_1.SLASHREPLACEREGEX, consts_1.SLASH);
                         return {
                             kind,
                             location: {
@@ -654,7 +656,7 @@ function getKindAndNamespace(rest, path = defaultPath) {
 }
 exports.getKindAndNamespace = getKindAndNamespace;
 function getPath(resource, packroot, kind, path = defaultPath) {
-    return path.join(packroot, consts_1.DATAFOLDER, resource.namespace, ...exports.resourceTypes[kind].path, resource.path.replace(consts_1.SLASH, path.sep).concat(exports.resourceTypes[kind].extension));
+    return path.join(packroot, consts_1.DATAFOLDER, resource.namespace, ...exports.resourceTypes[kind].path, resource.path.replace(consts_1.SLASHREGEX, path.sep).concat(exports.resourceTypes[kind].extension));
 }
 exports.getPath = getPath;
 function buildPath(resource, packs, kind, path = defaultPath) {
@@ -2683,7 +2685,7 @@ async function getNamespaceResources(namespace, dataFolder, id, result = {}) {
             const newResource = {
                 namespace,
                 pack: id,
-                path: internalUri.slice(0, -realExtension.length).replace(path.sep, consts_1.SLASH)
+                path: internalUri.slice(0, -realExtension.length).replace(consts_1.SLASHREPLACEREGEX, consts_1.SLASH)
             };
             nameSpaceContents.push(newResource);
         }));
