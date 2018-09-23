@@ -2183,7 +2183,8 @@ exports.objectiveParser = {
                         for (const objective of scoreboardData.data.Objectives) {
                             if (objective.Name === result.data) {
                                 helper.addActions({
-                                    data: `${objective.DisplayName} - Criteria: ${objective.CriteriaName}`,
+                                    data: `Displayed as: ${objective.DisplayName}
+Criteria: ${objective.CriteriaName}`,
                                     high: reader.cursor,
                                     low: start,
                                     type: "hover"

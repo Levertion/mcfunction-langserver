@@ -54,9 +54,10 @@ export const objectiveParser: Parser = {
                             .Objectives) {
                             if (objective.Name === result.data) {
                                 helper.addActions({
-                                    data: `${
+                                    data: `Displayed as: ${
                                         objective.DisplayName
-                                    } - Criteria: ${objective.CriteriaName}`,
+                                    }
+Criteria: ${objective.CriteriaName}`,
                                     high: reader.cursor,
                                     low: start,
                                     type: "hover"
