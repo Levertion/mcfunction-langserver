@@ -15,6 +15,7 @@ import {
     TextDocumentPositionParams,
     TextDocumentSyncKind
 } from "vscode-languageserver/lib/main";
+import Uri from "vscode-uri";
 
 import { computeCompletions } from "./completions";
 import { readSecurity } from "./data/cache";
@@ -153,10 +154,10 @@ async function ensureSecure(settings: {
 
 connection.onDidOpenTextDocument(params => {
     const uri = params.textDocument.uri;
-    const dataPackSegments = parseDataPath(uri);
+    const uriClass = Uri.parse(uri);
     const parsethis = () => {
         // Sanity check
-        if (documents.has(uri)) {
+        if (started && documents.has(uri)) {
             parseDocument(
                 documents.get(uri) as FunctionInfo,
                 manager,
@@ -166,34 +167,47 @@ connection.onDidOpenTextDocument(params => {
             sendDiagnostics(uri);
         }
     };
-    documents.set(uri, {
-        lines: splitLines(params.textDocument.text),
-        pack_segments: dataPackSegments
-    });
-    if (!!dataPackSegments) {
-        manager
-            .readPackFolderData(dataPackSegments.packsFolder)
-            .then(first => {
-                if (isSuccessful(first)) {
-                    connection.client.register(
-                        DidChangeWatchedFilesNotification.type,
-                        {
-                            watchers: [
-                                { globPattern: `${dataPackSegments}**/*` }
-                            ]
-                        }
-                    );
-                }
-                if (started && documents.hasOwnProperty(uri)) {
+    if (uriClass.scheme === "file") {
+        const fsPath = uriClass.fsPath;
+        const dataPackSegments = parseDataPath(fsPath);
+        documents.set(uri, {
+            lines: splitLines(params.textDocument.text),
+            pack_segments: dataPackSegments
+        });
+        if (!!dataPackSegments) {
+            manager
+                .readPackFolderData(dataPackSegments.packsFolder)
+                .then(first => {
+                    if (isSuccessful(first)) {
+                        connection.client.register(
+                            DidChangeWatchedFilesNotification.type,
+                            {
+                                watchers: [
+                                    {
+                                        globPattern: `${
+                                            dataPackSegments.packsFolder
+                                        }/**/*`
+                                    }
+                                ]
+                            }
+                        );
+                    }
                     parsethis();
-                }
-                handleMiscInfo(first.misc);
-            })
-            .catch(e => {
-                mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
-            });
-    }
-    if (started) {
+                    handleMiscInfo(first.misc);
+                })
+                .catch(e => {
+                    mcLangLog(
+                        `Getting pack folder data failed for reason: '${e}'`
+                    );
+                });
+        } else if (started) {
+            parsethis();
+        }
+    } else {
+        documents.set(uri, {
+            lines: splitLines(params.textDocument.text),
+            pack_segments: undefined
+        });
         parsethis();
     }
 });

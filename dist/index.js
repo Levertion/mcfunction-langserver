@@ -3313,6 +3313,7 @@ const util_promisify_1 = require("util.promisify");
 util_promisify_1.shim();
 const node_interval_tree_1 = require("node-interval-tree");
 const main_1 = require("vscode-languageserver/lib/main");
+const vscode_uri_1 = tslib_1.__importDefault(require("vscode-uri"));
 const completions_1 = require("./completions");
 const cache_1 = require("./data/cache");
 const manager_1 = require("./data/manager");
@@ -3401,34 +3402,43 @@ async function ensureSecure(settings) {
 }
 connection.onDidOpenTextDocument(params => {
     const uri = params.textDocument.uri;
-    const dataPackSegments = misc_functions_1.parseDataPath(uri);
+    const uriClass = vscode_uri_1.default.parse(uri);
     const parsethis = () => {
         // Sanity check
-        if (documents.has(uri)) {
+        if (started && documents.has(uri)) {
             parse_1.parseDocument(documents.get(uri), manager, parseCompletionEvents, uri);
             sendDiagnostics(uri);
         }
     };
-    documents.set(uri, {
-        lines: misc_functions_1.splitLines(params.textDocument.text),
-        pack_segments: dataPackSegments
-    });
-    if (!!dataPackSegments) {
-        manager.readPackFolderData(dataPackSegments.packsFolder).then(first => {
-            if (misc_functions_1.isSuccessful(first)) {
-                connection.client.register(main_1.DidChangeWatchedFilesNotification.type, {
-                    watchers: [{ globPattern: `${dataPackSegments}**/*` }]
-                });
-            }
-            if (started && documents.hasOwnProperty(uri)) {
-                parsethis();
-            }
-            handleMiscInfo(first.misc);
-        }).catch(e => {
-            mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
+    if (uriClass.scheme === "file") {
+        const fsPath = uriClass.fsPath;
+        const dataPackSegments = misc_functions_1.parseDataPath(fsPath);
+        documents.set(uri, {
+            lines: misc_functions_1.splitLines(params.textDocument.text),
+            pack_segments: dataPackSegments
         });
-    }
-    if (started) {
+        if (!!dataPackSegments) {
+            manager.readPackFolderData(dataPackSegments.packsFolder).then(first => {
+                if (misc_functions_1.isSuccessful(first)) {
+                    connection.client.register(main_1.DidChangeWatchedFilesNotification.type, {
+                        watchers: [{
+                            globPattern: `${dataPackSegments.packsFolder}/**/*`
+                        }]
+                    });
+                }
+                parsethis();
+                handleMiscInfo(first.misc);
+            }).catch(e => {
+                mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
+            });
+        } else if (started) {
+            parsethis();
+        }
+    } else {
+        documents.set(uri, {
+            lines: misc_functions_1.splitLines(params.textDocument.text),
+            pack_segments: undefined
+        });
         parsethis();
     }
 });
