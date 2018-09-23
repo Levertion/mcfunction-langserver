@@ -50,6 +50,7 @@ export class ItemParser implements Parser {
                         parsed.data.values,
                         start + 1,
                         reader.cursor,
+                        "item_tags",
                         properties.data.localData
                     )
                 );

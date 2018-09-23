@@ -132,6 +132,7 @@ export function parseBlockArgument(
                     parsedResult.values,
                     start + 1,
                     reader.cursor,
+                    "block_tags",
                     info.data.localData
                 )
             );

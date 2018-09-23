@@ -11,10 +11,12 @@ import {
     Hover,
     IPCMessageReader,
     IPCMessageWriter,
+    Location,
     Position,
     TextDocumentPositionParams,
     TextDocumentSyncKind
 } from "vscode-languageserver/lib/main";
+import Uri from "vscode-uri";
 
 import { computeCompletions } from "./completions";
 import { readSecurity } from "./data/cache";
@@ -70,6 +72,7 @@ connection.onInitialize(() => {
             completionProvider: {
                 resolveProvider: false
             },
+            definitionProvider: true,
             hoverProvider: true,
             textDocumentSync: {
                 change: TextDocumentSyncKind.Incremental,
@@ -91,6 +94,7 @@ connection.onDidChangeConfiguration(async params => {
     await ensureSecure(params.settings);
     const reparseall = () => {
         for (const [uri, doc] of documents.entries()) {
+            loadData(uri);
             parseDocument(doc, manager, parseCompletionEvents, uri);
             sendDiagnostics(uri);
         }
@@ -151,12 +155,41 @@ async function ensureSecure(settings: {
     global.mcLangSettings = newsettings;
 }
 
+function loadData(uri: string): void {
+    const doc = documents.get(uri);
+    if (doc && doc.pack_segments) {
+        const segments = doc.pack_segments;
+        manager
+            .readPackFolderData(segments.packsFolder)
+            .then(first => {
+                if (isSuccessful(first)) {
+                    connection.client.register(
+                        DidChangeWatchedFilesNotification.type,
+                        {
+                            watchers: [
+                                {
+                                    globPattern: `${segments.packsFolder}/**/*`
+                                }
+                            ]
+                        }
+                    );
+                }
+                parseDocument(doc, manager, parseCompletionEvents, uri);
+                sendDiagnostics(uri);
+                handleMiscInfo(first.misc);
+            })
+            .catch(e => {
+                mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
+            });
+    }
+}
+
 connection.onDidOpenTextDocument(params => {
     const uri = params.textDocument.uri;
-    const dataPackSegments = parseDataPath(uri);
+    const uriClass = Uri.parse(uri);
     const parsethis = () => {
         // Sanity check
-        if (documents.has(uri)) {
+        if (started && documents.has(uri)) {
             parseDocument(
                 documents.get(uri) as FunctionInfo,
                 manager,
@@ -166,36 +199,24 @@ connection.onDidOpenTextDocument(params => {
             sendDiagnostics(uri);
         }
     };
-    documents.set(uri, {
-        lines: splitLines(params.textDocument.text),
-        pack_segments: dataPackSegments
-    });
-    if (!!dataPackSegments) {
-        manager
-            .readPackFolderData(dataPackSegments.packsFolder)
-            .then(first => {
-                if (isSuccessful(first)) {
-                    connection.client.register(
-                        DidChangeWatchedFilesNotification.type,
-                        {
-                            watchers: [
-                                { globPattern: `${dataPackSegments}**/*` }
-                            ]
-                        }
-                    );
-                }
-                if (started && documents.hasOwnProperty(uri)) {
-                    parsethis();
-                }
-                handleMiscInfo(first.misc);
-            })
-            .catch(e => {
-                mcLangLog(`Getting pack folder data failed for reason: '${e}'`);
-            });
-    }
-    if (started) {
+    if (uriClass.scheme === "file") {
+        const fsPath = uriClass.fsPath;
+        const dataPackSegments = parseDataPath(fsPath);
+        documents.set(uri, {
+            lines: splitLines(params.textDocument.text),
+            pack_segments: dataPackSegments
+        });
+        if (started) {
+            loadData(uri);
+        }
         parsethis();
+    } else {
+        documents.set(uri, {
+            lines: splitLines(params.textDocument.text),
+            pack_segments: undefined
+        });
     }
+    parsethis();
 });
 
 connection.onDidChangeTextDocument(params => {
@@ -380,6 +401,19 @@ connection.onHover(params => {
         }
     }
     return undefined;
+});
+
+connection.onDefinition(params => {
+    const docLine = getLine(params);
+    if (docLine) {
+        const actions = getActionsOfKind(docLine, params.position, "source");
+        const start: Position = { line: 0, character: 0 };
+        return actions.map<Location>(a => ({
+            range: { start, end: start },
+            uri: Uri.file(a.data as any).toString()
+        }));
+    }
+    return [];
 });
 
 function getLine(params: TextDocumentPositionParams): CommandLine | undefined {

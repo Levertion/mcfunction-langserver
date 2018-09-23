@@ -2,6 +2,8 @@ import { CompletionItemKind } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { Resources } from "../../data/types";
 import {
+    buildPath,
+    buildTagActions,
     ContextPath,
     convertToNamespace,
     getResourcesofType,
@@ -47,9 +49,19 @@ export const functionParser: Parser = {
         const helper = new ReturnHelper(info);
         const start = reader.cursor;
         const parsed = parseNamespaceOrTag(reader, info, "function_tags");
+        const localData = info.data.localData;
         if (helper.merge(parsed)) {
             const data = parsed.data;
             if (data.resolved && data.values) {
+                helper.merge(
+                    buildTagActions(
+                        data.values,
+                        start,
+                        reader.cursor,
+                        "function_tags",
+                        localData
+                    )
+                );
                 return helper.succeed();
             } else {
                 const options = getResourcesofType(info.data, "functions");
@@ -68,6 +80,23 @@ export const functionParser: Parser = {
                             stringifyNamespace(data.parsed)
                         )
                     );
+                }
+                if (localData) {
+                    for (const func of postProcess.data) {
+                        const location = buildPath(
+                            func,
+                            localData,
+                            "functions"
+                        );
+                        if (location) {
+                            helper.addActions({
+                                data: location,
+                                high: reader.cursor,
+                                low: start,
+                                type: "source"
+                            });
+                        }
+                    }
                 }
                 return helper.mergeChain(postProcess).succeed();
             }

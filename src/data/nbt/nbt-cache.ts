@@ -15,7 +15,7 @@ export async function loadNBT(worldLoc: string): Promise<WorldNBT> {
         // Level doesn't exist
     }
 
-    const scpath = path.resolve(worldLoc, "./data/scoreboards.dat");
+    const scpath = path.resolve(worldLoc, "./data/scoreboard.dat");
     try {
         const scoreboardbuf: Buffer = await readFileAsync(scpath);
         nbt.scoreboard = await parse<Scoreboard>(scoreboardbuf);

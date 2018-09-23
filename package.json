@@ -7,7 +7,7 @@
     "main": "dist/index.js",
     "scripts": {
         "precommit": "pretty-quick --staged && npm run check && npm run test && npm run lint && npm run build && git add dist",
-        "build": "parcel build src/index.ts --target=node",
+        "build": "parcel build src/index.ts --target=node --no-minify",
         "test": "mocha --opts ./mocha.opts",
         "check": "tsc -p tsconfig.json --noEmit",
         "lint": "tslint --project .",
@@ -39,7 +39,8 @@
         "sprintf-js": "^1.1.1",
         "tslib": "^1.9.3",
         "util.promisify": "^1.0.0",
-        "vscode-languageserver": "^5.0.0"
+        "vscode-languageserver": "^5.0.0",
+        "vscode-uri": "^1.0.6"
     },
     "devDependencies": {
         "@types/long": "4.0.0",

@@ -1,5 +1,11 @@
 import * as defaultPath from "path";
-import { DATAFOLDER, SLASH, TAG_START } from "../consts";
+import {
+    DATAFOLDER,
+    SLASH,
+    SLASHREGEX,
+    SLASHREPLACEREGEX,
+    TAG_START
+} from "../consts";
 import {
     DataResource,
     GlobalData,
@@ -146,7 +152,7 @@ export function getKindAndNamespace(
                                 ...further.slice(0, -1),
                                 last.slice(0, -typeInfo.extension.length)
                             )
-                            .replace(path.sep, SLASH);
+                            .replace(SLASHREPLACEREGEX, SLASH);
                         return {
                             kind,
                             location: {
@@ -174,7 +180,7 @@ export function getPath(
         resource.namespace,
         ...resourceTypes[kind].path,
         resource.path
-            .replace(SLASH, path.sep)
+            .replace(SLASHREGEX, path.sep)
             .concat(resourceTypes[kind].extension)
     );
 }
