@@ -2191,14 +2191,16 @@ exports.objectiveParser = {
                                 break;
                             }
                         }
-                        for (const slot of typed_keys_1.typed_keys(scoreboardData.data.DisplaySlots)) {
-                            if (slot === result.data) {
-                                helper.addActions({
-                                    data: `Displayed in ${slotPurposes[slot]}`,
-                                    high: reader.cursor,
-                                    low: start,
-                                    type: "hover"
-                                });
+                        if (scoreboardData.data.DisplaySlots) {
+                            for (const slot of typed_keys_1.typed_keys(scoreboardData.data.DisplaySlots)) {
+                                if (slot === result.data) {
+                                    helper.addActions({
+                                        data: `Displayed in ${slotPurposes[slot]}`,
+                                        high: reader.cursor,
+                                        low: start,
+                                        type: "hover"
+                                    });
+                                }
                             }
                         }
                     }
