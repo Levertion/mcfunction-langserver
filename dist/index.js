@@ -2638,7 +2638,7 @@ async function loadNBT(worldLoc) {
     } catch (e) {
         // Level doesn't exist
     }
-    const scpath = path.resolve(worldLoc, "./data/scoreboards.dat");
+    const scpath = path.resolve(worldLoc, "./data/scoreboard.dat");
     try {
         const scoreboardbuf = await misc_functions_1.readFileAsync(scpath);
         nbt.scoreboard = await parser_1.parse(scoreboardbuf);
