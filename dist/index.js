@@ -3580,6 +3580,18 @@ connection.onHover(params => {
     }
     return undefined;
 });
+connection.onDefinition(params => {
+    const docLine = getLine(params);
+    if (docLine) {
+        const actions = getActionsOfKind(docLine, params.position, "source");
+        const start = { line: 0, character: 0 };
+        return actions.map(a => ({
+            range: { start, end: start },
+            uri: a.data
+        }));
+    }
+    return [];
+});
 function getLine(params) {
     const doc = documents.get(params.textDocument.uri);
     if (doc) {

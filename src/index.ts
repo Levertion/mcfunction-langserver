@@ -11,6 +11,7 @@ import {
     Hover,
     IPCMessageReader,
     IPCMessageWriter,
+    Location,
     Position,
     TextDocumentPositionParams,
     TextDocumentSyncKind
@@ -399,6 +400,19 @@ connection.onHover(params => {
         }
     }
     return undefined;
+});
+
+connection.onDefinition(params => {
+    const docLine = getLine(params);
+    if (docLine) {
+        const actions = getActionsOfKind(docLine, params.position, "source");
+        const start: Position = { line: 0, character: 0 };
+        return actions.map<Location>(a => ({
+            range: { start, end: start },
+            uri: a.data as any
+        }));
+    }
+    return [];
 });
 
 function getLine(params: TextDocumentPositionParams): CommandLine | undefined {
