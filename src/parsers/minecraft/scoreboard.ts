@@ -57,6 +57,7 @@ export const objectiveParser: Parser = {
                                     data: `Displayed as: ${
                                         objective.DisplayName
                                     }
+
 Criteria: ${objective.CriteriaName}`,
                                     high: reader.cursor,
                                     low: start,
@@ -69,7 +70,10 @@ Criteria: ${objective.CriteriaName}`,
                             for (const slot of typed_keys(
                                 scoreboardData.data.DisplaySlots
                             )) {
-                                if (slot === result.data) {
+                                if (
+                                    scoreboardData.data.DisplaySlots[slot] ===
+                                    result.data
+                                ) {
                                     helper.addActions({
                                         data: `Displayed in ${
                                             slotPurposes[slot]
