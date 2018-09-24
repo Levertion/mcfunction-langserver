@@ -2,12 +2,7 @@ import { CommandErrorBuilder } from "../../../../brigadier/errors";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
 import { parseTag } from "../tag-parser";
-import {
-    LIST_END,
-    LIST_START,
-    LIST_VALUE_SEP,
-    NBTErrorData
-} from "../util/nbt-util";
+import { LIST_END, LIST_START, LIST_VALUE_SEP } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 const MIXED = new CommandErrorBuilder(
@@ -67,7 +62,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                     parsed: this,
                     path: [
                         (this.val.length - 1).toString(),
-                        ...((tag.data as NBTErrorData).path || [])
+                        ...(tag.data.path || [])
                     ]
                 });
             }

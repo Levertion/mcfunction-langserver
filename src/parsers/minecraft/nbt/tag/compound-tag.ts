@@ -13,8 +13,7 @@ import {
     COMPOUND_END,
     COMPOUND_KEY_VALUE_SEP,
     COMPOUND_PAIR_SEP,
-    COMPOUND_START,
-    NBTErrorData
+    COMPOUND_START
 } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
@@ -184,10 +183,7 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
             if (helper.merge(pkey)) {
                 val = pkey.data;
             } else {
-                const path = [
-                    key.data,
-                    ...((pkey.data as NBTErrorData).path || [])
-                ];
+                const path = [key.data, ...(pkey.data.path || [])];
                 if (pkey.data.parsed) {
                     this.val[key.data] = pkey.data.parsed;
                 }
