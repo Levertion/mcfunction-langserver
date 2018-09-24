@@ -44,7 +44,7 @@ describe("nbt parser test", () => {
             });
         });
 
-        it("should return correct suggestions", () => {
+        it("should return correct suggestions when nested in a compound", () => {
             const reader = new StringReader("{display:{");
             const out = parseNBT(reader, reginfo, {
                 id: "minecraft:apple",

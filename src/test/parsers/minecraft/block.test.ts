@@ -4,7 +4,11 @@ import { GlobalData } from "../../../data/types";
 import { parseBlockArgument } from "../../../parsers/minecraft/block";
 import { MemoryFS } from "../../../parsers/minecraft/nbt/doc-fs";
 import { CommmandData, Parser } from "../../../types";
-import { convertToResource, testParser } from "../../assertions";
+import {
+    convertToResource,
+    SuggestedOption,
+    testParser
+} from "../../assertions";
 import { blankproperties } from "../../blanks";
 
 const parser: Parser = {
@@ -158,10 +162,12 @@ describe("sharedBlockParser", () => {
 
     describe("block & NBT tests", () => {
         let memfs: MemoryFS;
+        let regmemfs: MemoryFS;
         let test: ReturnType<typeof blockArgumentTester>;
 
         before(async () => {
             memfs = await setupFiles("test_data/snbt_test");
+            regmemfs = await setupFiles();
             test = blockArgumentTester({
                 data: {
                     globalData: ({
@@ -175,6 +181,55 @@ describe("sharedBlockParser", () => {
                         nbt_docs: memfs
                     } as any) as GlobalData
                 }
+            });
+        });
+        it("should parse correctly for a regular block", () => {
+            const tester = blockArgumentTester({
+                data: {
+                    globalData: ({
+                        blocks: {
+                            "minecraft:chest": {}
+                        },
+                        nbt_docs: regmemfs
+                    } as any) as GlobalData
+                }
+            });
+            const suggestions = [
+                "id",
+                "x",
+                "y",
+                "z",
+                "Items",
+                "LootTable",
+                "LootTableSeed",
+                "CustomName",
+                "Lock"
+            ];
+            tester("minecraft:chest{", {
+                errors: [
+                    {
+                        code: "argument.nbt.compound.nokey",
+                        range: {
+                            end: 16,
+                            start: 15
+                        }
+                    }
+                ],
+                succeeds: false,
+                suggestions: [
+                    {
+                        start: 15,
+                        text: "{"
+                    },
+                    {
+                        start: 16,
+                        text: "}"
+                    },
+                    ...suggestions.map<SuggestedOption>(v => ({
+                        start: 16,
+                        text: v
+                    }))
+                ]
             });
         });
         it("should parse correctly with NBT", () => {
