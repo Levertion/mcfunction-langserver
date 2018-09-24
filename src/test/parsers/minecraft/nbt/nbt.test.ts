@@ -124,5 +124,41 @@ describe("nbt parser test", () => {
                 out.suggestions
             );
         });
+        it("should return the correct suggestion when nested in a list part 2", () => {
+            const reader = new StringReader("{Items:[{");
+            const out = parseNBT(reader, reginfo, {
+                id: "minecraft:chest",
+                type: "block"
+            });
+            assertSuggestions(
+                [
+                    {
+                        start: 8,
+                        text: "{"
+                    },
+                    {
+                        start: 9,
+                        text: "}"
+                    },
+                    {
+                        start: 9,
+                        text: "Slot"
+                    },
+                    {
+                        start: 9,
+                        text: "tag"
+                    },
+                    {
+                        start: 9,
+                        text: "Count"
+                    },
+                    {
+                        start: 9,
+                        text: "id"
+                    }
+                ],
+                out.suggestions
+            );
+        });
     });
 });

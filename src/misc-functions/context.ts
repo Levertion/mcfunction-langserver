@@ -30,7 +30,7 @@ export function startPaths<T>(
         if (
             option.path.length > best[0] &&
             option.path.length <= argpath.length &&
-            argpath.every((v, i) => v === option.path[i])
+            option.path.every((v, i) => v === argpath[i])
         ) {
             best = [option.path.length, option.data];
         }

@@ -1,5 +1,6 @@
 import * as assert from "assert";
 import { StringReader } from "../../../brigadier/string-reader";
+import { convertToNamespace } from "../../../misc-functions";
 import {
     namespaceStart,
     parseNamespace,
@@ -15,16 +16,16 @@ describe("Namespace Parsing Functions", () => {
             it("should allow same namespace, starting path", () => {
                 assert(
                     namespaceStart(
-                        { namespace: "test", path: "testing" },
-                        { namespace: "test", path: "test" }
+                        convertToNamespace("test:testing"),
+                        convertToNamespace("test:test")
                     )
                 );
             });
             it("should disallow different namespace, starting path", () => {
                 assert(
                     !namespaceStart(
-                        { namespace: "test", path: "testing" },
-                        { namespace: "other", path: "test" }
+                        convertToNamespace("test:testing"),
+                        convertToNamespace("other:test")
                     )
                 );
             });
@@ -33,24 +34,41 @@ describe("Namespace Parsing Functions", () => {
             it("should allow a starting path with the default namespace", () => {
                 assert(
                     namespaceStart(
-                        { namespace: "minecraft", path: "testing" },
-                        { path: "test" }
+                        convertToNamespace("minecraft:testing"),
+                        convertToNamespace("test")
                     )
                 );
             });
             it("should disallow a starting path with a non-default namespace", () => {
                 assert(
                     !namespaceStart(
-                        { namespace: "other", path: "testing" },
-                        { path: "test" }
+                        convertToNamespace("other:testing"),
+                        convertToNamespace("test")
                     )
                 );
             });
             it("should allow a namespace starting with the path", () => {
                 assert(
                     namespaceStart(
-                        { namespace: "testing", path: "path" },
-                        { path: "test" }
+                        convertToNamespace("testing:path"),
+                        convertToNamespace("test")
+                    )
+                );
+            });
+        });
+
+        describe("base namespace undefined", () => {
+            it("should act as if there was a minecraft namespace", () => {
+                assert(
+                    namespaceStart(
+                        convertToNamespace("hello"),
+                        convertToNamespace("minecraft:he")
+                    )
+                );
+                assert(
+                    namespaceStart(
+                        convertToNamespace("hello"),
+                        convertToNamespace("he")
                     )
                 );
             });
@@ -67,7 +85,7 @@ describe("Namespace Parsing Functions", () => {
         it("should allow a parsed option, suggesting that option", () => {
             const reader = new StringReader("mc:succeeds");
             const result = parseNamespaceOption(reader, [
-                { namespace: "mc", path: "succeeds" }
+                convertToNamespace("mc:succeeds")
             ]);
             if (
                 returnAssert(result, {
@@ -92,7 +110,7 @@ describe("Namespace Parsing Functions", () => {
         it("should reject it if it's an invalid option", () => {
             const reader = new StringReader("mc:fails");
             const result = parseNamespaceOption(reader, [
-                { namespace: "mc", path: "succeeds" }
+                convertToNamespace("mc:succeeds")
             ]);
             if (!returnAssert(result, { succeeds: false })) {
                 assert.deepStrictEqual(result.data, {

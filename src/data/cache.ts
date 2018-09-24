@@ -10,7 +10,10 @@ import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import { WorkspaceSecurity } from "../types";
 import { Cacheable } from "./types";
 
-const cacheFolder = path.join(__dirname, "cache");
+if (!process.env.MCFUNCTION_CACHE_DIR) {
+    throw new Error("Environment variable MCFUNCTION_CACHE_DIR must be set");
+}
+const cacheFolder = process.env.MCFUNCTION_CACHE_DIR;
 
 const cacheFileNames: { [K in keyof Cacheable]: string } = {
     blocks: "blocks.json",

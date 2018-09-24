@@ -7,9 +7,9 @@ import {
 } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { DEFAULT_NAMESPACE } from "../../consts";
 import { NamespacedName } from "../../data/types";
 import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
+import { isNamespaceDefault, namesEqual } from "../namespace";
 
 const NAMESPACEEXCEPTIONS = {
     invalid_id: new CommandErrorBuilder(
@@ -18,7 +18,7 @@ const NAMESPACEEXCEPTIONS = {
     )
 };
 
-const allowedPath = /[^a-z0-9_.-]/g;
+const disallowedPath = /[^0-9a-z_/\.-]/g;
 
 export function readNamespaceText(reader: StringReader): string {
     const namespaceChars = /^[0-9a-z_:/\.-]$/;
@@ -32,17 +32,13 @@ export function namespaceStart(
     base: NamespacedName,
     test: NamespacedName
 ): boolean {
-    // Note that base namespace should not be undefined in any reasonable circumstances
     if (test.namespace === undefined) {
         return (
-            (base.namespace === DEFAULT_NAMESPACE &&
-                base.path.startsWith(test.path)) ||
+            (isNamespaceDefault(base) && base.path.startsWith(test.path)) ||
             (!!base.namespace && base.namespace.startsWith(test.path))
         );
     } else {
-        return (
-            base.namespace === test.namespace && base.path.startsWith(test.path)
-        );
+        return namesEqual(base, test) && base.path.startsWith(test.path);
     }
 }
 
@@ -84,7 +80,7 @@ export function parseNamespace(
     let failed = false;
     // Give an error for each invalid character
     do {
-        next = allowedPath.exec(namespace.path);
+        next = disallowedPath.exec(namespace.path);
         if (next) {
             // Relies on the fact that convertToNamespace splits on the first
             const i = text.indexOf(":") + 1 + next.index + start;

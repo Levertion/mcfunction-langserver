@@ -10,7 +10,7 @@ import { Cacheable } from "../../data/types";
 
 const rimrafAsync = promisify(rimraf);
 
-const cacheFolder = path.join(__dirname, "..", "..", "data", "cache");
+const cacheFolder = path.join(process.cwd(), "cache");
 const testData: Cacheable = {
     blocks: {
         "minecraft:chocolate": {}

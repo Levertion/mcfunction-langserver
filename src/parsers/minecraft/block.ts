@@ -134,6 +134,7 @@ export function parseBlockArgument(
                     parsedResult.values,
                     start + 1,
                     reader.cursor,
+                    "block_tags",
                     info.data.localData
                 )
             );
@@ -311,25 +312,28 @@ function parseProperties(
             if (value === false) {
                 return helper.fail();
             }
-            if (propSuccessful && !valueSuccessful && value.length > 0) {
-                helper.addErrors(
-                    errors.invalid.create(
-                        valueStart,
-                        reader.cursor,
-                        name,
-                        value,
-                        propKey
-                    )
-                );
-            }
+            const error = errors.invalid.create(
+                valueStart,
+                reader.cursor,
+                name,
+                value,
+                propKey
+            );
+            const adderrorIf = (b: boolean) =>
+                b && propSuccessful && !valueSuccessful
+                    ? helper.addErrors(error)
+                    : undefined;
+            adderrorIf(value.length > 0);
             result.set(propKey, value);
             reader.skipWhitespace();
             if (reader.canRead()) {
                 if (reader.peek() === ",") {
+                    adderrorIf(value.length === 0);
                     reader.skip();
                     continue;
                 }
                 if (reader.peek() === "]") {
+                    adderrorIf(value.length === 0);
                     break;
                 }
             }

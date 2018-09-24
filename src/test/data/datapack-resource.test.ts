@@ -3,21 +3,24 @@ import * as path from "path";
 import { getPacksInfo } from "../../data/datapack-resources";
 import { Datapack, MinecraftResource, WorldInfo } from "../../data/types";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import { assertMembers, assertNamespaces, returnAssert } from "../assertions";
+import {
+    assertMembers,
+    assertNamespaces,
+    convertToResource,
+    returnAssert
+} from "../assertions";
 import { emptyGlobal } from "../blanks";
 
 // Tests are run from within the lib folder, but data is in the root
-const rootFolder = path.join(__dirname, "..", "..", "..", "test_data");
+const rootFolder = path.join(process.cwd(), "test_data");
 describe("Datapack Resource Testing", () => {
     it("should return the correct data", async () => {
         const datapacks = path.join(rootFolder, "test_world", "datapacks");
         const expected: { [pack: string]: Datapack } = {
             ExampleDatapack: {
                 data: {
-                    function_tags: [{ namespace: "minecraft", path: "tick" }],
-                    functions: [
-                        { namespace: "test_namespace", path: "function" }
-                    ]
+                    function_tags: [convertToResource("minecraft:tick")],
+                    functions: [convertToResource("test_namespace:function")]
                 },
                 id: 0,
                 mcmeta: {
@@ -27,9 +30,7 @@ describe("Datapack Resource Testing", () => {
             },
             ExampleDatapack2: {
                 data: {
-                    functions: [
-                        { namespace: "test_namespace", path: "function" }
-                    ]
+                    functions: [convertToResource("test_namespace:function")]
                 },
                 id: 1,
                 mcmeta: {

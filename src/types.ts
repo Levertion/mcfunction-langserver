@@ -1,5 +1,8 @@
 import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
-import { CompletionItemKind } from "vscode-languageserver/lib/main";
+import {
+    CompletionItemKind,
+    MarkedString
+} from "vscode-languageserver/lib/main";
 import { BlankCommandError, CommandError } from "./brigadier/errors";
 import { StringReader } from "./brigadier/string-reader";
 import { CommandNodePath, GlobalData, LocalData } from "./data/types";
@@ -25,6 +28,7 @@ export interface CommandLine {
      * A cache of the tree of actions
      */
     actions?: IntervalTree<SubAction>;
+    nodes?: IntervalTree<ParseNode>;
     parseInfo?: StoredParseResult | false;
     text: string;
 }
@@ -114,7 +118,8 @@ interface SubActionBase<U extends string, T> extends DataInterval<T> {
     type: U;
 }
 export type SubAction =
-    | SubActionBase<"hover", string>
+    // See https://github.com/Microsoft/language-server-protocol/issues/518.
+    | SubActionBase<"hover", MarkedString>
     | SubActionBase<"format", string>
     | SubActionBase<"source", string>;
 //  | SubActionBase<"highlight", HighlightScope>;

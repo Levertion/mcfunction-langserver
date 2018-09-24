@@ -1,6 +1,8 @@
+// tslint:disable:no-require-imports
 import * as fs from "fs";
 import * as path from "path";
-import * as requestPromise from "request-promise-native";
+// @ts-ignore `import *` syntax is broken in this case as requestPromise would be a function
+import requestPromise from "request-promise-native";
 
 export async function getPathToJar(
     tempdir: string,
@@ -61,7 +63,9 @@ interface SingleVersionInformation {
 async function getLatestVersionInfo(): Promise<VersionInfo> {
     const manifest: VersionsManifest = await requestPromise(
         "https://launchermeta.mojang.com/mc/game/version_manifest.json",
-        { json: true }
+        {
+            json: true
+        }
     ).promise();
     const version = findVersion(getVersionId(manifest), manifest);
     return version;

@@ -29,12 +29,12 @@ interface ContextData<
     N extends NBTNode = NBTNode,
     T extends NBTTag<any> = NBTTag<any>
 > {
-    allowRefWalk: boolean;
-    finalValidation: boolean;
-    node: N;
-    path: string;
-    reader: ArrayReader;
-    tag?: T;
+    readonly allowRefWalk: boolean;
+    readonly finalValidation: boolean;
+    readonly node: N;
+    readonly path: string;
+    readonly reader: ArrayReader;
+    readonly tag?: T;
 }
 
 // tslint:disable:cyclomatic-complexity
@@ -113,7 +113,9 @@ export class NBTWalker {
                     }
                 }
                 return helper.succeed(
-                    this.mergeChildRef(data as ContextData<CompoundNode>)
+                    finalValidation
+                        ? this.mergeChildRef(data as ContextData<CompoundNode>)
+                        : node
                 );
             } else {
                 if (finalValidation && this.nbtvld && tag) {

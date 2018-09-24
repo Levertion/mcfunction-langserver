@@ -1,6 +1,6 @@
 import * as path from "path";
 
-import { DATAFOLDER, MCMETAFILE, SLASH } from "../consts";
+import { DATAFOLDER, MCMETAFILE, SLASH, SLASHREPLACEREGEX } from "../consts";
 import { resourceTypes, ReturnHelper } from "../misc-functions";
 import { createExtensionFileError } from "../misc-functions/file-errors";
 import {
@@ -65,7 +65,7 @@ export async function getNamespaceResources(
                         pack: id,
                         path: internalUri
                             .slice(0, -realExtension.length)
-                            .replace(new RegExp(`\\${path.sep}`, "g"), SLASH)
+                            .replace(SLASHREPLACEREGEX, SLASH)
                     };
                     nameSpaceContents.push(newResource);
                 })

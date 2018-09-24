@@ -8,7 +8,9 @@ import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
+import * as namespaceParsers from "./minecraft/namespace-list";
 import { functionParser, resourceParser } from "./minecraft/resources";
+import { objectiveParser, teamParser } from "./minecraft/scoreboard";
 
 import { parser as NBTPathParser } from "./minecraft/nbt-path";
 import { parser as NBTParser } from "./minecraft/nbt/nbt";
@@ -26,21 +28,25 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_predicate": blockParsers.predicateParser,
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
+    "minecraft:dimension": namespaceParsers.dimensionParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
+    "minecraft:entity_summon": namespaceParsers.summonParser,
     "minecraft:function": functionParser,
-    "minecraft:item_enchantment": listParsers.enchantmentParser,
+    "minecraft:item_enchantment": namespaceParsers.enchantmentParser,
     "minecraft:item_predicate": itemParsers.predicate,
     "minecraft:item_slot": listParsers.itemSlotParser,
     "minecraft:item_stack": itemParsers.stack,
     "minecraft:message": messageParser,
-    "minecraft:mob_effect": listParsers.mobEffectParser,
+    "minecraft:mob_effect": namespaceParsers.mobEffectParser,
     "minecraft:nbt": NBTParser,
     "minecraft:nbt-path": NBTPathParser,
+    "minecraft:objective": objectiveParser,
     "minecraft:operation": listParsers.operationParser,
-    "minecraft:particle": listParsers.particleParser,
+    "minecraft:particle": namespaceParsers.particleParser,
     "minecraft:resource_location": resourceParser,
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
+    "minecraft:team": teamParser,
     "minecraft:vec2": coordParsers.vec2,
     "minecraft:vec3": coordParsers.vec3
 };

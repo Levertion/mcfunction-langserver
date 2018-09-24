@@ -4,7 +4,7 @@ import { GlobalData } from "../../../data/types";
 import { parseBlockArgument } from "../../../parsers/minecraft/block";
 import { MemoryFS } from "../../../parsers/minecraft/nbt/doc-fs";
 import { CommmandData, Parser } from "../../../types";
-import { testParser } from "../../assertions";
+import { convertToResource, testParser } from "../../assertions";
 import { blankproperties } from "../../blanks";
 
 const parser: Parser = {
@@ -14,95 +14,62 @@ const parser: Parser = {
 
 const blockArgumentTester = testParser(parser);
 
-let data: CommmandData;
-
-describe("sharedBlockParser", () => {
-    data = {
-        globalData: {
-            blocks: {
-                "langserver:multi": {
-                    otherprop: ["lang", "propvalue"],
-                    prop1: ["value", "value2", "other"]
-                },
-                "langserver:noprops": {},
-                "langserver:props": {
-                    prop: ["value", "value2", "other"]
-                },
-                "minecraft:lang": {},
-                "minecraft:test": { state: ["react", "redux"] }
+const data: CommmandData = {
+    globalData: {
+        blocks: {
+            "langserver:multi": {
+                otherprop: ["lang", "propvalue"],
+                prop1: ["value", "value2", "other"]
             },
-            resources: {
-                block_tags: [
-                    { namespace: "test", path: "empty" },
-                    {
-                        data: { values: [] },
-                        namespace: "test",
-                        path: "empty_values"
-                    },
-                    {
-                        data: {
-                            values: [
-                                "langserver:multi",
-                                "langserver:props",
-                                "test"
-                            ]
-                        },
-                        namespace: "test",
-                        path: "plain"
-                    },
-                    { namespace: "minecraft", path: "empty" },
-                    {
-                        data: {
-                            values: ["minecraft:test", "langserver:noprops"]
-                        },
-                        namespace: "minecraft",
-                        path: "plain"
-                    },
-                    {
-                        data: { values: ["langserver:props", "#plain"] },
-                        namespace: "test",
-                        path: "othertags"
-                    },
-                    {
-                        data: {
-                            values: ["langserver:props", "#test:plain"]
-                        },
-                        namespace: "test",
-                        path: "duplicated_block"
-                    },
-                    {
-                        data: {
-                            values: [
-                                "langserver:multi",
-                                "unknown",
-                                "langserver:notablock"
-                            ]
-                        },
-                        namespace: "test",
-                        path: "invalid_block"
-                    }
-                ]
-            }
+            "langserver:noprops": {},
+            "langserver:props": {
+                prop: ["value", "value2", "other"]
+            },
+            "minecraft:lang": {},
+            "minecraft:test": { state: ["react", "redux"] }
         },
-        localData: {
-            packs: {
-                0: {
-                    data: {
-                        block_tags: [
-                            {
-                                data: {
-                                    values: ["#plain", "langserver:multi"]
-                                },
-                                namespace: "localdata",
-                                path: "token"
-                            }
-                        ]
-                    }
+        resources: {
+            block_tags: [
+                convertToResource("test:empty"),
+                convertToResource("test:empty_values", { values: [] }),
+                convertToResource("test:plain", {
+                    values: ["langserver:multi", "langserver:props", "test"]
+                }),
+                convertToResource("minecraft:empty"),
+                convertToResource("minecraft:plain", {
+                    values: ["minecraft:test", "langserver:noprops"]
+                }),
+                convertToResource("test:othertags", {
+                    values: ["langserver:props", "#plain"]
+                }),
+                convertToResource("test:duplicated_block", {
+                    values: ["langserver:props", "#test:plain"]
+                }),
+                convertToResource("test:invalid_block", {
+                    values: [
+                        "langserver:multi",
+                        "unknown",
+                        "langserver:notablock"
+                    ]
+                })
+            ]
+        }
+    },
+    localData: {
+        packs: {
+            0: {
+                data: {
+                    block_tags: [
+                        convertToResource("localdata:token", {
+                            values: ["#plain", "langserver:multi"]
+                        })
+                    ]
                 }
             }
         }
-    } as any;
-
+    }
+} as any;
+describe("sharedBlockParser", () => {
     describe("Tags allowed", () => {
         const test = blockArgumentTester({
             ...blankproperties,

@@ -218,7 +218,8 @@ export class DataManager {
             this.globalDataInternal = { ...data.data, ...noncache };
             return true;
         } catch (error) {
-            return error.toString();
+            return `Error loading global data: ${error.stack ||
+                error.toString()}`;
         }
     }
 

@@ -6,6 +6,8 @@ export const DEFAULT_NAMESPACE = "minecraft";
 export const NAMESPACE = ":";
 export const DATAFOLDER = "data";
 export const SLASH = "/";
+export const SLASHREGEX = /\//g;
+export const SLASHREPLACEREGEX = /\\/g;
 export const MCMETAFILE = "pack.mcmeta";
 
 // Blocks
