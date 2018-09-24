@@ -8,7 +8,7 @@ export const DOUBLE_TAG_SUFFIX = "d";
 export class NBTTagDouble extends NBTTag<number> {
     public tagType: "double" = "double";
 
-    public parse(reader: StringReader): ParseReturn {
+    protected readTag(reader: StringReader): ParseReturn {
         const readInt = parseFloatNBT(reader);
         const helper = new ReturnHelper();
         if (!helper.merge(readInt)) {

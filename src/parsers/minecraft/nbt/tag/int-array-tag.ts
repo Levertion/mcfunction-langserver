@@ -27,7 +27,7 @@ const EXCEPTIONS = {
 export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
     public tagType: "int_array" = "int_array";
 
-    public parse(reader: StringReader): ParseReturn {
+    protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const arrstart = reader.expect(

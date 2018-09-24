@@ -1,5 +1,6 @@
 import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
 import { MCFormat } from "../misc-functions";
+import { LineRange } from "../types";
 
 /**
  * A blank command error
@@ -34,10 +35,7 @@ export interface CommandError extends BlankCommandError {
     /**
      * The range of this error.
      */
-    range: {
-        end: number;
-        start: number;
-    };
+    range: LineRange;
 }
 
 /**

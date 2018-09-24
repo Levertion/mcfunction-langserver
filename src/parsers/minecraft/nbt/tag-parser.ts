@@ -1,6 +1,6 @@
 import { StringReader } from "../../../brigadier/string-reader";
 import { isSuccessful, ReturnHelper } from "../../../misc-functions";
-import { ReturnFailure, ReturnSuccess } from "../../../types";
+import { CE, ReturnedInfo } from "../../../types";
 import { NBTTagByteArray } from "./tag/byte-array-tag";
 import { NBTTagByte } from "./tag/byte-tag";
 import { NBTTagCompound } from "./tag/compound-tag";
@@ -33,7 +33,7 @@ const parsers: Array<() => NBTTag<any>> = [
 
 export function parseTag(
     reader: StringReader
-): ReturnSuccess<NBTTag<any>> | ReturnFailure<NBTErrorData> {
+): ReturnedInfo<NBTTag<any>, CE, NBTErrorData> {
     let correctTag: NBTTag<any> | undefined;
     let correctness: CorrectLevel = 0;
     let correctPlace: number = reader.cursor;

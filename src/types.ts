@@ -179,3 +179,12 @@ export interface ReturnSuccess<T, ErrorKind extends BCE = CE>
 // Helper types to lower the amount of repetition of the names
 export type BCE = BlankCommandError;
 export type CE = CommandError;
+
+//#region Misc types
+
+export interface LineRange {
+    end: number;
+    start: number;
+}
+
+//#endregion

@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import * as path from "path";
 import { setupFiles } from "../../../../data/noncached";
+import { isSuccessful } from "../../../../misc-functions";
 import { MemoryFS } from "../../../../parsers/minecraft/nbt/doc-fs";
 import { NBTWalker } from "../../../../parsers/minecraft/nbt/doc-walker";
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound-tag";
@@ -9,11 +10,11 @@ import { CompoundNode } from "../../../../parsers/minecraft/nbt/util/doc-walker-
 
 const test = (walker: NBTWalker, name: string, extpath: string[] = []) => {
     const node = walker.getFinalNode([name, ...extpath]);
-    if (!node) {
+    if (!isSuccessful(node)) {
         assert.fail("node is undefined");
         return;
     }
-    assert.strictEqual(node.description, `${name} OK`);
+    assert.strictEqual(node.data.description, `${name} OK`);
 };
 
 describe("Documentation Walker Tests", () => {
@@ -30,7 +31,7 @@ describe("Documentation Walker Tests", () => {
                 "../../../../../test_data/test_docs"
             );
             v = await setupFiles(dataPath);
-            walker = new NBTWalker(nbt, v, "root.json");
+            walker = new NBTWalker(nbt, v, true, false);
         });
 
         it("should return the correct node for the basic doc", () => {
@@ -67,7 +68,7 @@ describe("Documentation Walker Tests", () => {
 
         it("should merge child_ref correctly", () => {
             const node = walker.getFinalNode(["child_ref_test"]);
-            assert.deepStrictEqual(node, {
+            assert.deepStrictEqual(node.data, {
                 children: {
                     bad: {
                         description: "child_ref_test BAD",

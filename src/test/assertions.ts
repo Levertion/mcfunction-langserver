@@ -7,6 +7,7 @@ import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import {
     CE,
     ContextChange,
+    LineRange,
     Parser,
     ParserInfo,
     ReturnedInfo,
@@ -103,10 +104,7 @@ export function returnAssert<T>(
  */
 export interface ErrorInfo {
     code: string;
-    range: {
-        end: number;
-        start: number;
-    };
+    range: LineRange;
 }
 
 /**

@@ -21,11 +21,8 @@ export const COMPOUND_PAIR_SEP = ",";
 
 export interface NBTErrorData {
     correct: CorrectLevel;
-    keys?: string[];
     parsed?: NBTTag<any>;
-    part?: "key" | "value";
     path?: string[];
-    pos?: number;
 }
 
 export enum CorrectLevel {

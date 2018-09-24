@@ -8,7 +8,7 @@ export const BYTE_TAG_SUFFIX = "b";
 export class NBTTagByte extends NBTTag<number> {
     public tagType: "byte" = "byte";
 
-    public parse(reader: StringReader): ParseReturn {
+    protected readTag(reader: StringReader): ParseReturn {
         const readInt = parseIntNBT(reader);
         const helper = new ReturnHelper();
         if (!helper.merge(readInt)) {

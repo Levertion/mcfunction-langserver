@@ -5,7 +5,7 @@ import { NBTTag, ParseReturn } from "./nbt-tag";
 export class NBTTagString extends NBTTag<string> {
     public tagType: "string" = "string";
 
-    public parse(reader: StringReader): ParseReturn {
+    protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const str = reader.readString();
         if (!helper.merge(str)) {

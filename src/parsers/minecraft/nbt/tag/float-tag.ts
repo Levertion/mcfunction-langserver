@@ -8,7 +8,7 @@ export const FLOAT_TAG_SUFFIX = "f";
 export class NBTTagFloat extends NBTTag<number> {
     public tagType: "float" = "float";
 
-    public parse(reader: StringReader): ParseReturn {
+    protected readTag(reader: StringReader): ParseReturn {
         const readInt = parseFloatNBT(reader);
         const helper = new ReturnHelper();
         if (!helper.merge(readInt)) {

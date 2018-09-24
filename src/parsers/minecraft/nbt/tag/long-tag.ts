@@ -8,7 +8,7 @@ export const LONG_TAG_SUFFIX = "l";
 export class NBTTagLong extends NBTTag<number> {
     public tagType: "long" = "long";
 
-    public parse(reader: StringReader): ParseReturn {
+    protected readTag(reader: StringReader): ParseReturn {
         const readInt = parseIntNBT(reader);
         const helper = new ReturnHelper();
         if (!helper.merge(readInt)) {

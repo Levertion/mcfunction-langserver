@@ -6,7 +6,7 @@ import { NBTTag, ParseReturn } from "./nbt-tag";
 export class NBTTagInt extends NBTTag<number> {
     public tagType: "int" = "int";
 
-    public parse(reader: StringReader): ParseReturn {
+    protected readTag(reader: StringReader): ParseReturn {
         const readInt = parseIntNBT(reader);
         const helper = new ReturnHelper();
         if (!helper.merge(readInt)) {

@@ -1,5 +1,7 @@
 import * as path from "path";
 import * as url from "url";
+import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
+import { CommandErrorBuilder } from "../../../../brigadier/errors";
 import { NBTTagCompound } from "../tag/compound-tag";
 import { NBTTagList } from "../tag/list-tag";
 import { NBTTag } from "../tag/nbt-tag";
@@ -127,3 +129,24 @@ export function isRootNode(node: NBTNode): node is RootNode {
 export function isListNode(node: NBTNode): node is ListNode {
     return isTypedNode(node) && node.type === "list";
 }
+
+export interface NBTValidationInfo {
+    extraChildren: boolean;
+    compoundMerge(): CompoundNode; // This is so the compound parser can merge child ref on call
+}
+
+export const VALIDATION_ERRORS = {
+    badIndex: new CommandErrorBuilder(
+        "argument.nbt.validation.list.badpath",
+        "The index '%s' is not a valid index"
+    ),
+    noSuchChild: new CommandErrorBuilder(
+        "argument.nbt.validation.compound.nochild",
+        "The tag does not have a child named '%s'",
+        DiagnosticSeverity.Warning
+    ),
+    wrongType: new CommandErrorBuilder(
+        "argument.nbt.validation.wrongtype",
+        "The tag type '%s' is not the correct type '%s'"
+    )
+};

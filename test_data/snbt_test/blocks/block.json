@@ -1,5 +1,5 @@
 {
-    "$schema": "https://raw.githubusercontent.com/MrYurihi/mc-nbt-paths/master/schema/schema.json",
+    "$schema": "https://mryurihi.github.io/mc-nbt-paths/schema.json",
     "type": "root",
     "children": {
         "langserver:nbt": {

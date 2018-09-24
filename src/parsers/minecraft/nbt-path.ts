@@ -4,7 +4,6 @@ import { ReturnHelper } from "../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 import { NBTWalker } from "./nbt/doc-walker";
 import { NBTTagCompound } from "./nbt/tag/compound-tag";
-import { getNBTSuggestions } from "./nbt/util/nbt-util";
 
 const COMPACC = ".";
 const ARROPEN = "[";
@@ -24,16 +23,16 @@ export const parser: Parser = {
         const out: string[] = [];
         const walker = new NBTWalker(
             new NBTTagCompound({}),
-            prop.data.globalData.nbt_docs
+            prop.data.globalData.nbt_docs,
+            true,
+            false
         );
         const chr = reader.readString();
         if (helper.merge(chr)) {
             out.push(chr.data);
         } else {
             const node = walker.getFinalNode([]);
-            if (!!node) {
-                helper.mergeChain(getNBTSuggestions(node, reader.cursor));
-            }
+            helper.mergeChain(node);
         }
         while (reader.canRead() && !/\s/.test(reader.peek())) {
             const next = reader.read();
@@ -43,11 +42,7 @@ export const parser: Parser = {
                     out.push(str.data);
                 } else {
                     const node = walker.getFinalNode([]);
-                    if (!!node) {
-                        helper.mergeChain(
-                            getNBTSuggestions(node, reader.cursor)
-                        );
-                    }
+                    helper.mergeChain(node);
                 }
             } else if (next === ARROPEN) {
                 const num = reader.readInt();
@@ -55,11 +50,7 @@ export const parser: Parser = {
                     out.push(num.data.toString());
                 } else {
                     const node = walker.getFinalNode([]);
-                    if (!!node) {
-                        helper.mergeChain(
-                            getNBTSuggestions(node, reader.cursor)
-                        );
-                    }
+                    helper.mergeChain(node);
                 }
                 if (!helper.merge(reader.expect(ARRCLOSE))) {
                     return helper.fail();

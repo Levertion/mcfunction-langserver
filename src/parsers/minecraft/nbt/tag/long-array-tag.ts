@@ -27,7 +27,18 @@ const EXCEPTIONS = {
 export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
     public tagType: "long_array" = "long_array";
 
-    public parse(reader: StringReader): ParseReturn {
+    public tagEq(tag: NBTTag<any>): boolean {
+        if (tag.tagType !== this.tagType) {
+            return false;
+        }
+        const taga: NBTTagLongArray = tag as NBTTagLongArray;
+        return (
+            this.val.length === taga.getVal().length &&
+            this.val.every((v, i) => v.getVal() === taga.val[i].getVal())
+        );
+    }
+
+    protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const arrstart = reader.expect(
@@ -86,16 +97,5 @@ export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
             }
         }
         return helper.succeed(CorrectLevel.YES);
-    }
-
-    public tagEq(tag: NBTTag<any>): boolean {
-        if (tag.tagType !== this.tagType) {
-            return false;
-        }
-        const taga: NBTTagLongArray = tag as NBTTagLongArray;
-        return (
-            this.val.length === taga.getVal().length &&
-            this.val.every((v, i) => v.getVal() === taga.val[i].getVal())
-        );
     }
 }

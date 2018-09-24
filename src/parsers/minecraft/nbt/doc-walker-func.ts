@@ -27,10 +27,14 @@ const pathsFuncs: PathFunctions = {
 export function runNodeFunction(
     parsed: NBTTag<any>,
     nbtPath: string[],
-    node: FunctionNode,
-    args: any
+    node: FunctionNode
 ): string {
-    return pathsFuncs[node.function.id](parsed, nbtPath, node, args);
+    return pathsFuncs[node.function.id](
+        parsed,
+        nbtPath,
+        node,
+        node.function.params
+    );
 }
 
 const suggestFuncs: SuggestFuncs = {};

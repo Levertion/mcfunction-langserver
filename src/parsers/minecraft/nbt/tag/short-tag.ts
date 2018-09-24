@@ -8,7 +8,7 @@ export const SHORT_TAG_SUFFIX = "s";
 export class NBTTagShort extends NBTTag<number> {
     public tagType: "short" = "short";
 
-    public parse(reader: StringReader): ParseReturn {
+    protected readTag(reader: StringReader): ParseReturn {
         const readInt = parseIntNBT(reader);
         const helper = new ReturnHelper();
         if (!helper.merge(readInt)) {

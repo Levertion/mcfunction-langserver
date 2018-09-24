@@ -1,7 +1,6 @@
 import { CommandErrorBuilder } from "../../../../brigadier/errors";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { ReturnedInfo } from "../../../../types";
 import { parseTag } from "../tag-parser";
 import {
     LIST_END,
@@ -23,7 +22,17 @@ const NOVAL = new CommandErrorBuilder(
 export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
     public tagType: "list" = "list";
 
-    public parse(reader: StringReader): ParseReturn {
+    public tagEq(tag: NBTTag<any>): boolean {
+        if (tag.tagType !== this.tagType) {
+            return false;
+        }
+        return (
+            this.val.length === (tag as NBTTagList).val.length &&
+            this.val.every((v, i) => v.tagEq((tag as NBTTagList).getVal()[i]))
+        );
+    }
+
+    protected readTag(reader: StringReader): ParseReturn {
         const start = reader.cursor;
         const helper = new ReturnHelper();
         const listStart = reader.expect(LIST_START);
@@ -47,14 +56,17 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             let value: NBTTag<any>;
 
             const tag = parseTag(reader);
-            if (helper.merge(tag as ReturnedInfo<NBTTag<any> | NBTErrorData>)) {
-                value = tag.data as NBTTag<any>;
+            if (helper.merge(tag)) {
+                value = tag.data;
             } else {
+                if (tag.data.parsed) {
+                    this.val.push(tag.data.parsed);
+                }
                 return helper.failWithData({
                     correct: 2,
                     parsed: this,
                     path: [
-                        this.val.length.toString(),
+                        (this.val.length - 1).toString(),
                         ...((tag.data as NBTErrorData).path || [])
                     ]
                 });
@@ -83,15 +95,5 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             }
         }
         return helper.succeed(2);
-    }
-
-    public tagEq(tag: NBTTag<any>): boolean {
-        if (tag.tagType !== this.tagType) {
-            return false;
-        }
-        return (
-            this.val.length === (tag as NBTTagList).val.length &&
-            this.val.every((v, i) => v.tagEq((tag as NBTTagList).getVal()[i]))
-        );
     }
 }
