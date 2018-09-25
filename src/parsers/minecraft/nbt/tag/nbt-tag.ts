@@ -1,10 +1,10 @@
+import { NBTNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
 import { CE, LineRange, ReturnedInfo, Suggestion } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import {
     isTypedNode,
-    NBTNode,
     NBTValidationInfo,
     VALIDATION_ERRORS
 } from "../util/doc-walker-util";

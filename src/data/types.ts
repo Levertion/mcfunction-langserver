@@ -1,4 +1,4 @@
-import { MemoryFS } from "../parsers/minecraft/nbt/doc-fs";
+import { NBTNode } from "mc-nbt-paths";
 import { Level, Scoreboard } from "./nbt/nbt-types";
 
 /**
@@ -11,12 +11,13 @@ export interface NamespacedName {
 }
 
 //#endregion
+export type NBTDocs = Map<string, NBTNode>;
 export interface GlobalData {
     blocks: BlocksPropertyInfo;
     commands: CommandTree;
     items: string[];
     meta_info: { version: string };
-    nbt_docs: MemoryFS;
+    nbt_docs: NBTDocs;
     resources: Resources;
 }
 

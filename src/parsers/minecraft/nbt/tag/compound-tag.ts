@@ -1,3 +1,4 @@
+import { NBTNode } from "mc-nbt-paths";
 import { CommandErrorBuilder } from "../../../../brigadier/errors";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
@@ -5,7 +6,6 @@ import { LineRange, ReturnedInfo } from "../../../../types";
 import { parseTag } from "../tag-parser";
 import {
     isCompoundNode,
-    NBTNode,
     NBTValidationInfo,
     VALIDATION_ERRORS
 } from "../util/doc-walker-util";

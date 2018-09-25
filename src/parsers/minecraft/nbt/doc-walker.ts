@@ -1,28 +1,30 @@
+import {
+    CompoundNode,
+    FunctionNode,
+    ListNode,
+    NBTNode,
+    RefNode,
+    RootNode,
+    ValueList
+} from "mc-nbt-paths";
 import { isString } from "util";
+import { NBTDocs } from "../../../data/types";
 import { ReturnHelper } from "../../../misc-functions";
 import { ReturnedInfo } from "../../../types";
-import { MemoryFS } from "./doc-fs";
 import { runNodeFunction } from "./doc-walker-func";
 import { NBTTagCompound } from "./tag/compound-tag";
 import { NBTTagList } from "./tag/list-tag";
 import { NBTTag } from "./tag/nbt-tag";
 import { ArrayReader } from "./util/array-reader";
 import {
-    CompoundNode,
-    FunctionNode,
     isCompoundNode,
     isFunctionNode,
     isListNode,
     isRefNode,
     isRootNode,
     isTypedNode,
-    ListNode,
-    NBTNode,
     parseRefPath,
-    RefNode,
-    RootNode,
-    VALIDATION_ERRORS,
-    ValueList
+    VALIDATION_ERRORS
 } from "./util/doc-walker-util";
 
 interface ContextData<
@@ -39,7 +41,7 @@ interface ContextData<
 
 // tslint:disable:cyclomatic-complexity
 export class NBTWalker {
-    private readonly docfs: MemoryFS;
+    private readonly docs: NBTDocs;
     private readonly extraChildren: boolean;
     private readonly nbtvld: boolean;
     private readonly parsed: NBTTag<any>;
@@ -47,12 +49,12 @@ export class NBTWalker {
 
     public constructor(
         parsed: NBTTag<any>,
-        docfs: MemoryFS,
+        docs: NBTDocs,
         extraChild: boolean,
         nbtvalidation: boolean = true,
         root: string = "root.json"
     ) {
-        this.docfs = docfs;
+        this.docs = docs;
         this.parsed = parsed;
         this.extraChildren = extraChild;
         this.root = root;
@@ -60,7 +62,7 @@ export class NBTWalker {
     }
 
     public getFinalNode(nbtpath: string[]): ReturnedInfo<NBTNode> {
-        const node = this.docfs.get<NBTNode>(this.root);
+        const node = this.docs.get(this.root) as RootNode;
         const reader = new ArrayReader(nbtpath);
         return this.getNextNode({
             allowRefWalk: false,
@@ -79,7 +81,7 @@ export class NBTWalker {
     ): ReturnedInfo<NBTNode> {
         const [nextPath, fragPath] = parseRefPath(ref, path);
         const reader = new ArrayReader(fragPath);
-        const node = this.docfs.get<NBTNode>(nextPath);
+        const node = this.docs.get(nextPath) as NBTNode;
         return this.getNextNode({
             allowRefWalk: true,
             finalValidation: false,
@@ -331,13 +333,16 @@ export class NBTWalker {
         const { node, reader, path } = data;
         const next = reader.read();
         if (next in node.children) {
-            return this.getNextNode({ ...data, node: node.children[next] });
+            return this.getNextNode({
+                ...data,
+                node: node.children[next]
+            });
         } else {
             for (const key of Object.keys(node.children)) {
                 if (key.startsWith("$")) {
                     const ref = key.substring(1);
                     const [nextPath] = parseRefPath(ref, path);
-                    const list = this.docfs.get<ValueList>(nextPath);
+                    const list = (this.docs.get(nextPath) as any) as ValueList;
                     if (
                         list.find(
                             v => (isString(v) ? v === next : v.value === next)

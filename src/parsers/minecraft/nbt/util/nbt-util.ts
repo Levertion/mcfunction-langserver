@@ -1,9 +1,10 @@
+import { NBTNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
 import { ReturnSuccess, SuggestResult } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import { NBTTag } from "../tag/nbt-tag";
-import { isCompoundNode, isListNode, NBTNode } from "./doc-walker-util";
+import { isCompoundNode, isListNode } from "./doc-walker-util";
 
 export const ARRAY_START = "[";
 export const ARRAY_END = "]";
