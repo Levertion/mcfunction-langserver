@@ -1,9 +1,10 @@
+import { root } from "mc-nbt-paths";
 import * as path from "path";
 import { walkDir } from "../misc-functions/promisified-fs";
 import { MemoryFS } from "../parsers/minecraft/nbt/doc-fs";
 import { NonCacheable } from "./types";
 
-export const rootNodePath = require.resolve("mc-nbt-paths/root.json");
+export const rootNodePath = root;
 export const modulePath = path.dirname(rootNodePath);
 
 export async function setupFiles(dir: string = modulePath): Promise<MemoryFS> {

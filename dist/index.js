@@ -4395,10 +4395,11 @@ exports.MemoryFS = MemoryFS;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
+const mc_nbt_paths_1 = require("mc-nbt-paths");
 const path = tslib_1.__importStar(require("path"));
 const promisified_fs_1 = require("../misc-functions/promisified-fs");
 const doc_fs_1 = require("../parsers/minecraft/nbt/doc-fs");
-exports.rootNodePath = require.resolve("mc-nbt-paths/root.json");
+exports.rootNodePath = mc_nbt_paths_1.root;
 exports.modulePath = path.dirname(exports.rootNodePath);
 async function setupFiles(dir = exports.modulePath) {
     const docfs = new doc_fs_1.MemoryFS(dir);
