@@ -1133,7 +1133,83 @@ tslib_1.__exportStar(require("./setup"), exports);
 tslib_1.__exportStar(require("./translation"), exports);
 tslib_1.__exportStar(require("./parsing/namespace"), exports);
 tslib_1.__exportStar(require("./parsing/nmsp-tag"), exports);
-},{"./context":"qA/9","./creators":"WIIZ","./datapack-folder":"Pj+z","./file-errors":"3The","./group-resources":"8nfD","./lsp-conversions":"kVgt","./namespace":"JulZ","./node-tree":"jwqV","./promisified-fs":"DjTX","./return-helper":"S4yr","./security":"7l1Z","./setup":"9OF7","./translation":"0ADi","./parsing/namespace":"D271","./parsing/nmsp-tag":"pi1w"}],"f1BJ":[function(require,module,exports) {
+},{"./context":"qA/9","./creators":"WIIZ","./datapack-folder":"Pj+z","./file-errors":"3The","./group-resources":"8nfD","./lsp-conversions":"kVgt","./namespace":"JulZ","./node-tree":"jwqV","./promisified-fs":"DjTX","./return-helper":"S4yr","./security":"7l1Z","./setup":"9OF7","./translation":"0ADi","./parsing/namespace":"D271","./parsing/nmsp-tag":"pi1w"}],"0A+1":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const node_interval_tree_1 = require("node-interval-tree");
+const vscode_uri_1 = tslib_1.__importDefault(require("vscode-uri"));
+const misc_functions_1 = require("./misc-functions");
+function hoverProvider(docLine, pos, _, manager) {
+    function computeIntervalHovers(intervals, commandLine, line, map) {
+        const end = {
+            character: intervals.reduce((acc, v) => Math.max(acc, v.high), 0),
+            line
+        };
+        const start = {
+            character: intervals.reduce((acc, v) => Math.min(acc, v.low), commandLine.text.length),
+            line
+        };
+        return { contents: map(intervals), range: { start, end } };
+    }
+    const hovers = getActionsOfKind(docLine, pos, "hover");
+    if (hovers.length > 0) {
+        return computeIntervalHovers(hovers, docLine, pos.line, i => i.map(v => v.data));
+    } else {
+        const tree = getNodeTree(docLine);
+        if (tree) {
+            const matching = tree.search(pos.character, pos.character);
+            if (matching.length > 0) {
+                return computeIntervalHovers(matching, docLine, pos.line, i => i.map(node => {
+                    const data = misc_functions_1.followPath(manager.globalData.commands, node.path);
+                    return `${data.type === "literal" ? "literal" : `\`${data.parser}\` parser`} on path '${node.path.join(", ")}'`;
+                }));
+            }
+        }
+    }
+    return undefined;
+}
+exports.hoverProvider = hoverProvider;
+function definitionProvider(docLine, pos) {
+    if (docLine) {
+        const actions = getActionsOfKind(docLine, pos, "source");
+        const start = { line: 0, character: 0 };
+        return actions.map(a => ({
+            range: { start, end: start },
+            uri: vscode_uri_1.default.file(a.data).toString()
+        }));
+    }
+    return [];
+}
+exports.definitionProvider = definitionProvider;
+function getActionsOfKind(line, position, kind) {
+    if (line.parseInfo) {
+        if (!line.actions) {
+            line.actions = new node_interval_tree_1.IntervalTree();
+            for (const action of line.parseInfo.actions) {
+                line.actions.insert(action);
+            }
+        }
+        const tree = line.actions;
+        return tree.search(position.character, position.character).filter(v => v.type === kind);
+    }
+    return [];
+}
+function getNodeTree(line) {
+    if (line.nodes) {
+        return line.nodes;
+    }
+    if (line.parseInfo) {
+        const tree = new node_interval_tree_1.IntervalTree();
+        for (const node of line.parseInfo.nodes) {
+            tree.insert(node);
+        }
+        return tree;
+    }
+    return undefined;
+}
+},{"./misc-functions":"irtH"}],"f1BJ":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3331,9 +3407,9 @@ const events_1 = require("events");
 const util_1 = require("util");
 const util_promisify_1 = require("util.promisify");
 util_promisify_1.shim();
-const node_interval_tree_1 = require("node-interval-tree");
 const main_1 = require("vscode-languageserver/lib/main");
 const vscode_uri_1 = tslib_1.__importDefault(require("vscode-uri"));
+const actions_1 = require("./actions");
 const completions_1 = require("./completions");
 const cache_1 = require("./data/cache");
 const manager_1 = require("./data/manager");
@@ -3510,7 +3586,7 @@ function handleMiscInfo(miscInfos) {
             changedFileErrors.add(misc.filePath);
             const value = fileErrors.get(misc.filePath);
             if (value) {
-                fileErrors.set(misc.filePath, Object.assign({}, value, { group: misc.message }));
+                fileErrors.set(misc.filePath, Object.assign({}, value, { [misc.group]: misc.message }));
             } else {
                 fileErrors.set(misc.filePath, {
                     group: misc.message
@@ -3523,8 +3599,9 @@ function handleMiscInfo(miscInfos) {
             if (group) {
                 const value = fileErrors.get(misc.filePath);
                 if (value) {
-                    const { group: _ } = value,
-                          rest = tslib_1.__rest(value, ["group"]);
+                    const _a = group,
+                          _ = value[_a],
+                          rest = tslib_1.__rest(value, [typeof _a === "symbol" ? _a : _a + ""]);
                     fileErrors.set(misc.filePath, Object.assign({}, rest));
                 }
             } else {
@@ -3562,88 +3639,19 @@ connection.onCompletion(params => {
         return util_1.promisify(cb => parseCompletionEvents.once(`${params.textDocument.uri}:${params.position.line}`, cb))().then(computeCompletionsLocal);
     }
 });
-connection.onHover(params => {
-    if (started) {
-        const docLine = getLine(params);
-        if (docLine) {
-            function computeIntervalHovers(intervals, commandLine, line, map) {
-                const end = {
-                    character: intervals.reduce((acc, v) => Math.max(acc, v.high), 0),
-                    line
-                };
-                const start = {
-                    character: intervals.reduce((acc, v) => Math.min(acc, v.low), commandLine.text.length),
-                    line
-                };
-                return {
-                    contents: map(intervals),
-                    range: { start, end }
-                };
-            }
-            const hovers = getActionsOfKind(docLine, params.position, "hover");
-            if (hovers.length > 0) {
-                return computeIntervalHovers(hovers, docLine, params.position.line, i => i.map(v => v.data));
-            } else {
-                const tree = getNodeTree(docLine);
-                if (tree) {
-                    const matching = tree.search(params.position.character, params.position.character);
-                    if (matching.length > 0) {
-                        return computeIntervalHovers(matching, docLine, params.position.line, i => i.map(node => {
-                            const data = misc_functions_1.followPath(manager.globalData.commands, node.path);
-                            return `${data.type === "literal" ? "literal" : `\`${data.parser}\` parser`} on path '${node.path.join(", ")}'`;
-                        }));
-                    }
-                }
+connection.onHover(prepare(actions_1.hoverProvider, undefined));
+connection.onDefinition(prepare(actions_1.definitionProvider, []));
+function prepare(func, fallback) {
+    return params => {
+        if (started) {
+            const doc = documents.get(params.textDocument.uri);
+            if (doc) {
+                const docLine = doc.lines[params.position.line];
+                return func(docLine, params.position, doc, manager);
             }
         }
-    }
-    return undefined;
-});
-connection.onDefinition(params => {
-    const docLine = getLine(params);
-    if (docLine) {
-        const actions = getActionsOfKind(docLine, params.position, "source");
-        const start = { line: 0, character: 0 };
-        return actions.map(a => ({
-            range: { start, end: start },
-            uri: vscode_uri_1.default.file(a.data).toString()
-        }));
-    }
-    return [];
-});
-function getLine(params) {
-    const doc = documents.get(params.textDocument.uri);
-    if (doc) {
-        const line = doc.lines[params.position.line];
-        return line;
-    }
-    return undefined;
+        return fallback;
+    };
 }
-function getActionsOfKind(line, position, kind) {
-    if (line.parseInfo) {
-        if (!line.actions) {
-            line.actions = new node_interval_tree_1.IntervalTree();
-            for (const action of line.parseInfo.actions) {
-                line.actions.insert(action);
-            }
-        }
-        const tree = line.actions;
-        return tree.search(position.character, position.character).filter(v => v.type === kind);
-    }
-    return [];
-}
-function getNodeTree(line) {
-    if (line.nodes) {
-        return line.nodes;
-    }
-    if (line.parseInfo) {
-        const tree = new node_interval_tree_1.IntervalTree();
-        for (const node of line.parseInfo.nodes) {
-            tree.insert(node);
-        }
-        return tree;
-    }
-    return undefined;
-}
-},{"./completions":"aDYY","./data/cache":"T7Hz","./data/manager":"zth0","./misc-functions":"irtH","./misc-functions/third_party/merge-deep":"NZkF","./parse":"X+eG"}]},{},["7QCb"], null)
+},{"./actions":"0A+1","./completions":"aDYY","./data/cache":"T7Hz","./data/manager":"zth0","./misc-functions":"irtH","./misc-functions/third_party/merge-deep":"NZkF","./parse":"X+eG"}]},{},["7QCb"], null)
 //# sourceMappingURL=/index.map
