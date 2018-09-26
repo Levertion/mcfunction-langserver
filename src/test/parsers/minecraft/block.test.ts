@@ -1,8 +1,8 @@
 import { ok } from "assert";
-import { setupFiles } from "../../../data/noncached";
+
+import { loadNBTDocs } from "../../../data/noncached";
 import { GlobalData } from "../../../data/types";
 import { parseBlockArgument } from "../../../parsers/minecraft/block";
-import { MemoryFS } from "../../../parsers/minecraft/nbt/doc-fs";
 import { CommmandData, Parser } from "../../../types";
 import {
     convertToResource,
@@ -10,6 +10,7 @@ import {
     testParser
 } from "../../assertions";
 import { blankproperties } from "../../blanks";
+import { snbtTestData } from "./nbt/test-data";
 
 const parser: Parser = {
     parse: (reader, info) =>
@@ -161,28 +162,21 @@ describe("sharedBlockParser", () => {
     });
 
     describe("block & NBT tests", () => {
-        let memfs: MemoryFS;
-        let regmemfs: MemoryFS;
-        let test: ReturnType<typeof blockArgumentTester>;
-
-        before(async () => {
-            memfs = await setupFiles("test_data/snbt_test");
-            regmemfs = await setupFiles();
-            test = blockArgumentTester({
-                data: {
-                    globalData: ({
-                        blocks: {
-                            "langserver:nbt": {},
-                            "langserver:nbt_prop": {
-                                prop: ["1", "2", "3"]
-                            },
-                            "langserver:nbt_two": {}
+        const test = blockArgumentTester({
+            data: {
+                globalData: ({
+                    blocks: {
+                        "langserver:nbt": {},
+                        "langserver:nbt_prop": {
+                            prop: ["1", "2", "3"]
                         },
-                        nbt_docs: memfs
-                    } as any) as GlobalData
-                }
-            });
+                        "langserver:nbt_two": {}
+                    },
+                    nbt_docs: snbtTestData
+                } as any) as GlobalData
+            }
         });
+
         it("should parse correctly for a regular block", () => {
             const tester = blockArgumentTester({
                 data: {
@@ -190,7 +184,7 @@ describe("sharedBlockParser", () => {
                         blocks: {
                             "minecraft:chest": {}
                         },
-                        nbt_docs: regmemfs
+                        nbt_docs: loadNBTDocs()
                     } as any) as GlobalData
                 }
             });

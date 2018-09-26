@@ -1,5 +1,5 @@
 import { StringReader } from "../../../../brigadier/string-reader";
-import { setupFiles } from "../../../../data/noncached";
+import { loadNBTDocs } from "../../../../data/noncached";
 import { parseNBT, parser } from "../../../../parsers/minecraft/nbt/nbt";
 import { ParserInfo, SuggestResult } from "../../../../types";
 import {
@@ -7,6 +7,7 @@ import {
     SuggestedOption,
     testParser
 } from "../../../assertions";
+import { testDocs } from "./test-data";
 
 describe("nbt parser test", () => {
     describe("parse()", () => {
@@ -17,7 +18,7 @@ describe("nbt parser test", () => {
             info = {
                 data: {
                     globalData: {
-                        nbt_docs: await setupFiles("test_data/test_docs")
+                        nbt_docs: testDocs
                     }
                 },
                 suggesting: true
@@ -25,7 +26,7 @@ describe("nbt parser test", () => {
             reginfo = {
                 data: {
                     globalData: {
-                        nbt_docs: await setupFiles()
+                        nbt_docs: loadNBTDocs()
                     }
                 },
                 suggesting: true

@@ -2597,15 +2597,15 @@ const array_reader_1 = require("./util/array-reader");
 const doc_walker_util_1 = require("./util/doc-walker-util");
 // tslint:disable:cyclomatic-complexity
 class NBTWalker {
-    constructor(parsed, docfs, extraChild, nbtvalidation = true, root = "root.json") {
-        this.docfs = docfs;
+    constructor(parsed, docs, extraChild, nbtvalidation = true, root = "root.json") {
+        this.docs = docs;
         this.parsed = parsed;
         this.extraChildren = extraChild;
         this.root = root;
         this.nbtvld = nbtvalidation;
     }
     getFinalNode(nbtpath) {
-        const node = this.docfs.get(this.root);
+        const node = this.docs.get(this.root);
         const reader = new array_reader_1.ArrayReader(nbtpath);
         return this.getNextNode({
             allowRefWalk: false,
@@ -2619,7 +2619,7 @@ class NBTWalker {
     evalRef(ref, path, data) {
         const [nextPath, fragPath] = doc_walker_util_1.parseRefPath(ref, path);
         const reader = new array_reader_1.ArrayReader(fragPath);
-        const node = this.docfs.get(nextPath);
+        const node = this.docs.get(nextPath);
         return this.getNextNode({
             allowRefWalk: true,
             finalValidation: false,
@@ -2799,7 +2799,7 @@ class NBTWalker {
                 if (key.startsWith("$")) {
                     const ref = key.substring(1);
                     const [nextPath] = doc_walker_util_1.parseRefPath(ref, path);
-                    const list = this.docfs.get(nextPath);
+                    const list = this.docs.get(nextPath);
                     if (list.find(v => util_1.isString(v) ? v === next : v.value === next)) {
                         return this.getNextNode(Object.assign({}, data, { node: node.children[key] }));
                     }
@@ -2839,13 +2839,13 @@ const paths = [{
 function parseNBT(reader, info, data) {
     const helper = new misc_functions_1.ReturnHelper();
     const tag = new compound_tag_1.NBTTagCompound({});
-    const docFS = info.data.globalData.nbt_docs;
+    const docs = info.data.globalData.nbt_docs;
     const reply = tag.parse(reader);
     if (helper.merge(reply)) {
         return helper.succeed();
     } else {
         if (!!data) {
-            const walker = new doc_walker_1.NBTWalker(reply.data.parsed || new compound_tag_1.NBTTagCompound({}), docFS, data.type === "item");
+            const walker = new doc_walker_1.NBTWalker(reply.data.parsed || new compound_tag_1.NBTTagCompound({}), docs, data.type === "item");
             if (util_1.isArray(data.id)) {
                 for (const k of data.id) {
                     const node = walker.getFinalNode([data.type, k, ...(reply.data.path || [])]);
@@ -4393,73 +4393,22 @@ async function collectGlobalData(currentversion = "") {
     }
 }
 exports.collectGlobalData = collectGlobalData;
-},{"../../misc-functions":"irtH","../cache":"T7Hz","./collect-data":"R7Qt","./download":"Y+vF","./extract-data":"lioB"}],"FsOi":[function(require,module,exports) {
+},{"../../misc-functions":"irtH","../cache":"T7Hz","./collect-data":"R7Qt","./download":"Y+vF","./extract-data":"lioB"}],"OaLX":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const path = tslib_1.__importStar(require("path"));
-const promisified_fs_1 = require("../../../misc-functions/promisified-fs");
-class MemoryFS {
-    constructor(root, internal) {
-        this.root = root;
-        this.data = internal || {};
-    }
-    clear() {
-        this.data = {};
-    }
-    get(internalPath) {
-        return this.data[internalPath];
-    }
-    getRoot() {
-        return this.root;
-    }
-    isEmpty() {
-        return Object.keys(this.data).length === 0;
-    }
-    async load(realPath) {
-        if (path.extname(realPath) === ".json") {
-            const data = await promisified_fs_1.readJSONRaw(realPath);
-            this.setExternal(realPath, data);
-        }
-    }
-    set(internalPath, data) {
-        this.data[internalPath] = data;
-    }
-    setExternal(realPath, data) {
-        const internalPath = path.relative(this.root, realPath).replace(new RegExp(`\\${path.win32.sep}`, "g"), path.posix.sep);
-        this.data[internalPath] = data;
-    }
-}
-exports.MemoryFS = MemoryFS;
-},{"../../../misc-functions/promisified-fs":"DjTX"}],"OaLX":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 const mc_nbt_paths_1 = require("mc-nbt-paths");
-const path = tslib_1.__importStar(require("path"));
-const promisified_fs_1 = require("../misc-functions/promisified-fs");
-const doc_fs_1 = require("../parsers/minecraft/nbt/doc-fs");
-exports.rootNodePath = mc_nbt_paths_1.root;
-exports.modulePath = path.dirname(exports.rootNodePath);
-async function setupFiles(dir = exports.modulePath) {
-    const docfs = new doc_fs_1.MemoryFS(dir);
-    const paths = await promisified_fs_1.walkDir(dir);
-    const promises = [];
-    for (const p of paths) {
-        promises.push(docfs.load(p));
-    }
-    await Promise.all(promises);
-    return docfs;
+function loadNBTDocs() {
+    const nbtData = new Map();
+    Object.keys(mc_nbt_paths_1.nbtDocs).forEach(k => nbtData.set(k, mc_nbt_paths_1.nbtDocs[k]));
+    return nbtData;
 }
-exports.setupFiles = setupFiles;
+exports.loadNBTDocs = loadNBTDocs;
 async function loadNonCached() {
-    const [nbtDocs] = await Promise.all([setupFiles()]);
-    return { nbt_docs: nbtDocs };
+    return { nbt_docs: loadNBTDocs() };
 }
 exports.loadNonCached = loadNonCached;
-},{"../misc-functions/promisified-fs":"DjTX","../parsers/minecraft/nbt/doc-fs":"FsOi"}],"zth0":[function(require,module,exports) {
+},{}],"zth0":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });

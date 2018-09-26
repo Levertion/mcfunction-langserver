@@ -42,7 +42,7 @@ export function parseNBT(
 ): ReturnedInfo<undefined> {
     const helper = new ReturnHelper();
     const tag = new NBTTagCompound({});
-    const docFS = info.data.globalData.nbt_docs;
+    const docs = info.data.globalData.nbt_docs;
     const reply = tag.parse(reader);
 
     if (helper.merge(reply)) {
@@ -51,7 +51,7 @@ export function parseNBT(
         if (!!data) {
             const walker = new NBTWalker(
                 reply.data.parsed || new NBTTagCompound({}),
-                docFS,
+                docs,
                 data.type === "item"
             );
             if (isArray(data.id)) {

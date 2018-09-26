@@ -1,3 +1,4 @@
+import { NBTNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
 import { ReturnSuccess, SuggestResult } from "../../../../types";
@@ -7,8 +8,7 @@ import {
     isCompoundNode,
     isListNode,
     isRootNode,
-    isTypedNode,
-    NBTNode
+    isTypedNode
 } from "./doc-walker-util";
 
 export const ARRAY_START = "[";
