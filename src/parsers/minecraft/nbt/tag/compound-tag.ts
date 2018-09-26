@@ -13,7 +13,8 @@ import {
     COMPOUND_END,
     COMPOUND_KEY_VALUE_SEP,
     COMPOUND_PAIR_SEP,
-    COMPOUND_START
+    COMPOUND_START,
+    getHoverText
 } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
@@ -77,6 +78,18 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
                         k.key
                     )
                 );
+            }
+            if (
+                node.children &&
+                k.key in node.children &&
+                node.children[k.key].description
+            ) {
+                helper.addActions({
+                    data: getHoverText(node.children[k.key]),
+                    high: k.keyPos.end,
+                    low: k.keyPos.start,
+                    type: "hover"
+                });
             }
         }
         if (node.children) {

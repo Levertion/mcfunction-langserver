@@ -8,7 +8,7 @@ import {
     NBTValidationInfo,
     VALIDATION_ERRORS
 } from "../util/doc-walker-util";
-import { CorrectLevel, NBTErrorData } from "../util/nbt-util";
+import { CorrectLevel, getHoverText, NBTErrorData } from "../util/nbt-util";
 
 export type ParseReturn = ReturnedInfo<CorrectLevel, CE, NBTErrorData>;
 
@@ -87,33 +87,40 @@ export abstract class NBTTag<L> {
                     this.tagType
                 )
             );
-        } else {
-            if (node.suggestions) {
-                for (const k of node.suggestions) {
-                    if (typeof k === "string") {
-                        helper.addSuggestion(this.range.start, k);
-                    } else if ("function" in k) {
-                        helper.addSuggestions(
-                            ...runSuggestFunction(
-                                k.function.id,
-                                k.function.params
-                            ).map<Suggestion>(v => ({
-                                start: this.range.start,
-                                text: v
-                            }))
-                        );
-                    } else {
-                        helper.addSuggestion(
-                            this.range.start,
-                            k.value,
-                            undefined,
-                            k.description
-                        );
-                    }
+        }
+        if (node.description) {
+            helper.addActions({
+                data: getHoverText(node),
+                high: this.range.end,
+                low: this.range.start,
+                type: "hover"
+            });
+        }
+        if (node.suggestions) {
+            for (const k of node.suggestions) {
+                if (typeof k === "string") {
+                    helper.addSuggestion(this.range.start, k);
+                } else if ("function" in k) {
+                    helper.addSuggestions(
+                        ...runSuggestFunction(
+                            k.function.id,
+                            k.function.params
+                        ).map<Suggestion>(v => ({
+                            start: this.range.start,
+                            text: v
+                        }))
+                    );
+                } else {
+                    helper.addSuggestion(
+                        this.range.start,
+                        k.value,
+                        undefined,
+                        k.description
+                    );
                 }
             }
-            return helper.succeed();
         }
+        return helper.succeed();
     }
 
     protected abstract readTag(reader: StringReader): ParseReturn;

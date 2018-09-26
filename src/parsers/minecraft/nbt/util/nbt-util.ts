@@ -3,7 +3,13 @@ import { ReturnHelper } from "../../../../misc-functions";
 import { ReturnSuccess, SuggestResult } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import { NBTTag } from "../tag/nbt-tag";
-import { isCompoundNode, isListNode, NBTNode } from "./doc-walker-util";
+import {
+    isCompoundNode,
+    isListNode,
+    isRootNode,
+    isTypedNode,
+    NBTNode
+} from "./doc-walker-util";
 
 export const ARRAY_START = "[";
 export const ARRAY_END = "]";
@@ -106,3 +112,31 @@ export function getNBTSuggestions(
     }
     return helper.succeed();
 }
+
+export const tagid2Name: { [P in NBTTag<any>["tagType"]]: string } = {
+    byte: "byte",
+    byte_array: "byte[]",
+    compound: "compound",
+    double: "double",
+    float: "float",
+    int: "int",
+    int_array: "int[]",
+    list: "list",
+    long: "long",
+    long_array: "long[]",
+    short: "short",
+    string: "string"
+};
+
+export const getHoverText = (node: NBTNode) => {
+    if (!isTypedNode(node)) {
+        return "";
+    }
+    if (isRootNode(node)) {
+        return "";
+    }
+    if (node.type === "no-nbt") {
+        return "";
+    }
+    return `(${tagid2Name[node.type]}) ${node.description || ""}`;
+};

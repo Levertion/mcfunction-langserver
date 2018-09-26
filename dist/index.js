@@ -1635,121 +1635,7 @@ exports.VALIDATION_ERRORS = {
     noSuchChild: new errors_1.CommandErrorBuilder("argument.nbt.validation.compound.nochild", "The tag does not have a child named '%s'", main_1.DiagnosticSeverity.Warning),
     wrongType: new errors_1.CommandErrorBuilder("argument.nbt.validation.wrongtype", "The tag type '%s' is not the correct type '%s'")
 };
-},{"../../../../brigadier/errors":"lIyQ"}],"SKCP":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const misc_functions_1 = require("../../../../misc-functions");
-const doc_walker_func_1 = require("../doc-walker-func");
-const doc_walker_util_1 = require("../util/doc-walker-util");
-class NBTTag {
-    constructor(val) {
-        this.val = val;
-        this.range = { start: 0, end: 0 };
-    }
-    getRange() {
-        return this.range;
-    }
-    getVal() {
-        return this.val;
-    }
-    parse(reader) {
-        const start = reader.cursor;
-        const out = this.readTag(reader);
-        this.range = {
-            end: reader.cursor,
-            start
-        };
-        return out;
-    }
-    /**
-     * Test if two NBT tags are equivalent in value
-     * @param tag The NBT tag to test against
-     */
-    tagEq(tag) {
-        return tag.tagType === this.tagType && tag.getVal() === this.getVal();
-    }
-    validationResponse(node,
-    // @ts-ignore
-    info) {
-        const helper = new misc_functions_1.ReturnHelper();
-        if (!doc_walker_util_1.isTypedNode(node)) {
-            return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, "", this.tagType));
-        } else if (node.type !== this.tagType) {
-            return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, node.type, this.tagType));
-        } else {
-            if (node.suggestions) {
-                for (const k of node.suggestions) {
-                    if (typeof k === "string") {
-                        helper.addSuggestion(this.range.start, k);
-                    } else if ("function" in k) {
-                        helper.addSuggestions(...doc_walker_func_1.runSuggestFunction(k.function.id, k.function.params).map(v => ({
-                            start: this.range.start,
-                            text: v
-                        })));
-                    } else {
-                        helper.addSuggestion(this.range.start, k.value, undefined, k.description);
-                    }
-                }
-            }
-            return helper.succeed();
-        }
-    }
-}
-exports.NBTTag = NBTTag;
-},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","../util/doc-walker-util":"TRlg"}],"tWeb":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const misc_functions_1 = require("../../../../misc-functions");
-const nbt_tag_1 = require("./nbt-tag");
-class NBTTagString extends nbt_tag_1.NBTTag {
-    constructor() {
-        super(...arguments);
-        this.tagType = "string";
-    }
-    readTag(reader) {
-        const helper = new misc_functions_1.ReturnHelper();
-        const str = reader.readString();
-        if (!helper.merge(str)) {
-            return helper.failWithData({ correct: 1 });
-        } else {
-            this.val = str.data;
-            return helper.succeed(1);
-        }
-    }
-}
-exports.NBTTagString = NBTTagString;
-},{"../../../../misc-functions":"irtH","./nbt-tag":"SKCP"}],"h7oH":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const path = tslib_1.__importStar(require("path"));
-const sprintf_js_1 = require("sprintf-js");
-const string_tag_1 = require("./tag/string-tag");
-const doc_walker_util_1 = require("./util/doc-walker-util");
-const pathsFuncs = {
-    insertStringNBT
-};
-function runNodeFunction(parsed, nbtPath, node) {
-    return pathsFuncs[node.function.id](parsed, nbtPath, node, node.function.params);
-}
-exports.runNodeFunction = runNodeFunction;
-const suggestFuncs = {};
-function insertStringNBT(parsed, nbtPath,
-// @ts-ignore
-node, args) {
-    const newRef = path.posix.join(path.dirname(nbtPath.join("/")), args.tag_path).split("/");
-    const out = doc_walker_util_1.getNBTTagFromTree(parsed, newRef);
-    return !out || !(out instanceof string_tag_1.NBTTagString) ? args.default : sprintf_js_1.sprintf(args.ref, out.getVal());
-}
-// Suggest function
-function runSuggestFunction(func, args) {
-    return suggestFuncs[func](func, args);
-}
-exports.runSuggestFunction = runSuggestFunction;
-},{"./tag/string-tag":"tWeb","./util/doc-walker-util":"TRlg"}],"R+CJ":[function(require,module,exports) {
+},{"../../../../brigadier/errors":"lIyQ"}],"R+CJ":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -1834,7 +1720,155 @@ function getNBTSuggestions(node, cursor) {
     return helper.succeed();
 }
 exports.getNBTSuggestions = getNBTSuggestions;
-},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","./doc-walker-util":"TRlg"}],"gba0":[function(require,module,exports) {
+exports.tagid2Name = {
+    byte: "byte",
+    byte_array: "byte[]",
+    compound: "compound",
+    double: "double",
+    float: "float",
+    int: "int",
+    int_array: "int[]",
+    list: "list",
+    long: "long",
+    long_array: "long[]",
+    short: "short",
+    string: "string"
+};
+exports.getHoverText = node => {
+    if (!doc_walker_util_1.isTypedNode(node)) {
+        return "";
+    }
+    if (doc_walker_util_1.isRootNode(node)) {
+        return "";
+    }
+    if (node.type === "no-nbt") {
+        return "";
+    }
+    return `(${exports.tagid2Name[node.type]}) ${node.description || ""}`;
+};
+},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","./doc-walker-util":"TRlg"}],"SKCP":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const misc_functions_1 = require("../../../../misc-functions");
+const doc_walker_func_1 = require("../doc-walker-func");
+const doc_walker_util_1 = require("../util/doc-walker-util");
+const nbt_util_1 = require("../util/nbt-util");
+class NBTTag {
+    constructor(val) {
+        this.val = val;
+        this.range = { start: 0, end: 0 };
+    }
+    getRange() {
+        return this.range;
+    }
+    getVal() {
+        return this.val;
+    }
+    parse(reader) {
+        const start = reader.cursor;
+        const out = this.readTag(reader);
+        this.range = {
+            end: reader.cursor,
+            start
+        };
+        return out;
+    }
+    /**
+     * Test if two NBT tags are equivalent in value
+     * @param tag The NBT tag to test against
+     */
+    tagEq(tag) {
+        return tag.tagType === this.tagType && tag.getVal() === this.getVal();
+    }
+    validationResponse(node,
+    // @ts-ignore
+    info) {
+        const helper = new misc_functions_1.ReturnHelper();
+        if (!doc_walker_util_1.isTypedNode(node)) {
+            return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, "", this.tagType));
+        } else if (node.type !== this.tagType) {
+            return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, node.type, this.tagType));
+        }
+        if (node.description) {
+            helper.addActions({
+                data: nbt_util_1.getHoverText(node),
+                high: this.range.end,
+                low: this.range.start,
+                type: "hover"
+            });
+        }
+        if (node.suggestions) {
+            for (const k of node.suggestions) {
+                if (typeof k === "string") {
+                    helper.addSuggestion(this.range.start, k);
+                } else if ("function" in k) {
+                    helper.addSuggestions(...doc_walker_func_1.runSuggestFunction(k.function.id, k.function.params).map(v => ({
+                        start: this.range.start,
+                        text: v
+                    })));
+                } else {
+                    helper.addSuggestion(this.range.start, k.value, undefined, k.description);
+                }
+            }
+        }
+        return helper.succeed();
+    }
+}
+exports.NBTTag = NBTTag;
+},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","../util/doc-walker-util":"TRlg","../util/nbt-util":"R+CJ"}],"tWeb":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const misc_functions_1 = require("../../../../misc-functions");
+const nbt_tag_1 = require("./nbt-tag");
+class NBTTagString extends nbt_tag_1.NBTTag {
+    constructor() {
+        super(...arguments);
+        this.tagType = "string";
+    }
+    readTag(reader) {
+        const helper = new misc_functions_1.ReturnHelper();
+        const str = reader.readString();
+        if (!helper.merge(str)) {
+            return helper.failWithData({ correct: 1 });
+        } else {
+            this.val = str.data;
+            return helper.succeed(1);
+        }
+    }
+}
+exports.NBTTagString = NBTTagString;
+},{"../../../../misc-functions":"irtH","./nbt-tag":"SKCP"}],"h7oH":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const path = tslib_1.__importStar(require("path"));
+const sprintf_js_1 = require("sprintf-js");
+const string_tag_1 = require("./tag/string-tag");
+const doc_walker_util_1 = require("./util/doc-walker-util");
+const pathsFuncs = {
+    insertStringNBT
+};
+function runNodeFunction(parsed, nbtPath, node) {
+    return pathsFuncs[node.function.id](parsed, nbtPath, node, node.function.params);
+}
+exports.runNodeFunction = runNodeFunction;
+const suggestFuncs = {};
+function insertStringNBT(parsed, nbtPath,
+// @ts-ignore
+node, args) {
+    const newRef = path.posix.join(path.dirname(nbtPath.join("/")), args.tag_path).split("/");
+    const out = doc_walker_util_1.getNBTTagFromTree(parsed, newRef);
+    return !out || !(out instanceof string_tag_1.NBTTagString) ? args.default : sprintf_js_1.sprintf(args.ref, out.getVal());
+}
+// Suggest function
+function runSuggestFunction(func, args) {
+    return suggestFuncs[func](func, args);
+}
+exports.runSuggestFunction = runSuggestFunction;
+},{"./tag/string-tag":"tWeb","./util/doc-walker-util":"TRlg"}],"gba0":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2386,6 +2420,14 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         for (const k of this.kvpos) {
             if (!info.extraChildren && !(k.key in (node.children || {}))) {
                 helper.addErrors(doc_walker_util_1.VALIDATION_ERRORS.noSuchChild.create(k.keyPos.start, k.valPos.end, k.key));
+            }
+            if (node.children && k.key in node.children && node.children[k.key].description) {
+                helper.addActions({
+                    data: nbt_util_1.getHoverText(node.children[k.key]),
+                    high: k.keyPos.end,
+                    low: k.keyPos.start,
+                    type: "hover"
+                });
             }
         }
         if (node.children) {
