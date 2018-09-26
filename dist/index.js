@@ -1133,83 +1133,7 @@ tslib_1.__exportStar(require("./setup"), exports);
 tslib_1.__exportStar(require("./translation"), exports);
 tslib_1.__exportStar(require("./parsing/namespace"), exports);
 tslib_1.__exportStar(require("./parsing/nmsp-tag"), exports);
-},{"./context":"qA/9","./creators":"WIIZ","./datapack-folder":"Pj+z","./file-errors":"3The","./group-resources":"8nfD","./lsp-conversions":"kVgt","./namespace":"JulZ","./node-tree":"jwqV","./promisified-fs":"DjTX","./return-helper":"S4yr","./security":"7l1Z","./setup":"9OF7","./translation":"0ADi","./parsing/namespace":"D271","./parsing/nmsp-tag":"pi1w"}],"0A+1":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const node_interval_tree_1 = require("node-interval-tree");
-const vscode_uri_1 = tslib_1.__importDefault(require("vscode-uri"));
-const misc_functions_1 = require("./misc-functions");
-function hoverProvider(docLine, pos, _, manager) {
-    function computeIntervalHovers(intervals, commandLine, line, map) {
-        const end = {
-            character: intervals.reduce((acc, v) => Math.max(acc, v.high), 0),
-            line
-        };
-        const start = {
-            character: intervals.reduce((acc, v) => Math.min(acc, v.low), commandLine.text.length),
-            line
-        };
-        return { contents: map(intervals), range: { start, end } };
-    }
-    const hovers = getActionsOfKind(docLine, pos, "hover");
-    if (hovers.length > 0) {
-        return computeIntervalHovers(hovers, docLine, pos.line, i => i.map(v => v.data));
-    } else {
-        const tree = getNodeTree(docLine);
-        if (tree) {
-            const matching = tree.search(pos.character, pos.character);
-            if (matching.length > 0) {
-                return computeIntervalHovers(matching, docLine, pos.line, i => i.map(node => {
-                    const data = misc_functions_1.followPath(manager.globalData.commands, node.path);
-                    return `${data.type === "literal" ? "literal" : `\`${data.parser}\` parser`} on path '${node.path.join(", ")}'`;
-                }));
-            }
-        }
-    }
-    return undefined;
-}
-exports.hoverProvider = hoverProvider;
-function definitionProvider(docLine, pos) {
-    if (docLine) {
-        const actions = getActionsOfKind(docLine, pos, "source");
-        const start = { line: 0, character: 0 };
-        return actions.map(a => ({
-            range: { start, end: start },
-            uri: vscode_uri_1.default.file(a.data).toString()
-        }));
-    }
-    return [];
-}
-exports.definitionProvider = definitionProvider;
-function getActionsOfKind(line, position, kind) {
-    if (line.parseInfo) {
-        if (!line.actions) {
-            line.actions = new node_interval_tree_1.IntervalTree();
-            for (const action of line.parseInfo.actions) {
-                line.actions.insert(action);
-            }
-        }
-        const tree = line.actions;
-        return tree.search(position.character, position.character).filter(v => v.type === kind);
-    }
-    return [];
-}
-function getNodeTree(line) {
-    if (line.nodes) {
-        return line.nodes;
-    }
-    if (line.parseInfo) {
-        const tree = new node_interval_tree_1.IntervalTree();
-        for (const node of line.parseInfo.nodes) {
-            tree.insert(node);
-        }
-        return tree;
-    }
-    return undefined;
-}
-},{"./misc-functions":"irtH"}],"f1BJ":[function(require,module,exports) {
+},{"./context":"qA/9","./creators":"WIIZ","./datapack-folder":"Pj+z","./file-errors":"3The","./group-resources":"8nfD","./lsp-conversions":"kVgt","./namespace":"JulZ","./node-tree":"jwqV","./promisified-fs":"DjTX","./return-helper":"S4yr","./security":"7l1Z","./setup":"9OF7","./translation":"0ADi","./parsing/namespace":"D271","./parsing/nmsp-tag":"pi1w"}],"f1BJ":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2448,6 +2372,20 @@ function computeCompletions(linenum, character, document, data) {
     if (nodes.length === 0) {
         return main_1.CompletionList.create(getCompletionsFromNode(linenum, 0, character, line.text, [], commandData, {}), true);
     }
+    const { finals, internals } = getAllNodes(nodes, character);
+    const completions = [];
+    for (const finalNode of finals) {
+        completions.push(...getCompletionsFromNode(linenum, finalNode.high + 1, character, line.text, finalNode.path, commandData, finalNode.context));
+    }
+    for (const insideNode of internals) {
+        const newPath = insideNode.path.slice();
+        const parentPath = newPath.slice(0, -1);
+        completions.push(...getCompletionsFromNode(linenum, insideNode.low, character, line.text, parentPath, commandData, insideNode.context));
+    }
+    return main_1.CompletionList.create(completions, true);
+}
+exports.computeCompletions = computeCompletions;
+function getAllNodes(nodes, character) {
     const finals = [];
     const internals = [];
     for (const node of nodes) {
@@ -2461,18 +2399,9 @@ function computeCompletions(linenum, character, document, data) {
             }
         }
     }
-    const completions = [];
-    for (const finalNode of finals) {
-        completions.push(...getCompletionsFromNode(linenum, finalNode.high + 1, character, line.text, finalNode.path, commandData, finalNode.context));
-    }
-    for (const insideNode of internals) {
-        const newPath = insideNode.path.slice();
-        const parentPath = newPath.slice(0, -1);
-        completions.push(...getCompletionsFromNode(linenum, insideNode.low, character, line.text, parentPath, commandData, insideNode.context));
-    }
-    return main_1.CompletionList.create(completions, true);
+    return { finals, internals };
 }
-exports.computeCompletions = computeCompletions;
+exports.getAllNodes = getAllNodes;
 function getCompletionsFromNode(line, start, end, text, nodepath, data, context) {
     const parent = node_tree_1.getNextNode(node_tree_1.followPath(data.globalData.commands, nodepath), nodepath, data.globalData.commands).node;
     const result = [];
@@ -2530,7 +2459,167 @@ function suggestionsToCompletions(suggestions, line, start, end, defaultKind = m
     }
     return result;
 }
-},{"./brigadier/string-reader":"f1BJ","./consts":"xb+0","./misc-functions/creators":"WIIZ","./misc-functions/node-tree":"jwqV","./parsers/get-parser":"vlho"}],"xUTu":[function(require,module,exports) {
+},{"./brigadier/string-reader":"f1BJ","./consts":"xb+0","./misc-functions/creators":"WIIZ","./misc-functions/node-tree":"jwqV","./parsers/get-parser":"vlho"}],"0A+1":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const node_interval_tree_1 = require("node-interval-tree");
+const vscode_uri_1 = tslib_1.__importDefault(require("vscode-uri"));
+const completions_1 = require("./completions");
+const consts_1 = require("./consts");
+const misc_functions_1 = require("./misc-functions");
+function hoverProvider(docLine, pos, _, manager) {
+    function computeIntervalHovers(intervals, commandLine, line, map) {
+        const end = {
+            character: intervals.reduce((acc, v) => Math.max(acc, v.high), 0),
+            line
+        };
+        const start = {
+            character: intervals.reduce((acc, v) => Math.min(acc, v.low), commandLine.text.length),
+            line
+        };
+        return { contents: map(intervals), range: { start, end } };
+    }
+    const hovers = getActionsOfKind(docLine, pos, "hover");
+    if (hovers.length > 0) {
+        return computeIntervalHovers(hovers, docLine, pos.line, i => i.map(v => v.data));
+    } else {
+        const tree = getNodeTree(docLine);
+        if (tree) {
+            const matching = tree.search(pos.character, pos.character);
+            if (matching.length > 0) {
+                return computeIntervalHovers(matching, docLine, pos.line, i => i.map(node => {
+                    const data = misc_functions_1.followPath(manager.globalData.commands, node.path);
+                    return `${data.type === "literal" ? "literal" : `\`${data.parser}\` parser`} on path '${node.path.join(", ")}'`;
+                }));
+            }
+        }
+    }
+    return undefined;
+}
+exports.hoverProvider = hoverProvider;
+function definitionProvider(docLine, pos) {
+    if (docLine) {
+        const actions = getActionsOfKind(docLine, pos, "source");
+        const start = { line: 0, character: 0 };
+        return actions.map(a => ({
+            range: { start, end: start },
+            uri: vscode_uri_1.default.file(a.data).toString()
+        }));
+    }
+    return [];
+}
+exports.definitionProvider = definitionProvider;
+function signatureHelpProvider(line, pos, _, manager) {
+    if (line.parseInfo === undefined || line.text.startsWith(consts_1.COMMENT_START)) {
+        return undefined;
+    }
+    const nodes = line.parseInfo ? line.parseInfo.nodes : [];
+    if (nodes.length === 0) {
+        const sigs = getSignatureHelp([], manager);
+        if (sigs) {
+            return {
+                activeParameter: 0,
+                activeSignature: 0,
+                signatures: sigs
+            };
+        } else {
+            return undefined;
+        }
+    }
+    const { finals, internals } = completions_1.getAllNodes(nodes, pos.character);
+    const signatures = [];
+    for (const finalNode of finals) {
+        const result = getSignatureHelp(finalNode.path, manager);
+        if (result) {
+            signatures.push(...result);
+        }
+    }
+    const activeSignature = 0;
+    for (const internalNode of internals) {
+        const pth = internalNode.path.slice();
+        if (pth.length > 0) {
+            pth.splice(0, pth.length - 1);
+            const result = getSignatureHelp(pth, manager);
+            if (result) {
+                signatures.push(...result);
+            }
+        }
+    }
+    if (signatures.length > 0) {
+        return { signatures, activeParameter: 0, activeSignature };
+    }
+    return undefined;
+}
+exports.signatureHelpProvider = signatureHelpProvider;
+function buildSignatureHelpForChildren(node, path, commands, depth) {
+    if (node.children) {
+        const result = [];
+        for (const childName of Object.keys(node.children)) {
+            const child = node.children[childName];
+            const childPath = [...path, childName];
+            const childNode = misc_functions_1.getNextNode(child, childPath, commands);
+            const parameterInfo = buildParameterInfoForNode(childNode.node, childName, !!node.executable);
+            if (depth > 0) {
+                const next = buildSignatureHelpForChildren(childNode.node, childNode.path, commands, depth - 1);
+                if (next.length > 0) {
+                    for (const option of next) {
+                        result.push([parameterInfo, ...option]);
+                    }
+                    continue;
+                }
+            }
+            result.push([parameterInfo]);
+        }
+        return result;
+    }
+    return [];
+}
+function buildParameterInfoForNode(node, name, optional) {
+    const val = node.type === "literal" ? name : node.type === "argument" ? `<${name}: ${node.parser}>` : `root`;
+    return { label: optional ? `[${val}]` : val };
+}
+function getSignatureHelp(path, manager) {
+    const commands = manager.globalData.commands;
+    const next = misc_functions_1.getNextNode(misc_functions_1.followPath(commands, path), path, commands);
+    const options = buildSignatureHelpForChildren(next.node, next.path, commands, 2);
+    const result = [];
+    for (const parameters of options) {
+        result.push({
+            label: `Command at path: '${path.join()}'`,
+            parameters
+        });
+    }
+    return result;
+}
+function getActionsOfKind(line, position, kind) {
+    if (line.parseInfo) {
+        if (!line.actions) {
+            line.actions = new node_interval_tree_1.IntervalTree();
+            for (const action of line.parseInfo.actions) {
+                line.actions.insert(action);
+            }
+        }
+        const tree = line.actions;
+        return tree.search(position.character, position.character).filter(v => v.type === kind);
+    }
+    return [];
+}
+function getNodeTree(line) {
+    if (line.nodes) {
+        return line.nodes;
+    }
+    if (line.parseInfo) {
+        const tree = new node_interval_tree_1.IntervalTree();
+        for (const node of line.parseInfo.nodes) {
+            tree.insert(node);
+        }
+        return tree;
+    }
+    return undefined;
+}
+},{"./completions":"aDYY","./consts":"xb+0","./misc-functions":"irtH"}],"xUTu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3439,6 +3528,7 @@ connection.onInitialize(() => {
             },
             definitionProvider: true,
             hoverProvider: true,
+            signatureHelpProvider: { triggerCharacters: [" "] },
             textDocumentSync: {
                 change: main_1.TextDocumentSyncKind.Incremental,
                 openClose: true
@@ -3641,6 +3731,7 @@ connection.onCompletion(params => {
 });
 connection.onHover(prepare(actions_1.hoverProvider, undefined));
 connection.onDefinition(prepare(actions_1.definitionProvider, []));
+connection.onSignatureHelp(prepare(actions_1.signatureHelpProvider));
 function prepare(func, fallback) {
     return params => {
         if (started) {

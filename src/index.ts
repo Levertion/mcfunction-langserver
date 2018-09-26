@@ -16,7 +16,11 @@ import {
 } from "vscode-languageserver/lib/main";
 import Uri from "vscode-uri";
 
-import { definitionProvider, hoverProvider } from "./actions";
+import {
+    definitionProvider,
+    hoverProvider,
+    signatureHelpProvider
+} from "./actions";
 import { computeCompletions } from "./completions";
 import { readSecurity } from "./data/cache";
 import { DataManager } from "./data/manager";
@@ -69,6 +73,7 @@ connection.onInitialize(() => {
             },
             definitionProvider: true,
             hoverProvider: true,
+            signatureHelpProvider: { triggerCharacters: [" "] },
             textDocumentSync: {
                 change: TextDocumentSyncKind.Incremental,
                 openClose: true
@@ -329,8 +334,8 @@ connection.onCompletion(params => {
 });
 
 connection.onHover(prepare(hoverProvider, undefined));
-
 connection.onDefinition(prepare<Location[]>(definitionProvider, []));
+connection.onSignatureHelp(prepare(signatureHelpProvider));
 
 function prepare<T>(
     func: (

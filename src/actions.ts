@@ -1,10 +1,19 @@
 import { Interval, IntervalTree } from "node-interval-tree";
-import { Hover, Location, Position } from "vscode-languageserver";
-import Uri from "vscode-uri";
+import {
+    Hover,
+    Location,
+    ParameterInformation,
+    Position,
+    SignatureHelp,
+    SignatureInformation
+} from "vscode-languageserver";
 
+import Uri from "vscode-uri";
+import { getAllNodes } from "./completions";
+import { COMMENT_START } from "./consts";
 import { DataManager } from "./data/manager";
-import { CommandNode } from "./data/types";
-import { followPath } from "./misc-functions";
+import { CommandNode, CommandTree, MCNode } from "./data/types";
+import { followPath, getNextNode } from "./misc-functions";
 import { CommandLine, FunctionInfo, ParseNode, SubAction } from "./types";
 
 export function hoverProvider(
@@ -74,6 +83,127 @@ export function definitionProvider(
         }));
     }
     return [];
+}
+
+export function signatureHelpProvider(
+    line: CommandLine,
+    pos: Position,
+    _: FunctionInfo,
+    manager: DataManager
+): SignatureHelp | undefined {
+    if (line.parseInfo === undefined || line.text.startsWith(COMMENT_START)) {
+        return undefined;
+    }
+    const nodes = line.parseInfo ? line.parseInfo.nodes : [];
+    if (nodes.length === 0) {
+        const sigs = getSignatureHelp([], manager);
+        if (sigs) {
+            return {
+                activeParameter: 0,
+                activeSignature: 0,
+                signatures: sigs
+            };
+        } else {
+            return undefined;
+        }
+    }
+    const { finals, internals } = getAllNodes(nodes, pos.character);
+    const signatures: SignatureInformation[] = [];
+    for (const finalNode of finals) {
+        const result = getSignatureHelp(finalNode.path, manager);
+        if (result) {
+            signatures.push(...result);
+        }
+    }
+    const activeSignature = 0;
+    for (const internalNode of internals) {
+        const pth = internalNode.path.slice();
+        if (pth.length > 0) {
+            pth.splice(0, pth.length - 1);
+            const result = getSignatureHelp(pth, manager);
+            if (result) {
+                signatures.push(...result);
+            }
+        }
+    }
+    if (signatures.length > 0) {
+        return { signatures, activeParameter: 0, activeSignature };
+    }
+    return undefined;
+}
+
+function buildSignatureHelpForChildren(
+    node: MCNode<CommandNode> & Partial<CommandNode>,
+    path: string[],
+    commands: CommandTree,
+    depth: number
+): ParameterInformation[][] {
+    if (node.children) {
+        const result: ParameterInformation[][] = [];
+        for (const childName of Object.keys(node.children)) {
+            const child = node.children[childName];
+            const childPath = [...path, childName];
+            const childNode = getNextNode(child, childPath, commands);
+            const parameterInfo = buildParameterInfoForNode(
+                childNode.node as CommandNode,
+                childName,
+                !!node.executable
+            );
+            if (depth > 0) {
+                const next = buildSignatureHelpForChildren(
+                    childNode.node,
+                    childNode.path,
+                    commands,
+                    depth - 1
+                );
+                if (next.length > 0) {
+                    for (const option of next) {
+                        result.push([parameterInfo, ...option]);
+                    }
+                    continue;
+                }
+            }
+            result.push([parameterInfo]);
+        }
+        return result;
+    }
+    return [];
+}
+
+function buildParameterInfoForNode(
+    node: CommandNode,
+    name: string,
+    optional: boolean
+): ParameterInformation {
+    const val =
+        node.type === "literal"
+            ? name
+            : node.type === "argument"
+                ? `<${name}: ${node.parser}>`
+                : `root`;
+    return { label: optional ? `[${val}]` : val };
+}
+
+function getSignatureHelp(
+    path: string[],
+    manager: DataManager
+): SignatureInformation[] {
+    const commands = manager.globalData.commands;
+    const next = getNextNode(followPath(commands, path), path, commands);
+    const options = buildSignatureHelpForChildren(
+        next.node,
+        next.path,
+        commands,
+        2
+    );
+    const result: SignatureInformation[] = [];
+    for (const parameters of options) {
+        result.push({
+            label: `Command at path: '${path.join()}'`,
+            parameters
+        });
+    }
+    return result;
 }
 
 function getActionsOfKind(
