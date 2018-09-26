@@ -172,7 +172,7 @@ describe("sharedBlockParser", () => {
                         },
                         "langserver:nbt_two": {}
                     },
-                    nbt_docs: loadNBTDocs()
+                    nbt_docs: snbtTestData
                 } as any) as GlobalData
             }
         });
@@ -184,7 +184,7 @@ describe("sharedBlockParser", () => {
                         blocks: {
                             "minecraft:chest": {}
                         },
-                        nbt_docs: snbtTestData
+                        nbt_docs: loadNBTDocs()
                     } as any) as GlobalData
                 }
             });
