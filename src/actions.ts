@@ -122,7 +122,7 @@ export function signatureHelpProvider(
         if (result) {
             signatures.push(...result);
         }
-        const currentText = line.text.slice(finalNode.high);
+        const currentText = line.text.slice(finalNode.high + 1);
         if (currentText.length > text.length) {
             text = currentText;
         }
