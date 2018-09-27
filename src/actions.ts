@@ -156,8 +156,10 @@ function buildSignatureHelpForChildren(
                 );
                 if (next.length > 0) {
                     result.push(
-                        parameterInfo,
-                        ...next.map(v => (node.executable ? `[${v}]` : v))
+                        [
+                            parameterInfo,
+                            ...next.map(v => (node.executable ? `[${v}]` : v))
+                        ].join(" ")
                     );
                     continue;
                 }

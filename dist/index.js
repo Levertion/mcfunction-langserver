@@ -2564,7 +2564,7 @@ function buildSignatureHelpForChildren(node, path, commands, depth) {
             if (depth > 0) {
                 const next = buildSignatureHelpForChildren(childNode.node, childNode.path, commands, node.executable ? depth - 1 : 0);
                 if (next.length > 0) {
-                    result.push(parameterInfo, ...next.map(v => node.executable ? `[${v}]` : v));
+                    result.push([parameterInfo, ...next.map(v => node.executable ? `[${v}]` : v)].join(" "));
                     continue;
                 }
             }
