@@ -2608,7 +2608,7 @@ function buildSignature(option, path) {
             index = SIZE;
         }
         return {
-            documentation: `${option.slice(index).replace(/\|/g, "\n\t| ")}\n\nCommand at path ${path.join()}`,
+            documentation: `${option.slice(index).replace("|", "\t| ").replace(/\|/g, "\n\t| ")}\n\nCommand at path ${path.join()}`,
             label: `${option.slice(0, SIZE)}...`
         };
     } else {
