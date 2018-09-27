@@ -2519,9 +2519,10 @@ function signatureHelpProvider(line, pos, _, manager) {
     if (nodes.length === 0) {
         const sigs = getSignatureHelp([], manager);
         if (sigs) {
+            const activeSignature = line.text.length > 0 ? Math.max(sigs.findIndex(v => v.label.startsWith(line.text)), 0) : 0;
             return {
                 activeParameter: 0,
-                activeSignature: 0,
+                activeSignature,
                 signatures: sigs
             };
         } else {
@@ -2544,7 +2545,7 @@ function signatureHelpProvider(line, pos, _, manager) {
     for (const internalNode of internals) {
         const pth = internalNode.path.slice();
         if (pth.length > 0) {
-            pth.splice(0, pth.length - 1);
+            pth.splice(pth.length - 1);
             const result = getSignatureHelp(pth, manager);
             if (result) {
                 signatures.push(...result);
