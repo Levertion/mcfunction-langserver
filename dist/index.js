@@ -2597,18 +2597,26 @@ function getSignatureHelp(path, manager) {
     const options = buildSignatureHelpForChildren(next.node, next.path, commands, 2);
     const result = [];
     for (const option of options) {
-        if (option.length > SIZE) {
-            result.push({
-                documentation: `${option.slice(SIZE).replace(/\|/g, "\n")}\n\nCommand at path ${path.join()}`,
-                label: `${option.slice(0, SIZE)}...`
-            });
-        }
-        result.push({
-            documentation: `Command at path '${path.join()}'`,
-            label: option
-        });
+        buildSignature(option, path);
     }
     return result;
+}
+function buildSignature(option, path) {
+    if (option.length > SIZE) {
+        let index = option.lastIndexOf("|", SIZE);
+        if (index === -1) {
+            index = SIZE;
+        }
+        return {
+            documentation: `${option.slice(index).replace(/\|/g, "\n\t| ")}\n\nCommand at path ${path.join()}`,
+            label: `${option.slice(0, SIZE)}...`
+        };
+    } else {
+        return {
+            documentation: `Command at path '${path.join()}'`,
+            label: option
+        };
+    }
 }
 function getActionsOfKind(line, position, kind) {
     if (line.parseInfo) {

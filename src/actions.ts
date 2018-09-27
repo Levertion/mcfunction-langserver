@@ -142,7 +142,6 @@ export function signatureHelpProvider(
                       0
                   )
                 : 0;
-
         return { signatures, activeParameter: 0, activeSignature };
     }
     return undefined;
@@ -215,20 +214,29 @@ function getSignatureHelp(
     );
     const result: SignatureInformation[] = [];
     for (const option of options) {
-        if (option.length > SIZE) {
-            result.push({
-                documentation: `${option
-                    .slice(SIZE)
-                    .replace(/\|/g, "\n")}\n\nCommand at path ${path.join()}`,
-                label: `${option.slice(0, SIZE)}...`
-            });
-        }
-        result.push({
-            documentation: `Command at path '${path.join()}'`,
-            label: option
-        });
+        buildSignature(option, path);
     }
     return result;
+}
+
+function buildSignature(option: string, path: string[]): SignatureInformation {
+    if (option.length > SIZE) {
+        let index = option.lastIndexOf("|", SIZE);
+        if (index === -1) {
+            index = SIZE;
+        }
+        return {
+            documentation: `${option
+                .slice(index)
+                .replace(/\|/g, "\n\t| ")}\n\nCommand at path ${path.join()}`,
+            label: `${option.slice(0, SIZE)}...`
+        };
+    } else {
+        return {
+            documentation: `Command at path '${path.join()}'`,
+            label: option
+        };
+    }
 }
 
 function getActionsOfKind(
