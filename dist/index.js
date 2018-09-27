@@ -2597,7 +2597,7 @@ function getSignatureHelp(path, manager) {
     const options = buildSignatureHelpForChildren(next.node, next.path, commands, 2);
     const result = [];
     for (const option of options) {
-        buildSignature(option, path);
+        result.push(buildSignature(option, path));
     }
     return result;
 }

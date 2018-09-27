@@ -214,7 +214,7 @@ function getSignatureHelp(
     );
     const result: SignatureInformation[] = [];
     for (const option of options) {
-        buildSignature(option, path);
+        result.push(buildSignature(option, path));
     }
     return result;
 }
