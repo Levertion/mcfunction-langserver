@@ -137,7 +137,7 @@ export function signatureHelpProvider(
     if (signatures.length > 0) {
         const activeSignature =
             text.length > 0
-                ? Math.min(
+                ? Math.max(
                       signatures.findIndex(v => v.label.startsWith(text)),
                       0
                   )
