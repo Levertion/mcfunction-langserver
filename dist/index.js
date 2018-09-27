@@ -2528,6 +2528,7 @@ function signatureHelpProvider(line, pos, _, manager) {
             return undefined;
         }
     }
+    let text = "";
     const { finals, internals } = completions_1.getAllNodes(nodes, pos.character);
     const signatures = [];
     for (const finalNode of finals) {
@@ -2535,8 +2536,11 @@ function signatureHelpProvider(line, pos, _, manager) {
         if (result) {
             signatures.push(...result);
         }
+        const currentText = line.text.slice(finalNode.high);
+        if (currentText.length > text.length) {
+            text = currentText;
+        }
     }
-    const activeSignature = 0;
     for (const internalNode of internals) {
         const pth = internalNode.path.slice();
         if (pth.length > 0) {
@@ -2545,9 +2549,14 @@ function signatureHelpProvider(line, pos, _, manager) {
             if (result) {
                 signatures.push(...result);
             }
+            const currentText = line.text.slice(internalNode.low);
+            if (currentText.length > text.length) {
+                text = currentText;
+            }
         }
     }
     if (signatures.length > 0) {
+        const activeSignature = text.length > 0 ? Math.min(signatures.findIndex(v => v.label.startsWith(text)), 0) : 0;
         return { signatures, activeParameter: 0, activeSignature };
     }
     return undefined;
