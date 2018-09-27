@@ -2580,7 +2580,7 @@ function buildSignatureHelpForChildren(node, path, commands, depth) {
             result.push(parameterInfo);
         }
         if (depth === 0) {
-            return [result.join("  \n")];
+            return [result.join("|")];
         }
         return result;
     }
@@ -2589,12 +2589,20 @@ function buildSignatureHelpForChildren(node, path, commands, depth) {
 function buildParameterInfoForNode(node, name) {
     return node.type === "literal" ? name : node.type === "argument" ? `<${name}: ${node.parser}>` : `root`;
 }
+// Arbritrary number used to calculate the max length of the line
+const SIZE = 60;
 function getSignatureHelp(path, manager) {
     const commands = manager.globalData.commands;
     const next = misc_functions_1.getNextNode(misc_functions_1.followPath(commands, path), path, commands);
     const options = buildSignatureHelpForChildren(next.node, next.path, commands, 2);
     const result = [];
     for (const option of options) {
+        if (option.length > SIZE) {
+            result.push({
+                documentation: `${option.slice(SIZE).replace(/\|/g, "\n")}\n\nCommand at path ${path.join()}`,
+                label: `${option.slice(0, SIZE)}...`
+            });
+        }
         result.push({
             documentation: `Command at path '${path.join()}'`,
             label: option
