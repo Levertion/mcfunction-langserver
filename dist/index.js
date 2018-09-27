@@ -2560,35 +2560,35 @@ function buildSignatureHelpForChildren(node, path, commands, depth) {
             const child = node.children[childName];
             const childPath = [...path, childName];
             const childNode = misc_functions_1.getNextNode(child, childPath, commands);
-            const parameterInfo = buildParameterInfoForNode(childNode.node, childName, !!node.executable);
+            const parameterInfo = buildParameterInfoForNode(childNode.node, childName);
             if (depth > 0) {
-                const next = buildSignatureHelpForChildren(childNode.node, childNode.path, commands, depth - 1);
+                const next = buildSignatureHelpForChildren(childNode.node, childNode.path, commands, node.executable ? depth - 1 : 0);
                 if (next.length > 0) {
-                    for (const option of next) {
-                        result.push([parameterInfo, ...option]);
-                    }
+                    result.push(parameterInfo, ...next.map(v => node.executable ? `[${v}]` : v));
                     continue;
                 }
             }
-            result.push([parameterInfo]);
+            result.push(parameterInfo);
+        }
+        if (depth === 0) {
+            return [result.join("|")];
         }
         return result;
     }
     return [];
 }
-function buildParameterInfoForNode(node, name, optional) {
-    const val = node.type === "literal" ? name : node.type === "argument" ? `<${name}: ${node.parser}>` : `root`;
-    return { label: optional ? `[${val}]` : val };
+function buildParameterInfoForNode(node, name) {
+    return node.type === "literal" ? name : node.type === "argument" ? `<${name}: ${node.parser}>` : `root`;
 }
 function getSignatureHelp(path, manager) {
     const commands = manager.globalData.commands;
     const next = misc_functions_1.getNextNode(misc_functions_1.followPath(commands, path), path, commands);
     const options = buildSignatureHelpForChildren(next.node, next.path, commands, 2);
     const result = [];
-    for (const parameters of options) {
+    for (const option of options) {
         result.push({
-            label: `Command at path: '${path.join()}'`,
-            parameters
+            documentation: `Command at path '${path.join()}'`,
+            label: option
         });
     }
     return result;

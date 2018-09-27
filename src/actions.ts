@@ -2,7 +2,6 @@ import { Interval, IntervalTree } from "node-interval-tree";
 import {
     Hover,
     Location,
-    ParameterInformation,
     Position,
     SignatureHelp,
     SignatureInformation
@@ -137,51 +136,48 @@ function buildSignatureHelpForChildren(
     path: string[],
     commands: CommandTree,
     depth: number
-): ParameterInformation[][] {
+): string[] {
     if (node.children) {
-        const result: ParameterInformation[][] = [];
+        const result: string[] = [];
         for (const childName of Object.keys(node.children)) {
             const child = node.children[childName];
             const childPath = [...path, childName];
             const childNode = getNextNode(child, childPath, commands);
             const parameterInfo = buildParameterInfoForNode(
                 childNode.node as CommandNode,
-                childName,
-                !!node.executable
+                childName
             );
             if (depth > 0) {
                 const next = buildSignatureHelpForChildren(
                     childNode.node,
                     childNode.path,
                     commands,
-                    depth - 1
+                    node.executable ? depth - 1 : 0
                 );
                 if (next.length > 0) {
-                    for (const option of next) {
-                        result.push([parameterInfo, ...option]);
-                    }
+                    result.push(
+                        parameterInfo,
+                        ...next.map(v => (node.executable ? `[${v}]` : v))
+                    );
                     continue;
                 }
             }
-            result.push([parameterInfo]);
+            result.push(parameterInfo);
+        }
+        if (depth === 0) {
+            return [result.join("|")];
         }
         return result;
     }
     return [];
 }
 
-function buildParameterInfoForNode(
-    node: CommandNode,
-    name: string,
-    optional: boolean
-): ParameterInformation {
-    const val =
-        node.type === "literal"
-            ? name
-            : node.type === "argument"
-                ? `<${name}: ${node.parser}>`
-                : `root`;
-    return { label: optional ? `[${val}]` : val };
+function buildParameterInfoForNode(node: CommandNode, name: string): string {
+    return node.type === "literal"
+        ? name
+        : node.type === "argument"
+            ? `<${name}: ${node.parser}>`
+            : `root`;
 }
 
 function getSignatureHelp(
@@ -197,10 +193,10 @@ function getSignatureHelp(
         2
     );
     const result: SignatureInformation[] = [];
-    for (const parameters of options) {
+    for (const option of options) {
         result.push({
-            label: `Command at path: '${path.join()}'`,
-            parameters
+            documentation: `Command at path '${path.join()}'`,
+            label: option
         });
     }
     return result;
