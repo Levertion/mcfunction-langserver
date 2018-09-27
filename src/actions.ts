@@ -184,7 +184,7 @@ function buildSignatureHelpForChildren(
             result.push(parameterInfo);
         }
         if (depth === 0) {
-            return [result.join("\n")];
+            return [result.join("  \n")];
         }
         return result;
     }
