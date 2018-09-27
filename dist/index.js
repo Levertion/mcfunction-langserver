@@ -2580,7 +2580,7 @@ function buildSignatureHelpForChildren(node, path, commands, depth) {
             result.push(parameterInfo);
         }
         if (depth === 0) {
-            return [result.join("|")];
+            return [result.join("\n")];
         }
         return result;
     }
