@@ -2590,7 +2590,7 @@ function buildParameterInfoForNode(node, name) {
     return node.type === "literal" ? name : node.type === "argument" ? `<${name}: ${node.parser}>` : `root`;
 }
 // Arbritrary number used to calculate the max length of the line
-const SIZE = 60;
+const SIZE = 50;
 function getSignatureHelp(path, manager) {
     const commands = manager.globalData.commands;
     const next = misc_functions_1.getNextNode(misc_functions_1.followPath(commands, path), path, commands);

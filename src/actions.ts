@@ -199,7 +199,7 @@ function buildParameterInfoForNode(node: CommandNode, name: string): string {
 }
 
 // Arbritrary number used to calculate the max length of the line
-const SIZE = 60;
+const SIZE = 50;
 function getSignatureHelp(
     path: string[],
     manager: DataManager
