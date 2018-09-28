@@ -4,15 +4,26 @@ import {
     Location,
     Position,
     SignatureHelp,
-    SignatureInformation
+    SignatureInformation,
+    SymbolInformation,
+    SymbolKind
 } from "vscode-languageserver";
 
 import Uri from "vscode-uri";
 import { getAllNodes } from "./completions";
 import { COMMENT_START } from "./consts";
 import { DataManager } from "./data/manager";
-import { CommandNode, CommandTree, MCNode } from "./data/types";
-import { followPath, getNextNode } from "./misc-functions";
+import { CommandNode, CommandTree, MCNode, Resources } from "./data/types";
+import {
+    buildPath,
+    convertToNamespace,
+    followPath,
+    getNextNode,
+    namespaceStart,
+    stringifyNamespace
+} from "./misc-functions";
+import { typed_keys } from "./misc-functions/third_party/typed-keys";
+import { blankRange } from "./test/blanks";
 import { CommandLine, FunctionInfo, ParseNode, SubAction } from "./types";
 
 export function hoverProvider(
@@ -300,4 +311,61 @@ function getNodeTree(line: CommandLine): IntervalTree<ParseNode> | undefined {
         return tree;
     }
     return undefined;
+}
+
+export function getWorkspaceSymbols(
+    manager: DataManager,
+    query: string
+): SymbolInformation[] {
+    const result: SymbolInformation[] = [];
+    const worlds = manager.packData;
+    const namespace = convertToNamespace(query);
+    for (const worldPath of Object.keys(worlds)) {
+        const world = worlds[worldPath];
+        for (const packID in world.packs) {
+            if (world.packs.hasOwnProperty(packID)) {
+                const pack = world.packs[packID];
+                for (const type of typed_keys(pack.data)) {
+                    const val = pack.data[type];
+                    if (val) {
+                        for (const item of val) {
+                            if (namespaceStart(item, namespace)) {
+                                result.push({
+                                    kind: symbolKindForResource(type),
+                                    location: {
+                                        range: blankRange,
+                                        uri: Uri.file(buildPath(
+                                            item,
+                                            world,
+                                            type
+                                        ) as any).toString()
+                                    },
+                                    name: stringifyNamespace(item)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+
+export function symbolKindForResource(resource: keyof Resources): SymbolKind {
+    switch (resource) {
+        case "block_tags":
+        case "function_tags":
+        case "item_tags":
+            return SymbolKind.Namespace;
+        case "advancements":
+        case "functions":
+        case "loot_tables":
+        case "recipes":
+        case "structures":
+            break;
+
+        default:
+    }
+    return SymbolKind.Variable;
 }

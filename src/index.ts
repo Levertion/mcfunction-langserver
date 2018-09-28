@@ -18,6 +18,7 @@ import Uri from "vscode-uri";
 
 import {
     definitionProvider,
+    getWorkspaceSymbols,
     hoverProvider,
     signatureHelpProvider
 } from "./actions";
@@ -36,6 +37,7 @@ import {
 } from "./misc-functions";
 import { mergeDeep } from "./misc-functions/third_party/merge-deep";
 import { parseDocument, parseLines } from "./parse";
+import { blankRange } from "./test/blanks";
 import {
     CommandLine,
     FunctionInfo,
@@ -77,7 +79,8 @@ connection.onInitialize(() => {
             textDocumentSync: {
                 change: TextDocumentSyncKind.Incremental,
                 openClose: true
-            }
+            },
+            workspaceSymbolProvider: true
         }
     };
 });
@@ -297,10 +300,7 @@ function handleMiscInfo(miscInfos: MiscInfo[]): void {
             for (const group of Object.keys(value)) {
                 diagnostics.push({
                     message: value[group],
-                    range: {
-                        end: { line: 0, character: 0 },
-                        start: { line: 0, character: 0 }
-                    }
+                    range: blankRange
                 });
             }
             connection.sendDiagnostics({ uri, diagnostics });
@@ -333,8 +333,15 @@ connection.onCompletion(params => {
     }
 });
 
-connection.onHover(prepare(hoverProvider, undefined));
+const und = () => undefined;
+connection.onCodeAction(und); // Research what this means
 connection.onDefinition(prepare<Location[]>(definitionProvider, []));
+connection.onDocumentHighlight(und);
+// #connection.onDocumentSymbol(und); // This is for sections - there are none in mcfunctions
+connection.onWorkspaceSymbol(query =>
+    getWorkspaceSymbols(manager, query.query)
+);
+connection.onHover(prepare(hoverProvider, undefined));
 connection.onSignatureHelp(prepare(signatureHelpProvider));
 
 function prepare<T>(

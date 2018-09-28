@@ -2459,16 +2459,50 @@ function suggestionsToCompletions(suggestions, line, start, end, defaultKind = m
     }
     return result;
 }
-},{"./brigadier/string-reader":"f1BJ","./consts":"xb+0","./misc-functions/creators":"WIIZ","./misc-functions/node-tree":"jwqV","./parsers/get-parser":"vlho"}],"0A+1":[function(require,module,exports) {
+},{"./brigadier/string-reader":"f1BJ","./consts":"xb+0","./misc-functions/creators":"WIIZ","./misc-functions/node-tree":"jwqV","./parsers/get-parser":"vlho"}],"KN9D":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Blank items for testing
+ */
+// tslint:disable-next-line:variable-name This allows for the property declaration shorthand
+exports.pack_segments = {
+    pack: "",
+    packsFolder: "",
+    rest: ""
+};
+exports.succeeds = { succeeds: true };
+exports.blankproperties = {
+    context: {},
+    data: {},
+    node_properties: {},
+    path: ["test"]
+};
+exports.emptyGlobal = {
+    blocks: {},
+    commands: { type: "root" },
+    items: [],
+    meta_info: { version: "" },
+    resources: {}
+};
+exports.blankRange = {
+    end: { line: 0, character: 0 },
+    start: { line: 0, character: 0 }
+};
+},{}],"0A+1":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const node_interval_tree_1 = require("node-interval-tree");
+const vscode_languageserver_1 = require("vscode-languageserver");
 const vscode_uri_1 = tslib_1.__importDefault(require("vscode-uri"));
 const completions_1 = require("./completions");
 const consts_1 = require("./consts");
 const misc_functions_1 = require("./misc-functions");
+const typed_keys_1 = require("./misc-functions/third_party/typed-keys");
+const blanks_1 = require("./test/blanks");
 function hoverProvider(docLine, pos, _, manager) {
     function computeIntervalHovers(intervals, commandLine, line, map) {
         const end = {
@@ -2652,7 +2686,56 @@ function getNodeTree(line) {
     }
     return undefined;
 }
-},{"./completions":"aDYY","./consts":"xb+0","./misc-functions":"irtH"}],"xUTu":[function(require,module,exports) {
+function getWorkspaceSymbols(manager, query) {
+    const result = [];
+    const worlds = manager.packData;
+    const namespace = misc_functions_1.convertToNamespace(query);
+    for (const worldPath of Object.keys(worlds)) {
+        const world = worlds[worldPath];
+        for (const packID in world.packs) {
+            if (world.packs.hasOwnProperty(packID)) {
+                const pack = world.packs[packID];
+                for (const type of typed_keys_1.typed_keys(pack.data)) {
+                    const val = pack.data[type];
+                    if (val) {
+                        for (const item of val) {
+                            if (misc_functions_1.namespaceStart(item, namespace)) {
+                                result.push({
+                                    kind: symbolKindForResource(type),
+                                    location: {
+                                        range: blanks_1.blankRange,
+                                        uri: vscode_uri_1.default.file(misc_functions_1.buildPath(item, world, type)).toString()
+                                    },
+                                    name: misc_functions_1.stringifyNamespace(item)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+exports.getWorkspaceSymbols = getWorkspaceSymbols;
+function symbolKindForResource(resource) {
+    switch (resource) {
+        case "block_tags":
+        case "function_tags":
+        case "item_tags":
+            return vscode_languageserver_1.SymbolKind.Namespace;
+        case "advancements":
+        case "functions":
+        case "loot_tables":
+        case "recipes":
+        case "structures":
+            break;
+        default:
+    }
+    return vscode_languageserver_1.SymbolKind.Variable;
+}
+exports.symbolKindForResource = symbolKindForResource;
+},{"./completions":"aDYY","./consts":"xb+0","./misc-functions":"irtH","./misc-functions/third_party/typed-keys":"IXKy","./test/blanks":"KN9D"}],"xUTu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3203,6 +3286,9 @@ class DataManager {
     get globalData() {
         return this.globalDataInternal;
     }
+    get packData() {
+        return this.packDataComplete;
+    }
     //#endregion
     //#region Constructor
     //#endregion
@@ -3538,6 +3624,7 @@ const manager_1 = require("./data/manager");
 const misc_functions_1 = require("./misc-functions");
 const merge_deep_1 = require("./misc-functions/third_party/merge-deep");
 const parse_1 = require("./parse");
+const blanks_1 = require("./test/blanks");
 const connection = main_1.createConnection(new main_1.IPCMessageReader(process), new main_1.IPCMessageWriter(process));
 connection.listen();
 //#region Data Storage
@@ -3565,7 +3652,8 @@ connection.onInitialize(() => {
             textDocumentSync: {
                 change: main_1.TextDocumentSyncKind.Incremental,
                 openClose: true
-            }
+            },
+            workspaceSymbolProvider: true
         }
     };
 });
@@ -3739,10 +3827,7 @@ function handleMiscInfo(miscInfos) {
             for (const group of Object.keys(value)) {
                 diagnostics.push({
                     message: value[group],
-                    range: {
-                        end: { line: 0, character: 0 },
-                        start: { line: 0, character: 0 }
-                    }
+                    range: blanks_1.blankRange
                 });
             }
             connection.sendDiagnostics({ uri, diagnostics });
@@ -3762,8 +3847,13 @@ connection.onCompletion(params => {
         return util_1.promisify(cb => parseCompletionEvents.once(`${params.textDocument.uri}:${params.position.line}`, cb))().then(computeCompletionsLocal);
     }
 });
-connection.onHover(prepare(actions_1.hoverProvider, undefined));
+const und = () => undefined;
+connection.onCodeAction(und); // Research what this means
 connection.onDefinition(prepare(actions_1.definitionProvider, []));
+connection.onDocumentHighlight(und);
+// #connection.onDocumentSymbol(und); // This is for sections - there are none in mcfunctions
+connection.onWorkspaceSymbol(query => actions_1.getWorkspaceSymbols(manager, query.query));
+connection.onHover(prepare(actions_1.hoverProvider, undefined));
 connection.onSignatureHelp(prepare(actions_1.signatureHelpProvider));
 function prepare(func, fallback) {
     return params => {
@@ -3777,5 +3867,5 @@ function prepare(func, fallback) {
         return fallback;
     };
 }
-},{"./actions":"0A+1","./completions":"aDYY","./data/cache":"T7Hz","./data/manager":"zth0","./misc-functions":"irtH","./misc-functions/third_party/merge-deep":"NZkF","./parse":"X+eG"}]},{},["7QCb"], null)
+},{"./actions":"0A+1","./completions":"aDYY","./data/cache":"T7Hz","./data/manager":"zth0","./misc-functions":"irtH","./misc-functions/third_party/merge-deep":"NZkF","./parse":"X+eG","./test/blanks":"KN9D"}]},{},["7QCb"], null)
 //# sourceMappingURL=/index.map
