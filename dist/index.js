@@ -2570,15 +2570,22 @@ function buildSignatureHelpForChildren(node, path, commands, depth) {
             const child = node.children[childName];
             const childPath = [...path, childName];
             const childNode = misc_functions_1.getNextNode(child, childPath, commands);
-            const parameterInfo = buildParameterInfoForNode(childNode.node, childName);
+            const parameterInfo = buildParameterInfoForNode(childNode.node.type === "root" // Handle automatic root redirect
+            ? child : childNode.node, childName);
             if (depth > 0) {
                 const next = buildSignatureHelpForChildren(childNode.node, childNode.path, commands, node.executable ? depth - 1 : 0);
                 if (next.length > 0) {
-                    result.push([parameterInfo, ...next.map(v => node.executable ? `[${v}]` : v)].join(" "));
+                    if (parameterInfo) {
+                        result.push([parameterInfo, ...next.map(v => node.executable ? `[${v}]` : v)].join(" "));
+                    } else {
+                        result.push(next.map(v => node.executable ? `[${v}]` : v).join(" "));
+                    }
                     continue;
                 }
             }
-            result.push(parameterInfo);
+            if (parameterInfo) {
+                result.push(parameterInfo);
+            }
         }
         if (depth === 0) {
             return [result.join("|")];
@@ -2588,7 +2595,7 @@ function buildSignatureHelpForChildren(node, path, commands, depth) {
     return [];
 }
 function buildParameterInfoForNode(node, name) {
-    return node.type === "literal" ? name : node.type === "argument" ? `<${name}: ${node.parser}>` : `root`;
+    return node.type === "literal" ? name : node.type === "argument" ? `<${name}: ${node.parser}>` : undefined;
 }
 // Arbritrary number used to calculate the max length of the line
 const SIZE = 50;

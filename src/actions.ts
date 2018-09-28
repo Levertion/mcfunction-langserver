@@ -170,7 +170,9 @@ function buildSignatureHelpForChildren(
             const childPath = [...path, childName];
             const childNode = getNextNode(child, childPath, commands);
             const parameterInfo = buildParameterInfoForNode(
-                childNode.node as CommandNode,
+                (childNode.node as CommandTree).type === "root" // Handle automatic root redirect
+                    ? child
+                    : (childNode.node as CommandNode),
                 childName
             );
             if (depth > 0) {
@@ -181,16 +183,28 @@ function buildSignatureHelpForChildren(
                     node.executable ? depth - 1 : 0
                 );
                 if (next.length > 0) {
-                    result.push(
-                        [
-                            parameterInfo,
-                            ...next.map(v => (node.executable ? `[${v}]` : v))
-                        ].join(" ")
-                    );
+                    if (parameterInfo) {
+                        result.push(
+                            [
+                                parameterInfo,
+                                ...next.map(
+                                    v => (node.executable ? `[${v}]` : v)
+                                )
+                            ].join(" ")
+                        );
+                    } else {
+                        result.push(
+                            next
+                                .map(v => (node.executable ? `[${v}]` : v))
+                                .join(" ")
+                        );
+                    }
                     continue;
                 }
             }
-            result.push(parameterInfo);
+            if (parameterInfo) {
+                result.push(parameterInfo);
+            }
         }
         if (depth === 0) {
             return [result.join("|")];
@@ -200,12 +214,15 @@ function buildSignatureHelpForChildren(
     return [];
 }
 
-function buildParameterInfoForNode(node: CommandNode, name: string): string {
+function buildParameterInfoForNode(
+    node: CommandNode,
+    name: string
+): string | undefined {
     return node.type === "literal"
         ? name
         : node.type === "argument"
             ? `<${name}: ${node.parser}>`
-            : `root`;
+            : undefined;
 }
 
 // Arbritrary number used to calculate the max length of the line
