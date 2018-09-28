@@ -135,7 +135,10 @@ export function signatureHelpProvider(
             if (result) {
                 signatures.push(...result);
             }
-            const currentText = line.text.slice(internalNode.low);
+            const currentText = line.text.slice(
+                internalNode.low,
+                internalNode.high
+            );
             if (currentText.length > text.length) {
                 text = currentText;
             }
