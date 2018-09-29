@@ -14,7 +14,6 @@ import { entities } from "../../data/lists/statics";
 import { DisplaySlots } from "../../data/nbt/nbt-types";
 import {
     convertToNamespace,
-    isSuccessful,
     ReturnHelper,
     stringifyNamespace
 } from "../../misc-functions";
@@ -182,7 +181,7 @@ const NONWHITESPACE = /\S/;
 export const criteriaParser: Parser = {
     parse: (reader, info) => {
         const start = reader.cursor;
-        const helper = new ReturnHelper();
+        const helper = new ReturnHelper(info);
         const optionResult = reader.readOption(
             [
                 ...verbatimCriteria,
@@ -214,7 +213,7 @@ export const criteriaParser: Parser = {
                     CompletionItemKind.Color,
                     NONWHITESPACE
                 );
-                if (isSuccessful(result)) {
+                if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }
@@ -228,7 +227,7 @@ export const criteriaParser: Parser = {
                     CompletionItemKind.Color,
                     NONWHITESPACE
                 );
-                if (isSuccessful(result)) {
+                if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }
@@ -242,7 +241,7 @@ export const criteriaParser: Parser = {
                     CompletionItemKind.Color,
                     NONWHITESPACE
                 );
-                if (isSuccessful(result)) {
+                if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }
@@ -256,7 +255,7 @@ export const criteriaParser: Parser = {
                     CompletionItemKind.Color,
                     NONWHITESPACE
                 );
-                if (isSuccessful(result)) {
+                if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }

@@ -2288,7 +2288,7 @@ const NONWHITESPACE = /\S/;
 exports.criteriaParser = {
     parse: (reader, info) => {
         const start = reader.cursor;
-        const helper = new misc_functions_1.ReturnHelper();
+        const helper = new misc_functions_1.ReturnHelper(info);
         const optionResult = reader.readOption([...criteria_1.verbatimCriteria, ...criteria_1.blockCriteria, ...criteria_1.colorCriteria, ...criteria_1.entityCriteria, ...criteria_1.itemCriteria], false, vscode_languageserver_1.CompletionItemKind.EnumMember, NONWHITESPACE);
         const text = optionResult.data;
         if (helper.merge(optionResult)) {
@@ -2304,7 +2304,7 @@ exports.criteriaParser = {
             if (text.startsWith(choice)) {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(colors_1.COLORS, false, vscode_languageserver_1.CompletionItemKind.Color, NONWHITESPACE);
-                if (misc_functions_1.isSuccessful(result)) {
+                if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }
@@ -2313,7 +2313,7 @@ exports.criteriaParser = {
             if (text.startsWith(choice)) {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(statics_1.entities.map(mapFunction), false, vscode_languageserver_1.CompletionItemKind.Color, NONWHITESPACE);
-                if (misc_functions_1.isSuccessful(result)) {
+                if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }
@@ -2322,7 +2322,7 @@ exports.criteriaParser = {
             if (text.startsWith(choice)) {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(Object.keys(info.data.globalData.blocks).map(mapFunction), false, vscode_languageserver_1.CompletionItemKind.Color, NONWHITESPACE);
-                if (misc_functions_1.isSuccessful(result)) {
+                if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }
@@ -2331,7 +2331,7 @@ exports.criteriaParser = {
             if (text.startsWith(choice)) {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(info.data.globalData.items.map(mapFunction), false, vscode_languageserver_1.CompletionItemKind.Color, NONWHITESPACE);
-                if (misc_functions_1.isSuccessful(result)) {
+                if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }
