@@ -56,6 +56,9 @@ export class DataManager {
     public get globalData(): GlobalData {
         return this.globalDataInternal;
     }
+    public get packData(): DataManager["packDataComplete"] {
+        return this.packDataComplete;
+    }
     //#endregion
     //#region Constructor
     //#endregion

@@ -1,3 +1,5 @@
+import { Range } from "vscode-languageserver";
+
 import { GlobalData } from "../data/types";
 import { PackLocationSegments } from "../misc-functions";
 import { CommmandData } from "../types";
@@ -29,4 +31,9 @@ export const emptyGlobal: GlobalData = {
     items: [],
     meta_info: { version: "" },
     resources: {}
+};
+
+export const blankRange: Range = {
+    end: { line: 0, character: 0 },
+    start: { line: 0, character: 0 }
 };

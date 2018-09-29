@@ -660,7 +660,7 @@ function getPath(resource, packroot, kind, path = defaultPath) {
 }
 exports.getPath = getPath;
 function buildPath(resource, packs, kind, path = defaultPath) {
-    if (resource.pack) {
+    if (resource.pack !== undefined) {
         const pack = packs.packs[resource.pack];
         return getPath(resource, path.join(packs.location, pack.name), kind, path);
     } else {
@@ -2372,6 +2372,20 @@ function computeCompletions(linenum, character, document, data) {
     if (nodes.length === 0) {
         return main_1.CompletionList.create(getCompletionsFromNode(linenum, 0, character, line.text, [], commandData, {}), true);
     }
+    const { finals, internals } = getAllNodes(nodes, character);
+    const completions = [];
+    for (const finalNode of finals) {
+        completions.push(...getCompletionsFromNode(linenum, finalNode.high + 1, character, line.text, finalNode.path, commandData, finalNode.context));
+    }
+    for (const insideNode of internals) {
+        const newPath = insideNode.path.slice();
+        const parentPath = newPath.slice(0, -1);
+        completions.push(...getCompletionsFromNode(linenum, insideNode.low, character, line.text, parentPath, commandData, insideNode.context));
+    }
+    return main_1.CompletionList.create(completions, true);
+}
+exports.computeCompletions = computeCompletions;
+function getAllNodes(nodes, character) {
     const finals = [];
     const internals = [];
     for (const node of nodes) {
@@ -2385,18 +2399,9 @@ function computeCompletions(linenum, character, document, data) {
             }
         }
     }
-    const completions = [];
-    for (const finalNode of finals) {
-        completions.push(...getCompletionsFromNode(linenum, finalNode.high + 1, character, line.text, finalNode.path, commandData, finalNode.context));
-    }
-    for (const insideNode of internals) {
-        const newPath = insideNode.path.slice();
-        const parentPath = newPath.slice(0, -1);
-        completions.push(...getCompletionsFromNode(linenum, insideNode.low, character, line.text, parentPath, commandData, insideNode.context));
-    }
-    return main_1.CompletionList.create(completions, true);
+    return { finals, internals };
 }
-exports.computeCompletions = computeCompletions;
+exports.getAllNodes = getAllNodes;
 function getCompletionsFromNode(line, start, end, text, nodepath, data, context) {
     const parent = node_tree_1.getNextNode(node_tree_1.followPath(data.globalData.commands, nodepath), nodepath, data.globalData.commands).node;
     const result = [];
@@ -2454,7 +2459,283 @@ function suggestionsToCompletions(suggestions, line, start, end, defaultKind = m
     }
     return result;
 }
-},{"./brigadier/string-reader":"f1BJ","./consts":"xb+0","./misc-functions/creators":"WIIZ","./misc-functions/node-tree":"jwqV","./parsers/get-parser":"vlho"}],"xUTu":[function(require,module,exports) {
+},{"./brigadier/string-reader":"f1BJ","./consts":"xb+0","./misc-functions/creators":"WIIZ","./misc-functions/node-tree":"jwqV","./parsers/get-parser":"vlho"}],"KN9D":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Blank items for testing
+ */
+// tslint:disable-next-line:variable-name This allows for the property declaration shorthand
+exports.pack_segments = {
+    pack: "",
+    packsFolder: "",
+    rest: ""
+};
+exports.succeeds = { succeeds: true };
+exports.blankproperties = {
+    context: {},
+    data: {},
+    node_properties: {},
+    path: ["test"]
+};
+exports.emptyGlobal = {
+    blocks: {},
+    commands: { type: "root" },
+    items: [],
+    meta_info: { version: "" },
+    resources: {}
+};
+exports.blankRange = {
+    end: { line: 0, character: 0 },
+    start: { line: 0, character: 0 }
+};
+},{}],"0A+1":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const node_interval_tree_1 = require("node-interval-tree");
+const vscode_languageserver_1 = require("vscode-languageserver");
+const vscode_uri_1 = tslib_1.__importDefault(require("vscode-uri"));
+const completions_1 = require("./completions");
+const consts_1 = require("./consts");
+const misc_functions_1 = require("./misc-functions");
+const typed_keys_1 = require("./misc-functions/third_party/typed-keys");
+const blanks_1 = require("./test/blanks");
+function hoverProvider(docLine, pos, _, manager) {
+    function computeIntervalHovers(intervals, commandLine, line, map) {
+        const end = {
+            character: intervals.reduce((acc, v) => Math.max(acc, v.high), 0),
+            line
+        };
+        const start = {
+            character: intervals.reduce((acc, v) => Math.min(acc, v.low), commandLine.text.length),
+            line
+        };
+        return { contents: map(intervals), range: { start, end } };
+    }
+    const hovers = getActionsOfKind(docLine, pos, "hover");
+    if (hovers.length > 0) {
+        return computeIntervalHovers(hovers, docLine, pos.line, i => i.map(v => v.data));
+    } else {
+        const tree = getNodeTree(docLine);
+        if (tree) {
+            const matching = tree.search(pos.character, pos.character);
+            if (matching.length > 0) {
+                return computeIntervalHovers(matching, docLine, pos.line, i => i.map(node => {
+                    const data = misc_functions_1.followPath(manager.globalData.commands, node.path);
+                    return `${data.type === "literal" ? "literal" : `\`${data.parser}\` parser`} on path '${node.path.join(", ")}'`;
+                }));
+            }
+        }
+    }
+    return undefined;
+}
+exports.hoverProvider = hoverProvider;
+function definitionProvider(docLine, pos) {
+    if (docLine) {
+        const actions = getActionsOfKind(docLine, pos, "source");
+        const start = { line: 0, character: 0 };
+        return actions.map(a => ({
+            range: { start, end: start },
+            uri: vscode_uri_1.default.file(a.data).toString()
+        }));
+    }
+    return [];
+}
+exports.definitionProvider = definitionProvider;
+function signatureHelpProvider(line, pos, _, manager) {
+    if (line.parseInfo === undefined || line.text.startsWith(consts_1.COMMENT_START)) {
+        return undefined;
+    }
+    const nodes = line.parseInfo ? line.parseInfo.nodes : [];
+    if (nodes.length === 0) {
+        const sigs = getSignatureHelp([], manager);
+        if (sigs) {
+            const activeSignature = line.text.length > 0 ? Math.max(sigs.findIndex(v => v.label.startsWith(line.text)), 0) : 0;
+            return {
+                activeParameter: 0,
+                activeSignature,
+                signatures: sigs
+            };
+        } else {
+            return undefined;
+        }
+    }
+    let text = "";
+    const { finals, internals } = completions_1.getAllNodes(nodes, pos.character);
+    const signatures = [];
+    for (const finalNode of finals) {
+        const result = getSignatureHelp(finalNode.path, manager);
+        if (result) {
+            signatures.push(...result);
+        }
+        const currentText = line.text.slice(finalNode.high + 1);
+        if (currentText.length > text.length) {
+            text = currentText;
+        }
+    }
+    for (const internalNode of internals) {
+        const pth = internalNode.path.slice();
+        if (pth.length > 0) {
+            pth.splice(pth.length - 1);
+            const result = getSignatureHelp(pth, manager);
+            if (result) {
+                signatures.push(...result);
+            }
+            const currentText = line.text.slice(internalNode.low, internalNode.high);
+            if (currentText.length > text.length) {
+                text = currentText;
+            }
+        }
+    }
+    if (signatures.length > 0) {
+        const activeSignature = text.length > 0 ? Math.max(signatures.findIndex(v => v.label.startsWith(text)), 0) : 0;
+        return { signatures, activeParameter: 0, activeSignature };
+    }
+    return undefined;
+}
+exports.signatureHelpProvider = signatureHelpProvider;
+function buildSignatureHelpForChildren(node, path, commands, depth) {
+    if (node.children) {
+        const result = [];
+        for (const childName of Object.keys(node.children)) {
+            const child = node.children[childName];
+            const childPath = [...path, childName];
+            const childNode = misc_functions_1.getNextNode(child, childPath, commands);
+            const parameterInfo = buildParameterInfoForNode(childNode.node.type === "root" // Handle automatic root redirect
+            ? child : childNode.node, childName);
+            if (depth > 0) {
+                const next = buildSignatureHelpForChildren(childNode.node, childNode.path, commands, node.executable ? depth - 1 : 0);
+                if (next.length > 0) {
+                    if (parameterInfo) {
+                        result.push([parameterInfo, ...next.map(v => node.executable ? `[${v}]` : v)].join(" "));
+                    } else {
+                        result.push(next.map(v => node.executable ? `[${v}]` : v).join(" "));
+                    }
+                    continue;
+                }
+            }
+            if (parameterInfo) {
+                result.push(parameterInfo);
+            }
+        }
+        if (depth === 0) {
+            return [result.join("|")];
+        }
+        return result;
+    }
+    return [];
+}
+function buildParameterInfoForNode(node, name) {
+    return node.type === "literal" ? name : node.type === "argument" ? `<${name}: ${node.parser}>` : undefined;
+}
+// Arbritrary number used to calculate the max length of the line
+const SIZE = 50;
+function getSignatureHelp(path, manager) {
+    const commands = manager.globalData.commands;
+    const next = misc_functions_1.getNextNode(misc_functions_1.followPath(commands, path), path, commands);
+    const options = buildSignatureHelpForChildren(next.node, next.path, commands, 2);
+    const result = [];
+    for (const option of options) {
+        result.push(buildSignature(option, path));
+    }
+    return result;
+}
+function buildSignature(option, path) {
+    if (option.length > SIZE) {
+        let index = option.lastIndexOf("|", SIZE);
+        if (index === -1) {
+            index = SIZE;
+        }
+        return {
+            documentation: `${option.slice(index).replace("|", "\t(pipe) ").replace(/\|/g, "\n\t| ").replace("(pipe)", "|")}\n\nCommand at path ${path.join()}`,
+            label: `${option.slice(0, SIZE)}...`
+        };
+    } else {
+        return {
+            documentation: `Command at path '${path.join()}'`,
+            label: option
+        };
+    }
+}
+function getActionsOfKind(line, position, kind) {
+    if (line.parseInfo) {
+        if (!line.actions) {
+            line.actions = new node_interval_tree_1.IntervalTree();
+            for (const action of line.parseInfo.actions) {
+                line.actions.insert(action);
+            }
+        }
+        const tree = line.actions;
+        return tree.search(position.character, position.character).filter(v => v.type === kind);
+    }
+    return [];
+}
+function getNodeTree(line) {
+    if (line.nodes) {
+        return line.nodes;
+    }
+    if (line.parseInfo) {
+        const tree = new node_interval_tree_1.IntervalTree();
+        for (const node of line.parseInfo.nodes) {
+            tree.insert(node);
+        }
+        return tree;
+    }
+    return undefined;
+}
+function getWorkspaceSymbols(manager, query) {
+    const result = [];
+    const worlds = manager.packData;
+    const namespace = misc_functions_1.convertToNamespace(query);
+    for (const worldPath of Object.keys(worlds)) {
+        const world = worlds[worldPath];
+        for (const packID in world.packs) {
+            if (world.packs.hasOwnProperty(packID)) {
+                const pack = world.packs[packID];
+                for (const type of typed_keys_1.typed_keys(pack.data)) {
+                    const val = pack.data[type];
+                    if (val) {
+                        for (const item of val) {
+                            if (misc_functions_1.namespaceStart(item, namespace)) {
+                                result.push({
+                                    kind: symbolKindForResource(type),
+                                    location: {
+                                        range: blanks_1.blankRange,
+                                        uri: vscode_uri_1.default.file(misc_functions_1.buildPath(item, world, type)).toString()
+                                    },
+                                    name: misc_functions_1.stringifyNamespace(item)
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return result;
+}
+exports.getWorkspaceSymbols = getWorkspaceSymbols;
+function symbolKindForResource(resource) {
+    switch (resource) {
+        case "block_tags":
+        case "function_tags":
+        case "item_tags":
+            return vscode_languageserver_1.SymbolKind.Namespace;
+        case "advancements":
+        case "functions":
+        case "loot_tables":
+        case "recipes":
+        case "structures":
+            break;
+        default:
+    }
+    return vscode_languageserver_1.SymbolKind.Variable;
+}
+exports.symbolKindForResource = symbolKindForResource;
+},{"./completions":"aDYY","./consts":"xb+0","./misc-functions":"irtH","./misc-functions/third_party/typed-keys":"IXKy","./test/blanks":"KN9D"}],"xUTu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3005,6 +3286,9 @@ class DataManager {
     get globalData() {
         return this.globalDataInternal;
     }
+    get packData() {
+        return this.packDataComplete;
+    }
     //#endregion
     //#region Constructor
     //#endregion
@@ -3331,15 +3615,16 @@ const events_1 = require("events");
 const util_1 = require("util");
 const util_promisify_1 = require("util.promisify");
 util_promisify_1.shim();
-const node_interval_tree_1 = require("node-interval-tree");
 const main_1 = require("vscode-languageserver/lib/main");
 const vscode_uri_1 = tslib_1.__importDefault(require("vscode-uri"));
+const actions_1 = require("./actions");
 const completions_1 = require("./completions");
 const cache_1 = require("./data/cache");
 const manager_1 = require("./data/manager");
 const misc_functions_1 = require("./misc-functions");
 const merge_deep_1 = require("./misc-functions/third_party/merge-deep");
 const parse_1 = require("./parse");
+const blanks_1 = require("./test/blanks");
 const connection = main_1.createConnection(new main_1.IPCMessageReader(process), new main_1.IPCMessageWriter(process));
 connection.listen();
 //#region Data Storage
@@ -3363,10 +3648,12 @@ connection.onInitialize(() => {
             },
             definitionProvider: true,
             hoverProvider: true,
+            signatureHelpProvider: { triggerCharacters: [" "] },
             textDocumentSync: {
                 change: main_1.TextDocumentSyncKind.Incremental,
                 openClose: true
-            }
+            },
+            workspaceSymbolProvider: true
         }
     };
 });
@@ -3510,7 +3797,7 @@ function handleMiscInfo(miscInfos) {
             changedFileErrors.add(misc.filePath);
             const value = fileErrors.get(misc.filePath);
             if (value) {
-                fileErrors.set(misc.filePath, Object.assign({}, value, { group: misc.message }));
+                fileErrors.set(misc.filePath, Object.assign({}, value, { [misc.group]: misc.message }));
             } else {
                 fileErrors.set(misc.filePath, {
                     group: misc.message
@@ -3523,8 +3810,9 @@ function handleMiscInfo(miscInfos) {
             if (group) {
                 const value = fileErrors.get(misc.filePath);
                 if (value) {
-                    const { group: _ } = value,
-                          rest = tslib_1.__rest(value, ["group"]);
+                    const _a = group,
+                          _ = value[_a],
+                          rest = tslib_1.__rest(value, [typeof _a === "symbol" ? _a : _a + ""]);
                     fileErrors.set(misc.filePath, Object.assign({}, rest));
                 }
             } else {
@@ -3539,10 +3827,7 @@ function handleMiscInfo(miscInfos) {
             for (const group of Object.keys(value)) {
                 diagnostics.push({
                     message: value[group],
-                    range: {
-                        end: { line: 0, character: 0 },
-                        start: { line: 0, character: 0 }
-                    }
+                    range: blanks_1.blankRange
                 });
             }
             connection.sendDiagnostics({ uri, diagnostics });
@@ -3562,88 +3847,24 @@ connection.onCompletion(params => {
         return util_1.promisify(cb => parseCompletionEvents.once(`${params.textDocument.uri}:${params.position.line}`, cb))().then(computeCompletionsLocal);
     }
 });
-connection.onHover(params => {
-    if (started) {
-        const docLine = getLine(params);
-        if (docLine) {
-            function computeIntervalHovers(intervals, commandLine, line, map) {
-                const end = {
-                    character: intervals.reduce((acc, v) => Math.max(acc, v.high), 0),
-                    line
-                };
-                const start = {
-                    character: intervals.reduce((acc, v) => Math.min(acc, v.low), commandLine.text.length),
-                    line
-                };
-                return {
-                    contents: map(intervals),
-                    range: { start, end }
-                };
-            }
-            const hovers = getActionsOfKind(docLine, params.position, "hover");
-            if (hovers.length > 0) {
-                return computeIntervalHovers(hovers, docLine, params.position.line, i => i.map(v => v.data));
-            } else {
-                const tree = getNodeTree(docLine);
-                if (tree) {
-                    const matching = tree.search(params.position.character, params.position.character);
-                    if (matching.length > 0) {
-                        return computeIntervalHovers(matching, docLine, params.position.line, i => i.map(node => {
-                            const data = misc_functions_1.followPath(manager.globalData.commands, node.path);
-                            return `${data.type === "literal" ? "literal" : `\`${data.parser}\` parser`} on path '${node.path.join(", ")}'`;
-                        }));
-                    }
-                }
+// #connection.onCodeAction(); // Research what this means
+connection.onDefinition(prepare(actions_1.definitionProvider, []));
+// #connection.onDocumentHighlight();
+// #connection.onDocumentSymbol(); // This is for sections - there are none in mcfunctions
+connection.onWorkspaceSymbol(query => actions_1.getWorkspaceSymbols(manager, query.query));
+connection.onHover(prepare(actions_1.hoverProvider, undefined));
+connection.onSignatureHelp(prepare(actions_1.signatureHelpProvider));
+function prepare(func, fallback) {
+    return params => {
+        if (started) {
+            const doc = documents.get(params.textDocument.uri);
+            if (doc) {
+                const docLine = doc.lines[params.position.line];
+                return func(docLine, params.position, doc, manager);
             }
         }
-    }
-    return undefined;
-});
-connection.onDefinition(params => {
-    const docLine = getLine(params);
-    if (docLine) {
-        const actions = getActionsOfKind(docLine, params.position, "source");
-        const start = { line: 0, character: 0 };
-        return actions.map(a => ({
-            range: { start, end: start },
-            uri: vscode_uri_1.default.file(a.data).toString()
-        }));
-    }
-    return [];
-});
-function getLine(params) {
-    const doc = documents.get(params.textDocument.uri);
-    if (doc) {
-        const line = doc.lines[params.position.line];
-        return line;
-    }
-    return undefined;
+        return fallback;
+    };
 }
-function getActionsOfKind(line, position, kind) {
-    if (line.parseInfo) {
-        if (!line.actions) {
-            line.actions = new node_interval_tree_1.IntervalTree();
-            for (const action of line.parseInfo.actions) {
-                line.actions.insert(action);
-            }
-        }
-        const tree = line.actions;
-        return tree.search(position.character, position.character).filter(v => v.type === kind);
-    }
-    return [];
-}
-function getNodeTree(line) {
-    if (line.nodes) {
-        return line.nodes;
-    }
-    if (line.parseInfo) {
-        const tree = new node_interval_tree_1.IntervalTree();
-        for (const node of line.parseInfo.nodes) {
-            tree.insert(node);
-        }
-        return tree;
-    }
-    return undefined;
-}
-},{"./completions":"aDYY","./data/cache":"T7Hz","./data/manager":"zth0","./misc-functions":"irtH","./misc-functions/third_party/merge-deep":"NZkF","./parse":"X+eG"}]},{},["7QCb"], null)
+},{"./actions":"0A+1","./completions":"aDYY","./data/cache":"T7Hz","./data/manager":"zth0","./misc-functions":"irtH","./misc-functions/third_party/merge-deep":"NZkF","./parse":"X+eG","./test/blanks":"KN9D"}]},{},["7QCb"], null)
 //# sourceMappingURL=/index.map
