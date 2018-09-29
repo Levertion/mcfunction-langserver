@@ -660,7 +660,7 @@ function getPath(resource, packroot, kind, path = defaultPath) {
 }
 exports.getPath = getPath;
 function buildPath(resource, packs, kind, path = defaultPath) {
-    if (resource.pack) {
+    if (resource.pack !== undefined) {
         const pack = packs.packs[resource.pack];
         return getPath(resource, path.join(packs.location, pack.name), kind, path);
     } else {
