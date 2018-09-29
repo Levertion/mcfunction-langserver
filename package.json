@@ -10,7 +10,7 @@
         "build": "parcel build src/index.ts --target=node --no-minify",
         "test": "mocha --opts ./mocha.opts",
         "check": "tsc -p tsconfig.json --noEmit",
-        "lint": "tslint --project .",
+        "lint": "ts-node node_modules/tslint/bin/tslint --project .",
         "prettier": "prettier **/*.{ts,json,yml}",
         "prettier:write": "npm run prettier -- --write",
         "contributors:add": "all-contributors add",

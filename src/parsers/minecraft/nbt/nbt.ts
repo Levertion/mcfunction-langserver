@@ -3,8 +3,8 @@ import { StringReader } from "../../../brigadier/string-reader";
 import { isSuccessful, ReturnHelper } from "../../../misc-functions";
 import { ContextPath, resolvePaths } from "../../../misc-functions/context";
 import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
-import { NBTWalker } from "./doc-walker";
 import { NBTTagCompound } from "./tag/compound-tag";
+import { NBTValidator } from "./validator";
 
 type CtxPathFunc = (args: string[]) => NBTContextData;
 
@@ -49,14 +49,14 @@ export function parseNBT(
         return helper.succeed();
     } else {
         if (!!data) {
-            const walker = new NBTWalker(
+            const walker = new NBTValidator(
                 reply.data.parsed || new NBTTagCompound({}),
                 docs,
                 data.type === "item"
             );
             if (isArray(data.id)) {
                 for (const k of data.id) {
-                    const node = walker.getFinalNode([
+                    const node = walker.walkFinalNode([
                         data.type,
                         k,
                         ...(reply.data.path || [])
@@ -69,7 +69,7 @@ export function parseNBT(
                 }
                 return helper.fail();
             } else {
-                const node = walker.getFinalNode([
+                const node = walker.walkFinalNode([
                     data.type,
                     data.id || "none",
                     ...(reply.data.path || [])

@@ -52,6 +52,7 @@ export abstract class NBTTag<L> {
             end: reader.cursor,
             start
         };
+        // tslint:disable:helper-return
         return out;
     }
 

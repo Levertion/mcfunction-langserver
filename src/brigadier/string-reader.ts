@@ -362,10 +362,10 @@ export class StringReader {
      * The cursor ends on the last character in the string.
      */
     public readString(): ReturnedInfo<string> {
+        const helper = new ReturnHelper();
         if (this.canRead() && this.peek() === QUOTE) {
-            return this.readQuotedString();
+            return helper.return(this.readQuotedString());
         } else {
-            const helper = new ReturnHelper();
             if (!this.canRead()) {
                 helper.addSuggestions({
                     start: this.cursor,

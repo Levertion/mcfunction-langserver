@@ -1,3 +1,4 @@
+// tslint:disable:helper-return
 import * as defaultPath from "path";
 import {
     DATAFOLDER,

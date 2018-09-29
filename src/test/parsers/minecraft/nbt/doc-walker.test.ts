@@ -1,13 +1,13 @@
 import * as assert from "assert";
 import { CompoundNode } from "mc-nbt-paths";
 import { isSuccessful } from "../../../../misc-functions";
-import { NBTWalker } from "../../../../parsers/minecraft/nbt/doc-walker";
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound-tag";
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string-tag";
+import { NBTValidator } from "../../../../parsers/minecraft/nbt/validator";
 import { testDocs } from "./test-data";
 
-const test = (walker: NBTWalker, name: string, extpath: string[] = []) => {
-    const node = walker.getFinalNode([name, ...extpath]);
+const test = (walker: NBTValidator, name: string, extpath: string[] = []) => {
+    const node = walker.walkFinalNode([name, ...extpath]);
     if (!isSuccessful(node)) {
         assert.fail("node is undefined");
         return;
@@ -20,7 +20,7 @@ describe("Documentation Walker Tests", () => {
         const nbt = new NBTTagCompound({
             var1: new NBTTagString("func_test")
         });
-        const walker = new NBTWalker(nbt, testDocs, true, false);
+        const walker = new NBTValidator(nbt, testDocs, true, false);
 
         it("should return the correct node for the basic doc", () => {
             test(walker, "basic_test");
@@ -55,7 +55,7 @@ describe("Documentation Walker Tests", () => {
         });
 
         it("should merge child_ref correctly", () => {
-            const node = walker.getFinalNode(["child_ref_test"]);
+            const node = walker.walkFinalNode(["child_ref_test"]);
             assert.deepStrictEqual(node.data, {
                 children: {
                     bad: {

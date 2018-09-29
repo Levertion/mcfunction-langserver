@@ -57,24 +57,13 @@ describe("nbt parser test", () => {
                         start: 9,
                         text: "{"
                     },
-                    {
-                        start: 10,
-                        text: "}"
-                    },
-                    {
-                        start: 10,
-                        text: "Name"
-                    },
-                    {
-                        start: 10,
-                        text: "color"
-                    },
-                    {
-                        start: 10,
-                        text: "Lore"
-                    }
+                    "}",
+                    "Name",
+                    "color",
+                    "Lore"
                 ] as SuggestResult[],
-                out.suggestions
+                out.suggestions,
+                10
             );
         });
         it("should return the correct suggestions when nested in a list", () => {

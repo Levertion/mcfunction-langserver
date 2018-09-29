@@ -17,6 +17,11 @@
         "restrict-plus-operands": false,
         "no-void-expression": [true, "ignore-arrow-function-shorthand"],
         "file-name-casing": [true, "kebab-case"],
-        "no-submodule-imports": false
-    }
+        "no-submodule-imports": false,
+        "helper-return": true
+    },
+    "linterOptions": {
+        "exclude": ["lintrules/**"]
+    },
+    "rulesDirectory": "lintrules"
 }

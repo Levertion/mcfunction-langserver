@@ -64,7 +64,7 @@ export function parseTag(
     }
     // @ts-ignore
     if (lastResult === undefined) {
-        return new ReturnHelper().failWithData({ correct: correctness });
+        return helper.failWithData({ correct: correctness });
     }
     if (helper.merge(lastResult)) {
         if (correctTag === undefined) {

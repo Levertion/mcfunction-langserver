@@ -5,6 +5,7 @@ import { Parser } from "../../types";
 export const messageParser: Parser = {
     parse: (reader: StringReader) => {
         reader.cursor = reader.getTotalLength();
+        // tslint:disable:helper-return
         return new ReturnHelper().succeed();
     }
 };
