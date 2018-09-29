@@ -3847,11 +3847,10 @@ connection.onCompletion(params => {
         return util_1.promisify(cb => parseCompletionEvents.once(`${params.textDocument.uri}:${params.position.line}`, cb))().then(computeCompletionsLocal);
     }
 });
-const und = () => undefined;
-connection.onCodeAction(und); // Research what this means
+// #connection.onCodeAction(); // Research what this means
 connection.onDefinition(prepare(actions_1.definitionProvider, []));
-connection.onDocumentHighlight(und);
-// #connection.onDocumentSymbol(und); // This is for sections - there are none in mcfunctions
+// #connection.onDocumentHighlight();
+// #connection.onDocumentSymbol(); // This is for sections - there are none in mcfunctions
 connection.onWorkspaceSymbol(query => actions_1.getWorkspaceSymbols(manager, query.query));
 connection.onHover(prepare(actions_1.hoverProvider, undefined));
 connection.onSignatureHelp(prepare(actions_1.signatureHelpProvider));

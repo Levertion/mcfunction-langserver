@@ -333,11 +333,10 @@ connection.onCompletion(params => {
     }
 });
 
-const und = () => undefined;
-connection.onCodeAction(und); // Research what this means
+// #connection.onCodeAction(); // Research what this means
 connection.onDefinition(prepare<Location[]>(definitionProvider, []));
-connection.onDocumentHighlight(und);
-// #connection.onDocumentSymbol(und); // This is for sections - there are none in mcfunctions
+// #connection.onDocumentHighlight();
+// #connection.onDocumentSymbol(); // This is for sections - there are none in mcfunctions
 connection.onWorkspaceSymbol(query =>
     getWorkspaceSymbols(manager, query.query)
 );
