@@ -27,7 +27,7 @@ export class ListParser implements Parser {
             this.options,
             false,
             CompletionItemKind.EnumMember,
-            "no"
+            StringReader.charAllowedInUnquotedString
         );
         if (helper.merge(optResult)) {
             return helper.succeed();

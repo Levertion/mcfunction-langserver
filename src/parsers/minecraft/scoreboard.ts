@@ -1,4 +1,5 @@
 import { CommandErrorBuilder } from "../../brigadier/errors";
+import { StringReader } from "../../brigadier/string-reader";
 import { DisplaySlots } from "../../data/nbt/nbt-types";
 import { ReturnHelper } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
@@ -46,7 +47,7 @@ export const objectiveParser: Parser = {
                     options,
                     false,
                     undefined,
-                    "no"
+                    StringReader.charAllowedInUnquotedString
                 );
                 if (helper.merge(result)) {
                     if (!info.suggesting) {
@@ -119,7 +120,7 @@ export const teamParser: Parser = {
                     options.map(v => v.Name),
                     false,
                     undefined,
-                    "no"
+                    StringReader.charAllowedInUnquotedString
                 );
                 if (helper.merge(result)) {
                     for (const team of options) {

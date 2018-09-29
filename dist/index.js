@@ -920,6 +920,11 @@ const NAMESPACEEXCEPTIONS = {
     invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "Invalid character '%s' in location %s")
 };
 const disallowedPath = /[^0-9a-z_/\.-]/g;
+function stringArrayToNamespaces(strings) {
+    // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
+    return strings.map(v => __1.convertToNamespace(v));
+}
+exports.stringArrayToNamespaces = stringArrayToNamespaces;
 function readNamespaceText(reader) {
     const namespaceChars = /^[0-9a-z_:/\.-]$/;
     return reader.readWhileRegexp(namespaceChars);
@@ -947,9 +952,7 @@ function namespaceSuggestions(options, value, start) {
 }
 exports.namespaceSuggestions = namespaceSuggestions;
 function namespaceSuggestionString(options, value, start) {
-    return namespaceSuggestions(
-    // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
-    options.map(v => __1.convertToNamespace(v)), value, start);
+    return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
 }
 exports.namespaceSuggestionString = namespaceSuggestionString;
 function parseNamespace(reader) {
@@ -1260,10 +1263,7 @@ class StringReader {
     readOption(options, addError = true, completion, quoted = "both") {
         const start = this.cursor;
         const helper = new misc_functions_1.ReturnHelper();
-        let isquoted = false;
-        if (this.peek() === QUOTE) {
-            isquoted = true;
-        }
+        const isquoted = this.peek() === QUOTE && (quoted === "yes" || quoted === "both");
         let resultaux;
         switch (quoted) {
             case "both":
@@ -1272,11 +1272,8 @@ class StringReader {
             case "yes":
                 resultaux = this.readQuotedString();
                 break;
-            case "no":
-                resultaux = new misc_functions_1.ReturnHelper(false).succeed(this.readUnquotedString());
-                break;
             default:
-                resultaux = this.readString();
+                resultaux = new misc_functions_1.ReturnHelper().succeed(this.readWhileRegexp(quoted));
         }
         const result = resultaux;
         if (!helper.merge(result, false)) {
@@ -1947,6 +1944,7 @@ exports.dimensions = ["overworld", "the_nether", "the_end"];
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_1 = require("vscode-languageserver");
 const errors_1 = require("../../brigadier/errors");
+const string_reader_1 = require("../../brigadier/string-reader");
 const colors_1 = require("../../colors");
 const item_slot_1 = require("../../data/lists/item-slot");
 const scoreboard_slot_1 = require("../../data/lists/scoreboard-slot");
@@ -1960,7 +1958,7 @@ class ListParser {
     parse(reader, info) {
         const start = reader.cursor;
         const helper = new misc_functions_1.ReturnHelper(info);
-        const optResult = reader.readOption(this.options, false, vscode_languageserver_1.CompletionItemKind.EnumMember, "no");
+        const optResult = reader.readOption(this.options, false, vscode_languageserver_1.CompletionItemKind.EnumMember, string_reader_1.StringReader.charAllowedInUnquotedString);
         if (helper.merge(optResult)) {
             return helper.succeed();
         } else {
@@ -1979,7 +1977,7 @@ const operationError = new errors_1.CommandErrorBuilder("arguments.operation.inv
 exports.operationParser = new ListParser(statics_1.operations, operationError);
 const scoreboardSlotError = new errors_1.CommandErrorBuilder("argument.scoreboardDisplaySlot.invalid", "Unknown display slot '%s'");
 exports.scoreBoardSlotParser = new ListParser(scoreboard_slot_1.scoreboardSlots, scoreboardSlotError);
-},{"../../brigadier/errors":"lIyQ","../../colors":"Td8d","../../data/lists/item-slot":"yLru","../../data/lists/scoreboard-slot":"C8ve","../../data/lists/statics":"xAGc","../../misc-functions":"irtH"}],"o/51":[function(require,module,exports) {
+},{"../../brigadier/errors":"lIyQ","../../brigadier/string-reader":"f1BJ","../../colors":"Td8d","../../data/lists/item-slot":"yLru","../../data/lists/scoreboard-slot":"C8ve","../../data/lists/statics":"xAGc","../../misc-functions":"irtH"}],"o/51":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2005,7 +2003,7 @@ class NamespaceListParser {
     parse(reader, info) {
         const helper = new misc_functions_1.ReturnHelper(info);
         const start = reader.cursor;
-        const result = misc_functions_1.parseNamespaceOption(reader, this.options.map((v, _) => misc_functions_1.convertToNamespace(v)));
+        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces(this.options));
         if (helper.merge(result)) {
             return helper.succeed();
         } else {
@@ -2093,7 +2091,7 @@ const bossbarParser = {
         if (info.data.localData && info.data.localData.nbt.level) {
             const start = reader.cursor;
             const bars = info.data.localData.nbt.level.Data.CustomBossEvents;
-            const options = Object.keys(bars).map((v, _) => misc_functions_1.convertToNamespace(v));
+            const options = misc_functions_1.stringArrayToNamespaces(Object.keys(bars));
             const result = misc_functions_1.parseNamespaceOption(reader, options);
             if (helper.merge(result)) {
                 return helper.succeed();
@@ -2156,6 +2154,7 @@ exports.resourceParser = {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const errors_1 = require("../../brigadier/errors");
+const string_reader_1 = require("../../brigadier/string-reader");
 const misc_functions_1 = require("../../misc-functions");
 const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
 const exceptions = {
@@ -2191,7 +2190,7 @@ exports.objectiveParser = {
             const scoreboardData = info.data.localData.nbt.scoreboard;
             if (scoreboardData) {
                 const options = scoreboardData.data.Objectives.map(v => v.Name);
-                const result = reader.readOption(options, false, undefined, "no");
+                const result = reader.readOption(options, false, undefined, string_reader_1.StringReader.charAllowedInUnquotedString);
                 if (helper.merge(result)) {
                     if (!info.suggesting) {
                         for (const objective of scoreboardData.data.Objectives) {
@@ -2242,7 +2241,7 @@ exports.teamParser = {
             const scoreboardData = info.data.localData.nbt.scoreboard;
             if (scoreboardData) {
                 const options = scoreboardData.data.Teams;
-                const result = reader.readOption(options.map(v => v.Name), false, undefined, "no");
+                const result = reader.readOption(options.map(v => v.Name), false, undefined, string_reader_1.StringReader.charAllowedInUnquotedString);
                 if (helper.merge(result)) {
                     for (const team of options) {
                         if (team.Name === result.data) {
@@ -2272,7 +2271,7 @@ ${JSON.stringify(team, undefined, 4)}
     }
 };
 exports.criteriaParser = undefined;
-},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","../../misc-functions/third_party/typed-keys":"IXKy"}],"vlho":[function(require,module,exports) {
+},{"../../brigadier/errors":"lIyQ","../../brigadier/string-reader":"f1BJ","../../misc-functions":"irtH","../../misc-functions/third_party/typed-keys":"IXKy"}],"vlho":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });

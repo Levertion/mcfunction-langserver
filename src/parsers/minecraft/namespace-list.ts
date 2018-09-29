@@ -8,9 +8,9 @@ import {
     particles
 } from "../../data/lists/statics";
 import {
-    convertToNamespace,
     parseNamespaceOption,
     ReturnHelper,
+    stringArrayToNamespaces,
     stringifyNamespace
 } from "../../misc-functions";
 import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
@@ -30,7 +30,7 @@ export class NamespaceListParser implements Parser {
         const start = reader.cursor;
         const result = parseNamespaceOption(
             reader,
-            this.options.map((v, _) => convertToNamespace(v))
+            stringArrayToNamespaces(this.options)
         );
         if (helper.merge(result)) {
             return helper.succeed();
