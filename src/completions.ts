@@ -48,19 +48,7 @@ export function computeCompletions(
             true
         );
     }
-    const finals: ParseNode[] = [];
-    const internals: ParseNode[] = [];
-    for (const node of nodes) {
-        if (node.high < character) {
-            if (node.final) {
-                finals.push(node);
-            }
-        } else {
-            if (node.low <= character) {
-                internals.push(node);
-            }
-        }
-    }
+    const { finals, internals } = getAllNodes(nodes, character);
     const completions: CompletionItem[] = [];
     for (const finalNode of finals) {
         completions.push(
@@ -91,6 +79,26 @@ export function computeCompletions(
         );
     }
     return CompletionList.create(completions, true);
+}
+
+export function getAllNodes(
+    nodes: ParseNode[],
+    character: number
+): { finals: ParseNode[]; internals: ParseNode[] } {
+    const finals: ParseNode[] = [];
+    const internals: ParseNode[] = [];
+    for (const node of nodes) {
+        if (node.high < character) {
+            if (node.final) {
+                finals.push(node);
+            }
+        } else {
+            if (node.low <= character) {
+                internals.push(node);
+            }
+        }
+    }
+    return { finals, internals };
 }
 
 function getCompletionsFromNode(

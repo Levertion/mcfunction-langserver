@@ -192,7 +192,7 @@ export function buildPath(
     kind: keyof Resources,
     path: PathModule = defaultPath
 ): string | undefined {
-    if (resource.pack) {
+    if (resource.pack !== undefined) {
         const pack = packs.packs[resource.pack];
         return getPath(
             resource,
