@@ -2149,12 +2149,25 @@ exports.resourceParser = {
         }
     }
 };
-},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH"}],"0BRi":[function(require,module,exports) {
+},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH"}],"//Fc":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.verbatimCriteria = ["air", "armor", "deathCount", "dummy", "food", "health", "level", "playerKillCount", "totalKillCount", "trigger", "xp", "minecraft.custom:minecraft.animals_bred", "minecraft.custom:minecraft.aviate_one_cm", "minecraft.custom:minecraft.boat_one_cm", "minecraft.custom:minecraft.clean_armor", "minecraft.custom:minecraft.clean_banner", "minecraft.custom:minecraft.clean_shulker_box", "minecraft.custom:minecraft.climb_one_cm", "minecraft.custom:minecraft.crouch_one_cm", "minecraft.custom:minecraft.damage_absorbed", "minecraft.custom:minecraft.damage_blocked_by_shield", "minecraft.custom:minecraft.damage_dealt", "minecraft.custom:minecraft.damage_dealt_absorbed", "minecraft.custom:minecraft.damage_dealt_resisted", "minecraft.custom:minecraft.damage_resisted", "minecraft.custom:minecraft.damage_taken", "minecraft.custom:minecraft.deaths", "minecraft.custom:minecraft.drop", "minecraft.custom:minecraft.eat_cake_slice", "minecraft.custom:minecraft.enchant_item", "minecraft.custom:minecraft.fall_one_cm", "minecraft.custom:minecraft.fill_cauldron", "minecraft.custom:minecraft.fish_caught", "minecraft.custom:minecraft.fly_one_cm", "minecraft.custom:minecraft.horse_one_cm", "minecraft.custom:minecraft.inspect_dispenser", "minecraft.custom:minecraft.inspect_dropper", "minecraft.custom:minecraft.inspect_hopper", "minecraft.custom:minecraft.interact_with_beacon", "minecraft.custom:minecraft.interact_with_brewingstand", "minecraft.custom:minecraft.interact_with_crafting_table", "minecraft.custom:minecraft.interact_with_furnace", "minecraft.custom:minecraft.jump", "minecraft.custom:minecraft.leave_game", "minecraft.custom:minecraft.minecart_one_cm", "minecraft.custom:minecraft.mob_kills", "minecraft.custom:minecraft.open_chest", "minecraft.custom:minecraft.open_enderchest", "minecraft.custom:minecraft.open_shulker_box", "minecraft.custom:minecraft.pig_one_cm", "minecraft.custom:minecraft.play_noteblock", "minecraft.custom:minecraft.play_one_minute", "minecraft.custom:minecraft.play_record", "minecraft.custom:minecraft.player_kills", "minecraft.custom:minecraft.pot_flower", "minecraft.custom:minecraft.sleep_in_bed", "minecraft.custom:minecraft.sneak_time", "minecraft.custom:minecraft.sprint_one_cm", "minecraft.custom:minecraft.swim_one_cm", "minecraft.custom:minecraft.talked_to_villager", "minecraft.custom:minecraft.time_since_death", "minecraft.custom:minecraft.time_since_rest", "minecraft.custom:minecraft.traded_with_villager", "minecraft.custom:minecraft.trigger_trapped_chest", "minecraft.custom:minecraft.tune_noteblock", "minecraft.custom:minecraft.use_cauldron", "minecraft.custom:minecraft.walk_on_water_one_cm", "minecraft.custom:minecraft.walk_one_cm", "minecraft.custom:minecraft.walk_under_water_one_cm"];
+exports.colorCriteria = ["teamkill.", "killedByTeam."];
+exports.itemCriteria = ["minecraft.broken:", "minecraft.crafted:", "minecraft.dropped:", "minecraft.picked_up:", "minecraft.used:"];
+exports.blockCriteria = ["minecraft.mined:"];
+exports.entityCriteria = ["minecraft.killed_by:", "minecraft.killed:"];
+},{}],"0BRi":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const vscode_languageserver_1 = require("vscode-languageserver");
 const errors_1 = require("../../brigadier/errors");
 const string_reader_1 = require("../../brigadier/string-reader");
+const colors_1 = require("../../colors");
+const criteria_1 = require("../../data/lists/criteria");
+const statics_1 = require("../../data/lists/statics");
 const misc_functions_1 = require("../../misc-functions");
 const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
 const exceptions = {
@@ -2270,8 +2283,67 @@ ${JSON.stringify(team, undefined, 4)}
         return helper.succeed();
     }
 };
-exports.criteriaParser = undefined;
-},{"../../brigadier/errors":"lIyQ","../../brigadier/string-reader":"f1BJ","../../misc-functions":"irtH","../../misc-functions/third_party/typed-keys":"IXKy"}],"vlho":[function(require,module,exports) {
+const UNKNOWN_CRITERIA = new errors_1.CommandErrorBuilder("argument.criteria.invalid", "Unknown criteria '%s'");
+const NONWHITESPACE = /\S/;
+exports.criteriaParser = {
+    parse: (reader, info) => {
+        const start = reader.cursor;
+        const helper = new misc_functions_1.ReturnHelper();
+        const optionResult = reader.readOption([...criteria_1.verbatimCriteria, ...criteria_1.blockCriteria, ...criteria_1.colorCriteria, ...criteria_1.entityCriteria, ...criteria_1.itemCriteria], false, vscode_languageserver_1.CompletionItemKind.EnumMember, NONWHITESPACE);
+        const text = optionResult.data;
+        if (helper.merge(optionResult)) {
+            if (criteria_1.verbatimCriteria.indexOf(optionResult.data) !== -1) {
+                return helper.succeed();
+            }
+        }
+        if (!text) {
+            return helper.fail(); // `unreachable!()`
+        }
+        const end = reader.cursor;
+        for (const choice of criteria_1.colorCriteria) {
+            if (text.startsWith(choice)) {
+                reader.cursor = start + choice.length;
+                const result = reader.readOption(colors_1.COLORS, false, vscode_languageserver_1.CompletionItemKind.Color, NONWHITESPACE);
+                if (misc_functions_1.isSuccessful(result)) {
+                    return helper.succeed();
+                }
+            }
+        }
+        for (const choice of criteria_1.entityCriteria) {
+            if (text.startsWith(choice)) {
+                reader.cursor = start + choice.length;
+                const result = reader.readOption(statics_1.entities.map(mapFunction), false, vscode_languageserver_1.CompletionItemKind.Color, NONWHITESPACE);
+                if (misc_functions_1.isSuccessful(result)) {
+                    return helper.succeed();
+                }
+            }
+        }
+        for (const choice of criteria_1.blockCriteria) {
+            if (text.startsWith(choice)) {
+                reader.cursor = start + choice.length;
+                const result = reader.readOption(Object.keys(info.data.globalData.blocks).map(mapFunction), false, vscode_languageserver_1.CompletionItemKind.Color, NONWHITESPACE);
+                if (misc_functions_1.isSuccessful(result)) {
+                    return helper.succeed();
+                }
+            }
+        }
+        for (const choice of criteria_1.itemCriteria) {
+            if (text.startsWith(choice)) {
+                reader.cursor = start + choice.length;
+                const result = reader.readOption(info.data.globalData.items.map(mapFunction), false, vscode_languageserver_1.CompletionItemKind.Color, NONWHITESPACE);
+                if (misc_functions_1.isSuccessful(result)) {
+                    return helper.succeed();
+                }
+            }
+        }
+        helper.addErrors(UNKNOWN_CRITERIA.create(start, end, text));
+        return helper.succeed();
+    }
+};
+function mapFunction(value) {
+    return misc_functions_1.stringifyNamespace(misc_functions_1.convertToNamespace(value)).replace(":", ".");
+}
+},{"../../brigadier/errors":"lIyQ","../../brigadier/string-reader":"f1BJ","../../colors":"Td8d","../../data/lists/criteria":"//Fc","../../data/lists/statics":"xAGc","../../misc-functions":"irtH","../../misc-functions/third_party/typed-keys":"IXKy"}],"vlho":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2310,6 +2382,7 @@ const implementedParsers = {
     "minecraft:message": message_1.messageParser,
     "minecraft:mob_effect": namespaceParsers.mobEffectParser,
     "minecraft:objective": scoreboard_1.objectiveParser,
+    "minecraft:objective_criteria": scoreboard_1.criteriaParser,
     "minecraft:operation": listParsers.operationParser,
     "minecraft:particle": namespaceParsers.particleParser,
     "minecraft:resource_location": resources_1.resourceParser,

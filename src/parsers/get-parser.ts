@@ -10,7 +10,11 @@ import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
 import { functionParser, resourceParser } from "./minecraft/resources";
-import { objectiveParser, teamParser } from "./minecraft/scoreboard";
+import {
+    criteriaParser,
+    objectiveParser,
+    teamParser
+} from "./minecraft/scoreboard";
 
 /**
  * Incomplete:
@@ -36,6 +40,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:message": messageParser,
     "minecraft:mob_effect": namespaceParsers.mobEffectParser,
     "minecraft:objective": objectiveParser,
+    "minecraft:objective_criteria": criteriaParser,
     "minecraft:operation": listParsers.operationParser,
     "minecraft:particle": namespaceParsers.particleParser,
     "minecraft:resource_location": resourceParser,
