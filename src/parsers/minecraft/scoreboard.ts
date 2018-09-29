@@ -224,7 +224,7 @@ export const criteriaParser: Parser = {
                 const result = reader.readOption(
                     entities.map(mapFunction),
                     false,
-                    CompletionItemKind.Color,
+                    CompletionItemKind.Reference,
                     NONWHITESPACE
                 );
                 if (helper.merge(result)) {
@@ -238,7 +238,7 @@ export const criteriaParser: Parser = {
                 const result = reader.readOption(
                     Object.keys(info.data.globalData.blocks).map(mapFunction),
                     false,
-                    CompletionItemKind.Color,
+                    CompletionItemKind.Constant,
                     NONWHITESPACE
                 );
                 if (helper.merge(result)) {
@@ -252,7 +252,7 @@ export const criteriaParser: Parser = {
                 const result = reader.readOption(
                     info.data.globalData.items.map(mapFunction),
                     false,
-                    CompletionItemKind.Color,
+                    CompletionItemKind.Keyword,
                     NONWHITESPACE
                 );
                 if (helper.merge(result)) {
