@@ -207,14 +207,12 @@ export class StringReader {
         options: T[],
         addError: boolean = true,
         completion?: CompletionItemKind,
-        quoted: "both" | "no" | "yes" = "both"
+        quoted: "both" | RegExp | "yes" = "both"
     ): ReturnedInfo<T, CE, string | false> {
         const start = this.cursor;
         const helper = new ReturnHelper();
-        let isquoted = false;
-        if (this.peek() === QUOTE) {
-            isquoted = true;
-        }
+        const isquoted =
+            this.peek() === QUOTE && (quoted === "yes" || quoted === "both");
         let resultaux: ReturnedInfo<string>;
         switch (quoted) {
             case "both":
@@ -223,13 +221,10 @@ export class StringReader {
             case "yes":
                 resultaux = this.readQuotedString();
                 break;
-            case "no":
-                resultaux = new ReturnHelper(false).succeed(
-                    this.readUnquotedString()
-                );
-                break;
             default:
-                resultaux = this.readString();
+                resultaux = new ReturnHelper().succeed(
+                    this.readWhileRegexp(quoted)
+                );
         }
         const result = resultaux;
         if (!helper.merge(result, false)) {
