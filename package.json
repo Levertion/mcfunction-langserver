@@ -45,21 +45,21 @@
     "devDependencies": {
         "@types/long": "4.0.0",
         "@types/mocha": "5.2.5",
-        "@types/node": "8.10.30",
+        "@types/node": "8.10.34",
         "@types/request-promise-native": "1.0.15",
         "@types/rimraf": "2.0.2",
         "@types/sprintf-js": "1.1.0",
         "all-contributors-cli": "5.4.0",
         "husky": "0.14.3",
         "mocha": "5.2.0",
-        "parcel": "1.9.7",
+        "parcel": "1.10.2",
         "prettier": "1.14.3",
         "pretty-quick": "1.7.0",
         "rimraf": "2.6.2",
         "ts-mocha": "2.0.0",
         "tslint": "5.11.0",
         "tslint-config-prettier": "1.15.0",
-        "typescript": "3.0.3",
+        "typescript": "3.1.1",
         "vscode-languageserver-types": "3.13.0"
     }
 }
