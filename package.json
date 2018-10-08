@@ -50,7 +50,7 @@
         "@types/rimraf": "2.0.2",
         "@types/sprintf-js": "1.1.0",
         "all-contributors-cli": "5.4.0",
-        "husky": "0.14.3",
+        "husky": "1.1.1",
         "mocha": "5.2.0",
         "parcel": "1.10.2",
         "prettier": "1.14.3",
