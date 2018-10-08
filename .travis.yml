@@ -18,7 +18,7 @@ script:
     - npm run lint
     - npm run prettier -- --list-different
     - npm run build
-    # Blocked on https://github.com/parcel-bundler/parcel/pull/2020
+    # This should be working as of parcel#2020, but it isn't
     # - git diff --exit-code
 env:
     global:

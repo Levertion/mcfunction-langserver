@@ -6,7 +6,6 @@
     "license": "MIT",
     "main": "dist/index.js",
     "scripts": {
-        "precommit": "pretty-quick --staged && npm run check && npm run test && npm run lint && npm run build && git add dist",
         "build": "parcel build src/index.ts --target=node --no-minify",
         "test": "mocha --opts ./mocha.opts",
         "check": "tsc -p tsconfig.json --noEmit",
@@ -15,6 +14,11 @@
         "prettier:write": "npm run prettier -- --write",
         "contributors:add": "all-contributors add",
         "contributors:generate": "all-contributors generate"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "pretty-quick --staged && npm run check && npm run test && npm run lint && npm run build && git add dist"
+        }
     },
     "repository": {
         "type": "git",
@@ -50,7 +54,7 @@
         "@types/rimraf": "2.0.2",
         "@types/sprintf-js": "1.1.0",
         "all-contributors-cli": "5.4.0",
-        "husky": "0.14.3",
+        "husky": "1.1.1",
         "mocha": "5.2.0",
         "parcel": "1.10.2",
         "prettier": "1.14.3",
