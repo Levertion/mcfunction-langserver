@@ -337,6 +337,7 @@ exports.failure = false;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+// tslint:disable:helper-return
 const errors_1 = require("../brigadier/errors");
 const types_1 = require("../types");
 /**
@@ -361,6 +362,15 @@ function fillBlanks(data, start, end) {
     return Object.assign({}, data, { errors });
 }
 exports.fillBlanks = fillBlanks;
+function getReturned(value) {
+    const helper = new ReturnHelper();
+    if (typeof value === "undefined") {
+        return helper.fail();
+    } else {
+        return helper.succeed(value);
+    }
+}
+exports.getReturned = getReturned;
 class ReturnHelper {
     constructor(suggesting) {
         this.data = createReturn();
@@ -570,6 +580,7 @@ exports.typed_keys = typed_keys;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
+// tslint:disable:helper-return
 const defaultPath = tslib_1.__importStar(require("path"));
 const consts_1 = require("../consts");
 const group_resources_1 = require("./group-resources");
@@ -1172,7 +1183,10 @@ class StringReader {
     expect(str) {
         const helper = new misc_functions_1.ReturnHelper();
         if (str.startsWith(this.getRemaining())) {
-            helper.addSuggestions({ text: str, start: this.cursor });
+            helper.addSuggestions({
+                start: this.cursor,
+                text: str
+            });
         }
         const sub = this.string.substr(this.cursor, str.length);
         if (sub !== str) {
@@ -1205,7 +1219,7 @@ class StringReader {
     readBoolean() {
         const helper = new misc_functions_1.ReturnHelper();
         const start = this.cursor;
-        const value = this.readOption(typed_keys_1.typed_keys(StringReader.bools), false);
+        const value = this.readOption(typed_keys_1.typed_keys(StringReader.bools));
         if (!helper.merge(value)) {
             if (value.data !== false) {
                 return helper.fail(EXCEPTIONS.INVALID_BOOL.create(start, this.cursor, value.data));
@@ -1258,79 +1272,40 @@ class StringReader {
     }
     /**
      * Expect a string from a selection
-     * @param quoted how should the string be handled.
+     * @param quoteKind how should the string be handled.
      * - `both`: StringReader::readString()
-     * - `option`: expect an option, but don't advance cursor if fails
      * - `yes`: StringReader::readQuotedString()
      * - `no`: StringReader::readUnquotedString()
      */
-    readOption(options, addError = true, completion, quoted = "both") {
+    readOption(options, quoteKind = "both", completion) {
         const start = this.cursor;
         const helper = new misc_functions_1.ReturnHelper();
-        let isquoted = false;
-        if (this.peek() === QUOTE) {
-            isquoted = true;
-        }
-        let resultaux;
-        switch (quoted) {
-            case "both":
-                resultaux = this.readString();
-                break;
-            case "yes":
-                resultaux = this.readQuotedString();
-                break;
-            case "option":
-                {
-                    // tslint:disable-next-line:no-unnecessary-initializer copt needs to be 'initialized'
-                    let copt = undefined;
-                    for (const opt of options) {
-                        if (this.getRemaining().startsWith(opt)) {
-                            copt = opt;
-                            this.cursor += opt.length;
-                            break;
-                        }
-                    }
-                    resultaux = copt === undefined ? new misc_functions_1.ReturnHelper(false).fail() : new misc_functions_1.ReturnHelper(false).succeed(copt);
-                    break;
-                }
-            case "no":
-                resultaux = new misc_functions_1.ReturnHelper(false).succeed(this.readUnquotedString());
-                break;
-            default:
-                resultaux = this.readString();
-        }
-        const result = resultaux;
+        const result = this.readOptionInner(quoteKind);
+        // Reading failed, which must be due to an invalid quoted string
         if (!helper.merge(result, false)) {
-            if (isquoted && !this.canRead()) {
-                const remaining = this.string.substring(start + 1);
-                // Note that if there are quotes and backslashes, this will fail
-                helper.addSuggestions(...options.filter(v => v.startsWith(remaining)).map(v => ({
-                    kind: completion,
-                    start,
-                    text: `${QUOTE}${v}${QUOTE}`
-                })));
+            if (result.data && !this.canRead()) {
+                const bestEffort = result.data;
+                helper.addSuggestions(...options.filter(option => option.startsWith(bestEffort)).map(v => completionForString(v, start, quoteKind, completion)));
             }
             return helper.failWithData(false);
         }
-        let valid;
-        for (const option of options) {
-            if (option === result.data) {
-                valid = option;
-            }
-        }
+        const valid = options.some(opt => opt === result.data);
         if (!this.canRead()) {
-            helper.addSuggestions(...options.filter(v => v.startsWith(result.data)).map(v => ({
-                kind: completion,
-                start,
-                text: isquoted || v.includes('"') || v.includes("\\") ? QUOTE + v.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + QUOTE : v
-            })));
+            helper.addSuggestions(...options.filter(opt => opt.startsWith(result.data)).map(v => completionForString(v, start, quoteKind, completion)));
         }
         if (valid) {
-            return helper.succeed(valid);
+            return helper.succeed(result.data);
         } else {
-            if (addError) {
-                helper.addErrors(EXCEPTIONS.EXPECTED_STRING_FROM.create(start, this.cursor, JSON.stringify(options), result.data));
-            }
+            /* if (addError) {
+                helper.addErrors(
+                    EXCEPTIONS.EXPECTED_STRING_FROM.create(
+                        start,
+                        this.cursor,
+                        JSON.stringify(options),
+                        result.data
+                    )
+                );
+            } */
             return helper.failWithData(result.data);
         }
     }
@@ -1368,17 +1343,17 @@ class StringReader {
             }
         }
         helper.addSuggestion(this.cursor, QUOTE); // Always cannot read at this point
-        return helper.fail(EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(start, this.string.length));
+        return helper.addErrors(EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(start, this.string.length)).failWithData(result);
     }
     /**
      * Read a string from the string. If it surrounded by quotes, the quotes are ignored.
      * The cursor ends on the last character in the string.
      */
     readString() {
+        const helper = new misc_functions_1.ReturnHelper();
         if (this.canRead() && this.peek() === QUOTE) {
-            return this.readQuotedString();
+            return helper.return(this.readQuotedString());
         } else {
-            const helper = new misc_functions_1.ReturnHelper();
             if (!this.canRead()) {
                 helper.addSuggestions({
                     start: this.cursor,
@@ -1433,11 +1408,33 @@ class StringReader {
     skipWhitespace() {
         this.readWhileRegexp(/\s/); // Whitespace
     }
+    readOptionInner(kind) {
+        switch (kind) {
+            case "both":
+                return this.readString();
+            case "yes":
+                return this.readQuotedString();
+            case "no":
+                return misc_functions_1.getReturned(this.readUnquotedString());
+            default:
+                return this.readString();
+        }
+    }
 }
 StringReader.charAllowedInUnquotedString = /^[0-9A-Za-z_\-\.+]$/;
 StringReader.charAllowedNumber = /^[0-9\-\.]$/;
 StringReader.bools = { true: true, false: false };
 exports.StringReader = StringReader;
+function completionForString(value, start, quoting, kind) {
+    return {
+        kind,
+        start,
+        text: quoting !== "no" && (quoting === "yes" || value.includes('"') || value.includes("\\")) ? QUOTE + escapeQuotes(value) + QUOTE : value
+    };
+}
+function escapeQuotes(value) {
+    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
 },{"../misc-functions":"irtH","../misc-functions/third_party/typed-keys":"IXKy","./errors":"lIyQ"}],"Hlv0":[function(require,module,exports) {
 "use strict";
 
@@ -1607,15 +1604,15 @@ function getNBTTagFromTree(tag, nbtPath) {
 }
 exports.getNBTTagFromTree = getNBTTagFromTree;
 function isRefNode(node) {
-    return "ref" in node;
+    return node.hasOwnProperty("ref");
 }
 exports.isRefNode = isRefNode;
 function isFunctionNode(node) {
-    return "function" in node;
+    return node.hasOwnProperty("function");
 }
 exports.isFunctionNode = isFunctionNode;
 function isTypedNode(node) {
-    return "type" in node;
+    return node.hasOwnProperty("type");
 }
 exports.isTypedNode = isTypedNode;
 function isCompoundNode(node) {
@@ -1630,12 +1627,132 @@ function isListNode(node) {
     return isTypedNode(node) && node.type === "list";
 }
 exports.isListNode = isListNode;
+exports.isRefInfo = convert(isRefNode);
+exports.isFunctionInfo = convert(isFunctionNode);
+exports.isTypedInfo = convert(isTypedNode);
+exports.isCompoundInfo = convert(isCompoundNode);
+exports.isRootInfo = convert(isRootNode);
+exports.isListInfo = convert(isListNode);
+function convert(f) {
+    return info => f(info.node);
+}
 exports.VALIDATION_ERRORS = {
     badIndex: new errors_1.CommandErrorBuilder("argument.nbt.validation.list.badpath", "The index '%s' is not a valid index"),
     noSuchChild: new errors_1.CommandErrorBuilder("argument.nbt.validation.compound.nochild", "The tag does not have a child named '%s'", main_1.DiagnosticSeverity.Warning),
     wrongType: new errors_1.CommandErrorBuilder("argument.nbt.validation.wrongtype", "The tag type '%s' is not the correct type '%s'")
 };
-},{"../../../../brigadier/errors":"lIyQ"}],"R+CJ":[function(require,module,exports) {
+},{"../../../../brigadier/errors":"lIyQ"}],"SKCP":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const misc_functions_1 = require("../../../../misc-functions");
+const doc_walker_util_1 = require("../util/doc-walker-util");
+const nbt_util_1 = require("../util/nbt-util");
+class NBTTag {
+    constructor(val) {
+        this.range = { start: 0, end: 0 };
+        this.value = val;
+    }
+    getRange() {
+        return this.range;
+    }
+    getVal() {
+        return this.value;
+    }
+    parse(reader) {
+        this.range.start = reader.cursor;
+        const out = this.readTag(reader);
+        this.range.end = reader.cursor;
+        // tslint:disable:helper-return
+        return out;
+    }
+    /**
+     * Test if two NBT tags are equivalent in value
+     * @param tag The NBT tag to test against
+     */
+    tagEq(tag) {
+        return tag.tagType === this.tagType && tag.getVal() === this.getVal();
+    }
+    validate(node) {
+        const helper = new misc_functions_1.ReturnHelper();
+    }
+    valideAgainst(node,
+    // tslint:disable-next-line:variable-name _starting names is the only way to disable unused variable warnings
+    _info) {
+        const helper = new misc_functions_1.ReturnHelper();
+        if (!doc_walker_util_1.isTypedNode(node)) {
+            return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, "", this.tagType));
+        } else if (node.type !== this.tagType) {
+            return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, node.type, this.tagType));
+        }
+        if (node.description) {
+            helper.addActions({
+                data: nbt_util_1.getHoverText(node),
+                high: this.range.end,
+                low: this.range.start,
+                type: "hover"
+            });
+        }
+        return helper.succeed();
+    }
+}
+exports.NBTTag = NBTTag;
+},{"../../../../misc-functions":"irtH","../util/doc-walker-util":"TRlg","../util/nbt-util":"R+CJ"}],"tWeb":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const misc_functions_1 = require("../../../../misc-functions");
+const nbt_util_1 = require("../util/nbt-util");
+const nbt_tag_1 = require("./nbt-tag");
+class NBTTagString extends nbt_tag_1.NBTTag {
+    constructor() {
+        super(...arguments);
+        this.tagType = "string";
+    }
+    readTag(reader) {
+        const helper = new misc_functions_1.ReturnHelper();
+        const str = reader.readString();
+        if (helper.merge(str)) {
+            this.value = str.data;
+            return helper.succeed(nbt_util_1.Correctness.CERTAIN);
+        } else {
+            return helper.failWithData({ correct: nbt_util_1.Correctness.NO });
+        }
+    }
+}
+exports.NBTTagString = NBTTagString;
+},{"../../../../misc-functions":"irtH","../util/nbt-util":"R+CJ","./nbt-tag":"SKCP"}],"h7oH":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const path = tslib_1.__importStar(require("path"));
+const sprintf_js_1 = require("sprintf-js");
+const string_tag_1 = require("./tag/string-tag");
+const doc_walker_util_1 = require("./util/doc-walker-util");
+const pathsFuncs = {
+    insertStringNBT
+};
+function runNodeFunction(nbtPath, node, parsed) {
+    return pathsFuncs[node.function.id](parsed, nbtPath, node, node.function.params);
+}
+exports.runNodeFunction = runNodeFunction;
+const suggestFuncs = {};
+function insertStringNBT(parsed, nbtPath, _, args) {
+    // Not sure what this is doing
+    if (!parsed) {
+        return args.default;
+    }
+    const newRef = path.posix.join(path.dirname(nbtPath.join("/")), args.tag_path).split("/");
+    const out = doc_walker_util_1.getNBTTagFromTree(parsed, newRef);
+    return !out || !(out instanceof string_tag_1.NBTTagString) ? args.default : sprintf_js_1.sprintf(args.ref, out.getVal());
+}
+// Suggest function
+function runSuggestFunction(func, args) {
+    return suggestFuncs[func](func, args);
+}
+exports.runSuggestFunction = runSuggestFunction;
+},{"./tag/string-tag":"tWeb","./util/doc-walker-util":"TRlg"}],"R+CJ":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -1653,12 +1770,12 @@ exports.COMPOUND_START = "{";
 exports.COMPOUND_END = "}";
 exports.COMPOUND_KEY_VALUE_SEP = ":";
 exports.COMPOUND_PAIR_SEP = ",";
-var CorrectLevel;
-(function (CorrectLevel) {
-    CorrectLevel[CorrectLevel["NO"] = 0] = "NO";
-    CorrectLevel[CorrectLevel["MAYBE"] = 1] = "MAYBE";
-    CorrectLevel[CorrectLevel["YES"] = 2] = "YES";
-})(CorrectLevel = exports.CorrectLevel || (exports.CorrectLevel = {}));
+var Correctness;
+(function (Correctness) {
+    Correctness[Correctness["NO"] = 0] = "NO";
+    Correctness[Correctness["MAYBE"] = 1] = "MAYBE";
+    Correctness[Correctness["CERTAIN"] = 2] = "CERTAIN";
+})(Correctness = exports.Correctness || (exports.Correctness = {}));
 const parseNumberNBT = float => reader => {
     const start = reader.cursor;
     try {
@@ -1746,129 +1863,7 @@ exports.getHoverText = node => {
     }
     return `(${exports.tagid2Name[node.type]}) ${node.description || ""}`;
 };
-},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","./doc-walker-util":"TRlg"}],"SKCP":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const misc_functions_1 = require("../../../../misc-functions");
-const doc_walker_func_1 = require("../doc-walker-func");
-const doc_walker_util_1 = require("../util/doc-walker-util");
-const nbt_util_1 = require("../util/nbt-util");
-class NBTTag {
-    constructor(val) {
-        this.val = val;
-        this.range = { start: 0, end: 0 };
-    }
-    getRange() {
-        return this.range;
-    }
-    getVal() {
-        return this.val;
-    }
-    parse(reader) {
-        const start = reader.cursor;
-        const out = this.readTag(reader);
-        this.range = {
-            end: reader.cursor,
-            start
-        };
-        return out;
-    }
-    /**
-     * Test if two NBT tags are equivalent in value
-     * @param tag The NBT tag to test against
-     */
-    tagEq(tag) {
-        return tag.tagType === this.tagType && tag.getVal() === this.getVal();
-    }
-    validationResponse(node,
-    // @ts-ignore
-    info) {
-        const helper = new misc_functions_1.ReturnHelper();
-        if (!doc_walker_util_1.isTypedNode(node)) {
-            return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, "", this.tagType));
-        } else if (node.type !== this.tagType) {
-            return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, node.type, this.tagType));
-        }
-        if (node.description) {
-            helper.addActions({
-                data: nbt_util_1.getHoverText(node),
-                high: this.range.end,
-                low: this.range.start,
-                type: "hover"
-            });
-        }
-        if (node.suggestions) {
-            for (const k of node.suggestions) {
-                if (typeof k === "string") {
-                    helper.addSuggestion(this.range.start, k);
-                } else if ("function" in k) {
-                    helper.addSuggestions(...doc_walker_func_1.runSuggestFunction(k.function.id, k.function.params).map(v => ({
-                        start: this.range.start,
-                        text: v
-                    })));
-                } else {
-                    helper.addSuggestion(this.range.start, k.value, undefined, k.description);
-                }
-            }
-        }
-        return helper.succeed();
-    }
-}
-exports.NBTTag = NBTTag;
-},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","../util/doc-walker-util":"TRlg","../util/nbt-util":"R+CJ"}],"tWeb":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const misc_functions_1 = require("../../../../misc-functions");
-const nbt_tag_1 = require("./nbt-tag");
-class NBTTagString extends nbt_tag_1.NBTTag {
-    constructor() {
-        super(...arguments);
-        this.tagType = "string";
-    }
-    readTag(reader) {
-        const helper = new misc_functions_1.ReturnHelper();
-        const str = reader.readString();
-        if (!helper.merge(str)) {
-            return helper.failWithData({ correct: 1 });
-        } else {
-            this.val = str.data;
-            return helper.succeed(1);
-        }
-    }
-}
-exports.NBTTagString = NBTTagString;
-},{"../../../../misc-functions":"irtH","./nbt-tag":"SKCP"}],"h7oH":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
-const path = tslib_1.__importStar(require("path"));
-const sprintf_js_1 = require("sprintf-js");
-const string_tag_1 = require("./tag/string-tag");
-const doc_walker_util_1 = require("./util/doc-walker-util");
-const pathsFuncs = {
-    insertStringNBT
-};
-function runNodeFunction(parsed, nbtPath, node) {
-    return pathsFuncs[node.function.id](parsed, nbtPath, node, node.function.params);
-}
-exports.runNodeFunction = runNodeFunction;
-const suggestFuncs = {};
-function insertStringNBT(parsed, nbtPath,
-// @ts-ignore
-node, args) {
-    const newRef = path.posix.join(path.dirname(nbtPath.join("/")), args.tag_path).split("/");
-    const out = doc_walker_util_1.getNBTTagFromTree(parsed, newRef);
-    return !out || !(out instanceof string_tag_1.NBTTagString) ? args.default : sprintf_js_1.sprintf(args.ref, out.getVal());
-}
-// Suggest function
-function runSuggestFunction(func, args) {
-    return suggestFuncs[func](func, args);
-}
-exports.runSuggestFunction = runSuggestFunction;
-},{"./tag/string-tag":"tWeb","./util/doc-walker-util":"TRlg"}],"gba0":[function(require,module,exports) {
+},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","./doc-walker-util":"TRlg"}],"gba0":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -1891,8 +1886,8 @@ class NBTTagByte extends nbt_tag_1.NBTTag {
         if (!helper.merge(exp)) {
             return helper.failWithData({ correct: 0 });
         }
-        this.val = readInt.data;
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        this.value = readInt.data;
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagByte = NBTTagByte;
@@ -1920,14 +1915,14 @@ class NBTTagByteArray extends nbt_tag_1.NBTTag {
             return false;
         }
         const taga = tag;
-        return this.val.length === taga.getVal().length && this.val.every((v, i) => v.getVal() === taga.val[i].getVal());
+        return this.value.length === taga.getVal().length && this.value.every((v, i) => v.getVal() === taga.value[i].getVal());
     }
     readTag(reader) {
         const helper = new misc_functions_1.ReturnHelper();
         const start = reader.cursor;
         const arrstart = reader.expect(nbt_util_1.ARRAY_START + exports.BYTE_ARRAY_PREFIX + nbt_util_1.ARRAY_PREFIX_SEP);
         if (!helper.merge(arrstart)) {
-            return helper.failWithData({ correct: nbt_util_1.CorrectLevel.NO });
+            return helper.failWithData({ correct: nbt_util_1.Correctness.NO });
         }
         if (!reader.canRead()) {
             helper.addSuggestion(reader.cursor, nbt_util_1.ARRAY_END);
@@ -1949,7 +1944,7 @@ class NBTTagByteArray extends nbt_tag_1.NBTTag {
             const val = new byte_tag_1.NBTTagByte(0);
             const parseResult = val.parse(reader);
             helper.merge(parseResult);
-            this.val.push(val);
+            this.value.push(val);
             if (!reader.canRead()) {
                 helper.addErrors(EXCEPTIONS.NO_VALUE.create(start, reader.cursor));
                 return helper.failWithData({ parsed: this, correct: 2 });
@@ -1962,7 +1957,7 @@ class NBTTagByteArray extends nbt_tag_1.NBTTag {
                 next = opt.data;
             }
         }
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagByteArray = NBTTagByteArray;
@@ -1989,8 +1984,8 @@ class NBTTagDouble extends nbt_tag_1.NBTTag {
         if (!helper.merge(exp)) {
             return helper.failWithData({ correct: 0 });
         }
-        this.val = readInt.data;
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        this.value = readInt.data;
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagDouble = NBTTagDouble;
@@ -2017,8 +2012,8 @@ class NBTTagFloat extends nbt_tag_1.NBTTag {
         if (!helper.merge(exp)) {
             return helper.failWithData({ correct: 0 });
         }
-        this.val = readInt.data;
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        this.value = readInt.data;
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagFloat = NBTTagFloat;
@@ -2040,8 +2035,8 @@ class NBTTagInt extends nbt_tag_1.NBTTag {
         if (!helper.merge(readInt)) {
             return helper.failWithData({ correct: 0 });
         }
-        this.val = readInt.data;
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        this.value = readInt.data;
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagInt = NBTTagInt;
@@ -2069,14 +2064,14 @@ class NBTTagIntArray extends nbt_tag_1.NBTTag {
             return false;
         }
         const taga = tag;
-        return this.val.length === taga.getVal().length && this.val.every((v, i) => v.getVal() === taga.val[i].getVal());
+        return this.value.length === taga.getVal().length && this.value.every((v, i) => v.getVal() === taga.value[i].getVal());
     }
     readTag(reader) {
         const helper = new misc_functions_1.ReturnHelper();
         const start = reader.cursor;
         const arrstart = reader.expect(nbt_util_1.ARRAY_START + exports.INT_ARRAY_PREFIX + nbt_util_1.ARRAY_PREFIX_SEP);
         if (!helper.merge(arrstart)) {
-            return helper.failWithData({ correct: nbt_util_1.CorrectLevel.NO });
+            return helper.failWithData({ correct: nbt_util_1.Correctness.NO });
         }
         if (!reader.canRead()) {
             helper.addSuggestion(reader.cursor, nbt_util_1.ARRAY_END);
@@ -2098,7 +2093,7 @@ class NBTTagIntArray extends nbt_tag_1.NBTTag {
             const val = new int_tag_1.NBTTagInt(0);
             const parseResult = val.parse(reader);
             helper.merge(parseResult);
-            this.val.push(val);
+            this.value.push(val);
             if (!reader.canRead()) {
                 helper.addErrors(EXCEPTIONS.NO_VALUE.create(start, reader.cursor));
                 return helper.failWithData({ parsed: this, correct: 2 });
@@ -2111,7 +2106,7 @@ class NBTTagIntArray extends nbt_tag_1.NBTTag {
                 next = opt.data;
             }
         }
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagIntArray = NBTTagIntArray;
@@ -2135,7 +2130,7 @@ class NBTTagList extends nbt_tag_1.NBTTag {
         if (tag.tagType !== this.tagType) {
             return false;
         }
-        return this.val.length === tag.val.length && this.val.every((v, i) => v.tagEq(tag.getVal()[i]));
+        return this.value.length === tag.value.length && this.value.every((v, i) => v.tagEq(tag.getVal()[i]));
     }
     readTag(reader) {
         const start = reader.cursor;
@@ -2158,17 +2153,17 @@ class NBTTagList extends nbt_tag_1.NBTTag {
         while (next !== nbt_util_1.LIST_END) {
             reader.skipWhitespace();
             let value;
-            const tag = tag_parser_1.parseTag(reader);
+            const tag = tag_parser_1.parseAnyNBTTag(reader);
             if (helper.merge(tag)) {
                 value = tag.data;
             } else {
                 if (tag.data.parsed) {
-                    this.val.push(tag.data.parsed);
+                    this.value.push(tag.data.parsed);
                 }
                 return helper.failWithData({
                     correct: 2,
                     parsed: this,
-                    path: [(this.val.length - 1).toString(), ...(tag.data.path || [])]
+                    path: [(this.value.length - 1).toString(), ...(tag.data.path || [])]
                 });
             }
             if (type === undefined) {
@@ -2177,7 +2172,7 @@ class NBTTagList extends nbt_tag_1.NBTTag {
                 helper.addErrors(MIXED.create(start, reader.cursor));
                 return helper.failWithData({ parsed: this, correct: 2 });
             }
-            this.val.push(value);
+            this.value.push(value);
             reader.skipWhitespace();
             const opt = reader.readOption([nbt_util_1.LIST_END, nbt_util_1.LIST_VALUE_SEP], true, undefined, "option");
             if (!helper.merge(opt)) {
@@ -2213,8 +2208,8 @@ class NBTTagLong extends nbt_tag_1.NBTTag {
         if (!helper.merge(exp)) {
             return helper.failWithData({ correct: 0 });
         }
-        this.val = readInt.data;
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        this.value = readInt.data;
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagLong = NBTTagLong;
@@ -2242,14 +2237,14 @@ class NBTTagLongArray extends nbt_tag_1.NBTTag {
             return false;
         }
         const taga = tag;
-        return this.val.length === taga.getVal().length && this.val.every((v, i) => v.getVal() === taga.val[i].getVal());
+        return this.value.length === taga.getVal().length && this.value.every((v, i) => v.getVal() === taga.value[i].getVal());
     }
     readTag(reader) {
         const helper = new misc_functions_1.ReturnHelper();
         const start = reader.cursor;
         const arrstart = reader.expect(nbt_util_1.ARRAY_START + exports.LONG_ARRAY_PREFIX + nbt_util_1.ARRAY_PREFIX_SEP);
         if (!helper.merge(arrstart)) {
-            return helper.failWithData({ correct: nbt_util_1.CorrectLevel.NO });
+            return helper.failWithData({ correct: nbt_util_1.Correctness.NO });
         }
         if (!reader.canRead()) {
             helper.addSuggestion(reader.cursor, nbt_util_1.ARRAY_END);
@@ -2271,7 +2266,7 @@ class NBTTagLongArray extends nbt_tag_1.NBTTag {
             const val = new long_tag_1.NBTTagLong(0);
             const parseResult = val.parse(reader);
             helper.merge(parseResult);
-            this.val.push(val);
+            this.value.push(val);
             if (!reader.canRead()) {
                 helper.addErrors(EXCEPTIONS.NO_VALUE.create(start, reader.cursor));
                 return helper.failWithData({ parsed: this, correct: 2 });
@@ -2284,7 +2279,7 @@ class NBTTagLongArray extends nbt_tag_1.NBTTag {
                 next = opt.data;
             }
         }
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagLongArray = NBTTagLongArray;
@@ -2311,8 +2306,8 @@ class NBTTagShort extends nbt_tag_1.NBTTag {
         if (!helper.merge(exp)) {
             return helper.failWithData({ correct: 0 });
         }
-        this.val = readInt.data;
-        return helper.succeed(nbt_util_1.CorrectLevel.YES);
+        this.value = readInt.data;
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 }
 exports.NBTTagShort = NBTTagShort;
@@ -2333,25 +2328,25 @@ const long_array_tag_1 = require("./tag/long-array-tag");
 const long_tag_1 = require("./tag/long-tag");
 const short_tag_1 = require("./tag/short-tag");
 const string_tag_1 = require("./tag/string-tag");
+const nbt_util_1 = require("./util/nbt-util");
 const parsers = [() => new byte_tag_1.NBTTagByte(0), () => new short_tag_1.NBTTagShort(0), () => new long_tag_1.NBTTagLong(0), () => new float_tag_1.NBTTagFloat(0), () => new double_tag_1.NBTTagDouble(0), () => new int_tag_1.NBTTagInt(0), () => new byte_array_tag_1.NBTTagByteArray([]), () => new int_array_tag_1.NBTTagIntArray([]), () => new long_array_tag_1.NBTTagLongArray([]), () => new compound_tag_1.NBTTagCompound({}), () => new list_tag_1.NBTTagList([]), () => new string_tag_1.NBTTagString("")];
-function parseTag(reader) {
-    let correctTag;
-    let correctness = 0;
+function parseAnyNBTTag(reader) {
+    let correctness = nbt_util_1.Correctness.NO;
     let correctPlace = reader.cursor;
+    let correctTag;
     let lastResult;
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
-    for (const pf of parsers) {
-        const p = pf();
+    for (const parserfunc of parsers) {
+        const parser = parserfunc();
         reader.cursor = start;
-        const out = p.parse(reader);
-        // @ts-ignore
+        const out = parser.parse(reader);
         if (misc_functions_1.isSuccessful(out)) {
             if (out.data > correctness) {
                 lastResult = out;
                 correctPlace = reader.cursor;
                 correctness = out.data;
-                correctTag = p;
+                correctTag = parser;
             }
         } else {
             if (out.data.correct > correctness) {
@@ -2361,14 +2356,18 @@ function parseTag(reader) {
             }
         }
     }
-    // @ts-ignore
+    // Add could not parse nbt tag error
     if (lastResult === undefined) {
-        return new misc_functions_1.ReturnHelper().failWithData({ correct: correctness });
+        return helper.failWithData({
+            data: { correct: nbt_util_1.Correctness.NO }
+        });
     }
     if (helper.merge(lastResult)) {
         if (correctTag === undefined) {
             // This should never happen
-            return helper.failWithData({ correct: correctness });
+            return helper.failWithData({
+                data: { correct: nbt_util_1.Correctness.NO }
+            });
         } else {
             reader.cursor = correctPlace;
             return helper.succeed(correctTag);
@@ -2377,8 +2376,8 @@ function parseTag(reader) {
         return helper.failWithData(lastResult.data);
     }
 }
-exports.parseTag = parseTag;
-},{"../../../misc-functions":"irtH","./tag/byte-array-tag":"RXSZ","./tag/byte-tag":"gba0","./tag/compound-tag":"w/DJ","./tag/double-tag":"OeL9","./tag/float-tag":"C7AM","./tag/int-array-tag":"cr+2","./tag/int-tag":"C2gb","./tag/list-tag":"ZJrY","./tag/long-array-tag":"fMhG","./tag/long-tag":"ybFA","./tag/short-tag":"daLD","./tag/string-tag":"tWeb"}],"w/DJ":[function(require,module,exports) {
+exports.parseAnyNBTTag = parseAnyNBTTag;
+},{"../../../misc-functions":"irtH","./tag/byte-array-tag":"RXSZ","./tag/byte-tag":"gba0","./tag/compound-tag":"w/DJ","./tag/double-tag":"OeL9","./tag/float-tag":"C7AM","./tag/int-array-tag":"cr+2","./tag/int-tag":"C2gb","./tag/list-tag":"ZJrY","./tag/long-array-tag":"fMhG","./tag/long-tag":"ybFA","./tag/short-tag":"daLD","./tag/string-tag":"tWeb","./util/nbt-util":"R+CJ"}],"w/DJ":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2394,21 +2393,20 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
     constructor() {
         super(...arguments);
         this.tagType = "compound";
-        this.insertKeyPos = 0;
-        this.kvpos = [];
+        this.keyPos = new Map();
     }
     getKeyPos() {
-        return this.kvpos;
+        return this.keyPos;
     }
     tagEq(tag) {
         if (tag.tagType !== this.tagType) {
             return false;
         }
-        return Object.keys(this.val).length === Object.keys(tag.getVal()).length && Object.keys(this.val).every(v => this.val[v].tagEq(tag.val[v]));
+        return Object.keys(this.value).length === Object.keys(tag.getVal()).length && Object.keys(this.value).every(v => this.value[v].tagEq(tag.value[v]));
     }
-    validationResponse(auxnode, info) {
+    valideAgainst(auxnode, info) {
         const helper = new misc_functions_1.ReturnHelper();
-        const superResponse = super.validationResponse(auxnode, info);
+        const superResponse = super.valideAgainst(auxnode, info);
         if (!helper.merge(superResponse)) {
             return helper.fail();
         }
@@ -2440,39 +2438,31 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
     readTag(reader) {
         const helper = new misc_functions_1.ReturnHelper();
         const start = reader.cursor;
-        const compStart = reader.expect(nbt_util_1.COMPOUND_START);
-        if (!helper.merge(compStart)) {
-            return helper.failWithData({ correct: 0, parsed: this });
+        if (!helper.merge(reader.expect(nbt_util_1.COMPOUND_START))) {
+            return helper.failWithData(nbt_util_1.Correctness.NO);
         }
-        if (!reader.canRead()) {
-            this.insertKeyPos = reader.cursor;
-            helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
-            helper.addErrors(NO_KEY.create(start, reader.cursor));
-            return helper.failWithData({ parsed: this, correct: 2 });
-        }
-        if (reader.peek() === nbt_util_1.COMPOUND_END) {
-            reader.skip();
-            return helper.succeed(2);
-        }
-        let next = reader.peek();
         const keys = [];
-        this.kvpos = [];
-        while (next !== nbt_util_1.COMPOUND_END) {
+        while (true) {
             reader.skipWhitespace();
+            if (reader.peek() === nbt_util_1.COMPOUND_END) {
+                reader.skip();
+                return helper.succeed(nbt_util_1.Correctness.CERTAIN);
+            }
             this.insertKeyPos = reader.cursor;
             if (!reader.canRead()) {
+                helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
                 helper.addErrors(NO_KEY.create(start, reader.cursor));
                 return helper.failWithData({
-                    correct: 2,
+                    correct: nbt_util_1.Correctness.CERTAIN,
                     parsed: this,
                     path: []
                 });
             }
-            const keyS = reader.cursor;
+            const keyStart = reader.cursor;
             const key = reader.readString();
             if (!helper.merge(key)) {
                 return helper.failWithData({
-                    correct: 2,
+                    correct: nbt_util_1.Correctness.CERTAIN,
                     parsed: this,
                     path: []
                 });
@@ -2484,7 +2474,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             if (!helper.merge(kvs)) {
                 this.kvpos.push({
                     key: key.data,
-                    keyPos: { start: keyS, end: keyE },
+                    keyPos: { start: keyStart, end: keyE },
                     valPos: { start: reader.cursor, end: reader.cursor }
                 });
                 return helper.failWithData({
@@ -2497,10 +2487,10 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             if (!reader.canRead()) {
                 this.kvpos.push({
                     key: key.data,
-                    keyPos: { start: keyS, end: keyE },
+                    keyPos: { start: keyStart, end: keyE },
                     valPos: { start: reader.cursor, end: reader.cursor }
                 });
-                helper.addErrors(NO_VAL.create(keyS, reader.cursor));
+                helper.addErrors(NO_VAL.create(keyStart, reader.cursor));
                 return helper.failWithData({
                     correct: 2,
                     parsed: this,
@@ -2509,10 +2499,10 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             }
             const valS = reader.cursor;
             let val;
-            const pkey = tag_parser_1.parseTag(reader);
+            const pkey = tag_parser_1.parseAnyNBTTag(reader);
             this.kvpos.push({
                 key: key.data,
-                keyPos: { start: keyS, end: keyE },
+                keyPos: { start: keyStart, end: keyE },
                 valPos: { start: valS, end: reader.cursor }
             });
             if (helper.merge(pkey)) {
@@ -2520,7 +2510,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             } else {
                 const path = [key.data, ...(pkey.data.path || [])];
                 if (pkey.data.parsed) {
-                    this.val[key.data] = pkey.data.parsed;
+                    this.value[key.data] = pkey.data.parsed;
                 }
                 return helper.failWithData({
                     correct: 2,
@@ -2529,7 +2519,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
                 });
             }
             reader.skipWhitespace();
-            this.val[key.data] = val;
+            this.value[key.data] = val;
             reader.skipWhitespace();
             const opt = reader.readOption([nbt_util_1.COMPOUND_END, nbt_util_1.COMPOUND_PAIR_SEP], true, undefined, "option");
             if (!helper.merge(opt)) {
@@ -2538,286 +2528,18 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
                     parsed: this,
                     path: [key.data]
                 });
-            } else {
-                next = opt.data;
             }
         }
-        return helper.succeed(2);
     }
 }
 exports.NBTTagCompound = NBTTagCompound;
-},{"../../../../brigadier/errors":"lIyQ","../../../../misc-functions":"irtH","../tag-parser":"unjr","../util/doc-walker-util":"TRlg","../util/nbt-util":"R+CJ","./nbt-tag":"SKCP"}],"lPiu":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-class ArrayReader {
-    constructor(arr) {
-        this.index = 0;
-        this.arr = arr;
-    }
-    end() {
-        return this.index === this.arr.length;
-    }
-    getArray() {
-        return this.arr;
-    }
-    getIndex() {
-        return this.index;
-    }
-    getRead() {
-        return this.arr.slice(0, this.index);
-    }
-    insert(val, index = 0) {
-        this.arr.splice(index, 0, ...val);
-    }
-    peek() {
-        return this.arr[this.index];
-    }
-    read() {
-        return this.arr[this.index++];
-    }
-    setIndex(val) {
-        this.index = val;
-    }
-    skip() {
-        this.index++;
-    }
-}
-exports.ArrayReader = ArrayReader;
-},{}],"J2Nr":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const util_1 = require("util");
-const misc_functions_1 = require("../../../misc-functions");
-const doc_walker_func_1 = require("./doc-walker-func");
-const compound_tag_1 = require("./tag/compound-tag");
-const list_tag_1 = require("./tag/list-tag");
-const array_reader_1 = require("./util/array-reader");
-const doc_walker_util_1 = require("./util/doc-walker-util");
-// tslint:disable:cyclomatic-complexity
-class NBTWalker {
-    constructor(parsed, docs, extraChild, nbtvalidation = true, root = "root.json") {
-        this.docs = docs;
-        this.parsed = parsed;
-        this.extraChildren = extraChild;
-        this.root = root;
-        this.nbtvld = nbtvalidation;
-    }
-    getFinalNode(nbtpath) {
-        const node = this.docs.get(this.root);
-        const reader = new array_reader_1.ArrayReader(nbtpath);
-        return this.getNextNode({
-            allowRefWalk: false,
-            finalValidation: true,
-            node,
-            path: this.root,
-            reader,
-            tag: this.nbtvld ? this.parsed : undefined
-        });
-    }
-    evalRef(ref, path, data) {
-        const [nextPath, fragPath] = doc_walker_util_1.parseRefPath(ref, path);
-        const reader = new array_reader_1.ArrayReader(fragPath);
-        const node = this.docs.get(nextPath);
-        return this.getNextNode({
-            allowRefWalk: true,
-            finalValidation: false,
-            node,
-            path: nextPath,
-            reader,
-            tag: data.tag
-        });
-    }
-    getNextNode(data) {
-        const { reader, node, tag, allowRefWalk, finalValidation } = data;
-        const helper = new misc_functions_1.ReturnHelper();
-        if (reader.end()) {
-            if (doc_walker_util_1.isRefNode(node)) {
-                return this.walkRefNode(data);
-            } else if (doc_walker_util_1.isFunctionNode(node)) {
-                return this.walkFunctionNode(data);
-            } else if (doc_walker_util_1.isCompoundNode(node)) {
-                if (finalValidation && this.nbtvld && tag) {
-                    const valres = tag.validationResponse(node, {
-                        compoundMerge: () => this.mergeChildRef(data),
-                        extraChildren: this.extraChildren
-                    });
-                    if (!helper.merge(valres)) {
-                        return helper.fail();
-                    }
-                }
-                return helper.succeed(finalValidation ? this.mergeChildRef(data) : node);
-            } else {
-                if (finalValidation && this.nbtvld && tag) {
-                    const valres = tag.validationResponse(node);
-                    if (!helper.merge(valres)) {
-                        return helper.fail();
-                    }
-                }
-                return helper.succeed(node);
-            }
-        } else if (allowRefWalk && node.references && reader.peek() in node.references) {
-            const next = reader.read();
-            return this.getNextNode(Object.assign({}, data, { node: node.references[next] }));
-        } else if (doc_walker_util_1.isTypedNode(node)) {
-            if (doc_walker_util_1.isCompoundNode(node)) {
-                if (this.nbtvld && tag) {
-                    const valres = tag.validationResponse(node, {
-                        compoundMerge: () => this.mergeChildRef(data),
-                        extraChildren: this.extraChildren
-                    });
-                    if (!helper.merge(valres)) {
-                        return helper.fail();
-                    }
-                }
-                if (tag && !(tag instanceof compound_tag_1.NBTTagCompound)) {
-                    return helper.fail();
-                }
-                return this.walkCompoundNode(data);
-            } else if (doc_walker_util_1.isListNode(node)) {
-                if (this.nbtvld && tag) {
-                    const valres = tag.validationResponse(node);
-                    if (!helper.merge(valres)) {
-                        return helper.fail();
-                    }
-                }
-                if (tag && !(tag instanceof list_tag_1.NBTTagList)) {
-                    return helper.fail();
-                }
-                return this.walkListNode(data);
-            } else if (doc_walker_util_1.isRootNode(node)) {
-                return this.walkRootNode(data);
-            } else {
-                if (tag) {
-                    const valres = tag.validationResponse(node);
-                    helper.merge(valres);
-                }
-                return helper.fail();
-            }
-        } else {
-            if (doc_walker_util_1.isRefNode(node)) {
-                return this.walkRefNode(data);
-            } else if (doc_walker_util_1.isFunctionNode(node)) {
-                return this.walkFunctionNode(data);
-            }
-        }
-        return helper.fail();
-    }
-    mergeChildRef(data) {
-        const { node, path: currentPath } = data;
-        if (!node.child_ref) {
-            return node;
-        }
-        const helper = new misc_functions_1.ReturnHelper();
-        const newChildren = JSON.parse(JSON.stringify(node.children || {}));
-        for (const ref of node.child_ref) {
-            const [nextPath] = doc_walker_util_1.parseRefPath(ref, currentPath);
-            const refNode = this.evalRef(ref, currentPath, data);
-            if (!helper.merge(refNode)) {
-                continue;
-            } else if (doc_walker_util_1.isCompoundNode(refNode.data)) {
-                const evalNode = this.mergeChildRef(Object.assign({}, data, { node: refNode.data, path: nextPath }));
-                if (evalNode.children) {
-                    for (const child of Object.keys(evalNode.children)) {
-                        newChildren[child] = evalNode.children[child];
-                    }
-                }
-            }
-        }
-        return {
-            children: newChildren,
-            description: node.description,
-            suggestions: node.suggestions,
-            type: "compound"
-        };
-    }
-    walkCompoundNode(data) {
-        const { node, reader, path, tag } = data;
-        const helper = new misc_functions_1.ReturnHelper();
-        const next = reader.read();
-        if (node.children && next in node.children) {
-            /*
-             * It is safe to assume that next is in the tag
-             * val because the path is based off of the tag
-             */
-            return this.getNextNode(Object.assign({}, data, { node: node.children[next], tag: tag ? tag.getVal()[next] : undefined }));
-        } else if (node.child_ref) {
-            for (const c of node.child_ref) {
-                const [nextPath] = doc_walker_util_1.parseRefPath(c, path);
-                const cnode = this.evalRef(c, path, data);
-                if (helper.merge(cnode) && doc_walker_util_1.isCompoundNode(cnode.data) && cnode.data.children && next in cnode.data.children) {
-                    return this.getNextNode(Object.assign({}, data, { node: cnode.data.children[next], path: nextPath, tag: tag ? tag.getVal()[next] : undefined }));
-                }
-            }
-        }
-        return helper.fail();
-    }
-    walkFunctionNode(data) {
-        const { node, reader, path } = data;
-        const helper = new misc_functions_1.ReturnHelper();
-        const ref = doc_walker_func_1.runNodeFunction(this.parsed, reader.getRead(), node);
-        const [nextPath] = doc_walker_util_1.parseRefPath(ref, path);
-        const newNode = this.evalRef(ref, path, data);
-        if (!helper.merge(newNode)) {
-            return helper.fail();
-        }
-        return this.getNextNode(Object.assign({}, data, { node: newNode.data, path: nextPath }));
-    }
-    walkListNode(data) {
-        const { node, reader, tag } = data;
-        const next = reader.read();
-        if (!/\d+/.test(next)) {
-            return new misc_functions_1.ReturnHelper().fail(tag ? doc_walker_util_1.VALIDATION_ERRORS.badIndex.create(tag.getRange().start, tag.getRange().end) : undefined);
-        }
-        const nextTag = tag ? tag.getVal()[Number.parseInt(next, 10)] : undefined;
-        return this.getNextNode(Object.assign({}, data, { node: node.item, tag: nextTag }));
-    }
-    walkRefNode(data) {
-        const { node, path } = data;
-        const helper = new misc_functions_1.ReturnHelper();
-        const [nextPath] = doc_walker_util_1.parseRefPath(node.ref, path);
-        const nnode = this.evalRef(node.ref, path, data);
-        if (helper.merge(nnode)) {
-            const out = this.getNextNode(Object.assign({}, data, { node: nnode.data, path: nextPath }));
-            if (helper.merge(out)) {
-                return helper.succeed(out.data);
-            } else {
-                return helper.fail();
-            }
-        } else {
-            return helper.fail();
-        }
-    }
-    walkRootNode(data) {
-        const { node, reader, path } = data;
-        const next = reader.read();
-        if (next in node.children) {
-            return this.getNextNode(Object.assign({}, data, { node: node.children[next] }));
-        } else {
-            for (const key of Object.keys(node.children)) {
-                if (key.startsWith("$")) {
-                    const ref = key.substring(1);
-                    const [nextPath] = doc_walker_util_1.parseRefPath(ref, path);
-                    const list = this.docs.get(nextPath);
-                    if (list.find(v => util_1.isString(v) ? v === next : v.value === next)) {
-                        return this.getNextNode(Object.assign({}, data, { node: node.children[key] }));
-                    }
-                }
-            }
-        }
-        return new misc_functions_1.ReturnHelper().fail();
-    }
-}
-exports.NBTWalker = NBTWalker;
-},{"../../../misc-functions":"irtH","./doc-walker-func":"h7oH","./tag/compound-tag":"w/DJ","./tag/list-tag":"ZJrY","./util/array-reader":"lPiu","./util/doc-walker-util":"TRlg"}],"bNud":[function(require,module,exports) {
+},{"../../../../brigadier/errors":"lIyQ","../../../../misc-functions":"irtH","../tag-parser":"unjr","../util/doc-walker-util":"TRlg","../util/nbt-util":"R+CJ","./nbt-tag":"SKCP"}],"bNud":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const util_1 = require("util");
 const misc_functions_1 = require("../../../misc-functions");
 const context_1 = require("../../../misc-functions/context");
-const doc_walker_1 = require("./doc-walker");
 const compound_tag_1 = require("./tag/compound-tag");
 const paths = [{
     data: () => ({
@@ -2836,19 +2558,21 @@ const paths = [{
     }),
     path: ["summon", "entity", "pos", "nbt"]
 }];
-function parseNBT(reader, info, data) {
+// Parse a compound tag and validate it
+function validateParse(reader, info, data) {
     const helper = new misc_functions_1.ReturnHelper();
     const tag = new compound_tag_1.NBTTagCompound({});
     const docs = info.data.globalData.nbt_docs;
-    const reply = tag.parse(reader);
-    if (helper.merge(reply)) {
+    const parseResult = tag.parse(reader);
+    if (helper.merge(parseResult)) {
         return helper.succeed();
     } else {
         if (!!data) {
-            const walker = new doc_walker_1.NBTWalker(reply.data.parsed || new compound_tag_1.NBTTagCompound({}), docs, data.type === "item");
+            // @ts-ignore
+            const walker = new NBTValidator(tag, docs, data.type === "item");
             if (util_1.isArray(data.id)) {
                 for (const k of data.id) {
-                    const node = walker.getFinalNode([data.type, k, ...(reply.data.path || [])]);
+                    const node = walker.walkThenValidate([data.type, k]);
                     if (misc_functions_1.isSuccessful(node)) {
                         helper.mergeChain(node);
                     } else {
@@ -2857,7 +2581,7 @@ function parseNBT(reader, info, data) {
                 }
                 return helper.fail();
             } else {
-                const node = walker.getFinalNode([data.type, data.id || "none", ...(reply.data.path || [])]);
+                const node = walker.walkThenValidate([data.type, data.id || "none"]);
                 return helper.mergeChain(node).fail();
             }
         } else {
@@ -2865,20 +2589,20 @@ function parseNBT(reader, info, data) {
         }
     }
 }
-exports.parseNBT = parseNBT;
+exports.validateParse = validateParse;
 exports.parser = {
     parse: (reader, prop) => {
         const helper = new misc_functions_1.ReturnHelper(prop);
         const ctxdatafn = context_1.resolvePaths(paths, prop.path || []);
         const data = !ctxdatafn ? undefined : ctxdatafn([]);
-        if (helper.merge(parseNBT(reader, prop, data))) {
+        if (helper.merge(validateParse(reader, prop, data))) {
             return helper.succeed();
         } else {
             return helper.fail();
         }
     }
 };
-},{"../../../misc-functions":"irtH","../../../misc-functions/context":"qA/9","./doc-walker":"J2Nr","./tag/compound-tag":"w/DJ"}],"IZJ1":[function(require,module,exports) {
+},{"../../../misc-functions":"irtH","../../../misc-functions/context":"qA/9","./tag/compound-tag":"w/DJ"}],"IZJ1":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2936,7 +2660,7 @@ function parseBlockArgument(reader, info, tags) {
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = nbt_1.parseNBT(reader, info, {
+                const nbt = nbt_1.validateParse(reader, info, {
                     id: (parsedResult.resolved || []).map(misc_functions_1.stringifyNamespace),
                     type: "block"
                 });
@@ -2960,7 +2684,7 @@ function parseBlockArgument(reader, info, tags) {
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = nbt_1.parseNBT(reader, info, {
+                const nbt = nbt_1.validateParse(reader, info, {
                     id: props ? stringifiedName : "none",
                     type: "block"
                 });
@@ -2980,7 +2704,7 @@ function parseBlockArgument(reader, info, tags) {
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = nbt_1.parseNBT(reader, info, {
+                const nbt = nbt_1.validateParse(reader, info, {
                     id: "none",
                     type: "block"
                 });
@@ -3011,7 +2735,7 @@ function parseProperties(reader, options, errors, name) {
         while (reader.canRead() && reader.peek() !== "]") {
             reader.skipWhitespace();
             const propStart = reader.cursor;
-            const propParse = reader.readOption(props, false, main_1.CompletionItemKind.Property);
+            const propParse = reader.readOption(props, undefined, main_1.CompletionItemKind.Property);
             const propKey = propParse.data;
             const propSuccessful = helper.merge(propParse);
             if (propKey === false) {
@@ -3032,7 +2756,7 @@ function parseProperties(reader, options, errors, name) {
             reader.skip();
             reader.skipWhitespace();
             const valueStart = reader.cursor;
-            const valueParse = reader.readOption(options[propKey] || [], false, main_1.CompletionItemKind.EnumMember);
+            const valueParse = reader.readOption(options[propKey] || [], undefined, main_1.CompletionItemKind.EnumMember);
             const valueSuccessful = helper.merge(valueParse);
             const value = valueParse.data;
             if (value === false) {
@@ -3094,7 +2818,8 @@ const INCOMPLETE = new errors_1.CommandErrorBuilder("argument.pos.incomplete", "
 const NO_LOCAL = new errors_1.CommandErrorBuilder("argument.pos.nolocal", "Local coords are not allowed");
 const LOCAL = "^";
 const RELATIVE = "~";
-const fail = (reader, helper, count, hasWorld, hasLocal, start, i) => {
+const fail = (reader, count, hasWorld, hasLocal, start, i) => {
+    const helper = new misc_functions_1.ReturnHelper();
     if (!hasWorld) {
         helper.addSuggestions({
             start: reader.cursor,
@@ -3120,7 +2845,7 @@ class CoordParser {
         const start = reader.cursor;
         for (let i = 0; i < this.rules.count; i++) {
             if (!reader.canRead()) {
-                return fail(reader, helper, this.rules.count, hasWorld, hasLocal, start, 0);
+                return helper.return(fail(reader, this.rules.count, hasWorld, hasLocal, start, 0));
             }
             const cstart = reader.cursor;
             switch (reader.peek()) {
@@ -3157,15 +2882,17 @@ class CoordParser {
                     }
             }
             if (i < this.rules.count - 1 && (!reader.canRead() || !helper.merge(reader.expect(" ")))) {
-                return fail(reader, helper, this.rules.count, hasWorld, hasLocal, start, i);
+                return helper.return(fail(reader, this.rules.count, hasWorld, hasLocal, start, i));
             }
         }
         return helper.succeed();
     }
     parseNumber(reader, allowBlank = true) {
         if ((!reader.canRead() || reader.peek().match(/\s/)) && allowBlank) {
+            // tslint:disable-next-line:helper-return
             return new misc_functions_1.ReturnHelper().succeed(0);
         }
+        // tslint:disable-next-line:helper-return
         return this.rules.float ? reader.readFloat() : reader.readInt();
     }
 }
@@ -3226,7 +2953,7 @@ class ItemParser {
                 items.push(name);
             }
             if (reader.peek() === "{") {
-                const nbt = nbt_1.parseNBT(reader, properties, {
+                const nbt = nbt_1.validateParse(reader, properties, {
                     id: items,
                     type: "item"
                 });
@@ -3238,7 +2965,7 @@ class ItemParser {
             if (parsed.data) {
                 helper.addErrors(UNKNOWNTAG.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsed.data)));
                 if (reader.peek() === "{") {
-                    const nbt = nbt_1.parseNBT(reader, properties, {
+                    const nbt = nbt_1.validateParse(reader, properties, {
                         id: "none",
                         type: "item"
                     });
@@ -3364,6 +3091,7 @@ const misc_functions_1 = require("../../misc-functions");
 exports.messageParser = {
     parse: reader => {
         reader.cursor = reader.getTotalLength();
+        // tslint:disable:helper-return
         return new misc_functions_1.ReturnHelper().succeed();
     }
 };
@@ -3649,14 +3377,511 @@ ${JSON.stringify(team, undefined, 4)}
     }
 };
 exports.criteriaParser = undefined;
-},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","../../misc-functions/third_party/typed-keys":"IXKy"}],"tjxk":[function(require,module,exports) {
+},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","../../misc-functions/third_party/typed-keys":"IXKy"}],"lPiu":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+class ArrayReader {
+    constructor(arr) {
+        this.index = 0;
+        this.inner = arr;
+    }
+    canRead(length = 1) {
+        return this.index + length <= this.inner.length;
+    }
+    getArray() {
+        return this.inner;
+    }
+    getIndex() {
+        return this.index;
+    }
+    getRead() {
+        return this.inner.slice(0, this.index);
+    }
+    insert(vals, index = 0) {
+        this.inner.splice(index, 0, ...vals);
+    }
+    peek() {
+        return this.inner[this.index];
+    }
+    read() {
+        return this.inner[this.index++];
+    }
+    setIndex(val) {
+        this.index = val;
+    }
+    skip() {
+        this.index++;
+    }
+}
+exports.ArrayReader = ArrayReader;
+},{}],"1JwD":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const util_1 = require("util");
+const doc_walker_func_1 = require("./doc-walker-func");
+const array_reader_1 = require("./util/array-reader");
+const doc_walker_util_1 = require("./util/doc-walker-util");
+function walkUnwrap(node) {
+    if (!node) {
+        throw new Error("Expected node to be defined, got undefined node. This is an internal error.");
+    }
+    return node;
+}
+class NBTWalker {
+    constructor(docs) {
+        this.docs = docs;
+    }
+    followNodePath(info, reader, parsed) {
+        if (!info) {
+            return { path: "", node: { type: "no-nbt" } };
+        }
+        if (!reader.canRead()) {
+            return info;
+        }
+        if (doc_walker_util_1.isRefInfo(info)) {
+            return this.followNodePath(this.resolveRef(info.node.ref, info.path), reader);
+        }
+        if (doc_walker_util_1.isCompoundInfo(info)) {
+            return this.followNodePath(this.getChildWithName(info, reader.read()), reader);
+        }
+        if (doc_walker_util_1.isRootInfo(info)) {
+            return this.followNodePath(this.getChildOfRoot(info, reader.read()), reader);
+        }
+        if (doc_walker_util_1.isFunctionInfo(info)) {
+            return this.followNodePath(this.resolveRef(doc_walker_func_1.runNodeFunction(reader.getRead(), info.node, parsed), info.path), reader);
+        }
+        throw new Error(`Could not get next path after ${reader.peek()} in ${reader.getArray()} with info: ${JSON.stringify(info)}`);
+    }
+    getChildOfRoot(info, name) {
+        if (info.node.children.hasOwnProperty(name)) {
+            return Object.assign({}, info, { node: info.node.children[name] });
+        } else {
+            for (const key of Object.keys(info.node.children)) {
+                if (key.startsWith("$")) {
+                    const ref = key.substring(1);
+                    const [nextPath] = doc_walker_util_1.parseRefPath(ref, info.path);
+                    const list = walkUnwrap(this.docs.get(nextPath));
+                    if (list.find(v => util_1.isString(v) ? v === name : v.value === name)) {
+                        return Object.assign({}, info, { node: info.node.children[key] });
+                    }
+                }
+            }
+        }
+        return undefined;
+    }
+    getChildWithName(info, name) {
+        const { node } = info;
+        if (node.children && node.children.hasOwnProperty(name)) {
+            return Object.assign({}, info, { node: node.children[name] });
+        }
+        if (node.child_ref) {
+            for (const ref of node.child_ref) {
+                const refInfo = walkUnwrap(this.resolveRef(ref, info.path));
+                if (doc_walker_util_1.isCompoundInfo(refInfo)) {
+                    const result = this.getChildWithName(refInfo, name);
+                    if (result) {
+                        return result;
+                    }
+                }
+            }
+        }
+        return undefined;
+    }
+    /**
+     * @param startPath A path which is known to be valid
+     */
+    getInitialNode(startPath) {
+        const path = NBTWalker.root;
+        const node = walkUnwrap(this.docs.get(path));
+        const reader = new array_reader_1.ArrayReader(startPath);
+        return this.followNodePath({ node, path }, reader, undefined);
+    }
+    resolveRef(refText, curPath) {
+        const [path, fragPath] = doc_walker_util_1.parseRefPath(refText, curPath);
+        const reader = new array_reader_1.ArrayReader(fragPath);
+        const node = this.docs.get(path);
+        if (node) {
+            return this.followNodePath({ node, path }, reader);
+        }
+        return undefined;
+    }
+}
+NBTWalker.root = "root.json";
+exports.NBTWalker = NBTWalker;
+// Old version
+// #interface ContextData<
+// #    N extends NBTNode = NBTNode,
+// #    T extends NBTTag<any> = NBTTag<any>
+// #> {
+// #    readonly finalValidation: boolean;
+// #    readonly node: N;
+// #    readonly path: string;
+// #    readonly reader: ArrayReader;
+// #    readonly tag?: T;
+// #    readonly useReferences: boolean;
+// #}
+// #
+// #// tslint:disable:cyclomatic-complexity
+// #// tslint:disable-next-line:max-classes-per-file
+// #export class NBTValidator {
+// #    private readonly docs: NBTDocs;
+// #    private readonly extraChildren: boolean;
+// #    private readonly parsed: NBTTag<any>;
+// #    private readonly root: string;
+// #    private readonly validateNBT: boolean;
+// #
+// #    public constructor(
+// #        parsed: NBTTag<any>,
+// #        docs: NBTDocs,
+// #        extraChild: boolean,
+// #        nbtvalidation: boolean = true,
+// #        root: string = "root.json"
+// #    ) {
+// #        this.docs = docs;
+// #        this.parsed = parsed;
+// #        this.extraChildren = extraChild;
+// #        this.root = root;
+// #        this.validateNBT = nbtvalidation;
+// #    }
+// #
+// #    public walkThenValidate(nbtpath: string[]): ReturnedInfo<NBTNode> {
+// #        const node = this.docs.get(this.root) as RootNode;
+// #        const reader = new ArrayReader(nbtpath);
+// #        // tslint:disable-next-line:helper-return
+// #        return this.walkNextNode({
+// #            finalValidation: true,
+// #            node,
+// #            path: this.root,
+// #            reader,
+// #            tag: this.validateNBT ? this.parsed : undefined,
+// #            useReferences: false
+// #        });
+// #    }
+// #
+// #    private mergeChildRef(data: ContextData<CompoundNode>): CompoundNode {
+// #        const { node, path: currentPath } = data;
+// #        if (!node.child_ref) {
+// #            return node;
+// #        }
+// #        const helper = new ReturnHelper();
+// #        const newChildren = JSON.parse(
+// #            JSON.stringify(node.children || {})
+// #        ) as Exclude<CompoundNode["children"], undefined>;
+// #        for (const ref of node.child_ref) {
+// #            const [nextPath] = parseRefPath(ref, currentPath);
+// #            const refNode = this.walkRef(ref, currentPath, data);
+// #            if (!helper.merge(refNode)) {
+// #                continue;
+// #            } else if (isCompoundNode(refNode.data)) {
+// #                const evalNode = this.mergeChildRef({
+// #                    ...data,
+// #                    node: refNode.data,
+// #                    path: nextPath
+// #                });
+// #                if (evalNode.children) {
+// #                    for (const child of Object.keys(evalNode.children)) {
+// #                        newChildren[child] = evalNode.children[child];
+// #                    }
+// #                }
+// #            }
+// #        }
+// #        return {
+// #            children: newChildren,
+// #            description: node.description,
+// #            suggestions: node.suggestions,
+// #            type: "compound"
+// #        };
+// #    }
+// #
+// #    private walkCompoundNode(
+// #        data: ContextData<CompoundNode, NBTTagCompound>
+// #    ): ReturnedInfo<NBTNode> {
+// #        const { node, reader, path, tag } = data;
+// #        const helper = new ReturnHelper();
+// #        const next = reader.read();
+// #        if (node.children && next in node.children) {
+// #            /*
+// #             * It is safe to assume that next is in the tag
+// #             * val because the path is based off of the tag
+// #             */
+// #            return helper.return(
+// #                this.walkNextNode({
+// #                    ...data,
+// #                    node: node.children[next],
+// #                    tag: tag ? tag.getVal()[next] : undefined
+// #                })
+// #            );
+// #        } else if (node.child_ref) {
+// #            for (const c of node.child_ref) {
+// #                const [nextPath] = parseRefPath(c, path);
+// #                const cnode = this.walkRef(c, path, data);
+// #                if (
+// #                    helper.merge(cnode) &&
+// #                    isCompoundNode(cnode.data) &&
+// #                    cnode.data.children &&
+// #                    next in cnode.data.children
+// #                ) {
+// #                    return helper.return(
+// #                        this.walkNextNode({
+// #                            ...data,
+// #                            node: cnode.data.children[next],
+// #                            path: nextPath,
+// #                            tag: tag ? tag.getVal()[next] : undefined
+// #                        })
+// #                    );
+// #                }
+// #            }
+// #        }
+// #        return helper.fail();
+// #    }
+// #
+// #    private walkFunctionNode(
+// #        data: ContextData<FunctionNode>
+// #    ): ReturnedInfo<NBTNode> {
+// #        const { node, reader, path } = data;
+// #        const helper = new ReturnHelper();
+// #        const ref = runNodeFunction(this.parsed, reader.getRead(), node);
+// #        const [nextPath] = parseRefPath(ref, path);
+// #        const newNode = this.walkRef(ref, path, data);
+// #        if (!helper.merge(newNode)) {
+// #            return helper.fail();
+// #        }
+// #        return helper.return(
+// #            this.walkNextNode({
+// #                ...data,
+// #                node: newNode.data,
+// #                path: nextPath
+// #            })
+// #        );
+// #    }
+// #
+// #    private walkListNode(
+// #        data: ContextData<ListNode, NBTTagList>
+// #    ): ReturnedInfo<NBTNode> {
+// #        const { node, reader, tag } = data;
+// #        const next = reader.read();
+// #        const helper = new ReturnHelper();
+// #        if (!/\d+/.test(next)) {
+// #            return helper.fail(
+// #                tag
+// #                    ? VALIDATION_ERRORS.badIndex.create(
+// #                          tag.getRange().start,
+// #                          tag.getRange().end
+// #                      )
+// #                    : undefined
+// #            );
+// #        }
+// #        const nextTag = tag
+// #            ? tag.getVal()[Number.parseInt(next, 10)]
+// #            : undefined;
+// #        return helper.return(
+// #            this.walkNextNode({
+// #                ...data,
+// #                node: node.item,
+// #                tag: nextTag
+// #            })
+// #        );
+// #    }
+// #
+// #    private walkNextNode(data: ContextData): ReturnedInfo<NBTNode> {
+// #        const { reader, node, tag, useReferences, finalValidation } = data;
+// #        const helper = new ReturnHelper();
+// #        if (reader.onLast()) {
+// #            if (isRefNode(node)) {
+// #                return helper.return(
+// #                    this.walkRefNode(data as ContextData<RefNode>)
+// #                );
+// #            } else if (isFunctionNode(node)) {
+// #                return helper.return(
+// #                    this.walkFunctionNode(data as ContextData<FunctionNode>)
+// #                );
+// #            } else if (isCompoundNode(node)) {
+// #                if (finalValidation && this.validateNBT && tag) {
+// #                    const valres = tag.valideAgainst(node, {
+// #                        compoundMerge: () =>
+// #                            this.mergeChildRef(data as ContextData<
+// #                                CompoundNode,
+// #                                NBTTagCompound
+// #                            >),
+// #                        extraChildren: this.extraChildren
+// #                    });
+// #                    if (!helper.merge(valres)) {
+// #                        return helper.fail();
+// #                    }
+// #                }
+// #                return helper.succeed(
+// #                    finalValidation
+// #                        ? this.mergeChildRef(data as ContextData<CompoundNode>)
+// #                        : node
+// #                );
+// #            } else {
+// #                if (finalValidation && this.validateNBT && tag) {
+// #                    const valres = tag.valideAgainst(node);
+// #                    if (!helper.merge(valres)) {
+// #                        return helper.fail();
+// #                    }
+// #                }
+// #                return helper.succeed(node);
+// #            }
+// #        } else if (
+// #            useReferences &&
+// #            node.references &&
+// #            reader.peek() in node.references
+// #        ) {
+// #            const next = reader.read();
+// #            return helper.return(
+// #                this.walkNextNode({
+// #                    ...data,
+// #                    node: node.references[next]
+// #                })
+// #            );
+// #        } else if (isTypedNode(node)) {
+// #            if (isCompoundNode(node)) {
+// #                if (this.validateNBT && tag) {
+// #                    const valres = tag.valideAgainst(node, {
+// #                        compoundMerge: () =>
+// #                            this.mergeChildRef(data as ContextData<
+// #                                CompoundNode
+// #                            >),
+// #                        extraChildren: this.extraChildren
+// #                    });
+// #                    if (!helper.merge(valres)) {
+// #                        return helper.fail();
+// #                    }
+// #                }
+// #                if (tag && !(tag instanceof NBTTagCompound)) {
+// #                    return helper.fail();
+// #                }
+// #                return helper.return(
+// #                    this.walkCompoundNode(data as ContextData<
+// #                        CompoundNode,
+// #                        NBTTagCompound
+// #                    >)
+// #                );
+// #            } else if (isListNode(node)) {
+// #                if (this.validateNBT && tag) {
+// #                    const valres = tag.valideAgainst(node);
+// #                    if (!helper.merge(valres)) {
+// #                        return helper.fail();
+// #                    }
+// #                }
+// #                if (tag && !(tag instanceof NBTTagList)) {
+// #                    return helper.fail();
+// #                }
+// #                return helper.return(
+// #                    this.walkListNode(data as ContextData<ListNode, NBTTagList>)
+// #                );
+// #            } else if (isRootNode(node)) {
+// #                return helper.return(
+// #                    this.walkRootNode(data as ContextData<RootNode>)
+// #                );
+// #            } else {
+// #                if (tag) {
+// #                    const valres = tag.valideAgainst(node);
+// #                    helper.merge(valres);
+// #                }
+// #                return helper.fail();
+// #            }
+// #        } else {
+// #            if (isRefNode(node)) {
+// #                return helper.return(
+// #                    this.walkRefNode(data as ContextData<RefNode>)
+// #                );
+// #            } else if (isFunctionNode(node)) {
+// #                return helper.return(
+// #                    this.walkFunctionNode(data as ContextData<FunctionNode>)
+// #                );
+// #            }
+// #        }
+// #        return helper.fail();
+// #    }
+// #
+// #    private walkRef(
+// #        ref: string,
+// #        path: string,
+// #        data: ContextData
+// #    ): ReturnedInfo<NBTNode> {
+// #        const [nextPath, fragPath] = parseRefPath(ref, path);
+// #        const reader = new ArrayReader(fragPath);
+// #        const node = this.docs.get(nextPath) as NBTNode;
+// #        // tslint:disable-next-line:helper-return
+// #        return this.walkNextNode({
+// #            useReferences: true,
+// #            finalValidation: false,
+// #            node,
+// #            path: nextPath,
+// #            reader,
+// #            tag: data.tag
+// #        });
+// #    }
+// #
+// #    private walkRefNode(data: ContextData<RefNode>): ReturnedInfo<NBTNode> {
+// #        const { node, path } = data;
+// #        const helper = new ReturnHelper();
+// #        const [nextPath] = parseRefPath(node.ref, path);
+// #        const nnode = this.walkRef(node.ref, path, data);
+// #        if (helper.merge(nnode)) {
+// #            const out = this.walkNextNode({
+// #                ...data,
+// #                node: nnode.data,
+// #                path: nextPath
+// #            });
+// #            if (helper.merge(out)) {
+// #                return helper.succeed(out.data);
+// #            } else {
+// #                return helper.fail();
+// #            }
+// #        } else {
+// #            return helper.fail();
+// #        }
+// #    }
+// #
+// #    private walkRootNode(data: ContextData<RootNode>): ReturnedInfo<NBTNode> {
+// #        const { node, reader, path } = data;
+// #        const next = reader.read();
+// #        const helper = new ReturnHelper();
+// #        if (next in node.children) {
+// #            return helper.return(
+// #                this.walkNextNode({
+// #                    ...data,
+// #                    node: node.children[next]
+// #                })
+// #            );
+// #        } else {
+// #            for (const key of Object.keys(node.children)) {
+// #                if (key.startsWith("$")) {
+// #                    const ref = key.substring(1);
+// #                    const [nextPath] = parseRefPath(ref, path);
+// #                    const list = (this.docs.get(nextPath) as any) as ValueList;
+// #                    if (
+// #                        list.find(
+// #                            v => (isString(v) ? v === next : v.value === next)
+// #                        )
+// #                    ) {
+// #                        return helper.return(
+// #                            this.walkNextNode({
+// #                                ...data,
+// #                                node: node.children[key]
+// #                            })
+// #                        );
+// #                    }
+// #                }
+// #            }
+// #        }
+// #        return helper.fail();
+// #    }
+// #}
+// #
+},{"./doc-walker-func":"h7oH","./util/array-reader":"lPiu","./util/doc-walker-util":"TRlg"}],"tjxk":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const errors_1 = require("../../brigadier/errors");
 const misc_functions_1 = require("../../misc-functions");
-const doc_walker_1 = require("./nbt/doc-walker");
 const compound_tag_1 = require("./nbt/tag/compound-tag");
+const walker_1 = require("./nbt/walker");
 const COMPACC = ".";
 const ARROPEN = "[";
 const ARRCLOSE = "]";
@@ -3665,12 +3890,12 @@ exports.parser = {
     parse: (reader, prop) => {
         const helper = new misc_functions_1.ReturnHelper();
         const out = [];
-        const walker = new doc_walker_1.NBTWalker(new compound_tag_1.NBTTagCompound({}), prop.data.globalData.nbt_docs, true, false);
+        const walker = new walker_1.NBTValidator(new compound_tag_1.NBTTagCompound({}), prop.data.globalData.nbt_docs, true, false);
         const chr = reader.readString();
         if (helper.merge(chr)) {
             out.push(chr.data);
         } else {
-            const node = walker.getFinalNode([]);
+            const node = walker.walkThenValidate([]);
             helper.mergeChain(node);
         }
         while (reader.canRead() && !/\s/.test(reader.peek())) {
@@ -3680,7 +3905,7 @@ exports.parser = {
                 if (helper.merge(str)) {
                     out.push(str.data);
                 } else {
-                    const node = walker.getFinalNode([]);
+                    const node = walker.walkThenValidate([]);
                     helper.mergeChain(node);
                 }
             } else if (next === ARROPEN) {
@@ -3688,7 +3913,7 @@ exports.parser = {
                 if (helper.merge(num)) {
                     out.push(num.data.toString());
                 } else {
-                    const node = walker.getFinalNode([]);
+                    const node = walker.walkThenValidate([]);
                     helper.mergeChain(node);
                 }
                 if (!helper.merge(reader.expect(ARRCLOSE))) {
@@ -3703,7 +3928,7 @@ exports.parser = {
         return helper.succeed();
     }
 };
-},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","./nbt/doc-walker":"J2Nr","./nbt/tag/compound-tag":"w/DJ"}],"vlho":[function(require,module,exports) {
+},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","./nbt/tag/compound-tag":"w/DJ","./nbt/walker":"1JwD"}],"vlho":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3849,9 +4074,13 @@ function getCompletionsFromNode(line, start, end, text, nodepath, data, context)
                 const parser = get_parser_1.getParser(child);
                 if (!!parser) {
                     const reader = new string_reader_1.StringReader(text.substring(start, end));
-                    const parseResult = parser.parse(reader, info);
-                    if (!!parseResult) {
-                        result.push(...suggestionsToCompletions(parseResult.suggestions, line, start, end, parser.kind));
+                    try {
+                        const parseResult = parser.parse(reader, info);
+                        if (!!parseResult) {
+                            result.push(...suggestionsToCompletions(parseResult.suggestions, line, start, end, parser.kind));
+                        }
+                    } catch (error) {
+                        mcLangLog(`Error thrown whilst parsing: ${error} - ${error.stack}`);
                     }
                 }
             }
@@ -3919,6 +4148,7 @@ exports.emptyGlobal = {
     commands: { type: "root" },
     items: [],
     meta_info: { version: "" },
+    nbt_docs: new Map(),
     resources: {}
 };
 exports.blankRange = {
@@ -5001,27 +5231,30 @@ function parseAgainstNode(reader, node, path, data, context) {
     const parser = get_parser_1.getParser(node);
     const helper = new misc_functions_1.ReturnHelper(false);
     if (!!parser) {
-        const result = parser.parse(reader, misc_functions_1.createParserInfo(node, data, path, context, false));
-        if (!!result) {
-            if (helper.merge(result)) {
-                const newContext = Object.assign({}, context, result.data);
+        try {
+            const result = parser.parse(reader, misc_functions_1.createParserInfo(node, data, path, context, false));
+            if (!!result) {
+                if (helper.merge(result)) {
+                    const newContext = Object.assign({}, context, result.data);
+                    return helper.succeed({
+                        max: reader.cursor,
+                        newContext,
+                        node
+                    });
+                } else {
+                    return helper.fail();
+                }
+            } else {
                 return helper.succeed({
                     max: reader.cursor,
-                    newContext,
                     node
                 });
-            } else {
-                return helper.fail();
             }
-        } else {
-            return helper.succeed({
-                max: reader.cursor,
-                node
-            });
+        } catch (error) {
+            mcLangLog(`Error thrown whilst parsing: ${error} - ${error.stack}`);
         }
-    } else {
-        return helper.fail();
     }
+    return helper.fail();
 }
 function parseLines(document, data, emitter, documentUri, lines) {
     for (const lineNo of lines) {

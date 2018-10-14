@@ -1,5 +1,5 @@
 import { StringReader } from "../../../brigadier/string-reader";
-import { isSuccessful, ReturnHelper } from "../../../misc-functions";
+import { ReturnHelper } from "../../../misc-functions";
 import { CE, ReturnedInfo } from "../../../types";
 import { NBTTagByteArray } from "./tag/byte-array-tag";
 import { NBTTagByte } from "./tag/byte-tag";
@@ -14,9 +14,9 @@ import { NBTTagLong } from "./tag/long-tag";
 import { NBTTag, ParseReturn } from "./tag/nbt-tag";
 import { NBTTagShort } from "./tag/short-tag";
 import { NBTTagString } from "./tag/string-tag";
-import { CorrectLevel, NBTErrorData } from "./util/nbt-util";
+import { Correctness } from "./util/nbt-util";
 
-const parsers: Array<() => NBTTag<any>> = [
+const parsers: Array<() => NBTTag> = [
     () => new NBTTagByte(0),
     () => new NBTTagShort(0),
     () => new NBTTagLong(0),
@@ -31,50 +31,43 @@ const parsers: Array<() => NBTTag<any>> = [
     () => new NBTTagString("")
 ];
 
-export function parseTag(
+export type AnyTagReturn = ReturnedInfo<NBTTag, CE>;
+
+export interface CorrectInfo {
+    correctness: Correctness;
+    tag: NBTTag;
+}
+export function parseAnyNBTTag(
     reader: StringReader
-): ReturnedInfo<NBTTag<any>, CE, NBTErrorData> {
-    let correctTag: NBTTag<any> | undefined;
-    let correctness: CorrectLevel = 0;
-    let correctPlace: number = reader.cursor;
+): ReturnedInfo<CorrectInfo, CE, CorrectInfo | undefined> {
+    let info: CorrectInfo | undefined;
+    let last: ParseReturn | undefined;
 
-    let lastResult: ParseReturn | undefined;
     const helper = new ReturnHelper();
-
     const start = reader.cursor;
-    for (const pf of parsers) {
-        const p = pf();
+    for (const parserfunc of parsers) {
         reader.cursor = start;
-        const out = p.parse(reader);
-        // @ts-ignore
-        if (isSuccessful(out)) {
-            if (out.data > correctness) {
-                lastResult = out;
-                correctPlace = reader.cursor;
-                correctness = out.data;
-                correctTag = p;
-            }
-        } else {
-            if (out.data.correct > correctness) {
-                lastResult = out;
-                correctPlace = reader.cursor;
-                correctness = out.data.correct;
-            }
+        const tag = parserfunc();
+        const out = tag.parse(reader);
+        if (
+            out.data === Correctness.CERTAIN ||
+            out.data < ((info && info.correctness) || Correctness.NO)
+        ) {
+            info = { correctness: out.data, tag };
+            last = out;
+        }
+        if (out.data === Correctness.CERTAIN) {
+            break;
         }
     }
-    // @ts-ignore
-    if (lastResult === undefined) {
-        return helper.failWithData({ correct: correctness });
+    // Maybe add could not parse nbt tag error
+    if (info === undefined || last === undefined) {
+        return helper.fail();
     }
-    if (helper.merge(lastResult)) {
-        if (correctTag === undefined) {
-            // This should never happen
-            return helper.failWithData({ correct: correctness });
-        } else {
-            reader.cursor = correctPlace;
-            return helper.succeed(correctTag);
-        }
+    reader.cursor = info.tag.getRange().end;
+    if (helper.merge(last)) {
+        return helper.succeed(info);
     } else {
-        return helper.failWithData(lastResult.data);
+        return helper.failWithData(info);
     }
 }

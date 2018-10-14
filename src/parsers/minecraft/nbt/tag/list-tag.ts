@@ -1,8 +1,13 @@
 import { CommandErrorBuilder } from "../../../../brigadier/errors";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { parseTag } from "../tag-parser";
-import { LIST_END, LIST_START, LIST_VALUE_SEP } from "../util/nbt-util";
+import { parseAnyNBTTag } from "../tag-parser";
+import {
+    LIST_END,
+    LIST_START,
+    LIST_VALUE_SEP,
+    NBTErrorData
+} from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 const MIXED = new CommandErrorBuilder(
@@ -22,8 +27,8 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
             return false;
         }
         return (
-            this.val.length === (tag as NBTTagList).val.length &&
-            this.val.every((v, i) => v.tagEq((tag as NBTTagList).getVal()[i]))
+            this.value.length === (tag as NBTTagList).value.length &&
+            this.value.every((v, i) => v.tagEq((tag as NBTTagList).getVal()[i]))
         );
     }
 
@@ -50,18 +55,18 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
 
             let value: NBTTag<any>;
 
-            const tag = parseTag(reader);
+            const tag = parseAnyNBTTag(reader);
             if (helper.merge(tag)) {
                 value = tag.data;
             } else {
                 if (tag.data.parsed) {
-                    this.val.push(tag.data.parsed);
+                    this.value.push(tag.data.parsed);
                 }
-                return helper.failWithData({
+                return helper.failWithData<NBTErrorData>({
                     correct: 2,
                     parsed: this,
                     path: [
-                        (this.val.length - 1).toString(),
+                        (this.value.length - 1).toString(),
                         ...(tag.data.path || [])
                     ]
                 });
@@ -74,7 +79,7 @@ export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
                 return helper.failWithData({ parsed: this, correct: 2 });
             }
 
-            this.val.push(value);
+            this.value.push(value);
 
             reader.skipWhitespace();
             const opt = reader.readOption(

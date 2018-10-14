@@ -1,6 +1,6 @@
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { CorrectLevel, parseIntNBT } from "../util/nbt-util";
+import { Correctness, parseIntNBT } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 export const BYTE_TAG_SUFFIX = "b";
@@ -18,7 +18,7 @@ export class NBTTagByte extends NBTTag<number> {
         if (!helper.merge(exp)) {
             return helper.failWithData({ correct: 0 });
         }
-        this.val = readInt.data;
-        return helper.succeed(CorrectLevel.YES);
+        this.value = readInt.data;
+        return helper.succeed(Correctness.CERTAIN);
     }
 }

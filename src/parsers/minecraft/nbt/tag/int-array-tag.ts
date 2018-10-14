@@ -6,7 +6,7 @@ import {
     ARRAY_PREFIX_SEP,
     ARRAY_START,
     ARRAY_VALUE_SEP,
-    CorrectLevel
+    Correctness
 } from "../util/nbt-util";
 import { NBTTagInt } from "./int-tag";
 import { NBTTag, ParseReturn } from "./nbt-tag";
@@ -33,8 +33,8 @@ export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
         }
         const taga: NBTTagIntArray = tag as NBTTagIntArray;
         return (
-            this.val.length === taga.getVal().length &&
-            this.val.every((v, i) => v.getVal() === taga.val[i].getVal())
+            this.value.length === taga.getVal().length &&
+            this.value.every((v, i) => v.getVal() === taga.value[i].getVal())
         );
     }
 
@@ -45,7 +45,7 @@ export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
             ARRAY_START + INT_ARRAY_PREFIX + ARRAY_PREFIX_SEP
         );
         if (!helper.merge(arrstart)) {
-            return helper.failWithData({ correct: CorrectLevel.NO });
+            return helper.failWithData({ correct: Correctness.NO });
         }
         if (!reader.canRead()) {
             helper.addSuggestion(reader.cursor, ARRAY_END);
@@ -74,7 +74,7 @@ export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
 
             helper.merge(parseResult);
 
-            this.val.push(val);
+            this.value.push(val);
 
             if (!reader.canRead()) {
                 helper.addErrors(
@@ -96,6 +96,6 @@ export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
                 next = opt.data;
             }
         }
-        return helper.succeed(CorrectLevel.YES);
+        return helper.succeed(Correctness.CERTAIN);
     }
 }

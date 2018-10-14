@@ -3,7 +3,7 @@ import { StringReader } from "../../brigadier/string-reader";
 import { ReturnHelper } from "../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 import { NBTTagCompound } from "./nbt/tag/compound-tag";
-import { NBTValidator } from "./nbt/validator";
+import { NBTValidator } from "./nbt/walker";
 
 const COMPACC = ".";
 const ARROPEN = "[";
@@ -31,7 +31,7 @@ export const parser: Parser = {
         if (helper.merge(chr)) {
             out.push(chr.data);
         } else {
-            const node = walker.walkFinalNode([]);
+            const node = walker.walkThenValidate([]);
             helper.mergeChain(node);
         }
         while (reader.canRead() && !/\s/.test(reader.peek())) {
@@ -41,7 +41,7 @@ export const parser: Parser = {
                 if (helper.merge(str)) {
                     out.push(str.data);
                 } else {
-                    const node = walker.walkFinalNode([]);
+                    const node = walker.walkThenValidate([]);
                     helper.mergeChain(node);
                 }
             } else if (next === ARROPEN) {
@@ -49,7 +49,7 @@ export const parser: Parser = {
                 if (helper.merge(num)) {
                     out.push(num.data.toString());
                 } else {
-                    const node = walker.walkFinalNode([]);
+                    const node = walker.walkThenValidate([]);
                     helper.mergeChain(node);
                 }
                 if (!helper.merge(reader.expect(ARRCLOSE))) {

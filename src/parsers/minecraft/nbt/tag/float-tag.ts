@@ -1,6 +1,6 @@
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { CorrectLevel, parseFloatNBT } from "../util/nbt-util";
+import { Correctness, parseFloatNBT } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 export const FLOAT_TAG_SUFFIX = "f";
@@ -18,7 +18,7 @@ export class NBTTagFloat extends NBTTag<number> {
         if (!helper.merge(exp)) {
             return helper.failWithData({ correct: 0 });
         }
-        this.val = readInt.data;
-        return helper.succeed(CorrectLevel.YES);
+        this.value = readInt.data;
+        return helper.succeed(Correctness.CERTAIN);
     }
 }

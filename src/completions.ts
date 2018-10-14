@@ -131,16 +131,24 @@ function getCompletionsFromNode(
                 const parser = getParser(child);
                 if (!!parser) {
                     const reader = new StringReader(text.substring(start, end));
-                    const parseResult = parser.parse(reader, info);
-                    if (!!parseResult) {
-                        result.push(
-                            ...suggestionsToCompletions(
-                                parseResult.suggestions,
-                                line,
-                                start,
-                                end,
-                                parser.kind
-                            )
+                    try {
+                        const parseResult = parser.parse(reader, info);
+                        if (!!parseResult) {
+                            result.push(
+                                ...suggestionsToCompletions(
+                                    parseResult.suggestions,
+                                    line,
+                                    start,
+                                    end,
+                                    parser.kind
+                                )
+                            );
+                        }
+                    } catch (error) {
+                        mcLangLog(
+                            `Error thrown whilst parsing: ${error} - ${
+                                error.stack
+                            }`
                         );
                     }
                 }

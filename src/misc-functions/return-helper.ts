@@ -63,29 +63,45 @@ export function fillBlanks(
     return { ...data, errors };
 }
 
+export function getReturned<T>(value: T | undefined): ReturnedInfo<T> {
+    const helper = new ReturnHelper();
+    if (typeof value === "undefined") {
+        return helper.fail();
+    } else {
+        return helper.succeed(value);
+    }
+}
+
+export interface MergeOptions {
+    actions?: boolean;
+    errors?: boolean;
+    misc?: boolean;
+    suggestions?: boolean;
+}
+
 export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     private readonly data: ReturnData<Errorkind> = createReturn<Errorkind>();
-    private readonly suggesting?: boolean;
+    private readonly suggestMode?: boolean;
 
     public constructor(suggesting?: ParserInfo | boolean) {
         if (typeof suggesting !== "undefined") {
             if (typeof suggesting === "boolean") {
-                this.suggesting = suggesting;
+                this.suggestMode = suggesting;
                 return;
             }
-            this.suggesting = suggesting.suggesting;
+            this.suggestMode = suggesting.suggesting;
         }
     }
 
     public addActions(...actions: SubAction[]): this {
-        if (this.suggesting === undefined || !this.suggesting) {
+        if (this.suggestMode === undefined || !this.suggestMode) {
             this.data.actions.push(...actions);
         }
         return this;
     }
 
     public addErrors(...errs: Errorkind[]): this {
-        if (this.suggesting === undefined || !this.suggesting) {
+        if (this.suggestMode === undefined || !this.suggestMode) {
             this.data.errors.push(...errs);
         }
         return this;
@@ -98,14 +114,19 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         message: string
     ): option is true {
         if (!option) {
-            this.addMisc({ group, message, filePath, kind: "FileError" });
+            this.addMisc({
+                filePath,
+                group,
+                kind: "FileError",
+                message
+            });
         } else {
             this.addMisc({ group, filePath, kind: "ClearError" });
         }
         return option;
     }
     public addMisc(...others: MiscInfo[]): this {
-        if (this.suggesting === undefined || !this.suggesting) {
+        if (this.suggestMode === undefined || !this.suggestMode) {
             this.data.misc.push(...others);
         }
         return this;
@@ -117,7 +138,7 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         kind?: Suggestion["kind"],
         description?: string
     ): this {
-        if (this.suggesting === undefined || this.suggesting) {
+        if (this.suggestMode === undefined || this.suggestMode) {
             this.addSuggestions({
                 description,
                 kind,
@@ -128,14 +149,14 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         return this;
     }
     public addSuggestions(...suggestions: SuggestResult[]): this {
-        if (this.suggesting === undefined || this.suggesting) {
+        if (this.suggestMode === undefined || this.suggestMode) {
             this.data.suggestions.push(...suggestions);
         }
         return this;
     }
 
     public fail(err?: Errorkind): ReturnFailure<undefined, Errorkind> {
-        if (!!err && !this.suggesting) {
+        if (!!err && !this.suggestMode) {
             this.addErrors(err);
         }
         return {
@@ -147,15 +168,13 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     public failWithData<T>(data: T): ReturnFailure<T, Errorkind> {
         return { ...this.getShared(), data, kind: failure as Failure };
     }
+
     public getShared(): ReturnData<Errorkind> {
         return this.data;
     }
-    public hasErrors(): boolean {
-        return this.data.errors.length > 0;
-    }
     public merge<T>(
         merge: ReturnedInfo<T, Errorkind, any>,
-        suggestOverride?: boolean
+        suggestOverride?: MergeOptions
     ): merge is ReturnSuccess<T, Errorkind> {
         this.mergeChain(merge, suggestOverride);
         return isSuccessful(merge);
@@ -163,26 +182,26 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
 
     public mergeChain(
         merge: ReturnedInfo<any, Errorkind>,
-        suggestOverride?: boolean
+        {
+            suggestions = this.suggestMode === undefined
+                ? true
+                : this.suggestMode,
+            errors = this.suggestMode === undefined || !this.suggestMode,
+            actions = this.suggestMode === undefined || !this.suggestMode,
+            misc = this.suggestMode === undefined || !this.suggestMode
+        }: MergeOptions = {}
     ): this {
-        let suggest: boolean | undefined;
-        if (suggestOverride !== undefined) {
-            suggest = suggestOverride;
-        } else {
-            if (this.suggesting !== undefined) {
-                suggest = this.suggesting;
-            }
+        if (suggestions) {
+            this.addSuggestions(...merge.suggestions);
         }
-        switch (suggest) {
-            case true:
-                this.mergeSuggestions(merge);
-                break;
-            case false:
-                this.mergeSafe(merge);
-                break;
-            default:
-                this.mergeSuggestions(merge);
-                this.mergeSafe(merge);
+        if (errors) {
+            this.addErrors(...merge.errors);
+        }
+        if (actions) {
+            this.addActions(...merge.actions);
+        }
+        if (misc) {
+            this.addMisc(...merge.misc);
         }
         return this;
     }
@@ -204,20 +223,10 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
     public succeed<T>(data: T): ReturnSuccess<T, Errorkind> {
         return { ...this.getShared(), data, kind: success as Success };
     }
-
-    private mergeSafe(merge: ReturnData<Errorkind>): void {
-        this.addActions(...merge.actions);
-        this.addErrors(...merge.errors);
-        this.addMisc(...merge.misc);
-    }
-
-    private mergeSuggestions(merge: ReturnData<Errorkind>): void {
-        this.addSuggestions(...merge.suggestions);
-    }
 }
 
 export function prepareForParser(
-    info: ReturnedInfo<any>,
+    info: ReturnedInfo<any, any, any>,
     suggesting: boolean | ParserInfo
 ): ReturnedInfo<undefined> {
     const helper = new ReturnHelper(suggesting);

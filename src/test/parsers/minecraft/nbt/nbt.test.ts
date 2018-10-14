@@ -1,6 +1,6 @@
 import { StringReader } from "../../../../brigadier/string-reader";
 import { loadNBTDocs } from "../../../../data/noncached";
-import { parseNBT, parser } from "../../../../parsers/minecraft/nbt/nbt";
+import { parser, validateParse } from "../../../../parsers/minecraft/nbt/nbt";
 import { ParserInfo, SuggestResult } from "../../../../types";
 import {
     assertSuggestions,
@@ -47,8 +47,8 @@ describe("nbt parser test", () => {
 
         it("should return correct suggestions when nested in a compound", () => {
             const reader = new StringReader("{display:{");
-            const out = parseNBT(reader, reginfo, {
-                id: "minecraft:apple",
+            const out = validateParse(reader, reginfo, {
+                ids: "minecraft:apple",
                 type: "item"
             });
             assertSuggestions(
@@ -68,8 +68,8 @@ describe("nbt parser test", () => {
         });
         it("should return the correct suggestions when nested in a list", () => {
             const reader = new StringReader("{AttributeModifiers:[{");
-            const out = parseNBT(reader, reginfo, {
-                id: "minecraft:stick",
+            const out = validateParse(reader, reginfo, {
+                ids: "minecraft:stick",
                 type: "item"
             });
             assertSuggestions(
@@ -116,8 +116,8 @@ describe("nbt parser test", () => {
         });
         it("should return the correct suggestion when nested in a list part 2", () => {
             const reader = new StringReader("{Items:[{");
-            const out = parseNBT(reader, reginfo, {
-                id: "minecraft:chest",
+            const out = validateParse(reader, reginfo, {
+                ids: "minecraft:chest",
                 type: "block"
             });
             assertSuggestions(

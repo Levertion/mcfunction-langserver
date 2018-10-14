@@ -190,30 +190,33 @@ function parseAgainstNode(
     const parser = getParser(node);
     const helper = new ReturnHelper(false);
     if (!!parser) {
-        const result = parser.parse(
-            reader,
-            createParserInfo(node, data, path, context, false)
-        );
-        if (!!result) {
-            if (helper.merge(result)) {
-                const newContext = { ...context, ...result.data };
+        try {
+            const result = parser.parse(
+                reader,
+                createParserInfo(node, data, path, context, false)
+            );
+            if (!!result) {
+                if (helper.merge(result)) {
+                    const newContext = { ...context, ...result.data };
+                    return helper.succeed<NodeParseSuccess>({
+                        max: reader.cursor,
+                        newContext,
+                        node
+                    });
+                } else {
+                    return helper.fail();
+                }
+            } else {
                 return helper.succeed<NodeParseSuccess>({
                     max: reader.cursor,
-                    newContext,
                     node
                 });
-            } else {
-                return helper.fail();
             }
-        } else {
-            return helper.succeed<NodeParseSuccess>({
-                max: reader.cursor,
-                node
-            });
+        } catch (error) {
+            mcLangLog(`Error thrown whilst parsing: ${error} - ${error.stack}`);
         }
-    } else {
-        return helper.fail();
     }
+    return helper.fail();
 }
 
 export function parseLines(

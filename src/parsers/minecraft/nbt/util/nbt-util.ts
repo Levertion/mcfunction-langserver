@@ -26,15 +26,13 @@ export const COMPOUND_KEY_VALUE_SEP = ":";
 export const COMPOUND_PAIR_SEP = ",";
 
 export interface NBTErrorData {
-    correct: CorrectLevel;
-    parsed?: NBTTag<any>;
-    path?: string[];
+    correct: Correctness;
 }
 
-export enum CorrectLevel {
-    NO,
-    MAYBE,
-    YES
+export enum Correctness {
+    NO = 0,
+    MAYBE = 1,
+    CERTAIN = 2
 }
 
 const parseNumberNBT = (float: boolean) => (reader: StringReader) => {
@@ -109,6 +107,28 @@ export function getNBTSuggestions(
         );
     } else if (isListNode(node) && node.item) {
         helper.mergeChain(getNBTSuggestions(node.item, cursor));
+    }
+    return helper.succeed();
+}
+
+export function createSuggestions(
+    node: NBTNode,
+    cursor: number
+): ReturnSuccess<undefined> {
+    const helper = new ReturnHelper();
+    const sugg = node.suggestions;
+    if (sugg) {
+        sugg.forEach(v => {
+            if (typeof v === "string") {
+                helper.addSuggestion(cursor, v);
+            } else if ("function" in v) {
+                runSuggestFunction(v.function.id, v.function.params).forEach(
+                    v2 => helper.addSuggestion(cursor, v2)
+                );
+            } else {
+                helper.addSuggestion(cursor, v.value, undefined, v.description);
+            }
+        });
     }
     return helper.succeed();
 }

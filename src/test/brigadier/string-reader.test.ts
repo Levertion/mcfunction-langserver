@@ -519,7 +519,7 @@ describe("string-reader", () => {
         });
     });
     describe("readOption", () => {
-        it("should work properly", () => {
+        it("should succeed for one of the options", () => {
             const reader = new StringReader("test");
             const result = reader.readOption(["test", "other"]);
             if (
@@ -531,26 +531,9 @@ describe("string-reader", () => {
                 assert.equal(result.data, "test");
             }
         });
-        it("should give an error with an unknown value", () => {
+        it("should fail with an unknown value", () => {
             const reader = new StringReader("test");
             const result = reader.readOption(["nottest", "other"]);
-            if (
-                returnAssert(result, {
-                    errors: [
-                        {
-                            code: "parsing.expected.option",
-                            range: { start: 0, end: 4 }
-                        }
-                    ],
-                    succeeds: false
-                })
-            ) {
-                assert.equal(result.data, "test");
-            }
-        });
-        it("should not give an error when addError is false and there is an unknown value", () => {
-            const reader = new StringReader("test");
-            const result = reader.readOption(["nottest", "other"], false);
             if (
                 returnAssert(result, {
                     succeeds: false

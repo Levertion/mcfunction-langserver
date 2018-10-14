@@ -1,12 +1,19 @@
-import { NBTNode } from "mc-nbt-paths";
-import { CommandErrorBuilder } from "../../../../brigadier/errors";
+import { NBTNode, NoPropertyNode } from "mc-nbt-paths";
+import { __values } from "tslib";
+import {
+    CommandError,
+    CommandErrorBuilder
+} from "../../../../brigadier/errors";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { LineRange, ReturnedInfo } from "../../../../types";
-import { parseTag } from "../tag-parser";
+import { CE, LineRange, ReturnedInfo, ReturnSuccess } from "../../../../types";
+import { parseAnyNBTTag } from "../tag-parser";
 import {
+    isCompoundInfo,
     isCompoundNode,
+    isTypedInfo,
     NBTValidationInfo,
+    NodeInfo,
     VALIDATION_ERRORS
 } from "../util/doc-walker-util";
 import {
@@ -14,8 +21,13 @@ import {
     COMPOUND_KEY_VALUE_SEP,
     COMPOUND_PAIR_SEP,
     COMPOUND_START,
-    getHoverText
+    Correctness,
+    createSuggestions,
+    getHoverText,
+    getNBTSuggestions,
+    NBTErrorData
 } from "../util/nbt-util";
+import { NBTWalker } from "../walker";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 const NO_KEY = new CommandErrorBuilder(
@@ -27,40 +39,56 @@ const NO_VAL = new CommandErrorBuilder(
     "Expected value"
 );
 
-export interface KVPos {
-    key: string;
-    keyPos: LineRange;
-    valPos: LineRange;
+export interface KVPair {
+    /** The position the last part was closed at */
+    closeIdx?: number | false;
+    key?: string;
+    keyRange: LineRange;
+    value?: NBTTag;
 }
 
-export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
+export interface UnknownsError extends CommandError {
+    path: string[];
+}
+
+export class NBTTagCompound extends NBTTag {
     public tagType: "compound" = "compound";
-    private insertKeyPos = 0;
+    private openIndex = -1;
+    /**
+     * If empty => no values, closed instantly (e.g. `{}`, `{ }`)
+     * If last has no key => no key straight after the `{` or `,`
+     * (with spaces) or key could not be parsed (e.g. `{"no-close-quote`)
+     * If last has key but no closed, then it is the last item (e.g. `{"key"`,{key)
+     * If last has key but closed, it has been unparseable either due to an invalid
+     * character after or within the strin
+     */
+    private parts: KVPair[] = [];
+    private value: Map<string, NBTTag> = new Map();
 
-    private kvpos: KVPos[] = [];
-
-    public getKeyPos(): KVPos[] {
-        return this.kvpos;
-    }
-
-    public tagEq(tag: NBTTag<any>): boolean {
-        if (tag.tagType !== this.tagType) {
-            return false;
+    public validate(
+        node: NodeInfo,
+        walker: NBTWalker
+    ): ReturnSuccess<undefined> {
+        const helper = new ReturnHelper();
+        let stop = false;
+        if (!this.opens) {
+            stop = true;
+            createSuggestions(node.node, this.openIndex);
         }
-        return (
-            Object.keys(this.val).length === Object.keys(tag.getVal()).length &&
-            Object.keys(this.val).every(v =>
-                this.val[v].tagEq((tag as NBTTagCompound).val[v])
-            )
-        );
+        const result = this.sameType(node);
+        if (!helper.merge(result)) {
+            stop = true;
+            return helper.succeed();
+        }
+        return helper.succeed();
     }
 
-    public validationResponse(
+    public valideAgainst(
         auxnode: NBTNode,
         info: NBTValidationInfo
-    ): ReturnedInfo<undefined> {
+    ): ReturnedInfo<undefined, UnknownsError | CE> {
         const helper = new ReturnHelper();
-        const superResponse = super.validationResponse(auxnode, info);
+        // Const superResponse = super.valideAgainst(auxnode, info);
         if (!helper.merge(superResponse)) {
             return helper.fail();
         }
@@ -108,127 +136,112 @@ export class NBTTagCompound extends NBTTag<{ [key: string]: NBTTag<any> }> {
     protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const start = reader.cursor;
-        const compStart = reader.expect(COMPOUND_START);
-        if (!helper.merge(compStart)) {
-            return helper.failWithData({ correct: 0, parsed: this });
+        if (!helper.merge(reader.expect(COMPOUND_START))) {
+            return helper.failWithData(Correctness.NO);
         }
-        if (!reader.canRead()) {
-            this.insertKeyPos = reader.cursor;
-            helper.addSuggestion(reader.cursor, COMPOUND_END);
-            helper.addErrors(NO_KEY.create(start, reader.cursor));
-            return helper.failWithData({ parsed: this, correct: 2 });
-        }
+        this.openIndex = start;
+        reader.skipWhitespace();
         if (reader.peek() === COMPOUND_END) {
             reader.skip();
-            return helper.succeed(2);
+            return helper.succeed(Correctness.CERTAIN);
         }
-        let next = reader.peek();
-        const keys = [];
-        this.kvpos = [];
-        while (next !== COMPOUND_END) {
+        reader.cursor = start; // This improves the value of the first kvstart in case of `{  `
+        while (true) {
+            const kvstart = reader.cursor;
             reader.skipWhitespace();
-
-            this.insertKeyPos = reader.cursor;
-
+            const keyStart = reader.cursor;
             if (!reader.canRead()) {
-                helper.addErrors(NO_KEY.create(start, reader.cursor));
-                return helper.failWithData({
-                    correct: 2,
-                    parsed: this,
-                    path: []
+                helper.addSuggestion(reader.cursor, COMPOUND_END);
+                helper.addErrors(NO_KEY.create(kvstart, reader.cursor));
+                this.parts.push({
+                    keyRange: {
+                        end: reader.cursor,
+                        start: reader.cursor
+                    }
                 });
+                return helper.failWithData(Correctness.CERTAIN);
             }
-            const keyS = reader.cursor;
             const key = reader.readString();
+            const keyEnd = reader.cursor;
             if (!helper.merge(key)) {
-                return helper.failWithData({
-                    correct: 2,
-                    parsed: this,
-                    path: []
-                });
-            }
-            const keyE = reader.cursor;
-            keys.push(key.data);
-
-            reader.skipWhitespace();
-
-            const kvs = reader.expect(COMPOUND_KEY_VALUE_SEP);
-            if (!helper.merge(kvs)) {
-                this.kvpos.push({
+                const keypart: KVPair = {
                     key: key.data,
-                    keyPos: { start: keyS, end: keyE },
-                    valPos: { start: reader.cursor, end: reader.cursor }
-                });
-                return helper.failWithData({
-                    correct: 2,
-                    parsed: this,
-                    path: [key.data]
-                });
-            }
-
-            reader.skipWhitespace();
-
-            if (!reader.canRead()) {
-                this.kvpos.push({
-                    key: key.data,
-                    keyPos: { start: keyS, end: keyE },
-                    valPos: { start: reader.cursor, end: reader.cursor }
-                });
-                helper.addErrors(NO_VAL.create(keyS, reader.cursor));
-                return helper.failWithData({
-                    correct: 2,
-                    parsed: this,
-                    path: [key.data]
-                });
-            }
-
-            const valS = reader.cursor;
-
-            let val: NBTTag<any>;
-            const pkey = parseTag(reader);
-
-            this.kvpos.push({
-                key: key.data,
-                keyPos: { start: keyS, end: keyE },
-                valPos: { start: valS, end: reader.cursor }
-            });
-
-            if (helper.merge(pkey)) {
-                val = pkey.data;
-            } else {
-                const path = [key.data, ...(pkey.data.path || [])];
-                if (pkey.data.parsed) {
-                    this.val[key.data] = pkey.data.parsed;
+                    keyRange: {
+                        end: reader.cursor,
+                        start: keyStart
+                    }
+                };
+                if (reader.canRead()) {
+                    keypart.closeIdx = false;
                 }
-                return helper.failWithData({
-                    correct: 2,
-                    parsed: this,
-                    path
-                });
+                this.parts.push(keypart);
+                return helper.failWithData(Correctness.CERTAIN);
             }
-
             reader.skipWhitespace();
-
-            this.val[key.data] = val;
-
-            reader.skipWhitespace();
-
-            const opt = reader.readOption(
-                [COMPOUND_END, COMPOUND_PAIR_SEP],
-                true,
-                undefined,
-                "option"
-            );
-            if (!helper.merge(opt)) {
-                return helper.failWithData({
-                    correct: 2,
-                    parsed: this,
-                    path: [key.data]
+            if (!reader.canRead()) {
+                this.parts.push({
+                    key: key.data,
+                    keyRange: {
+                        end: keyEnd,
+                        start: keyStart
+                    }
                 });
-            } else {
-                next = opt.data;
+                helper.addErrors(NO_VAL.create(keyStart, reader.cursor));
+                return helper
+                    .addSuggestion(reader.cursor, COMPOUND_KEY_VALUE_SEP)
+                    .failWithData(Correctness.CERTAIN);
             }
+            const kvs = reader.expect(COMPOUND_KEY_VALUE_SEP);
+
+            if (!helper.merge(kvs)) {
+                // E.g. '{"hello",' etc.
+                this.parts.push({
+                    closeIdx: false,
+                    key: key.data,
+                    keyRange: {
+                        end: keyEnd,
+                        start: keyStart
+                    }
+                });
+                return helper.failWithData(Correctness.CERTAIN);
+            }
+            const afterSep = reader.cursor;
+            reader.skipWhitespace();
+            if (!reader.canRead()) {
+                this.parts.push({
+                    closeIdx: afterSep,
+                    key: key.data,
+                    keyRange: { start: keyStart, end: keyEnd }
+                });
+                helper.addErrors(NO_VAL.create(keyStart, reader.cursor));
+                return helper.failWithData(Correctness.CERTAIN);
+            }
+            const valResult = parseAnyNBTTag(reader);
+            const part: KVPair = {
+                key: key.data,
+                keyRange: { start: keyStart, end: keyEnd },
+                value: valResult.data && valResult.data.tag
+            };
+            if (!helper.merge(valResult)) {
+                this.parts.push(part);
+                return helper.failWithData(Correctness.CERTAIN);
+            }
+            reader.skipWhitespace();
+            this.value.set(key.data, valResult.data.tag);
+            if (reader.peek() === COMPOUND_PAIR_SEP) {
+                reader.skip();
+                part.closeIdx = reader.cursor;
+                this.parts.push(part);
+                continue;
+            }
+            if (reader.peek() === COMPOUND_END) {
+                reader.skip();
+                part.closeIdx = reader.cursor;
+                this.parts.push(part);
+                break;
+            }
+            return helper.failWithData(Correctness.CERTAIN);
         }
-        return helper.succeed(2);
+        return helper.succeed(Correctness.CERTAIN);
     }
 }
