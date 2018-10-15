@@ -314,7 +314,7 @@ export class NBTTagCompound extends NBTTag {
                 helper.addErrors(NO_VAL.create(keyStart, reader.cursor));
                 return helper.failWithData(Correctness.CERTAIN);
             }
-            const valResult = parseAnyNBTTag(reader);
+            const valResult = parseAnyNBTTag(reader, [...this.path, key.data]);
             const part: KVPair = {
                 key: key.data,
                 keyRange: { start: keyStart, end: keyEnd },

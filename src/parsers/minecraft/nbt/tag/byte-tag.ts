@@ -5,7 +5,7 @@ import { NBTTag, ParseReturn } from "./nbt-tag";
 
 export const BYTE_TAG_SUFFIX = "b";
 
-export class NBTTagByte extends NBTTag<number> {
+export class NBTTagByte extends NBTTag {
     public tagType: "byte" = "byte";
 
     protected readTag(reader: StringReader): ParseReturn {

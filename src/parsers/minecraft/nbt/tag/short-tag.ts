@@ -5,7 +5,7 @@ import { NBTTag, ParseReturn } from "./nbt-tag";
 
 export const SHORT_TAG_SUFFIX = "s";
 
-export class NBTTagShort extends NBTTag<number> {
+export class NBTTagShort extends NBTTag {
     public tagType: "short" = "short";
 
     protected readTag(reader: StringReader): ParseReturn {

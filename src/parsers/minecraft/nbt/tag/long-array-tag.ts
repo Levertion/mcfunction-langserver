@@ -24,7 +24,7 @@ const EXCEPTIONS = {
     )
 };
 
-export class NBTTagLongArray extends NBTTag<NBTTagLong[]> {
+export class NBTTagLongArray extends NBTTag {
     public tagType: "long_array" = "long_array";
 
     public tagEq(tag: NBTTag<any>): boolean {

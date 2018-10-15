@@ -24,7 +24,7 @@ const EXCEPTIONS = {
     )
 };
 
-export class NBTTagIntArray extends NBTTag<NBTTagInt[]> {
+export class NBTTagIntArray extends NBTTag {
     public tagType: "int_array" = "int_array";
 
     public tagEq(tag: NBTTag<any>): boolean {

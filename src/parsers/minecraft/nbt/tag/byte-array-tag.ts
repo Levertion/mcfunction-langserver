@@ -24,7 +24,7 @@ const EXCEPTIONS = {
     )
 };
 
-export class NBTTagByteArray extends NBTTag<NBTTagByte[]> {
+export class NBTTagByteArray extends NBTTag {
     public tagType: "byte_array" = "byte_array";
 
     public tagEq(tag: NBTTag<any>): boolean {

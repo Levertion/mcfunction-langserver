@@ -16,19 +16,19 @@ import { NBTTagShort } from "./tag/short-tag";
 import { NBTTagString } from "./tag/string-tag";
 import { Correctness } from "./util/nbt-util";
 
-const parsers: Array<() => NBTTag> = [
-    () => new NBTTagByte(0),
-    () => new NBTTagShort(0),
-    () => new NBTTagLong(0),
-    () => new NBTTagFloat(0),
-    () => new NBTTagDouble(0),
-    () => new NBTTagInt(0),
-    () => new NBTTagByteArray([]),
-    () => new NBTTagIntArray([]),
-    () => new NBTTagLongArray([]),
-    () => new NBTTagCompound({}),
-    () => new NBTTagList([]),
-    () => new NBTTagString("")
+const parsers: Array<(path: string[]) => NBTTag> = [
+    path => new NBTTagByte(path),
+    path => new NBTTagShort(path),
+    path => new NBTTagLong(path),
+    path => new NBTTagFloat(path),
+    path => new NBTTagDouble(path),
+    path => new NBTTagInt(path),
+    path => new NBTTagByteArray(path),
+    path => new NBTTagIntArray(path),
+    path => new NBTTagLongArray(path),
+    path => new NBTTagCompound(path),
+    path => new NBTTagList(path),
+    path => new NBTTagString(path)
 ];
 
 export type AnyTagReturn = ReturnedInfo<NBTTag, CE>;
@@ -38,16 +38,16 @@ export interface CorrectInfo {
     tag: NBTTag;
 }
 export function parseAnyNBTTag(
-    reader: StringReader
+    reader: StringReader,
+    path: string[]
 ): ReturnedInfo<CorrectInfo, CE, CorrectInfo | undefined> {
     let info: CorrectInfo | undefined;
     let last: ParseReturn | undefined;
-
     const helper = new ReturnHelper();
     const start = reader.cursor;
-    for (const parserfunc of parsers) {
+    for (const parserFunc of parsers) {
         reader.cursor = start;
-        const tag = parserfunc();
+        const tag = parserFunc(path);
         const out = tag.parse(reader);
         if (
             out.data === Correctness.CERTAIN ||

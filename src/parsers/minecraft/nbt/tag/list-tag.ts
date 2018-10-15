@@ -19,7 +19,7 @@ const NOVAL = new CommandErrorBuilder(
     "Expected ']'"
 );
 
-export class NBTTagList extends NBTTag<Array<NBTTag<any>>> {
+export class NBTTagList extends NBTTag {
     public tagType: "list" = "list";
 
     public tagEq(tag: NBTTag<any>): boolean {

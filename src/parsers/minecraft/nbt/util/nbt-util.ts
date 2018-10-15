@@ -3,7 +3,7 @@ import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
 import { ReturnSuccess, SuggestResult } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
-import { NBTTag } from "../tag/nbt-tag";
+import { TagType } from "../tag/nbt-tag";
 import {
     isCompoundNode,
     isListNode,
@@ -133,7 +133,7 @@ export function createSuggestions(
     return helper.succeed();
 }
 
-export const tagid2Name: { [P in NBTTag<any>["tagType"]]: string } = {
+export const tagid2Name: { [Type in TagType]: string } = {
     byte: "byte",
     byte_array: "byte[]",
     compound: "compound",

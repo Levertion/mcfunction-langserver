@@ -5,7 +5,7 @@ import { NBTTag, ParseReturn } from "./nbt-tag";
 
 export const DOUBLE_TAG_SUFFIX = "d";
 
-export class NBTTagDouble extends NBTTag<number> {
+export class NBTTagDouble extends NBTTag {
     public tagType: "double" = "double";
 
     protected readTag(reader: StringReader): ParseReturn {

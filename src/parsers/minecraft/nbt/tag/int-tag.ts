@@ -3,7 +3,7 @@ import { ReturnHelper } from "../../../../misc-functions";
 import { Correctness, parseIntNBT } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
-export class NBTTagInt extends NBTTag<number> {
+export class NBTTagInt extends NBTTag {
     public tagType: "int" = "int";
 
     protected readTag(reader: StringReader): ParseReturn {

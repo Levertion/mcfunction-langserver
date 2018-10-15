@@ -5,7 +5,7 @@ import { NBTTag, ParseReturn } from "./nbt-tag";
 
 export const FLOAT_TAG_SUFFIX = "f";
 
-export class NBTTagFloat extends NBTTag<number> {
+export class NBTTagFloat extends NBTTag {
     public tagType: "float" = "float";
 
     protected readTag(reader: StringReader): ParseReturn {
