@@ -80,6 +80,7 @@ export class NBTTagCompound extends NBTTag {
     ): ReturnSuccess<undefined> {
         const helper = new ReturnHelper();
         if (this.openIndex === -1) {
+            // This should never happen
             createSuggestions(anyInfo.node, this.miscIndex);
             return helper.succeed();
         }
@@ -178,56 +179,6 @@ export class NBTTagCompound extends NBTTag {
             };
         }
     }
-
-    /* public valideAgainst(
-        auxnode: NBTNode,
-        info: NBTValidationInfo
-    ): ReturnedInfo<undefined, UnknownsError | CE> {
-        const helper = new ReturnHelper();
-        // Const superResponse = super.valideAgainst(auxnode, info);
-        if (!helper.merge(superResponse)) {
-            return helper.fail();
-        }
-        if (!isCompoundNode(auxnode)) {
-            // Mainly a type guard
-            return helper.fail();
-        }
-        const node = info.compoundMerge();
-        for (const k of this.kvpos) {
-            if (!info.extraChildren && !(k.key in (node.children || {}))) {
-                helper.addErrors(
-                    VALIDATION_ERRORS.noSuchChild.create(
-                        k.keyPos.start,
-                        k.valPos.end,
-                        k.key
-                    )
-                );
-            }
-            if (
-                node.children &&
-                k.key in node.children &&
-                node.children[k.key].description
-            ) {
-                helper.addActions({
-                    data: getHoverText(node.children[k.key]),
-                    high: k.keyPos.end,
-                    low: k.keyPos.start,
-                    type: "hover"
-                });
-            }
-        }
-        if (node.children) {
-            for (const c of Object.keys(node.children)) {
-                helper.addSuggestion(
-                    this.insertKeyPos,
-                    c,
-                    undefined,
-                    node.children[c].description
-                );
-            }
-        }
-        return helper.succeed();
-    } */
 
     protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();

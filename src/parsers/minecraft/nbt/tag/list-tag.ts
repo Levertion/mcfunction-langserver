@@ -1,19 +1,20 @@
+import { ListNode } from "mc-nbt-paths";
 import { CommandErrorBuilder } from "../../../../brigadier/errors";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
+import { ReturnSuccess } from "../../../../types";
 import { parseAnyNBTTag } from "../tag-parser";
+import { NodeInfo } from "../util/doc-walker-util";
 import {
+    Correctness,
+    getNBTSuggestions,
     LIST_END,
     LIST_START,
-    LIST_VALUE_SEP,
-    NBTErrorData
+    LIST_VALUE_SEP
 } from "../util/nbt-util";
+import { NBTWalker } from "../walker";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
-const MIXED = new CommandErrorBuilder(
-    "argument.nbt.list.mixed",
-    "Mixed value types"
-);
 const NOVAL = new CommandErrorBuilder(
     "argument.nbt.list.noval",
     "Expected ']'"
@@ -21,79 +22,73 @@ const NOVAL = new CommandErrorBuilder(
 
 export class NBTTagList extends NBTTag {
     public tagType: "list" = "list";
-
-    public tagEq(tag: NBTTag<any>): boolean {
-        if (tag.tagType !== this.tagType) {
-            return false;
+    private unclosed: number | undefined;
+    private values: NBTTag[] = [];
+    public validate(
+        anyInfo: NodeInfo,
+        walker: NBTWalker
+    ): ReturnSuccess<undefined> {
+        const helper = new ReturnHelper();
+        const result = this.sameType(anyInfo);
+        if (!helper.merge(result)) {
+            return helper.succeed();
         }
-        return (
-            this.value.length === (tag as NBTTagList).value.length &&
-            this.value.every((v, i) => v.tagEq((tag as NBTTagList).getVal()[i]))
-        );
+        const info = anyInfo as NodeInfo<ListNode>;
+        for (const value of this.values) {
+            helper.merge(value.validate(NBTWalker.getItem(info), walker));
+        }
+        if (typeof this.unclosed === "number") {
+            helper.merge(getNBTSuggestions(info.node.item, this.unclosed));
+        }
+        return helper.succeed();
     }
 
     protected readTag(reader: StringReader): ParseReturn {
-        const start = reader.cursor;
         const helper = new ReturnHelper();
-        const listStart = reader.expect(LIST_START);
-        if (!helper.merge(listStart)) {
-            return helper.failWithData({ correct: 0 });
-        }
-        if (!reader.canRead()) {
-            helper.addSuggestion(reader.cursor, LIST_END);
-            helper.addErrors(NOVAL.create(start, reader.cursor));
-            return helper.failWithData({ parsed: this, correct: 2 });
+        if (!helper.merge(reader.expect(LIST_START))) {
+            return helper.failWithData(Correctness.NO);
         }
         if (reader.peek() === LIST_END) {
             reader.skip();
-            return helper.succeed(2);
+            return helper.succeed(Correctness.CERTAIN);
         }
-        let type: NBTTag<any>["tagType"] | undefined;
-        let next = reader.peek();
-        while (next !== LIST_END) {
+        let index = 0;
+        while (true) {
+            this.unclosed = reader.cursor;
+            const start = reader.cursor;
             reader.skipWhitespace();
-
-            let value: NBTTag<any>;
-
-            const tag = parseAnyNBTTag(reader);
-            if (helper.merge(tag)) {
-                value = tag.data;
+            if (!reader.canRead()) {
+                helper.addSuggestion(reader.cursor, LIST_END);
+                helper.addErrors(NOVAL.create(start, reader.cursor));
+                return helper.failWithData(Correctness.MAYBE); // Could be byte array and friends
+            }
+            const value = parseAnyNBTTag(reader, [
+                ...this.path,
+                `[${index++}]`
+            ]);
+            if (helper.merge(value)) {
+                this.values.push(value.data.tag);
             } else {
-                if (tag.data.parsed) {
-                    this.value.push(tag.data.parsed);
-                }
-                return helper.failWithData<NBTErrorData>({
-                    correct: 2,
-                    parsed: this,
-                    path: [
-                        (this.value.length - 1).toString(),
-                        ...(tag.data.path || [])
-                    ]
-                });
+                return helper.failWithData(Correctness.CERTAIN);
             }
-
-            if (type === undefined) {
-                type = value.tagType;
-            } else if (type !== value.tagType) {
-                helper.addErrors(MIXED.create(start, reader.cursor));
-                return helper.failWithData({ parsed: this, correct: 2 });
-            }
-
-            this.value.push(value);
-
+            const preEnd = reader.cursor;
             reader.skipWhitespace();
-            const opt = reader.readOption(
-                [LIST_END, LIST_VALUE_SEP],
-                true,
-                undefined,
-                "option"
-            );
-            if (!helper.merge(opt)) {
-                return helper.failWithData({ parsed: this, correct: 2 });
-            } else {
-                next = opt.data;
+            if (reader.peek() === LIST_VALUE_SEP) {
+                reader.skip();
+                continue;
             }
+            if (reader.peek() === LIST_END) {
+                reader.skip();
+                this.unclosed = undefined;
+                return helper.succeed(Correctness.CERTAIN);
+            }
+            if (!reader.canRead()) {
+                helper.addSuggestion(reader.cursor, LIST_END);
+                helper.addSuggestion(reader.cursor, LIST_VALUE_SEP);
+            }
+            return helper
+                .addErrors(NOVAL.create(preEnd, reader.cursor))
+                .failWithData(Correctness.CERTAIN);
         }
-        return helper.succeed(2);
     }
 }

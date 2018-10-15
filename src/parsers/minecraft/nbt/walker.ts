@@ -1,4 +1,10 @@
-import { CompoundNode, NBTNode, RootNode, ValueList } from "mc-nbt-paths";
+import {
+    CompoundNode,
+    ListNode,
+    NBTNode,
+    RootNode,
+    ValueList
+} from "mc-nbt-paths";
 import { isString } from "util";
 import { NBTDocs } from "../../../data/types";
 import { runNodeFunction } from "./doc-walker-func";
@@ -29,6 +35,9 @@ function walkUnwrap<T extends NBTNode>(
 }
 
 export class NBTWalker {
+    public static getItem(info: NodeInfo<ListNode>): NodeInfo {
+        return { ...info, node: info.node.item };
+    }
     private static root = "root.json";
     private readonly docs: NBTDocs;
 
@@ -44,7 +53,6 @@ export class NBTWalker {
         if (!info) {
             return { path: "", node: { type: "no-nbt" } };
         }
-
         if (isRefInfo(info)) {
             return this.followNodePath(
                 this.resolveRef(info.node.ref, info.path),
@@ -159,7 +167,6 @@ export class NBTWalker {
         const reader = new ArrayReader(startPath);
         return this.followNodePath({ node, path }, reader, undefined);
     }
-
     public resolveRef(refText: string, curPath: string): NodeInfo | undefined {
         const [path, fragPath] = parseRefPath(refText, curPath);
         const reader = new ArrayReader(fragPath);
