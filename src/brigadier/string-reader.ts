@@ -121,7 +121,7 @@ export class StringReader {
             typed_keys(StringReader.bools)
         );
         if (!helper.merge(value)) {
-            if (value.data !== false) {
+            if (value.data !== undefined) {
                 return helper.fail(
                     EXCEPTIONS.INVALID_BOOL.create(
                         start,
@@ -212,12 +212,12 @@ export class StringReader {
         options: T[],
         quoteKind: QuotingKind = "both",
         completion?: CompletionItemKind
-    ): ReturnedInfo<T, CE, string | false> {
+    ): ReturnedInfo<T, CE, string | undefined> {
         const start = this.cursor;
         const helper = new ReturnHelper();
         const result = this.readOptionInner(quoteKind);
         // Reading failed, which must be due to an invalid quoted string
-        if (!helper.merge(result, false)) {
+        if (!helper.merge(result, { suggestions: false })) {
             if (result.data && !this.canRead()) {
                 const bestEffort = result.data;
                 helper.addSuggestions(
@@ -228,7 +228,7 @@ export class StringReader {
                         )
                 );
             }
-            return helper.failWithData<false>(false);
+            return helper.fail();
         }
         const valid = options.some(opt => opt === result.data);
         if (!this.canRead()) {
@@ -393,21 +393,23 @@ export class StringReader {
     }
 }
 
-function completionForString(
+export function completionForString(
     value: string,
     start: number,
     quoting: QuotingKind,
     kind?: CompletionItemKind
 ): Suggestion {
-    return {
-        kind,
-        start,
-        text:
-            quoting !== "no" &&
-            (quoting === "yes" || value.includes('"') || value.includes("\\"))
-                ? QUOTE + escapeQuotes(value) + QUOTE
-                : value
-    };
+    return { kind, start, text: quoteIfNeeded(value, quoting) };
+}
+
+export function quoteIfNeeded(
+    value: string,
+    quoting: QuotingKind = "both"
+): string {
+    return quoting !== "no" &&
+        (quoting === "yes" || value.includes('"') || value.includes("\\"))
+        ? QUOTE + escapeQuotes(value) + QUOTE
+        : value;
 }
 
 function escapeQuotes(value: string): string {

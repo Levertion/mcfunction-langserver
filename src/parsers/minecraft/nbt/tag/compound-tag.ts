@@ -1,21 +1,18 @@
-import { NBTNode, NoPropertyNode } from "mc-nbt-paths";
+import { CompoundNode, NBTNode } from "mc-nbt-paths";
 import { __values } from "tslib";
+import { CompletionItemKind } from "vscode-languageserver";
 import {
     CommandError,
     CommandErrorBuilder
 } from "../../../../brigadier/errors";
-import { StringReader } from "../../../../brigadier/string-reader";
-import { ReturnHelper } from "../../../../misc-functions";
-import { CE, LineRange, ReturnedInfo, ReturnSuccess } from "../../../../types";
-import { parseAnyNBTTag } from "../tag-parser";
 import {
-    isCompoundInfo,
-    isCompoundNode,
-    isTypedInfo,
-    NBTValidationInfo,
-    NodeInfo,
-    VALIDATION_ERRORS
-} from "../util/doc-walker-util";
+    quoteIfNeeded,
+    StringReader
+} from "../../../../brigadier/string-reader";
+import { ReturnHelper } from "../../../../misc-functions";
+import { LineRange, ReturnSuccess, SubAction } from "../../../../types";
+import { parseAnyNBTTag } from "../tag-parser";
+import { NodeInfo } from "../util/doc-walker-util";
 import {
     COMPOUND_END,
     COMPOUND_KEY_VALUE_SEP,
@@ -23,9 +20,7 @@ import {
     COMPOUND_START,
     Correctness,
     createSuggestions,
-    getHoverText,
-    getNBTSuggestions,
-    NBTErrorData
+    getHoverText
 } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
 import { NBTTag, ParseReturn } from "./nbt-tag";
@@ -41,18 +36,32 @@ const NO_VAL = new CommandErrorBuilder(
 
 export interface KVPair {
     /** The position the last part was closed at */
-    closeIdx?: number | false;
+    closeIdx?: number;
     key?: string;
     keyRange: LineRange;
     value?: NBTTag;
 }
 
+export const UNKNOWN = new CommandErrorBuilder(
+    "argument.nbt.compound.unknown",
+    "Unknown child '%s'"
+);
+export const DUPLICATE = new CommandErrorBuilder(
+    "argument.nbt.compound.duplicate",
+    "'%s' is already defined"
+);
+
 export interface UnknownsError extends CommandError {
     path: string[];
 }
 
+/**
+ * TODO: refactor (again)!
+ * Help welcome
+ */
 export class NBTTagCompound extends NBTTag {
     public tagType: "compound" = "compound";
+    private miscIndex = -1;
     private openIndex = -1;
     /**
      * If empty => no values, closed instantly (e.g. `{}`, `{ }`)
@@ -66,24 +75,111 @@ export class NBTTagCompound extends NBTTag {
     private value: Map<string, NBTTag> = new Map();
 
     public validate(
-        node: NodeInfo,
+        anyInfo: NodeInfo,
         walker: NBTWalker
     ): ReturnSuccess<undefined> {
         const helper = new ReturnHelper();
-        let stop = false;
-        if (!this.opens) {
-            stop = true;
-            createSuggestions(node.node, this.openIndex);
-        }
-        const result = this.sameType(node);
-        if (!helper.merge(result)) {
-            stop = true;
+        if (this.openIndex === -1) {
+            createSuggestions(anyInfo.node, this.miscIndex);
             return helper.succeed();
         }
+        const result = this.sameType(anyInfo);
+        if (!helper.merge(result)) {
+            return helper.succeed();
+        }
+        const info = anyInfo as NodeInfo<CompoundNode>;
+        const hoverText = getHoverText(anyInfo.node);
+        if (this.parts.length === 0) {
+            helper.addActions({
+                // Add the hover over the entire object
+                data: hoverText,
+                high: this.miscIndex,
+                low: this.openIndex,
+                type: "hover"
+            });
+            return helper.succeed();
+        }
+        helper.addActions({
+            // Add hover to the open `{`
+            data: hoverText,
+            high: this.openIndex,
+            low: this.openIndex,
+            type: "hover"
+        });
+        for (let index = 0; index < this.parts.length; index++) {
+            const part = this.parts[index];
+            const final = index === this.parts.length - 1;
+            if (part.key) {
+                if (part.value) {
+                    const child = walker.getChildWithName(info, part.key);
+                    if (child) {
+                        part.value.validate(child, walker);
+                        helper.addActions(
+                            getKeyHover(part.keyRange, child.node)
+                        );
+                    } else {
+                        const error: UnknownsError = {
+                            ...UNKNOWN.create(
+                                part.keyRange.start,
+                                part.keyRange.end,
+                                part.key
+                            ),
+                            path: [...this.path, part.key]
+                        };
+                        helper.addErrors(error);
+                    }
+                } else {
+                    helper.merge(handleNoValue(part));
+                }
+            } else {
+                helper.merge(handleNoValue(part));
+            }
+            if (final && part.value && typeof part.closeIdx === "number") {
+                helper.addActions({
+                    // Add hover to the close `}`
+                    data: hoverText,
+                    high: part.closeIdx,
+                    low: part.closeIdx,
+                    type: "hover"
+                });
+            }
+        }
         return helper.succeed();
+        function handleNoValue(part: KVPair): ReturnSuccess<undefined> {
+            const keyHelper = new ReturnHelper();
+            if (part.key) {
+                const children = walker.getChildren(info);
+                if (part.closeIdx === undefined) {
+                    for (const childName of Object.keys(children)) {
+                        if (childName.startsWith(part.key)) {
+                            keyHelper.addSuggestions({
+                                description: children[childName].description,
+                                kind: CompletionItemKind.Field,
+                                start: part.keyRange.start,
+                                text: quoteIfNeeded(childName)
+                            });
+                        }
+                    }
+                }
+                const child = children[part.key];
+                if (child) {
+                    keyHelper.addActions(getKeyHover(part.keyRange, child));
+                }
+            }
+            // tslint:disable-next-line:helper-return
+            return keyHelper.succeed();
+        }
+        function getKeyHover(range: LineRange, child: NBTNode): SubAction {
+            return {
+                data: getHoverText(child),
+                high: range.end,
+                low: range.start,
+                type: "hover"
+            };
+        }
     }
 
-    public valideAgainst(
+    /* public valideAgainst(
         auxnode: NBTNode,
         info: NBTValidationInfo
     ): ReturnedInfo<undefined, UnknownsError | CE> {
@@ -131,17 +227,19 @@ export class NBTTagCompound extends NBTTag {
             }
         }
         return helper.succeed();
-    }
+    } */
 
     protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const start = reader.cursor;
+        this.miscIndex = start;
         if (!helper.merge(reader.expect(COMPOUND_START))) {
             return helper.failWithData(Correctness.NO);
         }
         this.openIndex = start;
         reader.skipWhitespace();
         if (reader.peek() === COMPOUND_END) {
+            this.miscIndex = reader.cursor;
             reader.skip();
             return helper.succeed(Correctness.CERTAIN);
         }
@@ -166,18 +264,18 @@ export class NBTTagCompound extends NBTTag {
             if (!helper.merge(key)) {
                 const keypart: KVPair = {
                     key: key.data,
-                    keyRange: {
-                        end: reader.cursor,
-                        start: keyStart
-                    }
+                    keyRange: { end: keyEnd, start: keyStart }
                 };
                 if (reader.canRead()) {
-                    keypart.closeIdx = false;
+                    keypart.closeIdx = reader.cursor;
                 }
                 this.parts.push(keypart);
                 return helper.failWithData(Correctness.CERTAIN);
             }
             reader.skipWhitespace();
+            if (this.value.has(key.data)) {
+                helper.addErrors(DUPLICATE.create(keyStart, keyEnd, key.data));
+            }
             if (!reader.canRead()) {
                 this.parts.push({
                     key: key.data,
@@ -196,7 +294,7 @@ export class NBTTagCompound extends NBTTag {
             if (!helper.merge(kvs)) {
                 // E.g. '{"hello",' etc.
                 this.parts.push({
-                    closeIdx: false,
+                    closeIdx: reader.cursor,
                     key: key.data,
                     keyRange: {
                         end: keyEnd,
@@ -228,20 +326,20 @@ export class NBTTagCompound extends NBTTag {
             }
             reader.skipWhitespace();
             this.value.set(key.data, valResult.data.tag);
-            if (reader.peek() === COMPOUND_PAIR_SEP) {
+            if (
+                reader.peek() === COMPOUND_PAIR_SEP ||
+                reader.peek() === COMPOUND_END
+            ) {
                 reader.skip();
                 part.closeIdx = reader.cursor;
                 this.parts.push(part);
+                if (reader.peek() === COMPOUND_PAIR_SEP) {
+                    this.miscIndex = reader.cursor;
+                    return helper.succeed(Correctness.CERTAIN);
+                }
                 continue;
-            }
-            if (reader.peek() === COMPOUND_END) {
-                reader.skip();
-                part.closeIdx = reader.cursor;
-                this.parts.push(part);
-                break;
             }
             return helper.failWithData(Correctness.CERTAIN);
         }
-        return helper.succeed(Correctness.CERTAIN);
     }
 }
