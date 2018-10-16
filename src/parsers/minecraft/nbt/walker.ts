@@ -35,9 +35,6 @@ function walkUnwrap<T extends NBTNode>(
 }
 
 export class NBTWalker {
-    public static getItem(info: NodeInfo<ListNode>): NodeInfo {
-        return { ...info, node: info.node.item };
-    }
     private static root = "root.json";
     private readonly docs: NBTDocs;
 
@@ -166,6 +163,12 @@ export class NBTWalker {
         const node = walkUnwrap(this.docs.get(path));
         const reader = new ArrayReader(startPath);
         return this.followNodePath({ node, path }, reader, undefined);
+    }
+    public getItem(info: NodeInfo<ListNode>): NodeInfo {
+        return this.followNodePath(
+            { ...info, node: info.node.item },
+            new ArrayReader([])
+        );
     }
     public resolveRef(refText: string, curPath: string): NodeInfo | undefined {
         const [path, fragPath] = parseRefPath(refText, curPath);

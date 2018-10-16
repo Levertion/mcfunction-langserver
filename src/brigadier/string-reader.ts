@@ -51,7 +51,7 @@ const EXCEPTIONS = {
     )
 };
 
-const QUOTE = '"';
+export const QUOTE = '"';
 const ESCAPE = "\\";
 export type QuotingKind = "both" | "yes" | "no";
 export class StringReader {

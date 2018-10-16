@@ -1,19 +1,17 @@
 import { StringReader } from "../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../misc-functions";
 import { CE, ReturnedInfo } from "../../../types";
-import { NBTTagByteArray } from "./tag/byte-array-tag";
 import { NBTTagByte } from "./tag/byte-tag";
 import { NBTTagCompound } from "./tag/compound-tag";
 import { NBTTagDouble } from "./tag/double-tag";
 import { NBTTagFloat } from "./tag/float-tag";
-import { NBTTagIntArray } from "./tag/int-array-tag";
 import { NBTTagInt } from "./tag/int-tag";
 import { NBTTagList } from "./tag/list-tag";
-import { NBTTagLongArray } from "./tag/long-array-tag";
 import { NBTTagLong } from "./tag/long-tag";
 import { NBTTag, ParseReturn } from "./tag/nbt-tag";
 import { NBTTagShort } from "./tag/short-tag";
 import { NBTTagString } from "./tag/string-tag";
+import { TypedListTag } from "./tag/typed-list-tag";
 import { Correctness } from "./util/nbt-util";
 
 const parsers: Array<(path: string[]) => NBTTag> = [
@@ -23,9 +21,7 @@ const parsers: Array<(path: string[]) => NBTTag> = [
     path => new NBTTagFloat(path),
     path => new NBTTagDouble(path),
     path => new NBTTagInt(path),
-    path => new NBTTagByteArray(path),
-    path => new NBTTagIntArray(path),
-    path => new NBTTagLongArray(path),
+    path => new TypedListTag(path),
     path => new NBTTagCompound(path),
     path => new NBTTagList(path),
     path => new NBTTagString(path)

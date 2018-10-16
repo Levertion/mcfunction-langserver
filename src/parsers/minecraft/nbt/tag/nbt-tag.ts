@@ -10,8 +10,8 @@ import {
 import { Correctness } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
 
+export const emptyRange: LineRange = { start: 0, end: 0 };
 export type ParseReturn = ReturnedInfo<Correctness, CE, Correctness>;
-
 export type TagType =
     | "byte"
     | "short"
@@ -27,9 +27,9 @@ export type TagType =
     | "compound";
 
 export abstract class NBTTag {
-    public abstract readonly tagType: TagType;
+    public abstract tagType: TagType;
     protected path: string[];
-    protected range: LineRange = { start: 0, end: 0 };
+    protected range: LineRange = emptyRange;
 
     public constructor(path: string[]) {
         this.path = path;
@@ -53,23 +53,30 @@ export abstract class NBTTag {
 
     protected abstract readTag(reader: StringReader): ParseReturn;
 
-    protected sameType(node: NodeInfo): ReturnedInfo<undefined> {
+    protected sameType(
+        node: NodeInfo,
+        type: TagType = this.tagType
+    ): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
-        if (
-            !isTypedInfo(node) ||
-            (node.node as NoPropertyNode).type === this.tagType
-        ) {
+        if (!isTypedInfo(node) || (node.node as NoPropertyNode).type === type) {
             return helper.fail(
                 VALIDATION_ERRORS.wrongType.create(
                     this.range.start,
                     this.range.end,
                     (node.node as NoPropertyNode).type || "",
-                    this.tagType
+                    type
                 )
             );
         }
         return helper.succeed();
     }
+
+    protected suggestions(
+        start: number,
+        startText: string,
+        node: NodeInfo,
+        walker: NBTWalker
+    ) {}
 }
 /*  public valideAgainst(
         node: NBTNode,
