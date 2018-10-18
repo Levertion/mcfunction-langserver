@@ -8,22 +8,17 @@ import { NBTWalker } from "../walker";
 import { BaseList } from "./lists";
 import { emptyRange, ParseReturn } from "./nbt-tag";
 
-const types: Array<
-    [
-        "B" | "I" | "L",
-        "byte" | "int" | "long",
-        "byte_array" | "int_array" | "long_array"
-    ]
-> = [
+type ArrayType = "byte_array" | "int_array" | "long_array";
+const types: Array<["B" | "I" | "L", "byte" | "int" | "long", ArrayType]> = [
     ["B", "byte", "byte_array"],
     ["I", "int", "int_array"],
     ["L", "long", "long_array"]
 ];
 
-export class TypedListTag extends BaseList {
-    // This should always be overwritten by the time validate is called
-    public tagType: "byte_array" | "int_array" | "long_array" = "byte_array";
+export class NBTTagTypedList extends BaseList {
     protected start: LineRange = emptyRange;
+    // This should always be overwritten by the time validate is called
+    protected tagType: ArrayType = "byte_array";
     /** Only used for when we start incorrectly */
     private remaining: string | undefined;
     private startIndex = -1;

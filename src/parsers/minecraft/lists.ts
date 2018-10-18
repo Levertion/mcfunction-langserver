@@ -25,19 +25,14 @@ export class ListParser implements Parser {
         const helper = new ReturnHelper(info);
         const optResult = reader.readOption(
             this.options,
-            false,
-            CompletionItemKind.EnumMember,
-            "no"
+            "no",
+            CompletionItemKind.EnumMember
         );
         if (helper.merge(optResult)) {
             return helper.succeed();
         } else {
             return helper.fail(
-                this.error.create(
-                    start,
-                    reader.cursor,
-                    optResult.data.toString()
-                )
+                this.error.create(start, reader.cursor, optResult.data || "")
             );
         }
     }

@@ -1,12 +1,13 @@
 import { NBTNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { ReturnSuccess, SuggestResult } from "../../../../types";
+import { ReturnedInfo, ReturnSuccess, SuggestResult } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import { TagType } from "../tag/nbt-tag";
 import {
     isCompoundNode,
     isListNode,
+    isNoNBTNode,
     isRootNode,
     isTypedNode
 } from "./doc-walker-util";
@@ -33,6 +34,26 @@ export enum Correctness {
     NO = 0,
     MAYBE = 1,
     CERTAIN = 2
+}
+
+export function tryExponential(reader: StringReader): ReturnedInfo<number> {
+    const helper = new ReturnHelper();
+    const f = reader.readFloat();
+    if (!helper.merge(f)) {
+        return helper.fail();
+    }
+    const cur = reader.peek();
+    if (!(cur === "e" || cur === "E")) {
+        return helper.fail();
+    }
+    reader.skip();
+    // Returns beyond here because it must be scientific notation
+    const exp = reader.readInt();
+    if (helper.merge(exp)) {
+        return helper.succeed(f.data * Math.pow(10, exp.data));
+    } else {
+        return helper.fail();
+    }
 }
 
 const parseNumberNBT = (float: boolean) => (reader: StringReader) => {
@@ -155,7 +176,7 @@ export const getHoverText = (node: NBTNode) => {
     if (isRootNode(node)) {
         return "";
     }
-    if (node.type === "no-nbt") {
+    if (isNoNBTNode(node)) {
         return "";
     }
     return `(${tagid2Name[node.type]}) ${node.description || ""}`;

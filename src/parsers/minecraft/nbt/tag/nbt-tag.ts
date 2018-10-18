@@ -1,13 +1,24 @@
-import { NoPropertyNode } from "mc-nbt-paths";
+import { NBTNode, NoPropertyNode } from "mc-nbt-paths";
+import {
+    BlankCommandError,
+    fillBlankError
+} from "../../../../brigadier/errors";
 import { StringReader } from "../../../../brigadier/string-reader";
-import { ReturnHelper } from "../../../../misc-functions";
-import { CE, LineRange, ReturnedInfo, ReturnSuccess } from "../../../../types";
+import { fillBlanks, ReturnHelper } from "../../../../misc-functions";
+import {
+    CE,
+    LineRange,
+    ReturnedInfo,
+    ReturnSuccess,
+    SubAction
+} from "../../../../types";
 import {
     isTypedInfo,
+    isTypedNode,
     NodeInfo,
     VALIDATION_ERRORS
 } from "../util/doc-walker-util";
-import { Correctness } from "../util/nbt-util";
+import { Correctness, getHoverText } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
 
 export const emptyRange: LineRange = { start: 0, end: 0 };
@@ -27,9 +38,9 @@ export type TagType =
     | "compound";
 
 export abstract class NBTTag {
-    public abstract tagType: TagType;
     protected path: string[];
     protected range: LineRange = emptyRange;
+    protected abstract tagType: TagType;
 
     public constructor(path: string[]) {
         this.path = path;
@@ -46,10 +57,31 @@ export abstract class NBTTag {
         return out;
     }
 
-    public abstract validate(
+    public validate(
         node: NodeInfo,
-        walker: NBTWalker
-    ): ReturnSuccess<undefined>;
+        // tslint:disable-next-line:variable-name
+        _walker: NBTWalker
+    ): ReturnSuccess<undefined> {
+        const helper = new ReturnHelper();
+        const result = this.sameType(node);
+        if (!helper.merge(result)) {
+            return helper.succeed();
+        }
+        helper.addActions(this.rangeHover(node.node));
+        return helper.succeed();
+    }
+
+    protected rangeHover(
+        node: NBTNode,
+        range: LineRange = this.range
+    ): SubAction {
+        return {
+            data: getHoverText(node),
+            high: range.end,
+            low: range.start,
+            type: "hover"
+        };
+    }
 
     protected abstract readTag(reader: StringReader): ParseReturn;
 
@@ -58,7 +90,7 @@ export abstract class NBTTag {
         type: TagType = this.tagType
     ): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
-        if (!isTypedInfo(node) || (node.node as NoPropertyNode).type === type) {
+        if (!isTypedInfo(node) || (node.node as NoPropertyNode).type !== type) {
             return helper.fail(
                 VALIDATION_ERRORS.wrongType.create(
                     this.range.start,
@@ -70,46 +102,4 @@ export abstract class NBTTag {
         }
         return helper.succeed();
     }
-
-    protected suggestions(
-        start: number,
-        startText: string,
-        node: NodeInfo,
-        walker: NBTWalker
-    ) {}
 }
-/*  public valideAgainst(
-        node: NBTNode,
-        // tslint:disable-next-line:variable-name _starting names is the only way to disable unused variable warnings
-        _info?: NBTValidationInfo
-    ): ReturnedInfo<undefined> {
-        const helper = new ReturnHelper();
-        if (!isTypedNode(node)) {
-            return helper.fail(
-                VALIDATION_ERRORS.wrongType.create(
-                    this.range.start,
-                    this.range.end,
-                    "",
-                    this.tagType
-                )
-            );
-        } else if (node.type !== this.tagType) {
-            return helper.fail(
-                VALIDATION_ERRORS.wrongType.create(
-                    this.range.start,
-                    this.range.end,
-                    node.type,
-                    this.tagType
-                )
-            );
-        }
-        if (node.description) {
-            helper.addActions({
-                data: getHoverText(node),
-                high: this.range.end,
-                low: this.range.start,
-                type: "hover"
-            });
-        }
-        return helper.succeed();
-    } */

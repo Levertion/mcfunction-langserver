@@ -1,27 +1,17 @@
 import { StringReader } from "../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../misc-functions";
 import { CE, ReturnedInfo } from "../../../types";
-import { NBTTagByte } from "./tag/byte-tag";
 import { NBTTagCompound } from "./tag/compound-tag";
-import { NBTTagDouble } from "./tag/double-tag";
-import { NBTTagFloat } from "./tag/float-tag";
-import { NBTTagInt } from "./tag/int-tag";
 import { NBTTagList } from "./tag/list-tag";
-import { NBTTagLong } from "./tag/long-tag";
 import { NBTTag, ParseReturn } from "./tag/nbt-tag";
-import { NBTTagShort } from "./tag/short-tag";
+import { NBTTagNumber } from "./tag/number";
 import { NBTTagString } from "./tag/string-tag";
-import { TypedListTag } from "./tag/typed-list-tag";
+import { NBTTagTypedList } from "./tag/typed-list-tag";
 import { Correctness } from "./util/nbt-util";
 
 const parsers: Array<(path: string[]) => NBTTag> = [
-    path => new NBTTagByte(path),
-    path => new NBTTagShort(path),
-    path => new NBTTagLong(path),
-    path => new NBTTagFloat(path),
-    path => new NBTTagDouble(path),
-    path => new NBTTagInt(path),
-    path => new TypedListTag(path),
+    path => new NBTTagNumber(path),
+    path => new NBTTagTypedList(path),
     path => new NBTTagCompound(path),
     path => new NBTTagList(path),
     path => new NBTTagString(path)
@@ -47,7 +37,7 @@ export function parseAnyNBTTag(
         const out = tag.parse(reader);
         if (
             out.data === Correctness.CERTAIN ||
-            out.data < ((info && info.correctness) || Correctness.NO)
+            out.data > ((info && info.correctness) || Correctness.NO)
         ) {
             info = { correctness: out.data, tag };
             last = out;

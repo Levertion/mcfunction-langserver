@@ -60,7 +60,7 @@ export interface UnknownsError extends CommandError {
  * Help welcome
  */
 export class NBTTagCompound extends NBTTag {
-    public tagType: "compound" = "compound";
+    protected tagType: "compound" = "compound";
     private miscIndex = -1;
     private openIndex = -1;
     /**
