@@ -14,7 +14,7 @@ interface SuggestFuncs {
 }
 
 type PathFunc = (
-    parsed: NBTTag<any> | undefined,
+    parsed: NBTTag | undefined,
     nbtPath: string[],
     node: FunctionNode,
     args: any
@@ -28,7 +28,7 @@ const pathsFuncs: PathFunctions = {
 export function runNodeFunction(
     nbtPath: string[],
     node: FunctionNode,
-    parsed: NBTTag<any> | undefined
+    parsed: NBTTag | undefined
 ): string {
     return pathsFuncs[node.function.id](
         parsed,
@@ -47,12 +47,11 @@ interface InsertStringNBTArgs {
 }
 
 function insertStringNBT(
-    parsed: NBTTag<any> | undefined,
+    parsed: NBTTag | undefined,
     nbtPath: string[],
     _: FunctionNode,
     args: InsertStringNBTArgs
 ): string {
-    // Not sure what this is doing
     if (!parsed) {
         return args.default;
     }
@@ -62,7 +61,7 @@ function insertStringNBT(
     const out = getNBTTagFromTree(parsed, newRef);
     return !out || !(out instanceof NBTTagString)
         ? args.default
-        : sprintf(args.ref, out.getVal());
+        : sprintf(args.ref, out.getValue());
 }
 
 // Suggest function

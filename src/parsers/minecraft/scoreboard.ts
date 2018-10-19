@@ -42,12 +42,7 @@ export const objectiveParser: Parser = {
             const scoreboardData = info.data.localData.nbt.scoreboard;
             if (scoreboardData) {
                 const options = scoreboardData.data.Objectives.map(v => v.Name);
-                const result = reader.readOption(
-                    options,
-                    false,
-                    undefined,
-                    "no"
-                );
+                const result = reader.readOption(options, "no");
                 if (helper.merge(result)) {
                     if (!info.suggesting) {
                         for (const objective of scoreboardData.data
@@ -117,8 +112,6 @@ export const teamParser: Parser = {
                 const options = scoreboardData.data.Teams;
                 const result = reader.readOption(
                     options.map(v => v.Name),
-                    false,
-                    undefined,
                     "no"
                 );
                 if (helper.merge(result)) {

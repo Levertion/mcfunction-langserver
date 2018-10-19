@@ -93,6 +93,37 @@ export class StringReader {
         this.cursor += str.length;
         return helper.succeed();
     }
+
+    public expectOption(
+        ...options: string[]
+    ): ReturnedInfo<string, CE, undefined> {
+        const helper = new ReturnHelper();
+        const start = this.cursor;
+        let out: string | undefined;
+        for (const s of options) {
+            if (
+                helper.merge(this.expect(s), {
+                    suggestions: true
+                })
+            ) {
+                if (!out || out.length < s.length) {
+                    out = s;
+                }
+                this.cursor = start;
+            }
+        }
+        if (!out) {
+            return helper.fail(
+                EXCEPTIONS.EXPECTED_STRING_FROM.create(
+                    start,
+                    start + Math.max(...options.map(v => v.length))
+                )
+            );
+        }
+        this.cursor += out.length;
+        return helper.succeed(out);
+    }
+
     public getRead(): string {
         return this.string.substring(0, this.cursor);
     }

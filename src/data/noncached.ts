@@ -1,8 +1,8 @@
-import { nbtDocs, NBTNode } from "mc-nbt-paths";
+import { nbtDocs, NBTNode, ValueList } from "mc-nbt-paths";
 import { NBTDocs, NonCacheable } from "./types";
 
 export function loadNBTDocs(): NBTDocs {
-    const nbtData = new Map<string, NBTNode>();
+    const nbtData = new Map<string, NBTNode | ValueList>();
     Object.keys(nbtDocs).forEach(k => nbtData.set(k, nbtDocs[k]));
     return nbtData;
 }

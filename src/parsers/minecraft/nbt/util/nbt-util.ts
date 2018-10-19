@@ -64,7 +64,7 @@ const parseNumberNBT = (float: boolean) => (reader: StringReader) => {
         if (!helper.merge(f)) {
             throw undefined; // This gets caught
         }
-        const e = reader.readOption(["E", "e"], true, undefined, "option");
+        const e = reader.expectOption("E", "e");
         if (!helper.merge(e)) {
             throw undefined; // This gets caught
         }

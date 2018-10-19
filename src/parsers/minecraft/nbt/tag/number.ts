@@ -45,10 +45,14 @@ const ranges: {
 };
 
 export class NBTTagNumber extends NBTTag {
-    public value: number | undefined;
     protected tagType: NumberType = "byte";
+    protected value = 0;
     private float = false;
     private suffix: string | undefined;
+
+    public getValue(): number {
+        return this.value;
+    }
 
     public readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
@@ -78,6 +82,11 @@ export class NBTTagNumber extends NBTTag {
         } else {
             return helper.succeed(Correctness.NO);
         }
+    }
+
+    public setValue(val: number): this {
+        this.value = val;
+        return this;
     }
 
     public validate(node: NodeInfo): ReturnSuccess<undefined> {

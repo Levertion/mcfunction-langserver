@@ -24,6 +24,10 @@ export abstract class BaseList extends NBTTag {
     protected unclosed: number | undefined;
     protected values: NBTTag[] = [];
 
+    public getValue(): NBTTag[] {
+        return this.values;
+    }
+
     public parseInner(reader: StringReader): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
         if (reader.peek() === LIST_END) {
@@ -69,6 +73,11 @@ export abstract class BaseList extends NBTTag {
             }
             return helper.fail(NOVAL.create(preEnd, reader.cursor));
         }
+    }
+
+    public setValue(val: NBTTag[]): this {
+        this.values = val;
+        return this;
     }
 
     public validateWith(
