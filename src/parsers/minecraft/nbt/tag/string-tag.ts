@@ -4,15 +4,24 @@ import { Correctness } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 export class NBTTagString extends NBTTag {
-    public tagType: "string" = "string";
-    public value: string | undefined;
+    protected tagType: "string" = "string";
+    protected value = "";
+
+    public getValue(): string {
+        return this.value;
+    }
+
+    public setValue(val: string): this {
+        this.value = val;
+        return this;
+    }
 
     protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const quoted = reader.peek() === QUOTE;
         const str = reader.readString();
-        this.value = str.data;
         if (helper.merge(str)) {
+            this.value = str.data;
             if (quoted) {
                 return helper.succeed(Correctness.CERTAIN);
             }

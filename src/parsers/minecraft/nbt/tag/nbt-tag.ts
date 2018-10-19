@@ -1,10 +1,6 @@
 import { NBTNode, NoPropertyNode } from "mc-nbt-paths";
-import {
-    BlankCommandError,
-    fillBlankError
-} from "../../../../brigadier/errors";
 import { StringReader } from "../../../../brigadier/string-reader";
-import { fillBlanks, ReturnHelper } from "../../../../misc-functions";
+import { ReturnHelper } from "../../../../misc-functions";
 import {
     CE,
     LineRange,
@@ -14,7 +10,6 @@ import {
 } from "../../../../types";
 import {
     isTypedInfo,
-    isTypedNode,
     NodeInfo,
     VALIDATION_ERRORS
 } from "../util/doc-walker-util";
@@ -49,6 +44,8 @@ export abstract class NBTTag {
         return this.range;
     }
 
+    public abstract getValue(): any;
+
     public parse(reader: StringReader): ParseReturn {
         this.range.start = reader.cursor;
         const out = this.readTag(reader);
@@ -56,6 +53,8 @@ export abstract class NBTTag {
         // tslint:disable:helper-return
         return out;
     }
+
+    public abstract setValue(val: any): this;
 
     public validate(
         node: NodeInfo,

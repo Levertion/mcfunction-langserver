@@ -61,6 +61,7 @@ export interface UnknownsError extends CommandError {
  */
 export class NBTTagCompound extends NBTTag {
     protected tagType: "compound" = "compound";
+    protected value: Map<string, NBTTag> = new Map();
     private miscIndex = -1;
     private openIndex = -1;
     /**
@@ -72,7 +73,15 @@ export class NBTTagCompound extends NBTTag {
      * character after or within the strin
      */
     private parts: KVPair[] = [];
-    private value: Map<string, NBTTag> = new Map();
+
+    public getValue(): Map<string, NBTTag> {
+        return this.value;
+    }
+
+    public setValue(val: Map<string, NBTTag>): this {
+        this.value = val;
+        return this;
+    }
 
     public validate(
         anyInfo: NodeInfo,

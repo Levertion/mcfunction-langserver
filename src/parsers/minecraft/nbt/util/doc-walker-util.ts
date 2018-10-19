@@ -13,7 +13,7 @@ import * as url from "url";
 import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
 import { CommandErrorBuilder } from "../../../../brigadier/errors";
 import { NBTTagCompound } from "../tag/compound-tag";
-import { NBTTagList } from "../tag/list-tag";
+import { BaseList } from "../tag/lists";
 import { NBTTag } from "../tag/nbt-tag";
 
 export const parseRefPath = (
@@ -34,15 +34,15 @@ export const parseRefPath = (
 };
 
 export function getNBTTagFromTree(
-    tag: NBTTag<any>,
+    tag: NBTTag,
     nbtPath: string[]
-): NBTTag<any> | undefined {
-    let lastTag = tag;
+): NBTTag | undefined {
+    let lastTag: NBTTag | undefined = tag;
     for (const s of nbtPath) {
-        if (lastTag.tagType === "list" && /\d+/.test(s)) {
-            lastTag = (tag as NBTTagList).getVal()[parseInt(s, 10)];
-        } else if (lastTag.tagType === "compound") {
-            lastTag = (tag as NBTTagCompound).getVal()[s];
+        if (lastTag instanceof BaseList && /\d+/.test(s)) {
+            lastTag = lastTag.getValue()[parseInt(s, 10)];
+        } else if (lastTag instanceof NBTTagCompound) {
+            lastTag = lastTag.getValue().get(s);
         } else {
             return undefined;
         }
