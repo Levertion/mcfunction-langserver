@@ -263,7 +263,7 @@ function parseProperties(
             );
             const propKey = propParse.data;
             const propSuccessful = helper.merge(propParse);
-            if (propKey === false) {
+            if (propKey === undefined) {
                 // Strange order allows better type checker reasoning
                 // Parsing failed
                 return helper.fail();
@@ -309,7 +309,7 @@ function parseProperties(
             );
             const valueSuccessful = helper.merge(valueParse);
             const value = valueParse.data;
-            if (value === false) {
+            if (value === undefined) {
                 return helper.fail();
             }
             const error = errors.invalid.create(
