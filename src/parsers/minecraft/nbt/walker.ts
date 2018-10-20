@@ -20,12 +20,13 @@ import {
 } from "./util/doc-walker-util";
 
 function walkUnwrap(node: NBTNode | undefined): NBTNode;
+function walkUnwrap(node: ValueList | undefined): ValueList;
 function walkUnwrap<T extends NBTNode>(
     node: NodeInfo<T> | undefined
 ): NodeInfo<T>;
 function walkUnwrap<T extends NBTNode>(
-    node: NBTNode | NodeInfo<T> | undefined
-): NBTNode | NodeInfo<T> {
+    node: ValueList | NBTNode | NodeInfo<T> | undefined
+): ValueList | NBTNode | NodeInfo<T> {
     if (!node) {
         throw new Error(
             "Expected node to be defined, got undefined node. This is an internal error."
@@ -98,9 +99,9 @@ export class NBTWalker {
                 if (key.startsWith("$")) {
                     const ref = key.substring(1);
                     const [nextPath] = parseRefPath(ref, info.path);
-                    const list: ValueList = walkUnwrap(
-                        this.docs.get(nextPath)
-                    ) as any;
+                    const list = walkUnwrap(this.docs.get(
+                        nextPath
+                    ) as ValueList);
                     if (
                         list.find(
                             v => (isString(v) ? v === name : v.value === name)
@@ -160,7 +161,7 @@ export class NBTWalker {
      */
     public getInitialNode(startPath: string[]): NodeInfo {
         const path = NBTWalker.root;
-        const node = walkUnwrap(this.docs.get(path));
+        const node = walkUnwrap(this.docs.get(path) as NBTNode);
         const reader = new ArrayReader(startPath);
         return this.followNodePath({ node, path }, reader, undefined);
     }
@@ -175,7 +176,7 @@ export class NBTWalker {
         const reader = new ArrayReader(fragPath);
         const node = this.docs.get(path);
         if (node) {
-            return this.followNodePath({ node, path }, reader);
+            return this.followNodePath({ node: node as NBTNode, path }, reader);
         }
         return undefined;
     }

@@ -1,4 +1,3 @@
-import { isArray } from "util";
 import { StringReader } from "../../../brigadier/string-reader";
 import {
     isSuccessful,
@@ -11,7 +10,6 @@ import {
     stringArrayEqual
 } from "../../../misc-functions/context";
 import {
-    CE,
     CommandContext,
     Parser,
     ParserInfo,
@@ -25,7 +23,7 @@ import { NBTWalker } from "./walker";
 type CtxPathFunc = (context: CommandContext) => NBTContextData;
 
 export interface NBTContextData {
-    ids: string | string[];
+    ids?: string | string[];
     type: "entity" | "item" | "block";
 }
 
@@ -101,7 +99,10 @@ export function validateParse2(
                     }
                 }
             } else {
-                const root = walker.getInitialNode([data.type, data.ids]);
+                const root = walker.getInitialNode([
+                    data.type,
+                    data.ids || "none"
+                ]);
                 const result = tag.validate(root, walker);
                 helper.merge(result, { errors: false });
                 for (const e of result.errors) {
@@ -120,52 +121,12 @@ export function validateParse2(
     }
 }
 
-// Parse a compound tag and validate it
-export function validateParse(
-    reader: StringReader,
-    info: ParserInfo,
-    data?: NBTContextData
-): ReturnedInfo<undefined> {
-    const helper = new ReturnHelper();
-    const tag = new NBTTagCompound({});
-    const docs = info.data.globalData.nbt_docs;
-    const parseResult = tag.parse(reader);
-
-    if (helper.merge(parseResult)) {
-        return helper.succeed();
-    } else {
-        if (!!data) {
-            // @ts-ignore
-            const walker = new NBTValidator(tag, docs, data.type === "item");
-            if (isArray(data.ids)) {
-                for (const k of data.ids) {
-                    const node = walker.walkThenValidate([data.type, k]);
-                    if (isSuccessful(node)) {
-                        helper.mergeChain(node);
-                    } else {
-                        helper.mergeChain(node);
-                    }
-                }
-                return helper.fail();
-            } else {
-                const node = walker.walkThenValidate([
-                    data.type,
-                    data.ids || "none"
-                ]);
-                return helper.mergeChain(node).fail();
-            }
-        } else {
-            return helper.fail();
-        }
-    }
-}
-
 export const parser: Parser = {
     parse: (reader, info) => {
         const helper = new ReturnHelper(info);
         const ctxdatafn = resolvePaths(paths, info.path || []);
         const data = ctxdatafn && ctxdatafn(info.context);
-        if (helper.merge(validateParse(reader, info, data))) {
+        if (helper.merge(validateParse2(reader, info, data))) {
             return helper.succeed();
         } else {
             return helper.fail();

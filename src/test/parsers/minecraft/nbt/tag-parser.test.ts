@@ -1,29 +1,38 @@
 import * as assert from "assert";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { parseAnyNBTTag } from "../../../../parsers/minecraft/nbt/tag-parser";
-import { NBTTagByteArray } from "../../../../parsers/minecraft/nbt/tag/byte-array-tag";
-import { NBTTagByte } from "../../../../parsers/minecraft/nbt/tag/byte-tag";
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound-tag";
-import { NBTTagDouble } from "../../../../parsers/minecraft/nbt/tag/double-tag";
-import { NBTTagFloat } from "../../../../parsers/minecraft/nbt/tag/float-tag";
-import { NBTTagInt } from "../../../../parsers/minecraft/nbt/tag/int-tag";
 import { NBTTagList } from "../../../../parsers/minecraft/nbt/tag/list-tag";
-import { NBTTagLong } from "../../../../parsers/minecraft/nbt/tag/long-tag";
 import { NBTTag } from "../../../../parsers/minecraft/nbt/tag/nbt-tag";
-import { NBTTagShort } from "../../../../parsers/minecraft/nbt/tag/short-tag";
+import { NBTTagNumber } from "../../../../parsers/minecraft/nbt/tag/number";
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string-tag";
+import { Correctness } from "../../../../parsers/minecraft/nbt/util/nbt-util";
+import { returnAssert } from "../../../assertions";
+import { succeeds } from "../../../blanks";
+
+type TestList = Array<[string, number]>;
 
 describe("Tag parser tests", () => {
     describe("parseTag", () => {
         describe("byte", () => {
-            [["1b", 1], ["0.5e2b", 50], ["127b", 127], ["3.2e1b", 32]].forEach(
-                v =>
-                    it(`${v[0].toString()} should return as a byte tag with the value of ${v[1].toString()}`, () => {
-                        const reader = new StringReader(v[0].toString());
-                        const out = parseAnyNBTTag(reader).data as NBTTagByte;
-                        assert.strictEqual(out.tagType, "byte");
-                        assert.ok(out.tagEq(new NBTTagByte(v[1] as number)));
-                    })
+            ([
+                ["1b", 1],
+                ["0.5e2b", 50],
+                ["127b", 127],
+                ["3.2e1b", 32]
+            ] as TestList).forEach(v =>
+                it(`${v[0].toString()} should return as a byte tag with the value of ${v[1].toString()}`, () => {
+                    const reader = new StringReader(v[0].toString());
+                    const out = parseAnyNBTTag(reader, []);
+                    if (returnAssert(out, succeeds)) {
+                        assert(out.data.tag instanceof NBTTagNumber);
+                        assert.strictEqual(
+                            out.data.correctness,
+                            Correctness.CERTAIN
+                        );
+                        assert.strictEqual(out.data.tag.getValue(), v[1]);
+                    }
+                })
             );
         });
         describe("short", () => {
