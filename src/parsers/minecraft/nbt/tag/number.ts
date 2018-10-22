@@ -26,26 +26,54 @@ const exceptions = {
     )
 };
 
-type NumberType = "float" | "double" | "short" | "int" | "byte" | "long";
+export type NumberType = "float" | "double" | "short" | "int" | "byte" | "long";
+interface NumberInfo {
+    float: boolean;
+    max: number;
+    min: number;
+    suffix: string;
+}
 
-const ranges: {
-    [type in NumberType]: {
-        float: boolean;
-        max: number;
-        min: number;
-        suffix: string; // === type[0] for all
-    }
-} = {
-    byte: { min: 0, max: 7, float: false, suffix: "b" },
-    double: { min: 0, max: 7, float: true, suffix: "d" },
-    float: { min: 0, max: 7, float: true, suffix: "f" },
-    int: { min: 0, max: 7, float: false, suffix: "i" },
-    long: { min: 0, max: 7, float: false, suffix: "l" },
-    short: { min: 0, max: 7, float: false, suffix: "s" }
+const intnumberInfo = (pow: number, suffix: string): NumberInfo => ({
+    float: false,
+    max: 2 ** pow - 1,
+    min: -(2 ** pow),
+    suffix
+});
+
+const ranges: { [type in NumberType]: NumberInfo } = {
+    byte: intnumberInfo(7, "b"),
+    // tslint:disable:binary-expression-operand-order
+    double: {
+        float: true,
+        max: 1.8 * 10 ** 308, // Approx
+        min: -1.8 * 10 ** 308,
+        suffix: "d"
+    },
+    float: {
+        float: true,
+        max: 3.4 * 10 ** 38, // Approx
+        min: -3.4 * 10 ** 38,
+        suffix: "d"
+    },
+    // tslint:enable:binary-expression-operand-order
+    int: intnumberInfo(31, ""),
+    long: intnumberInfo(63, "l"),
+    short: intnumberInfo(15, "b")
 };
 
+function typeForSuffix(rawsuffix: string): NumberInfo | undefined {
+    const suffix = rawsuffix.toLowerCase();
+    for (const type of typed_keys(ranges)) {
+        if (ranges[type].suffix === suffix) {
+            return ranges[type];
+        }
+    }
+    return undefined;
+}
+
 export class NBTTagNumber extends NBTTag {
-    protected tagType: NumberType = "byte";
+    protected tagType = undefined;
     protected value = 0;
     private float = false;
     private suffix: string | undefined;
@@ -89,6 +117,9 @@ export class NBTTagNumber extends NBTTag {
         return this;
     }
 
+    // HERE BE DRAGONS:
+    // Unhandled special cases abound!
+    // Contributions welcome, at yer own risk
     public validate(node: NodeInfo): ReturnSuccess<undefined> {
         const helper = new ReturnHelper();
         if (isTypedInfo(node) && this.value !== undefined) {
@@ -149,12 +180,9 @@ export class NBTTagNumber extends NBTTag {
         // Not convinced that this is correct
         if (reader.canRead()) {
             const suffix = reader.peek();
-            for (const key of typed_keys(ranges)) {
-                if (ranges[key].suffix === suffix) {
-                    this.suffix = suffix;
-                    reader.skip();
-                    break;
-                }
+            const type = typeForSuffix(suffix);
+            if (type) {
+                this.suffix = suffix;
             }
         }
     }

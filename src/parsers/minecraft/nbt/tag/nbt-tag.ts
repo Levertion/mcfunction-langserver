@@ -35,7 +35,7 @@ export type TagType =
 export abstract class NBTTag {
     protected path: string[];
     protected range: LineRange = emptyRange;
-    protected abstract tagType: TagType;
+    protected abstract tagType?: TagType;
 
     public constructor(path: string[]) {
         this.path = path;

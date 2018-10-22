@@ -17,8 +17,7 @@ const types: Array<["B" | "I" | "L", "byte" | "int" | "long", ArrayType]> = [
 
 export class NBTTagTypedList extends BaseList {
     protected start: LineRange = emptyRange;
-    // This should always be overwritten by the time validate is called
-    protected tagType: ArrayType = "byte_array";
+    protected tagType: ArrayType | undefined = undefined;
     /** Only used for when we start incorrectly */
     private remaining: string | undefined;
     private startIndex = -1;
