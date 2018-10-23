@@ -2527,7 +2527,78 @@ class ItemParser {
 exports.ItemParser = ItemParser;
 exports.stack = new ItemParser(false);
 exports.predicate = new ItemParser(true);
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"Td8d":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"fc+U":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const vscode_languageserver_1 = require("vscode-languageserver");
+
+const misc_functions_1 = require("../../misc-functions");
+
+exports.jsonParser = {
+  parse: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const remaining = reader.getRemaining();
+    const start = reader.cursor;
+    reader.cursor = reader.string.length;
+    const schema = info.data.globalData.textComponentSchema;
+    const document = {
+      getText: () => remaining,
+      languageId: "json",
+      lineCount: 1,
+      offsetAt: pos => pos.character,
+      positionAt: offset => ({
+        line: 0,
+        character: offset
+      }),
+      uri: "/tmp/notreal",
+      version: 0
+    };
+    const service = info.data.globalData.jsonService;
+    const jsonDocument = service.parseJSONDocument(document);
+    service.doValidation(document, jsonDocument, undefined, schema).then(diagnostics => {
+      /* Because we use SynchronousPromise this is called before the next statement runs*/
+      helper.addErrors(...diagnostics.map(diag => ({
+        code: typeof diag.code === "string" ? diag.code : "json",
+        range: {
+          end: start + diag.range.end.character,
+          start: start + diag.range.start.character
+        },
+        severity: diag.severity || vscode_languageserver_1.DiagnosticSeverity.Error,
+        text: diag.message
+      })));
+    });
+    service.doComplete(document, {
+      line: 0,
+      character: remaining.length
+    }, jsonDocument).then(completionList => {
+      if (completionList) {
+        completionList.items.forEach(item => {
+          if (item.textEdit) {
+            helper.addSuggestions({
+              description: item.documentation,
+              kind: item.kind,
+              start: start + item.textEdit.range.start.character,
+              text: item.textEdit.newText
+            });
+          } else {
+            helper.addSuggestions({
+              description: item.documentation,
+              kind: item.kind,
+              start: reader.cursor,
+              text: item.label
+            });
+          }
+        });
+      }
+    });
+    return helper.succeed();
+  }
+};
+},{"../../misc-functions":"KBGm"}],"Td8d":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -3141,6 +3212,8 @@ const coordParsers = tslib_1.__importStar(require("./minecraft/coordinates"));
 
 const itemParsers = tslib_1.__importStar(require("./minecraft/item"));
 
+const json_1 = require("./minecraft/json");
+
 const listParsers = tslib_1.__importStar(require("./minecraft/lists"));
 
 const message_1 = require("./minecraft/message");
@@ -3183,6 +3256,7 @@ const implementedParsers = {
   "minecraft:rotation": coordParsers.rotation,
   "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
   "minecraft:team": scoreboard_1.teamParser,
+  "minecraft:text_component": json_1.jsonParser,
   "minecraft:vec2": coordParsers.vec2,
   "minecraft:vec3": coordParsers.vec3
 };
@@ -3224,7 +3298,7 @@ function getArgParser(id) {
 Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
   return undefined;
 }
-},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1"}],"aDYY":[function(require,module,exports) {
+},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/json":"fc+U","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1"}],"aDYY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

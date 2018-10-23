@@ -6,6 +6,7 @@ import { literalParser } from "./literal";
 import * as blockParsers from "./minecraft/block";
 import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
+import { jsonParser } from "./minecraft/json";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
@@ -47,6 +48,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
     "minecraft:team": teamParser,
+    "minecraft:text_component": jsonParser,
     "minecraft:vec2": coordParsers.vec2,
     "minecraft:vec3": coordParsers.vec3
 };
