@@ -184,7 +184,7 @@ function suggestionsToCompletions(
                 }
             };
             if (!!suggestion.description) {
-                completion.detail = suggestion.description;
+                completion.documentation = suggestion.description;
             }
             result.push(completion);
         }

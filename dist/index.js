@@ -3374,7 +3374,7 @@ function suggestionsToCompletions(suggestions, line, start, end, defaultKind = m
       };
 
       if (!!suggestion.description) {
-        completion.detail = suggestion.description;
+        completion.documentation = suggestion.description;
       }
 
       result.push(completion);
@@ -3414,10 +3414,12 @@ exports.emptyGlobal = {
     type: "root"
   },
   items: [],
+  jsonService: undefined,
   meta_info: {
     version: ""
   },
-  resources: {}
+  resources: {},
+  textComponentSchema: {}
 };
 exports.blankRange = {
   end: {
@@ -4480,8 +4482,26 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+const synchronous_promise_1 = require("synchronous-promise");
+
+const vscode_json_languageservice_1 = require("vscode-json-languageservice");
+
 async function loadNonCached() {
-  return {};
+  // tslint:disable-next-line:no-require-imports prettier breaks require.resolve so we need to use
+  const textComponentSchema = require("minecraft-json-schemas/java/shared/text_component");
+
+  const schemas = {};
+
+  const schemaRequestService = url => schemas.hasOwnProperty(url) ? synchronous_promise_1.SynchronousPromise.resolve(schemas[url]) : synchronous_promise_1.SynchronousPromise.reject(`Schema at url ${url} not supported`);
+
+  const jsonService = vscode_json_languageservice_1.getLanguageService({
+    promiseConstructor: synchronous_promise_1.SynchronousPromise,
+    schemaRequestService
+  });
+  return {
+    jsonService,
+    textComponentSchema
+  };
 }
 
 exports.loadNonCached = loadNonCached;

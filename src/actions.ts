@@ -54,7 +54,7 @@ export function hoverProvider(
     const hovers = getActionsOfKind(docLine, pos, "hover");
     if (hovers.length > 0) {
         return computeIntervalHovers(hovers, docLine, pos.line, i =>
-            i.map(v => v.data)
+            i.map(v => v.data as string)
         );
     } else {
         const tree = getNodeTree(docLine);

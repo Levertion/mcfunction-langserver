@@ -1,3 +1,4 @@
+import { JSONSchema, LanguageService } from "vscode-json-languageservice";
 import { Level, Scoreboard } from "./nbt/nbt-types";
 
 /**
@@ -14,8 +15,10 @@ export interface GlobalData {
     blocks: BlocksPropertyInfo;
     commands: CommandTree;
     items: string[];
+    jsonService: LanguageService;
     meta_info: { version: string };
     resources: Resources;
+    textComponentSchema: JSONSchema;
 }
 
 export type Cacheable = Pick<
