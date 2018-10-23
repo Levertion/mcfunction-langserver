@@ -30,6 +30,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_predicate": blockParsers.predicateParser,
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
+    "minecraft:component": jsonParser,
     "minecraft:dimension": namespaceParsers.dimensionParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
     "minecraft:entity_summon": namespaceParsers.summonParser,
@@ -48,7 +49,6 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
     "minecraft:team": teamParser,
-    "minecraft:text_component": jsonParser,
     "minecraft:vec2": coordParsers.vec2,
     "minecraft:vec3": coordParsers.vec3
 };
