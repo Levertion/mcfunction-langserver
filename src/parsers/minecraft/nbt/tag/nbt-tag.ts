@@ -86,6 +86,7 @@ export abstract class NBTTag {
 
     protected sameType(
         node: NodeInfo,
+        // @ts-ignore this.tagType can be undefined, but this method should not be used until parsing
         type: TagType = this.tagType
     ): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
