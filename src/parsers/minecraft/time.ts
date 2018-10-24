@@ -13,12 +13,12 @@ const EXCEPTIONS = {
     // This is not tested
     not_integer: new CommandErrorBuilder(
         "argument.time.not_nonnegative_integer",
-        "Not a non-negative integer: %s (Due to floating point maths, java edition may not display this error for this value)",
+        "Not a non-negative integer number of ticks: %s (Due to differences in the representation of floating point numbers, Minecraft Java Edition might not fail for this value)",
         DiagnosticSeverity.Warning
     ),
     not_nonegative_integer: new CommandErrorBuilder(
         "argument.time.not_nonnegative_integer",
-        "Not a non-negative integer: %s"
+        "Not a non-negative integer number of ticks: %s"
     )
 };
 

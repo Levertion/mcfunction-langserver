@@ -3147,8 +3147,8 @@ const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
 const EXCEPTIONS = {
   invalid_unit: new errors_1.CommandErrorBuilder("argument.time.invalid_unit", "Invalid unit '%s'"),
   // This is not tested
-  not_integer: new errors_1.CommandErrorBuilder("argument.time.not_nonnegative_integer", "Not a non-negative integer: %s (Due to floating point maths, java edition may not display this error for this value)", vscode_languageserver_1.DiagnosticSeverity.Warning),
-  not_nonegative_integer: new errors_1.CommandErrorBuilder("argument.time.not_nonnegative_integer", "Not a non-negative integer: %s")
+  not_integer: new errors_1.CommandErrorBuilder("argument.time.not_nonnegative_integer", "Not a non-negative integer number of ticks: %s (Due to differences in the representation of floating point numbers, Minecraft Java Edition might not fail for this value)", vscode_languageserver_1.DiagnosticSeverity.Warning),
+  not_nonegative_integer: new errors_1.CommandErrorBuilder("argument.time.not_nonnegative_integer", "Not a non-negative integer number of ticks: %s")
 };
 exports.times = {
   d: 24000,
