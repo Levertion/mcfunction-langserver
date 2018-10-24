@@ -1,7 +1,8 @@
 import {
     CompletionItem,
     CompletionItemKind,
-    CompletionList
+    CompletionList,
+    InsertTextFormat
 } from "vscode-languageserver/lib/main";
 
 import { StringReader } from "./brigadier/string-reader";
@@ -173,8 +174,10 @@ function suggestionsToCompletions(
             });
         } else {
             const completion: CompletionItem = {
+                insertTextFormat:
+                    suggestion.insertTextFormat || InsertTextFormat.PlainText,
                 kind: suggestion.kind || defaultKind,
-                label: suggestion.text,
+                label: suggestion.label || suggestion.text,
                 textEdit: {
                     newText: suggestion.text,
                     range: {
@@ -184,7 +187,7 @@ function suggestionsToCompletions(
                 }
             };
             if (!!suggestion.description) {
-                completion.detail = suggestion.description;
+                completion.documentation = suggestion.description;
             }
             result.push(completion);
         }
