@@ -175,3 +175,9 @@ export const blockPos = new CoordParser({
     float: false,
     local: true
 });
+
+export const columnPos = new CoordParser({
+    count: 2,
+    float: false,
+    local: false
+});

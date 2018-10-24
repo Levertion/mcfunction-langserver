@@ -2546,6 +2546,11 @@ exports.blockPos = new CoordParser({
   float: false,
   local: true
 });
+exports.columnPos = new CoordParser({
+  count: 2,
+  float: false,
+  local: false
+});
 },{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"LoiV":[function(require,module,exports) {
 "use strict";
 
@@ -3205,7 +3210,68 @@ exports.criteriaParser = {
 function mapFunction(value) {
   return misc_functions_1.stringifyNamespace(misc_functions_1.convertToNamespace(value)).replace(":", ".");
 }
-},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../data/lists/criteria":"heCz","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"0nBp":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../data/lists/criteria":"heCz","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"Av8O":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const vscode_languageserver_1 = require("vscode-languageserver");
+
+const errors_1 = require("../../brigadier/errors");
+
+const string_reader_1 = require("../../brigadier/string-reader");
+
+const misc_functions_1 = require("../../misc-functions");
+
+const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
+
+const EXCEPTIONS = {
+  invalid_unit: new errors_1.CommandErrorBuilder("argument.time.invalid_unit", "Invalid unit '%s'"),
+  // This is not tested
+  not_integer: new errors_1.CommandErrorBuilder("argument.time.not_nonnegative_integer", "Not a non-negative integer number of ticks: %s (Due to differences in the representation of floating point numbers, Minecraft Java Edition might not fail for this value)", vscode_languageserver_1.DiagnosticSeverity.Warning),
+  not_nonegative_integer: new errors_1.CommandErrorBuilder("argument.time.not_nonnegative_integer", "Not a non-negative integer number of ticks: %s")
+};
+exports.times = {
+  d: 24000,
+  s: 20,
+  t: 1
+};
+exports.timeParser = {
+  parse: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper(info);
+    const start = reader.cursor;
+    const float = reader.readFloat();
+
+    if (!helper.merge(float)) {
+      return helper.fail();
+    }
+
+    const suffixStart = reader.cursor;
+    const suffix = reader.readOption(typed_keys_1.typed_keys(exports.times), false, undefined, string_reader_1.StringReader.charAllowedInUnquotedString);
+
+    if (!helper.merge(suffix)) {
+      if (suffix.data !== "") {
+        return helper.addErrors(EXCEPTIONS.invalid_unit.create(suffixStart, reader.cursor, suffix.data || "none")).succeed();
+      }
+    }
+
+    const unit = exports.times[suffix.data] || 1;
+    const result = unit * float.data;
+
+    if (result < 0) {
+      return helper.addErrors(EXCEPTIONS.not_nonegative_integer.create(start, reader.cursor, result.toString())).succeed();
+    }
+
+    if (!Number.isInteger(result)) {
+      return helper.addErrors(EXCEPTIONS.not_integer.create(start, reader.cursor, result.toString())).succeed();
+    }
+
+    return helper.succeed();
+  }
+};
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"0nBp":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -3235,6 +3301,8 @@ const namespaceParsers = tslib_1.__importStar(require("./minecraft/namespace-lis
 const resources_1 = require("./minecraft/resources");
 
 const scoreboard_1 = require("./minecraft/scoreboard");
+
+const time_1 = require("./minecraft/time");
 /**
  * Incomplete:
  * https://github.com/Levertion/mcfunction-langserver/projects/1
@@ -3250,6 +3318,7 @@ const implementedParsers = {
   "minecraft:block_predicate": blockParsers.predicateParser,
   "minecraft:block_state": blockParsers.stateParser,
   "minecraft:color": listParsers.colorParser,
+  "minecraft:column_pos": coordParsers.columnPos,
   "minecraft:component": component_1.jsonParser,
   "minecraft:dimension": namespaceParsers.dimensionParser,
   "minecraft:entity_anchor": listParsers.entityAnchorParser,
@@ -3269,6 +3338,7 @@ const implementedParsers = {
   "minecraft:rotation": coordParsers.rotation,
   "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
   "minecraft:team": scoreboard_1.teamParser,
+  "minecraft:time": time_1.timeParser,
   "minecraft:vec2": coordParsers.vec2,
   "minecraft:vec3": coordParsers.vec3
 };
@@ -3310,7 +3380,7 @@ function getArgParser(id) {
 Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
   return undefined;
 }
-},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1"}],"aDYY":[function(require,module,exports) {
+},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

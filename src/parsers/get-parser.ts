@@ -16,6 +16,7 @@ import {
     objectiveParser,
     teamParser
 } from "./minecraft/scoreboard";
+import { timeParser } from "./minecraft/time";
 
 /**
  * Incomplete:
@@ -30,6 +31,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_predicate": blockParsers.predicateParser,
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
+    "minecraft:column_pos": coordParsers.columnPos,
     "minecraft:component": jsonParser,
     "minecraft:dimension": namespaceParsers.dimensionParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
@@ -49,6 +51,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
     "minecraft:team": teamParser,
+    "minecraft:time": timeParser,
     "minecraft:vec2": coordParsers.vec2,
     "minecraft:vec3": coordParsers.vec3
 };
