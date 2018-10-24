@@ -4807,7 +4807,13 @@ class DataManager {
       const helper = new misc_functions_1.ReturnHelper();
       const data = await extractor_1.collectGlobalData(version);
       helper.merge(data);
-      this.globalDataInternal = data.data;
+
+      if (this.globalDataInternal) {
+        this.globalDataInternal = Object.assign({}, this.globalDataInternal, data.data);
+      } else {
+        this.globalDataInternal = Object.assign({}, (await noncached_1.loadNonCached()), data.data);
+      }
+
       return true;
     } catch (error) {
       return `Error loading global data: ${error.stack || error.toString()}`;
