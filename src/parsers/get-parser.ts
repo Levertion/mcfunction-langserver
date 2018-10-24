@@ -29,6 +29,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_predicate": blockParsers.predicateParser,
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
+    "minecraft:column_pos": coordParsers.columnPos,
     "minecraft:dimension": namespaceParsers.dimensionParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
     "minecraft:entity_summon": namespaceParsers.summonParser,
