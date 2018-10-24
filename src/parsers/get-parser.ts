@@ -15,6 +15,7 @@ import {
     objectiveParser,
     teamParser
 } from "./minecraft/scoreboard";
+import { timeParser } from "./minecraft/time";
 
 /**
  * Incomplete:
@@ -48,6 +49,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
     "minecraft:team": teamParser,
+    "minecraft:time": timeParser,
     "minecraft:vec2": coordParsers.vec2,
     "minecraft:vec3": coordParsers.vec3
 };
