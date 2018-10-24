@@ -1,12 +1,13 @@
 import { NoPropertyNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
+import { emptyRange } from "../../../../test/blanks";
 import { LineRange, ReturnSuccess } from "../../../../types";
 import { NodeInfo } from "../util/doc-walker-util";
 import { Correctness } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
 import { BaseList } from "./lists";
-import { emptyRange, ParseReturn } from "./nbt-tag";
+import { ParseReturn } from "./nbt-tag";
 
 type ArrayType = "byte_array" | "int_array" | "long_array";
 const types: Array<["B" | "I" | "L", "byte" | "int" | "long", ArrayType]> = [

@@ -39,13 +39,18 @@ export function getNBTTagFromTree(
 ): NBTTag | undefined {
     let lastTag: NBTTag | undefined = tag;
     for (const s of nbtPath) {
-        if (lastTag instanceof BaseList && /\d+/.test(s)) {
-            lastTag = lastTag.getValue()[parseInt(s, 10)];
-        } else if (lastTag instanceof NBTTagCompound) {
-            lastTag = lastTag.getValue().get(s);
+        // tslint:disable:no-require-imports This fixes a circular dependency issue
+        if (
+            lastTag instanceof require("../tag/lists").BaseList &&
+            /\d+/.test(s)
+        ) {
+            lastTag = (lastTag as BaseList).getValue()[parseInt(s, 10)];
+        } else if (lastTag instanceof require("../tag/compound-tag").BaseList) {
+            lastTag = (lastTag as NBTTagCompound).getValue().get(s);
         } else {
             return undefined;
         }
+        // tslint:enable:no-require-imports
     }
     return lastTag;
 }

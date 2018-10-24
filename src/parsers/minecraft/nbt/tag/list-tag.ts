@@ -1,12 +1,13 @@
 import { ListNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
+import { emptyRange } from "../../../../test/blanks";
 import { LineRange, ReturnSuccess } from "../../../../types";
 import { NodeInfo } from "../util/doc-walker-util";
 import { Correctness, LIST_START } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
 import { BaseList } from "./lists";
-import { emptyRange, ParseReturn } from "./nbt-tag";
+import { ParseReturn } from "./nbt-tag";
 
 export class NBTTagList extends BaseList {
     public tagType: "list" = "list";

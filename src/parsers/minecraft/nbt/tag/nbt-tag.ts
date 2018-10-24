@@ -1,6 +1,7 @@
 import { NBTNode, NoPropertyNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
+import { emptyRange } from "../../../../test/blanks";
 import {
     CE,
     LineRange,
@@ -16,7 +17,6 @@ import {
 import { Correctness, getHoverText } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
 
-export const emptyRange: LineRange = { start: 0, end: 0 };
 export type ParseReturn = ReturnedInfo<Correctness, CE, Correctness>;
 export type TagType =
     | "byte"
