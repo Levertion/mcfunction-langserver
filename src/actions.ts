@@ -61,8 +61,12 @@ export function hoverProvider(
     if (json.length > 0) {
         const doc = json[0].data as JSONDocInfo;
         let result: Hover | null | undefined;
+        const position: Position = {
+            character: pos.character - json[0].low,
+            line: 0
+        };
         manager.globalData.jsonService
-            .doHover(doc.text, pos, doc.json)
+            .doHover(doc.text, position, doc.json)
             .then(v => (result = v));
         if (result) {
             return result;
