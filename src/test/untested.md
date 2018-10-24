@@ -14,6 +14,8 @@ Contributions are welcome to remove from this list.
     some assurances could be useful
 -   [Translation](../misc-functions/translation.ts) - Not yet implemented. Might
     need to ensure that replacing is done correctly if %s parser is changed
+-   [JSON parsing](../parsers/minecraft/json.ts) - No tests should be needed as
+    we trust the `vscode-json-languageservice` library.
 
 # Untested sections
 

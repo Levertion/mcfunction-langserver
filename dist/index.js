@@ -2325,7 +2325,90 @@ function constructProperties(options, blocks) {
 
   return result;
 }
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","../../misc-functions/parsing/nmsp-tag":"lcVC"}],"5Pa8":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","../../misc-functions/parsing/nmsp-tag":"lcVC"}],"3ZZw":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const vscode_languageserver_1 = require("vscode-languageserver");
+
+const misc_functions_1 = require("../../misc-functions");
+
+exports.jsonParser = {
+  parse: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const remaining = reader.getRemaining();
+    const start = reader.cursor;
+    reader.cursor = reader.string.length;
+    const text = {
+      getText: () => remaining,
+      languageId: "json",
+      lineCount: 1,
+      offsetAt: pos => pos.character,
+      positionAt: offset => ({
+        line: 0,
+        character: offset
+      }),
+      uri: "file://text-component.json",
+      version: 0
+    };
+    const service = info.data.globalData.jsonService;
+    const json = service.parseJSONDocument(text);
+    service.doValidation(text, json).then(diagnostics => {
+      /* Because we use SynchronousPromise this is called before the next statement runs*/
+      helper.addErrors(...diagnostics.map(diag => ({
+        code: typeof diag.code === "string" ? diag.code : "json",
+        range: {
+          end: start + diag.range.end.character,
+          start: start + diag.range.start.character
+        },
+        severity: diag.severity || vscode_languageserver_1.DiagnosticSeverity.Error,
+        text: diag.message
+      })));
+    });
+    service.doComplete(text, {
+      line: 0,
+      character: remaining.length
+    }, json).then(completionList => {
+      if (completionList) {
+        completionList.items.forEach(item => {
+          if (item.textEdit) {
+            helper.addSuggestions({
+              description: item.documentation,
+              insertTextFormat: item.insertTextFormat,
+              kind: item.kind,
+              label: item.label,
+              start: start + item.textEdit.range.start.character,
+              text: item.textEdit.newText.replace(/\s*\n\s*/g, "")
+            });
+          } else {
+            helper.addSuggestions({
+              description: item.documentation,
+              insertTextFormat: item.insertTextFormat,
+              kind: item.kind,
+              label: item.label,
+              start: reader.cursor,
+              text: item.label.replace(/\s*\n\s*/g, "")
+            });
+          }
+        });
+      }
+    });
+    helper.addActions({
+      data: {
+        json,
+        text
+      },
+      high: reader.cursor,
+      low: start,
+      type: "json"
+    });
+    return helper.succeed();
+  }
+};
+},{"../../misc-functions":"KBGm"}],"5Pa8":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -3203,6 +3286,8 @@ const literal_1 = require("./literal");
 
 const blockParsers = tslib_1.__importStar(require("./minecraft/block"));
 
+const component_1 = require("./minecraft/component");
+
 const coordParsers = tslib_1.__importStar(require("./minecraft/coordinates"));
 
 const itemParsers = tslib_1.__importStar(require("./minecraft/item"));
@@ -3234,6 +3319,7 @@ const implementedParsers = {
   "minecraft:block_state": blockParsers.stateParser,
   "minecraft:color": listParsers.colorParser,
   "minecraft:column_pos": coordParsers.columnPos,
+  "minecraft:component": component_1.jsonParser,
   "minecraft:dimension": namespaceParsers.dimensionParser,
   "minecraft:entity_anchor": listParsers.entityAnchorParser,
   "minecraft:entity_summon": namespaceParsers.summonParser,
@@ -3295,6 +3381,7 @@ Please consider reporting this at https://github.com/Levertion/mcfunction-langua
   return undefined;
 }
 },{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
+},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1"}],"aDYY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -3426,8 +3513,9 @@ function suggestionsToCompletions(suggestions, line, start, end, defaultKind = m
       });
     } else {
       const completion = {
+        insertTextFormat: suggestion.insertTextFormat || main_1.InsertTextFormat.PlainText,
         kind: suggestion.kind || defaultKind,
-        label: suggestion.text,
+        label: suggestion.label || suggestion.text,
         textEdit: {
           newText: suggestion.text,
           range: {
@@ -3444,7 +3532,7 @@ function suggestionsToCompletions(suggestions, line, start, end, defaultKind = m
       };
 
       if (!!suggestion.description) {
-        completion.detail = suggestion.description;
+        completion.documentation = suggestion.description;
       }
 
       result.push(completion);
@@ -3484,6 +3572,7 @@ exports.emptyGlobal = {
     type: "root"
   },
   items: [],
+  jsonService: undefined,
   meta_info: {
     version: ""
   },
@@ -3541,6 +3630,29 @@ function hoverProvider(docLine, pos, _, manager) {
         end
       }
     };
+  }
+
+  const json = getActionsOfKind(docLine, pos, "json");
+
+  if (json.length > 0) {
+    const doc = json[0].data;
+    let result;
+    const position = {
+      character: pos.character - json[0].low,
+      line: 0
+    };
+    manager.globalData.jsonService.doHover(doc.text, position, doc.json).then(v => result = v);
+
+    if (result) {
+      if (result.range) {
+        result.range.start.line = pos.line;
+        result.range.end.line = pos.line;
+        result.range.start.character += json[0].low;
+        result.range.end.character += json[0].low;
+      }
+
+      return result;
+    }
   }
 
   const hovers = getActionsOfKind(docLine, pos, "hover");
@@ -4550,8 +4662,36 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+const synchronous_promise_1 = require("synchronous-promise");
+
+const vscode_json_languageservice_1 = require("vscode-json-languageservice");
+
+const textComponentSchema = "https://raw.githubusercontent.com/Levertion/minecraft-json-schema/master/java/shared/text_component.json";
+
 async function loadNonCached() {
-  return {};
+  const schemas = {
+    [textComponentSchema]: JSON.stringify( // FIXME: prettier breaks require.resolve so we need to use plain require to get the correct path
+    // tslint:disable-next-line:no-require-imports
+    require("minecraft-json-schemas/java/shared/text_component"))
+  };
+
+  const schemaRequestService = url => schemas.hasOwnProperty(url) ? synchronous_promise_1.SynchronousPromise.resolve(schemas[url]) : synchronous_promise_1.SynchronousPromise.reject(`Schema at url ${url} not supported`);
+
+  const jsonService = vscode_json_languageservice_1.getLanguageService({
+    promiseConstructor: synchronous_promise_1.SynchronousPromise,
+    schemaRequestService
+  });
+  jsonService.configure({
+    allowComments: false,
+    schemas: [{
+      fileMatch: ["text-component.json"],
+      uri: textComponentSchema
+    }],
+    validate: true
+  });
+  return {
+    jsonService
+  };
 }
 
 exports.loadNonCached = loadNonCached;
@@ -4738,7 +4878,13 @@ class DataManager {
       const helper = new misc_functions_1.ReturnHelper();
       const data = await extractor_1.collectGlobalData(version);
       helper.merge(data);
-      this.globalDataInternal = data.data;
+
+      if (this.globalDataInternal) {
+        this.globalDataInternal = Object.assign({}, this.globalDataInternal, data.data);
+      } else {
+        this.globalDataInternal = Object.assign({}, (await noncached_1.loadNonCached()), data.data);
+      }
+
       return true;
     } catch (error) {
       return `Error loading global data: ${error.stack || error.toString()}`;

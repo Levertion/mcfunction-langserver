@@ -1,7 +1,8 @@
 import * as assert from "assert";
 import {
     CompletionItemKind,
-    CompletionList
+    CompletionList,
+    InsertTextFormat
 } from "vscode-languageserver/lib/main";
 import { computeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
@@ -86,7 +87,8 @@ describe("ComputeCompletions()", () => {
                     }
                 },
                 {
-                    kind: CompletionItemKind.Keyword, // Default kind
+                    insertTextFormat: InsertTextFormat.PlainText,
+                    kind: CompletionItemKind.Keyword,
                     label: "welcome",
                     textEdit: {
                         newText: "welcome",
@@ -97,7 +99,7 @@ describe("ComputeCompletions()", () => {
                     }
                 },
                 {
-                    kind: CompletionItemKind.Keyword, // Default kind
+                    kind: CompletionItemKind.Keyword,
                     label: "hello",
                     textEdit: {
                         newText: "hello",
@@ -108,7 +110,7 @@ describe("ComputeCompletions()", () => {
                     }
                 }
             ]
-        };
+        }; // Default kind // Default kind
         result.items.sort((a, b) => b.label.length - a.label.length);
         assert.deepStrictEqual(result, expected);
     });
@@ -143,6 +145,7 @@ describe("ComputeCompletions()", () => {
             isIncomplete: true,
             items: [
                 {
+                    insertTextFormat: InsertTextFormat.PlainText,
                     kind: CompletionItemKind.Keyword,
                     label: "welcome",
                     textEdit: {

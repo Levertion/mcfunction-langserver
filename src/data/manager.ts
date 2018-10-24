@@ -217,7 +217,17 @@ export class DataManager {
             const helper = new ReturnHelper();
             const data = await collectGlobalData(version);
             helper.merge(data);
-            this.globalDataInternal = data.data;
+            if (this.globalDataInternal) {
+                this.globalDataInternal = {
+                    ...this.globalDataInternal,
+                    ...data.data
+                };
+            } else {
+                this.globalDataInternal = {
+                    ...(await loadNonCached()),
+                    ...data.data
+                };
+            }
             return true;
         } catch (error) {
             return `Error loading global data: ${error.stack ||

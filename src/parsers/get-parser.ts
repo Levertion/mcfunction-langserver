@@ -4,6 +4,7 @@ import { Parser } from "../types";
 import * as brigadierParsers from "./brigadier";
 import { literalParser } from "./literal";
 import * as blockParsers from "./minecraft/block";
+import { jsonParser } from "./minecraft/component";
 import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
@@ -31,6 +32,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
     "minecraft:column_pos": coordParsers.columnPos,
+    "minecraft:component": jsonParser,
     "minecraft:dimension": namespaceParsers.dimensionParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
     "minecraft:entity_summon": namespaceParsers.summonParser,
