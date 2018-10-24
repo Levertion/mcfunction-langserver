@@ -24,7 +24,13 @@ import {
 } from "./misc-functions";
 import { typed_keys } from "./misc-functions/third_party/typed-keys";
 import { blankRange } from "./test/blanks";
-import { CommandLine, FunctionInfo, ParseNode, SubAction } from "./types";
+import {
+    CommandLine,
+    FunctionInfo,
+    JSONDocInfo,
+    ParseNode,
+    SubAction
+} from "./types";
 
 export function hoverProvider(
     docLine: CommandLine,
@@ -50,6 +56,17 @@ export function hoverProvider(
             line
         };
         return { contents: map(intervals), range: { start, end } };
+    }
+    const json = getActionsOfKind(docLine, pos, "json");
+    if (json.length > 0) {
+        const doc = json[0].data as JSONDocInfo;
+        let result: Hover | null | undefined;
+        manager.globalData.jsonService
+            .doHover(doc.text, pos, doc.json)
+            .then(v => (result = v));
+        if (result) {
+            return result;
+        }
     }
     const hovers = getActionsOfKind(docLine, pos, "hover");
     if (hovers.length > 0) {

@@ -3561,6 +3561,18 @@ function hoverProvider(docLine, pos, _, manager) {
     };
   }
 
+  const json = getActionsOfKind(docLine, pos, "json");
+
+  if (json.length > 0) {
+    const doc = json[0].data;
+    let result;
+    manager.globalData.jsonService.doHover(doc.text, pos, doc.json).then(v => result = v);
+
+    if (result) {
+      return result;
+    }
+  }
+
   const hovers = getActionsOfKind(docLine, pos, "hover");
 
   if (hovers.length > 0) {
