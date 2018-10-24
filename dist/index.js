@@ -1340,7 +1340,7 @@ class StringReader {
                     escaped = false;
                 } else {
                     this.skip();
-                    return helper.fail(EXCEPTIONS.INVALID_ESCAPE.create(this.cursor - 1, this.cursor, char)); // Includes backslash
+                    return helper.fail(EXCEPTIONS.INVALID_ESCAPE.create(this.cursor - 2, this.cursor, char)); // Includes backslash
                 }
             } else if (char === ESCAPE) {
                 escaped = true;
@@ -2623,6 +2623,7 @@ exports.ArrayReader = ArrayReader;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+const assert_1 = require("assert");
 const util_1 = require("util");
 const doc_walker_func_1 = require("./doc-walker-func");
 const array_reader_1 = require("./util/array-reader");
@@ -2637,24 +2638,35 @@ class NBTWalker {
     constructor(docs) {
         this.docs = docs;
     }
-    followNodePath(info, reader, parsed) {
+    followNodePath(info, reader, parsed, useReferences) {
         if (!info) {
             return { path: "", node: { type: "no-nbt" } };
         }
+        if (useReferences && info.node.references && reader.canRead() && info.node.references.hasOwnProperty(reader.peek())) {
+            return this.followNodePath({
+                node: info.node.references[reader.read()],
+                path: info.path
+            }, reader, parsed, useReferences);
+        }
         if (doc_walker_util_1.isRefInfo(info)) {
-            return this.followNodePath(this.resolveRef(info.node.ref, info.path), reader);
+            return this.followNodePath(this.resolveRef(info.node.ref, info.path), reader, parsed, useReferences);
         }
         if (doc_walker_util_1.isFunctionInfo(info)) {
-            return this.followNodePath(this.resolveRef(doc_walker_func_1.runNodeFunction(reader.getRead(), info.node, parsed), info.path), reader);
+            return this.followNodePath(this.resolveRef(doc_walker_func_1.runNodeFunction(reader.getRead(), info.node, parsed), info.path), reader, parsed, useReferences);
         }
         if (!reader.canRead()) {
             return info;
         }
         if (doc_walker_util_1.isCompoundInfo(info)) {
-            return this.followNodePath(this.getChildWithName(info, reader.read()), reader);
+            return this.followNodePath(this.getChildWithName(info, reader.read()), reader, parsed, useReferences);
         }
         if (doc_walker_util_1.isRootInfo(info)) {
-            return this.followNodePath(this.getChildOfRoot(info, reader.read()), reader);
+            return this.followNodePath(this.getChildOfRoot(info, reader.read()), reader, parsed, useReferences);
+        }
+        if (doc_walker_util_1.isListInfo(info)) {
+            assert_1.ok(reader.peek().match(/\d+/));
+            reader.read();
+            return this.followNodePath({ node: info.node.item, path: info.path }, reader, parsed, useReferences);
         }
         throw new Error(`Could not get next path after ${reader.peek()} in ${reader.getArray()} with info: ${JSON.stringify(info)}`);
     }
@@ -2726,7 +2738,7 @@ class NBTWalker {
         const reader = new array_reader_1.ArrayReader(fragPath);
         const node = this.docs.get(path);
         if (node) {
-            return this.followNodePath({ node: node, path }, reader);
+            return this.followNodePath({ node: node, path }, reader, undefined, true);
         }
         return undefined;
     }

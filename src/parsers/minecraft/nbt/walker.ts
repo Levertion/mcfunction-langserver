@@ -1,3 +1,4 @@
+import { ok } from "assert";
 import {
     CompoundNode,
     ListNode,
@@ -13,6 +14,7 @@ import { ArrayReader } from "./util/array-reader";
 import {
     isCompoundInfo,
     isFunctionInfo,
+    isListInfo,
     isRefInfo,
     isRootInfo,
     NodeInfo,
@@ -46,15 +48,34 @@ export class NBTWalker {
     public followNodePath(
         info: NodeInfo | undefined,
         reader: ArrayReader,
-        parsed?: NBTTag
+        parsed?: NBTTag,
+        useReferences?: boolean
     ): NodeInfo {
         if (!info) {
             return { path: "", node: { type: "no-nbt" } };
         }
+        if (
+            useReferences &&
+            info.node.references &&
+            reader.canRead() &&
+            info.node.references.hasOwnProperty(reader.peek())
+        ) {
+            return this.followNodePath(
+                {
+                    node: info.node.references[reader.read()],
+                    path: info.path
+                },
+                reader,
+                parsed,
+                useReferences
+            );
+        }
         if (isRefInfo(info)) {
             return this.followNodePath(
                 this.resolveRef(info.node.ref, info.path),
-                reader
+                reader,
+                parsed,
+                useReferences
             );
         }
         if (isFunctionInfo(info)) {
@@ -63,7 +84,9 @@ export class NBTWalker {
                     runNodeFunction(reader.getRead(), info.node, parsed),
                     info.path
                 ),
-                reader
+                reader,
+                parsed,
+                useReferences
             );
         }
         if (!reader.canRead()) {
@@ -72,13 +95,27 @@ export class NBTWalker {
         if (isCompoundInfo(info)) {
             return this.followNodePath(
                 this.getChildWithName(info, reader.read()),
-                reader
+                reader,
+                parsed,
+                useReferences
             );
         }
         if (isRootInfo(info)) {
             return this.followNodePath(
                 this.getChildOfRoot(info, reader.read()),
-                reader
+                reader,
+                parsed,
+                useReferences
+            );
+        }
+        if (isListInfo(info)) {
+            ok(reader.peek().match(/\d+/));
+            reader.read();
+            return this.followNodePath(
+                { node: info.node.item, path: info.path },
+                reader,
+                parsed,
+                useReferences
             );
         }
         throw new Error(
@@ -176,7 +213,12 @@ export class NBTWalker {
         const reader = new ArrayReader(fragPath);
         const node = this.docs.get(path);
         if (node) {
-            return this.followNodePath({ node: node as NBTNode, path }, reader);
+            return this.followNodePath(
+                { node: node as NBTNode, path },
+                reader,
+                undefined,
+                true
+            );
         }
         return undefined;
     }

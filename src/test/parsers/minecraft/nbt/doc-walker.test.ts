@@ -12,7 +12,7 @@ const test = (walker: NBTWalker, name: string, extpath: string[] = []) => {
 };
 
 describe("Documentation Walker Tests", () => {
-    describe("getFinalNode()", () => {
+    describe("getInitialNode()", () => {
         const walker = new NBTWalker(testDocs);
 
         it("should return the correct node for the basic doc", () => {
@@ -49,7 +49,7 @@ describe("Documentation Walker Tests", () => {
             test(walker, "func_test");
         });
 
-        it("should return the correct node for ref pointing to `references`", () => {
+        it("should return the correct node for ref pointing to 'references'", () => {
             test(walker, "ref_references_test");
         });
 
