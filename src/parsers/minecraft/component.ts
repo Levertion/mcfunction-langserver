@@ -45,11 +45,12 @@ export const jsonParser: Parser = {
                                 description: item.documentation,
                                 insertTextFormat: item.insertTextFormat,
                                 kind: item.kind,
+                                label: item.label,
                                 start:
                                     start + item.textEdit.range.start.character,
                                 text: item.textEdit.newText.replace(
                                     /\s*\n\s*/g,
-                                    " "
+                                    ""
                                 )
                             });
                         } else {
@@ -57,8 +58,9 @@ export const jsonParser: Parser = {
                                 description: item.documentation,
                                 insertTextFormat: item.insertTextFormat,
                                 kind: item.kind,
+                                label: item.label,
                                 start: reader.cursor,
-                                text: item.label.replace(/\s*\n\s*/g, " ")
+                                text: item.label.replace(/\s*\n\s*/g, "")
                             });
                         }
                     });

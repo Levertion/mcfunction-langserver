@@ -177,7 +177,7 @@ function suggestionsToCompletions(
                 insertTextFormat:
                     suggestion.insertTextFormat || InsertTextFormat.PlainText,
                 kind: suggestion.kind || defaultKind,
-                label: suggestion.text,
+                label: suggestion.label || suggestion.text,
                 textEdit: {
                     newText: suggestion.text,
                     range: {

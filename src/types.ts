@@ -65,6 +65,7 @@ export interface Suggestion {
     description?: string | MarkupContent;
     insertTextFormat?: InsertTextFormat;
     kind?: CompletionItemKind;
+    label?: string;
     /**
      * The start from where value should be replaced. 0 indexed character gaps.
      * E.g. `@e[na` with the suggestion `{value:"name=",start:3}`

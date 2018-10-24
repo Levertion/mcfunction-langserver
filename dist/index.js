@@ -2379,16 +2379,18 @@ exports.jsonParser = {
               description: item.documentation,
               insertTextFormat: item.insertTextFormat,
               kind: item.kind,
+              label: item.label,
               start: start + item.textEdit.range.start.character,
-              text: item.textEdit.newText.replace(/\s*\n\s*/g, " ")
+              text: item.textEdit.newText.replace(/\s*\n\s*/g, "")
             });
           } else {
             helper.addSuggestions({
               description: item.documentation,
               insertTextFormat: item.insertTextFormat,
               kind: item.kind,
+              label: item.label,
               start: reader.cursor,
-              text: item.label.replace(/\s*\n\s*/g, " ")
+              text: item.label.replace(/\s*\n\s*/g, "")
             });
           }
         });
@@ -3442,7 +3444,7 @@ function suggestionsToCompletions(suggestions, line, start, end, defaultKind = m
       const completion = {
         insertTextFormat: suggestion.insertTextFormat || main_1.InsertTextFormat.PlainText,
         kind: suggestion.kind || defaultKind,
-        label: suggestion.text,
+        label: suggestion.label || suggestion.text,
         textEdit: {
           newText: suggestion.text,
           range: {
