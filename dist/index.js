@@ -3573,6 +3573,13 @@ function hoverProvider(docLine, pos, _, manager) {
     manager.globalData.jsonService.doHover(doc.text, position, doc.json).then(v => result = v);
 
     if (result) {
+      if (result.range) {
+        result.range.start.line = pos.line;
+        result.range.end.line = pos.line;
+        result.range.start.character += json[0].low;
+        result.range.end.character += json[0].low;
+      }
+
       return result;
     }
   }
