@@ -63,14 +63,21 @@ export const timeParser: Parser = {
                 .addErrors(
                     EXCEPTIONS.not_nonegative_integer.create(
                         start,
-                        reader.cursor
+                        reader.cursor,
+                        result.toString()
                     )
                 )
                 .succeed();
         }
         if (!Number.isInteger(result)) {
             return helper
-                .addErrors(EXCEPTIONS.not_integer.create(start, reader.cursor))
+                .addErrors(
+                    EXCEPTIONS.not_integer.create(
+                        start,
+                        reader.cursor,
+                        result.toString()
+                    )
+                )
                 .succeed();
         }
         return helper.succeed();

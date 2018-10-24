@@ -3178,11 +3178,11 @@ exports.timeParser = {
     const result = unit * float.data;
 
     if (result < 0) {
-      return helper.addErrors(EXCEPTIONS.not_nonegative_integer.create(start, reader.cursor)).succeed();
+      return helper.addErrors(EXCEPTIONS.not_nonegative_integer.create(start, reader.cursor, result.toString())).succeed();
     }
 
     if (!Number.isInteger(result)) {
-      return helper.addErrors(EXCEPTIONS.not_integer.create(start, reader.cursor)).succeed();
+      return helper.addErrors(EXCEPTIONS.not_integer.create(start, reader.cursor, result.toString())).succeed();
     }
 
     return helper.succeed();
