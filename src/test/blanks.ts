@@ -31,8 +31,7 @@ export const emptyGlobal: GlobalData = {
     items: [],
     jsonService: undefined as any,
     meta_info: { version: "" },
-    resources: {},
-    textComponentSchema: {}
+    resources: {}
 };
 
 export const blankRange: Range = {

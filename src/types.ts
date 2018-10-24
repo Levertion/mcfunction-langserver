@@ -131,7 +131,7 @@ export type SubAction =
     | SubActionBase<"hover", MarkedString>
     | SubActionBase<"format", string>
     | SubActionBase<"source", string>
-    | SubActionBase<"json", JSONDocument>;
+    | SubActionBase<"json", JSONDocInfo>;
 // | SubActionBase<"rename", RenameRequest>;
 //#endregion
 export type Success = true;

@@ -10,41 +10,33 @@ export const jsonParser: Parser = {
         const remaining = reader.getRemaining();
         const start = reader.cursor;
         reader.cursor = reader.string.length;
-        const schema = info.data.globalData.textComponentSchema;
-        const document: TextDocument = {
+        const text: TextDocument = {
             getText: () => remaining,
             languageId: "json",
             lineCount: 1,
             offsetAt: pos => pos.character,
             positionAt: offset => ({ line: 0, character: offset }),
-            uri: "/tmp/notreal",
+            uri: "file://text-component.json",
             version: 0
         };
         const service = info.data.globalData.jsonService;
-        const jsonDocument = service.parseJSONDocument(document);
+        const json = service.parseJSONDocument(text);
+        service.doValidation(text, json).then(diagnostics => {
+            /* Because we use SynchronousPromise this is called before the next statement runs*/
+            helper.addErrors(
+                ...diagnostics.map<CommandError>(diag => ({
+                    code: typeof diag.code === "string" ? diag.code : "json",
+                    range: {
+                        end: start + diag.range.end.character,
+                        start: start + diag.range.start.character
+                    },
+                    severity: diag.severity || DiagnosticSeverity.Error,
+                    text: diag.message
+                }))
+            );
+        });
         service
-            .doValidation(document, jsonDocument, undefined, schema)
-            .then(diagnostics => {
-                /* Because we use SynchronousPromise this is called before the next statement runs*/
-                helper.addErrors(
-                    ...diagnostics.map<CommandError>(diag => ({
-                        code:
-                            typeof diag.code === "string" ? diag.code : "json",
-                        range: {
-                            end: start + diag.range.end.character,
-                            start: start + diag.range.start.character
-                        },
-                        severity: diag.severity || DiagnosticSeverity.Error,
-                        text: diag.message
-                    }))
-                );
-            });
-        service
-            .doComplete(
-                document,
-                { line: 0, character: remaining.length },
-                jsonDocument
-            )
+            .doComplete(text, { line: 0, character: remaining.length }, json)
             .then(completionList => {
                 if (completionList) {
                     completionList.items.forEach(item => {
@@ -67,7 +59,15 @@ export const jsonParser: Parser = {
                     });
                 }
             });
-
+        helper.addActions({
+            data: {
+                json,
+                text
+            },
+            high: reader.cursor,
+            low: start,
+            type: "json"
+        });
         return helper.succeed();
     }
 };
