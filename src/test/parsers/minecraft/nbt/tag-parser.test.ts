@@ -78,5 +78,39 @@ describe("SNBT Tag Parser Tests", () => {
                     value: 123
                 }
             ));
+        it("should parse as a short and fail validation", () =>
+            testTag(
+                new NBTTagNumber([]),
+                {
+                    expected: {
+                        succeeds: true
+                    },
+                    text: "321s"
+                },
+                {
+                    expected: {
+                        succeeds: false
+                    },
+                    node: {
+                        type: "short"
+                    }
+                }
+            ));
+        it("should give an invalid number error", () =>
+            testTag(new NBTTagNumber([]), {
+                expected: {
+                    errors: [
+                        {
+                            code: "parsing.int.expected",
+                            range: {
+                                end: 5,
+                                start: 0
+                            }
+                        }
+                    ],
+                    succeeds: false
+                },
+                text: "hello"
+            }));
     });
 });

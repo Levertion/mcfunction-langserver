@@ -317,7 +317,7 @@ export class StringReader {
                     this.skip();
                     return helper.fail(
                         EXCEPTIONS.INVALID_ESCAPE.create(
-                            this.cursor - 1,
+                            this.cursor - 2,
                             this.cursor,
                             char
                         )
