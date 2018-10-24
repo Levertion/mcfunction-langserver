@@ -2,6 +2,7 @@ import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
 import { JSONDocument } from "vscode-json-languageservice";
 import {
     CompletionItemKind,
+    InsertTextFormat,
     MarkedString,
     MarkupContent,
     TextDocument
@@ -62,6 +63,7 @@ export interface CommmandData {
 
 export interface Suggestion {
     description?: string | MarkupContent;
+    insertTextFormat?: InsertTextFormat;
     kind?: CompletionItemKind;
     /**
      * The start from where value should be replaced. 0 indexed character gaps.

@@ -1,7 +1,8 @@
 import {
     CompletionItem,
     CompletionItemKind,
-    CompletionList
+    CompletionList,
+    InsertTextFormat
 } from "vscode-languageserver/lib/main";
 
 import { StringReader } from "./brigadier/string-reader";
@@ -173,6 +174,8 @@ function suggestionsToCompletions(
             });
         } else {
             const completion: CompletionItem = {
+                insertTextFormat:
+                    suggestion.insertTextFormat || InsertTextFormat.PlainText,
                 kind: suggestion.kind || defaultKind,
                 label: suggestion.text,
                 textEdit: {

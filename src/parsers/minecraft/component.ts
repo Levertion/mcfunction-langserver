@@ -43,17 +43,22 @@ export const jsonParser: Parser = {
                         if (item.textEdit) {
                             helper.addSuggestions({
                                 description: item.documentation,
+                                insertTextFormat: item.insertTextFormat,
                                 kind: item.kind,
                                 start:
                                     start + item.textEdit.range.start.character,
-                                text: item.textEdit.newText
+                                text: item.textEdit.newText.replace(
+                                    /\s*\n\s*/g,
+                                    " "
+                                )
                             });
                         } else {
                             helper.addSuggestions({
                                 description: item.documentation,
+                                insertTextFormat: item.insertTextFormat,
                                 kind: item.kind,
                                 start: reader.cursor,
-                                text: item.label
+                                text: item.label.replace(/\s*\n\s*/g, " ")
                             });
                         }
                     });

@@ -2377,16 +2377,18 @@ exports.jsonParser = {
           if (item.textEdit) {
             helper.addSuggestions({
               description: item.documentation,
+              insertTextFormat: item.insertTextFormat,
               kind: item.kind,
               start: start + item.textEdit.range.start.character,
-              text: item.textEdit.newText
+              text: item.textEdit.newText.replace(/\s*\n\s*/g, " ")
             });
           } else {
             helper.addSuggestions({
               description: item.documentation,
+              insertTextFormat: item.insertTextFormat,
               kind: item.kind,
               start: reader.cursor,
-              text: item.label
+              text: item.label.replace(/\s*\n\s*/g, " ")
             });
           }
         });
@@ -3438,6 +3440,7 @@ function suggestionsToCompletions(suggestions, line, start, end, defaultKind = m
       });
     } else {
       const completion = {
+        insertTextFormat: suggestion.insertTextFormat || main_1.InsertTextFormat.PlainText,
         kind: suggestion.kind || defaultKind,
         label: suggestion.text,
         textEdit: {
