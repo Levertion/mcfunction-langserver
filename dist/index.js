@@ -2069,6 +2069,7 @@ class NBTTagList extends lists_1.BaseList {
     constructor() {
         super(...arguments);
         this.tagType = "list";
+        // The open square bracket
         this.start = blanks_1.emptyRange;
     }
     validate(anyInfo, walker) {
@@ -2416,7 +2417,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
                 if (part.value) {
                     const child = walker.getChildWithName(info, part.key);
                     if (child) {
-                        part.value.validate(child, walker);
+                        helper.merge(part.value.validate(child, walker));
                         helper.addActions(getKeyHover(part.keyRange, child.node));
                     } else {
                         const error = Object.assign({}, exports.UNKNOWN.create(part.keyRange.start, part.keyRange.end, part.key), { path: [...this.path, part.key] });
@@ -2441,24 +2442,23 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         return helper.succeed();
         function handleNoValue(part) {
             const keyHelper = new misc_functions_1.ReturnHelper();
-            if (part.key) {
-                const children = walker.getChildren(info);
-                if (part.closeIdx === undefined) {
-                    for (const childName of Object.keys(children)) {
-                        if (childName.startsWith(part.key)) {
-                            keyHelper.addSuggestions({
-                                description: children[childName].description,
-                                kind: vscode_languageserver_1.CompletionItemKind.Field,
-                                start: part.keyRange.start,
-                                text: string_reader_1.quoteIfNeeded(childName)
-                            });
-                        }
+            const key = part.key || "";
+            const children = walker.getChildren(info);
+            if (part.closeIdx === undefined) {
+                for (const childName of Object.keys(children)) {
+                    if (childName.startsWith(key)) {
+                        keyHelper.addSuggestions({
+                            description: children[childName].description,
+                            kind: vscode_languageserver_1.CompletionItemKind.Field,
+                            start: part.keyRange.start,
+                            text: string_reader_1.quoteIfNeeded(childName)
+                        });
                     }
                 }
-                const child = children[part.key];
-                if (child) {
-                    keyHelper.addActions(getKeyHover(part.keyRange, child));
-                }
+            }
+            const child = children[key];
+            if (child) {
+                keyHelper.addActions(getKeyHover(part.keyRange, child));
             }
             // tslint:disable-next-line:helper-return
             return keyHelper.succeed();
@@ -2480,19 +2480,29 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             return helper.failWithData(nbt_util_1.Correctness.NO);
         }
         this.openIndex = start;
+        const afterOpen = reader.cursor;
         reader.skipWhitespace();
         if (reader.peek() === nbt_util_1.COMPOUND_END) {
             this.miscIndex = reader.cursor;
             reader.skip();
             return helper.succeed(nbt_util_1.Correctness.CERTAIN);
+        } else if (!reader.canRead()) {
+            helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
+            helper.addErrors(NO_KEY.create(afterOpen, reader.cursor));
+            this.parts.push({
+                keyRange: {
+                    end: reader.cursor,
+                    start: reader.cursor
+                }
+            });
+            return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
         }
-        reader.cursor = start; // This improves the value of the first kvstart in case of `{  `
+        reader.cursor = afterOpen; // This improves the value of the first kvstart in case of `{  `
         while (true) {
             const kvstart = reader.cursor;
             reader.skipWhitespace();
             const keyStart = reader.cursor;
             if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
                 helper.addErrors(NO_KEY.create(kvstart, reader.cursor));
                 this.parts.push({
                     keyRange: {
@@ -2566,11 +2576,20 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             }
             reader.skipWhitespace();
             this.value.set(key.data, valResult.data.tag);
-            if (reader.peek() === nbt_util_1.COMPOUND_PAIR_SEP || reader.peek() === nbt_util_1.COMPOUND_END) {
+            const next = reader.peek();
+            if (!reader.canRead()) {
+                helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
+                helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_PAIR_SEP);
+                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+            }
+            if (next === nbt_util_1.COMPOUND_PAIR_SEP || next === nbt_util_1.COMPOUND_END) {
                 reader.skip();
+                if (!reader.canRead()) {
+                    helper.addSuggestion(reader.cursor, next); // Pretend that we had always made that suggestion, in a sense.
+                }
                 part.closeIdx = reader.cursor;
                 this.parts.push(part);
-                if (reader.peek() === nbt_util_1.COMPOUND_PAIR_SEP) {
+                if (next === nbt_util_1.COMPOUND_END) {
                     this.miscIndex = reader.cursor;
                     return helper.succeed(nbt_util_1.Correctness.CERTAIN);
                 }
@@ -3142,7 +3161,7 @@ function validateParse2(reader, info, data) {
     const tag = new compound_tag_1.NBTTagCompound([]);
     const docs = info.data.globalData.nbt_docs;
     const parseResult = tag.parse(reader);
-    if (misc_functions_1.isSuccessful(parseResult) || parseResult.data > nbt_util_1.Correctness.NO) {
+    if (helper.merge(parseResult) || parseResult.data > nbt_util_1.Correctness.NO) {
         if (!!data) {
             const walker = new walker_1.NBTWalker(docs);
             const addUnknownError = (error, id) => {
@@ -3172,19 +3191,21 @@ function validateParse2(reader, info, data) {
                 }
             } else {
                 const root = walker.getInitialNode([data.type, data.ids || "none"]);
-                const result = tag.validate(root, walker);
-                helper.merge(result, { errors: false });
-                for (const e of result.errors) {
-                    const error = e;
-                    if (error.path) {
-                        addUnknownError(error);
-                    } else {
-                        helper.addErrors(error);
+                if (!doc_walker_util_1.isNoNBTInfo(root)) {
+                    const result = tag.validate(root, walker);
+                    helper.merge(result, { errors: false });
+                    for (const e of result.errors) {
+                        const error = e;
+                        if (error.path) {
+                            addUnknownError(error);
+                        } else {
+                            helper.addErrors(error);
+                        }
                     }
                 }
             }
         }
-        return misc_functions_1.prepareForParser(helper.return(parseResult), info);
+        return helper.succeed();
     } else {
         return helper.fail();
     }
@@ -3195,11 +3216,7 @@ exports.parser = {
         const helper = new misc_functions_1.ReturnHelper(info);
         const ctxdatafn = context_1.resolvePaths(paths, info.path || []);
         const data = ctxdatafn && ctxdatafn(info.context);
-        if (helper.merge(validateParse2(reader, info, data))) {
-            return helper.succeed();
-        } else {
-            return helper.fail();
-        }
+        return helper.return(validateParse2(reader, info, data));
     }
 };
 },{"../../../misc-functions":"irtH","../../../misc-functions/context":"qA/9","./tag/compound-tag":"w/DJ","./util/doc-walker-util":"TRlg","./util/nbt-util":"R+CJ","./walker":"1JwD"}],"IZJ1":[function(require,module,exports) {
