@@ -1,9 +1,5 @@
 import { StringReader } from "../../../brigadier/string-reader";
-import {
-    isSuccessful,
-    prepareForParser,
-    ReturnHelper
-} from "../../../misc-functions";
+import { ReturnHelper } from "../../../misc-functions";
 import {
     ContextPath,
     resolvePaths,
@@ -58,7 +54,7 @@ export function validateParse2(
     const tag = new NBTTagCompound([]);
     const docs = info.data.globalData.nbt_docs;
     const parseResult = tag.parse(reader);
-    if (isSuccessful(parseResult) || parseResult.data > Correctness.NO) {
+    if (helper.merge(parseResult) || parseResult.data > Correctness.NO) {
         if (!!data) {
             const walker = new NBTWalker(docs);
             const addUnknownError = (error: UnknownsError, id?: string) => {
@@ -103,19 +99,21 @@ export function validateParse2(
                     data.type,
                     data.ids || "none"
                 ]);
-                const result = tag.validate(root, walker);
-                helper.merge(result, { errors: false });
-                for (const e of result.errors) {
-                    const error = e as UnknownsError;
-                    if (error.path) {
-                        addUnknownError(error);
-                    } else {
-                        helper.addErrors(error);
+                if (!isNoNBTInfo(root)) {
+                    const result = tag.validate(root, walker);
+                    helper.merge(result, { errors: false });
+                    for (const e of result.errors) {
+                        const error = e as UnknownsError;
+                        if (error.path) {
+                            addUnknownError(error);
+                        } else {
+                            helper.addErrors(error);
+                        }
                     }
                 }
             }
         }
-        return prepareForParser(helper.return(parseResult), info);
+        return helper.succeed();
     } else {
         return helper.fail();
     }
@@ -126,10 +124,6 @@ export const parser: Parser = {
         const helper = new ReturnHelper(info);
         const ctxdatafn = resolvePaths(paths, info.path || []);
         const data = ctxdatafn && ctxdatafn(info.context);
-        if (helper.merge(validateParse2(reader, info, data))) {
-            return helper.succeed();
-        } else {
-            return helper.fail();
-        }
+        return helper.return(validateParse2(reader, info, data));
     }
 };

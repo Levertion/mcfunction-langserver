@@ -123,7 +123,7 @@ export class NBTTagCompound extends NBTTag {
                 if (part.value) {
                     const child = walker.getChildWithName(info, part.key);
                     if (child) {
-                        part.value.validate(child, walker);
+                        helper.merge(part.value.validate(child, walker));
                         helper.addActions(
                             getKeyHover(part.keyRange, child.node)
                         );
@@ -157,24 +157,23 @@ export class NBTTagCompound extends NBTTag {
         return helper.succeed();
         function handleNoValue(part: KVPair): ReturnSuccess<undefined> {
             const keyHelper = new ReturnHelper();
-            if (part.key) {
-                const children = walker.getChildren(info);
-                if (part.closeIdx === undefined) {
-                    for (const childName of Object.keys(children)) {
-                        if (childName.startsWith(part.key)) {
-                            keyHelper.addSuggestions({
-                                description: children[childName].description,
-                                kind: CompletionItemKind.Field,
-                                start: part.keyRange.start,
-                                text: quoteIfNeeded(childName)
-                            });
-                        }
+            const key = part.key || "";
+            const children = walker.getChildren(info);
+            if (part.closeIdx === undefined) {
+                for (const childName of Object.keys(children)) {
+                    if (childName.startsWith(key)) {
+                        keyHelper.addSuggestions({
+                            description: children[childName].description,
+                            kind: CompletionItemKind.Field,
+                            start: part.keyRange.start,
+                            text: quoteIfNeeded(childName)
+                        });
                     }
                 }
-                const child = children[part.key];
-                if (child) {
-                    keyHelper.addActions(getKeyHover(part.keyRange, child));
-                }
+            }
+            const child = children[key];
+            if (child) {
+                keyHelper.addActions(getKeyHover(part.keyRange, child));
             }
             // tslint:disable-next-line:helper-return
             return keyHelper.succeed();
@@ -197,19 +196,29 @@ export class NBTTagCompound extends NBTTag {
             return helper.failWithData(Correctness.NO);
         }
         this.openIndex = start;
+        const afterOpen = reader.cursor;
         reader.skipWhitespace();
         if (reader.peek() === COMPOUND_END) {
             this.miscIndex = reader.cursor;
             reader.skip();
             return helper.succeed(Correctness.CERTAIN);
+        } else if (!reader.canRead()) {
+            helper.addSuggestion(reader.cursor, COMPOUND_END);
+            helper.addErrors(NO_KEY.create(afterOpen, reader.cursor));
+            this.parts.push({
+                keyRange: {
+                    end: reader.cursor,
+                    start: reader.cursor
+                }
+            });
+            return helper.failWithData(Correctness.CERTAIN);
         }
-        reader.cursor = start; // This improves the value of the first kvstart in case of `{  `
+        reader.cursor = afterOpen; // This improves the value of the first kvstart in case of `{  `
         while (true) {
             const kvstart = reader.cursor;
             reader.skipWhitespace();
             const keyStart = reader.cursor;
             if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, COMPOUND_END);
                 helper.addErrors(NO_KEY.create(kvstart, reader.cursor));
                 this.parts.push({
                     keyRange: {
@@ -286,19 +295,26 @@ export class NBTTagCompound extends NBTTag {
             }
             reader.skipWhitespace();
             this.value.set(key.data, valResult.data.tag);
-            if (
-                reader.peek() === COMPOUND_PAIR_SEP ||
-                reader.peek() === COMPOUND_END
-            ) {
+            const next = reader.peek();
+            if (!reader.canRead()) {
+                helper.addSuggestion(reader.cursor, COMPOUND_END);
+                helper.addSuggestion(reader.cursor, COMPOUND_PAIR_SEP);
+                return helper.failWithData(Correctness.CERTAIN);
+            }
+            if (next === COMPOUND_PAIR_SEP || next === COMPOUND_END) {
                 reader.skip();
+                if (!reader.canRead()) {
+                    helper.addSuggestion(reader.cursor, next); // Pretend that we had always made that suggestion, in a sense.
+                }
                 part.closeIdx = reader.cursor;
                 this.parts.push(part);
-                if (reader.peek() === COMPOUND_PAIR_SEP) {
+                if (next === COMPOUND_END) {
                     this.miscIndex = reader.cursor;
                     return helper.succeed(Correctness.CERTAIN);
                 }
                 continue;
             }
+
             return helper.failWithData(Correctness.CERTAIN);
         }
     }
