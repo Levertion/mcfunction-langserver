@@ -108,7 +108,7 @@ export class NBTTagNumber extends NBTTag {
             this.checkSuffix(reader);
             return helper.succeed(Correctness.CERTAIN);
         } else {
-            return helper.succeed(Correctness.NO);
+            return helper.failWithData(Correctness.NO);
         }
     }
 
@@ -122,7 +122,7 @@ export class NBTTagNumber extends NBTTag {
     // Contributions welcome, at yer own risk
     public validate(node: NodeInfo): ReturnSuccess<undefined> {
         const helper = new ReturnHelper();
-        if (isTypedInfo(node) && this.value !== undefined) {
+        if (isTypedInfo(node)) {
             const actualType = node.node.type;
             if (!ranges.hasOwnProperty(actualType)) {
                 return helper.mergeChain(this.sameType(node)).succeed();

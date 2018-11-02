@@ -38,7 +38,7 @@ function walkUnwrap<T extends NBTNode>(
 }
 
 export class NBTWalker {
-    private static root = "root.json";
+    private static readonly root = "root.json";
     private readonly docs: NBTDocs;
 
     public constructor(docs: NBTDocs) {

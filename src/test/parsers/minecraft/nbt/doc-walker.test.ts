@@ -40,12 +40,12 @@ describe("Documentation Walker Tests", () => {
         });
 
         it.skip("should return the correct node for funcs", () => {
+            // TODO: Rework
             const map = new Map<string, NBTTagString>();
             map.set("var1", new NBTTagString(["var1"]).setValue("func_test"));
             // @ts-ignore
             // tslint:disable-next-line:variable-name
             const _nbt = new NBTTagCompound([]).setValue(map);
-            // TODO: Rework
             test(walker, "func_test");
         });
 

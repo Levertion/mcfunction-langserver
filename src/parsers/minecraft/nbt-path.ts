@@ -75,7 +75,10 @@ export const parser: Parser = {
                 first = false;
                 continue;
             }
-            if ((reader.peek() === DOT && (reader.skip() || true)) || first) {
+            if (reader.peek() === DOT || first) {
+                if (reader.peek() === DOT) {
+                    reader.skip();
+                }
                 const children =
                     current && isCompoundInfo(current)
                         ? walker.getChildren(current)

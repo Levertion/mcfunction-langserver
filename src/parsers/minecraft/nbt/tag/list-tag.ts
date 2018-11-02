@@ -11,6 +11,7 @@ import { ParseReturn } from "./nbt-tag";
 
 export class NBTTagList extends BaseList {
     public tagType: "list" = "list";
+    // The open square bracket
     protected start: LineRange = emptyRange;
 
     public validate(

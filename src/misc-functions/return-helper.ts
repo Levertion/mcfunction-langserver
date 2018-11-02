@@ -63,15 +63,6 @@ export function fillBlanks(
     return { ...data, errors };
 }
 
-export function getReturned<T>(value: T | undefined): ReturnedInfo<T> {
-    const helper = new ReturnHelper();
-    if (typeof value === "undefined") {
-        return helper.fail();
-    } else {
-        return helper.succeed(value);
-    }
-}
-
 export interface MergeOptions {
     actions?: boolean;
     errors?: boolean;
@@ -234,5 +225,14 @@ export function prepareForParser(
         return helper.succeed();
     } else {
         return helper.fail();
+    }
+}
+
+export function getReturned<T>(value: T | undefined): ReturnedInfo<T> {
+    const helper = new ReturnHelper();
+    if (typeof value === "undefined") {
+        return helper.fail();
+    } else {
+        return helper.succeed(value);
     }
 }

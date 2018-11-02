@@ -20,7 +20,7 @@ interface ValidateTest {
 }
 
 interface ValueTest {
-    type: TagType;
+    type?: TagType;
     value: any;
 }
 
@@ -74,7 +74,6 @@ describe("SNBT Tag Parser Tests", () => {
                     }
                 },
                 {
-                    type: "byte",
                     value: 123
                 }
             ));
@@ -89,7 +88,7 @@ describe("SNBT Tag Parser Tests", () => {
                 },
                 {
                     expected: {
-                        succeeds: false
+                        succeeds: true
                     },
                     node: {
                         type: "short"
@@ -101,7 +100,7 @@ describe("SNBT Tag Parser Tests", () => {
                 expected: {
                     errors: [
                         {
-                            code: "parsing.int.expected",
+                            code: "parsing.float.expected",
                             range: {
                                 end: 5,
                                 start: 0

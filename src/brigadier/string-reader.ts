@@ -94,9 +94,7 @@ export class StringReader {
         return helper.succeed();
     }
 
-    public expectOption(
-        ...options: string[]
-    ): ReturnedInfo<string, CE, undefined> {
+    public expectOption(...options: string[]): ReturnedInfo<string> {
         const helper = new ReturnHelper();
         const start = this.cursor;
         let out: string | undefined;
@@ -411,6 +409,7 @@ export class StringReader {
     private readOptionInner(
         kind: QuotingKind
     ): ReturnedInfo<string, CE, string | undefined> {
+        // tslint:disable:helper-return
         switch (kind) {
             case "both":
                 return this.readString();
@@ -421,6 +420,7 @@ export class StringReader {
             default:
                 return this.readString();
         }
+        // tslint:enable:helper-return
     }
 }
 

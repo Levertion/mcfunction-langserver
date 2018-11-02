@@ -72,7 +72,7 @@ export class NBTTagCompound extends NBTTag {
      * If last has key but closed, it has been unparseable either due to an invalid
      * character after or within the strin
      */
-    private parts: KVPair[] = [];
+    private readonly parts: KVPair[] = [];
 
     public getValue(): Map<string, NBTTag> {
         return this.value;
@@ -304,7 +304,7 @@ export class NBTTagCompound extends NBTTag {
             if (next === COMPOUND_PAIR_SEP || next === COMPOUND_END) {
                 reader.skip();
                 if (!reader.canRead()) {
-                    helper.addSuggestion(reader.cursor, next); // Pretend that we had always made that suggestion, in a sense.
+                    helper.addSuggestion(reader.cursor - 1, next); // Pretend that we had always made that suggestion, in a sense.
                 }
                 part.closeIdx = reader.cursor;
                 this.parts.push(part);

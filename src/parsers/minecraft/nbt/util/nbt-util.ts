@@ -1,16 +1,10 @@
 import { NBTNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { ReturnedInfo, ReturnSuccess, SuggestResult } from "../../../../types";
+import { ReturnedInfo, ReturnSuccess } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import { TagType } from "../tag/nbt-tag";
-import {
-    isCompoundNode,
-    isListNode,
-    isNoNBTNode,
-    isRootNode,
-    isTypedNode
-} from "./doc-walker-util";
+import { isNoNBTNode, isRootNode, isTypedNode } from "./doc-walker-util";
 
 export const ARRAY_START = "[";
 export const ARRAY_END = "]";
@@ -39,7 +33,7 @@ export enum Correctness {
 export function tryExponential(reader: StringReader): ReturnedInfo<number> {
     const helper = new ReturnHelper();
     const f = reader.readFloat();
-    if (!helper.merge(f)) {
+    if (!helper.merge(f, { errors: false })) {
         return helper.fail();
     }
     const cur = reader.peek();
@@ -117,7 +111,7 @@ export function getNBTSuggestions(
             });
         }
     }
-    if (isCompoundNode(node) && node.children) {
+    /* if (isCompoundNode(node) && node.children) {
         helper.addSuggestions(
             ...Object.keys(node.children).map<SuggestResult>(v => ({
                 // @ts-ignore
@@ -128,7 +122,7 @@ export function getNBTSuggestions(
         );
     } else if (isListNode(node) && node.item) {
         helper.mergeChain(getNBTSuggestions(node.item, cursor));
-    }
+    } */
     return helper.succeed();
 }
 

@@ -17,7 +17,7 @@ const parsers: Array<(path: string[]) => NBTTag> = [
     path => new NBTTagString(path)
 ];
 
-export type AnyTagReturn = ReturnedInfo<NBTTag, CE>;
+export type AnyTagReturn = ReturnedInfo<NBTTag>;
 
 export interface CorrectInfo {
     correctness: Correctness;

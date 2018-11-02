@@ -34,7 +34,6 @@ export abstract class BaseList extends NBTTag {
             reader.skip();
             return helper.succeed();
         }
-        const tags: NBTTag[] = [];
 
         let index = 0;
         while (true) {
@@ -51,8 +50,11 @@ export abstract class BaseList extends NBTTag {
                 `[${index++}]`
             ]);
             if (helper.merge(value)) {
-                tags.push(value.data.tag);
+                this.values.push(value.data.tag);
             } else {
+                if (value.data) {
+                    this.values.push(value.data.tag);
+                }
                 return helper.fail();
             }
             const preEnd = reader.cursor;
