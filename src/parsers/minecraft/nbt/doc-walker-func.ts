@@ -14,7 +14,7 @@ interface SuggestFuncs {
 }
 
 type PathFunc = (
-    parsed: NBTTag<any>,
+    parsed: NBTTag | undefined,
     nbtPath: string[],
     node: FunctionNode,
     args: any
@@ -26,9 +26,9 @@ const pathsFuncs: PathFunctions = {
 };
 
 export function runNodeFunction(
-    parsed: NBTTag<any>,
     nbtPath: string[],
-    node: FunctionNode
+    node: FunctionNode,
+    parsed: NBTTag | undefined
 ): string {
     return pathsFuncs[node.function.id](
         parsed,
@@ -47,19 +47,21 @@ interface InsertStringNBTArgs {
 }
 
 function insertStringNBT(
-    parsed: NBTTag<any>,
+    parsed: NBTTag | undefined,
     nbtPath: string[],
-    // @ts-ignore
-    node: FunctionNode,
+    _: FunctionNode,
     args: InsertStringNBTArgs
 ): string {
+    if (!parsed) {
+        return args.default;
+    }
     const newRef = path.posix
         .join(path.dirname(nbtPath.join("/")), args.tag_path)
         .split("/");
     const out = getNBTTagFromTree(parsed, newRef);
     return !out || !(out instanceof NBTTagString)
         ? args.default
-        : sprintf(args.ref, out.getVal());
+        : sprintf(args.ref, out.getValue());
 }
 
 // Suggest function

@@ -9,11 +9,10 @@ import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
+import { parser as NBTPathParser } from "./minecraft/nbt-path";
+import { nbtParser } from "./minecraft/nbt/nbt";
 import { functionParser, resourceParser } from "./minecraft/resources";
 import { objectiveParser, teamParser } from "./minecraft/scoreboard";
-
-import { parser as NBTPathParser } from "./minecraft/nbt-path";
-import { parser as NBTParser } from "./minecraft/nbt/nbt";
 
 /**
  * Incomplete:
@@ -38,8 +37,12 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:item_stack": itemParsers.stack,
     "minecraft:message": messageParser,
     "minecraft:mob_effect": namespaceParsers.mobEffectParser,
-    "minecraft:nbt": NBTParser,
+    "minecraft:nbt": nbtParser,
     "minecraft:nbt-path": NBTPathParser,
+    "minecraft:nbt_compound_tag": nbtParser,
+    "minecraft:nbt_path": NBTPathParser,
+    // Duplication of nbt path is OK - nbt-path is 1.13 whereas nbt_path is 1.14
+    "minecraft:nbt_tag": nbtParser,
     "minecraft:objective": objectiveParser,
     "minecraft:operation": listParsers.operationParser,
     "minecraft:particle": namespaceParsers.particleParser,

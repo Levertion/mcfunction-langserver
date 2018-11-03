@@ -1,17 +1,23 @@
-import { NBTNode } from "mc-nbt-paths";
+import { NBTNode, NoPropertyNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { CE, LineRange, ReturnedInfo, Suggestion } from "../../../../types";
-import { runSuggestFunction } from "../doc-walker-func";
+import { emptyRange } from "../../../../test/blanks";
 import {
-    isTypedNode,
-    NBTValidationInfo,
+    CE,
+    LineRange,
+    ReturnedInfo,
+    ReturnSuccess,
+    SubAction
+} from "../../../../types";
+import {
+    isTypedInfo,
+    NodeInfo,
     VALIDATION_ERRORS
 } from "../util/doc-walker-util";
-import { CorrectLevel, getHoverText, NBTErrorData } from "../util/nbt-util";
+import { Correctness, getHoverText } from "../util/nbt-util";
+import { NBTWalker } from "../walker";
 
-export type ParseReturn = ReturnedInfo<CorrectLevel, CE, NBTErrorData>;
-
+export type ParseReturn = ReturnedInfo<Correctness, CE, Correctness>;
 export type TagType =
     | "byte"
     | "short"
@@ -26,103 +32,73 @@ export type TagType =
     | "list"
     | "compound";
 
-export abstract class NBTTag<L> {
-    public abstract readonly tagType: TagType;
-    protected range: LineRange;
+export abstract class NBTTag {
+    protected path: string[];
+    protected range: LineRange = emptyRange();
+    protected abstract tagType?: TagType;
 
-    protected val: L;
-
-    public constructor(val: L) {
-        this.val = val;
-        this.range = { start: 0, end: 0 };
+    public constructor(path: string[]) {
+        this.path = path;
     }
-
     public getRange(): LineRange {
         return this.range;
     }
 
-    public getVal(): L {
-        return this.val;
-    }
+    public abstract getValue(): any;
 
     public parse(reader: StringReader): ParseReturn {
-        const start = reader.cursor;
+        this.range.start = reader.cursor;
         const out = this.readTag(reader);
-        this.range = {
-            end: reader.cursor,
-            start
-        };
+        this.range.end = reader.cursor;
         // tslint:disable:helper-return
         return out;
     }
 
-    /**
-     * Test if two NBT tags are equivalent in value
-     * @param tag The NBT tag to test against
-     */
-    public tagEq(tag: NBTTag<any>): boolean {
-        return tag.tagType === this.tagType && tag.getVal() === this.getVal();
-    }
+    public abstract setValue(val: any): this;
 
-    public validationResponse(
-        node: NBTNode,
-        // @ts-ignore
-        info?: NBTValidationInfo
-    ): ReturnedInfo<undefined> {
+    public validate(
+        node: NodeInfo,
+        // tslint:disable-next-line:variable-name
+        _walker: NBTWalker
+    ): ReturnSuccess<undefined> {
         const helper = new ReturnHelper();
-        if (!isTypedNode(node)) {
-            return helper.fail(
-                VALIDATION_ERRORS.wrongType.create(
-                    this.range.start,
-                    this.range.end,
-                    "",
-                    this.tagType
-                )
-            );
-        } else if (node.type !== this.tagType) {
-            return helper.fail(
-                VALIDATION_ERRORS.wrongType.create(
-                    this.range.start,
-                    this.range.end,
-                    node.type,
-                    this.tagType
-                )
-            );
+        const result = this.sameType(node);
+        if (!helper.merge(result)) {
+            return helper.succeed();
         }
-        if (node.description) {
-            helper.addActions({
-                data: getHoverText(node),
-                high: this.range.end,
-                low: this.range.start,
-                type: "hover"
-            });
-        }
-        if (node.suggestions) {
-            for (const k of node.suggestions) {
-                if (typeof k === "string") {
-                    helper.addSuggestion(this.range.start, k);
-                } else if ("function" in k) {
-                    helper.addSuggestions(
-                        ...runSuggestFunction(
-                            k.function.id,
-                            k.function.params
-                        ).map<Suggestion>(v => ({
-                            start: this.range.start,
-                            text: v
-                        }))
-                    );
-                } else {
-                    helper.addSuggestion(
-                        this.range.start,
-                        k.value,
-                        undefined,
-                        k.description
-                    );
-                }
-            }
-        }
+        helper.addActions(this.rangeHover(node.node));
         return helper.succeed();
     }
 
+    protected rangeHover(
+        node: NBTNode,
+        range: LineRange = this.range
+    ): SubAction {
+        return {
+            data: getHoverText(node),
+            high: range.end,
+            low: range.start,
+            type: "hover"
+        };
+    }
+
     protected abstract readTag(reader: StringReader): ParseReturn;
+
+    protected sameType(
+        node: NodeInfo,
+        type: string = this.tagType || ""
+    ): ReturnedInfo<undefined> {
+        const helper = new ReturnHelper();
+        if (!isTypedInfo(node) || (node.node as NoPropertyNode).type !== type) {
+            return helper.fail(
+                VALIDATION_ERRORS.wrongType.create(
+                    this.range.start,
+                    this.range.end,
+                    (node.node as NoPropertyNode).type || "",
+                    type
+                )
+            );
+        }
+        return helper.succeed();
+    }
 }

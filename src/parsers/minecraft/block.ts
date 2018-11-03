@@ -20,7 +20,7 @@ import {
     parseNamespaceOrTag
 } from "../../misc-functions/parsing/nmsp-tag";
 import { Parser, ParserInfo, ReturnedInfo, Suggestion } from "../../types";
-import { parseNBT } from "./nbt/nbt";
+import { validateParse } from "./nbt/nbt";
 
 export const predicateParser: Parser = {
     parse: (reader, info) => parseBlockArgument(reader, info, true)
@@ -152,8 +152,8 @@ export function parseBlockArgument(
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = parseNBT(reader, info, {
-                    id: (parsedResult.resolved || []).map(stringifyNamespace),
+                const nbt = validateParse(reader, info, {
+                    ids: (parsedResult.resolved || []).map(stringifyNamespace),
                     type: "block"
                 });
                 if (!helper.merge(nbt)) {
@@ -189,8 +189,8 @@ export function parseBlockArgument(
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = parseNBT(reader, info, {
-                    id: props ? stringifiedName : "none",
+                const nbt = validateParse(reader, info, {
+                    ids: props ? stringifiedName : "none",
                     type: "block"
                 });
                 if (!helper.merge(nbt)) {
@@ -220,8 +220,8 @@ export function parseBlockArgument(
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = parseNBT(reader, info, {
-                    id: "none",
+                const nbt = validateParse(reader, info, {
+                    ids: "none",
                     type: "block"
                 });
                 if (!helper.merge(nbt)) {
@@ -258,12 +258,12 @@ function parseProperties(
             const propStart = reader.cursor;
             const propParse = reader.readOption(
                 props,
-                false,
+                undefined,
                 CompletionItemKind.Property
             );
             const propKey = propParse.data;
             const propSuccessful = helper.merge(propParse);
-            if (propKey === false) {
+            if (propKey === undefined) {
                 // Strange order allows better type checker reasoning
                 // Parsing failed
                 return helper.fail();
@@ -304,12 +304,12 @@ function parseProperties(
             const valueStart = reader.cursor;
             const valueParse = reader.readOption(
                 options[propKey] || [],
-                false,
+                undefined,
                 CompletionItemKind.EnumMember
             );
             const valueSuccessful = helper.merge(valueParse);
             const value = valueParse.data;
-            if (value === false) {
+            if (value === undefined) {
                 return helper.fail();
             }
             const error = errors.invalid.create(

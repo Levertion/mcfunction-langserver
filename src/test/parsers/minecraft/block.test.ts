@@ -205,11 +205,12 @@ describe("sharedBlockParser", () => {
                         code: "argument.nbt.compound.nokey",
                         range: {
                             end: 16,
-                            start: 15
+                            start: 16
                         }
                     }
                 ],
-                succeeds: false,
+                numActions: 1,
+                succeeds: true,
                 suggestions: [
                     {
                         start: 15,
@@ -228,6 +229,7 @@ describe("sharedBlockParser", () => {
         });
         it("should parse correctly with NBT", () => {
             test('langserver:nbt{customTag:"Hello World"}', {
+                numActions: 4, // Open bracket, key, value, close bracket
                 succeeds: true,
                 suggestions: [
                     {
@@ -255,11 +257,14 @@ describe("sharedBlockParser", () => {
                         code: "argument.nbt.compound.nokey",
                         range: {
                             end: 15,
-                            start: 14
+                            start: 15
+                            // Could argue 14 is better, but this gets messy
+                            // If we decide this is better we should change it.
                         }
                     }
                 ],
-                succeeds: false,
+                numActions: 1,
+                succeeds: true,
                 suggestions: [
                     {
                         start: 15,
@@ -298,11 +303,12 @@ describe("sharedBlockParser", () => {
                         code: "argument.nbt.compound.nokey",
                         range: {
                             end: 19,
-                            start: 18
+                            start: 19
                         }
                     }
                 ],
-                succeeds: false,
+                numActions: 1,
+                succeeds: true,
                 suggestions: [
                     {
                         start: 18,

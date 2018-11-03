@@ -117,13 +117,29 @@ export class CoordParser implements Parser {
                     }
             }
 
-            if (
-                i < this.rules.count - 1 &&
-                (!reader.canRead() || !helper.merge(reader.expect(" ")))
-            ) {
-                return helper.return(
-                    fail(reader, this.rules.count, hasWorld, hasLocal, start, i)
-                );
+            if (i < this.rules.count - 1) {
+                if (!reader.canRead()) {
+                    return helper.fail(
+                        INCOMPLETE.create(
+                            start,
+                            reader.cursor,
+                            (i + 1).toString(),
+                            this.rules.count.toString()
+                        )
+                    );
+                }
+                if (!helper.merge(reader.expect(" "), { suggestions: false })) {
+                    return helper.return(
+                        fail(
+                            reader,
+                            this.rules.count,
+                            hasWorld,
+                            hasLocal,
+                            start,
+                            i
+                        )
+                    );
+                }
             }
         }
         return helper.succeed();

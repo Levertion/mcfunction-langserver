@@ -1,15 +1,26 @@
-import { isArray } from "util";
 import { StringReader } from "../../../brigadier/string-reader";
-import { isSuccessful, ReturnHelper } from "../../../misc-functions";
-import { ContextPath, resolvePaths } from "../../../misc-functions/context";
-import { Parser, ParserInfo, ReturnedInfo } from "../../../types";
-import { NBTTagCompound } from "./tag/compound-tag";
-import { NBTValidator } from "./validator";
+import { ReturnHelper } from "../../../misc-functions";
+import {
+    ContextPath,
+    startPaths,
+    stringArrayEqual
+} from "../../../misc-functions/context";
+import {
+    CommandContext,
+    Parser,
+    ParserInfo,
+    ReturnedInfo
+} from "../../../types";
+import { parseAnyNBTTag } from "./tag-parser";
+import { UnknownsError } from "./tag/compound-tag";
+import { isNoNBTInfo } from "./util/doc-walker-util";
+import { Correctness } from "./util/nbt-util";
+import { NBTWalker } from "./walker";
 
-type CtxPathFunc = (args: string[]) => NBTContextData;
+type CtxPathFunc = (context: CommandContext) => NBTContextData;
 
 export interface NBTContextData {
-    id?: string | string[];
+    ids?: string | string[];
     type: "entity" | "item" | "block";
 }
 
@@ -18,79 +29,106 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
         data: () => ({
             type: "entity"
         }),
-        path: ["data", "merge", "entity", "target", "nbt"]
+        path: ["data", "merge", "entity"]
     },
     {
         data: () => ({
             type: "block"
         }),
-        path: ["data", "merge", "block", "pos", "nbt"]
+        path: ["data", "merge", "block"]
     },
     {
         data: args => ({
-            id: args[1],
+            ids: args.entity,
             type: "entity"
         }),
-        path: ["summon", "entity", "pos", "nbt"]
+        path: ["summon", "entity"]
     }
+    // TODO - handle nbt_tag in /data modify
 ];
 
-export function parseNBT(
+export function validateParse(
     reader: StringReader,
     info: ParserInfo,
     data?: NBTContextData
 ): ReturnedInfo<undefined> {
     const helper = new ReturnHelper();
-    const tag = new NBTTagCompound({});
     const docs = info.data.globalData.nbt_docs;
-    const reply = tag.parse(reader);
-
-    if (helper.merge(reply)) {
-        return helper.succeed();
-    } else {
+    const parseResult = parseAnyNBTTag(reader, []);
+    const datum = parseResult.data;
+    if (
+        datum && // This is to appease the type checker
+        (helper.merge(parseResult) || datum.correctness > Correctness.NO)
+    ) {
         if (!!data) {
-            const walker = new NBTValidator(
-                reply.data.parsed || new NBTTagCompound({}),
-                docs,
-                data.type === "item"
-            );
-            if (isArray(data.id)) {
-                for (const k of data.id) {
-                    const node = walker.walkFinalNode([
-                        data.type,
-                        k,
-                        ...(reply.data.path || [])
-                    ]);
-                    if (isSuccessful(node)) {
-                        helper.mergeChain(node);
-                    } else {
-                        helper.mergeChain(node, false);
+            const walker = new NBTWalker(docs);
+            const addUnknownError = (error: UnknownsError, id?: string) => {
+                const { path, ...allowed } = error;
+                helper.addErrors({
+                    ...allowed,
+                    // This will break when translations are added, not sure how best to do this
+                    text: id
+                        ? `${error.text} for ${data.type} ${id}`
+                        : error.text
+                });
+            };
+            if (Array.isArray(data.ids)) {
+                for (const id of data.ids) {
+                    const root = walker.getInitialNode([data.type, id]);
+                    if (!isNoNBTInfo(root)) {
+                        const result = datum.tag.validate(root, walker);
+                        helper.merge(result, { errors: false });
+                        for (const e of result.errors) {
+                            const error = e as UnknownsError;
+                            if (error.path) {
+                                if (
+                                    !helper
+                                        .getShared()
+                                        .errors.find(v =>
+                                            stringArrayEqual(
+                                                (v as UnknownsError).path,
+                                                error.path
+                                            )
+                                        )
+                                ) {
+                                    addUnknownError(error, id);
+                                }
+                            } else {
+                                helper.addErrors(error);
+                            }
+                        }
                     }
                 }
-                return helper.fail();
             } else {
-                const node = walker.walkFinalNode([
+                const root = walker.getInitialNode([
                     data.type,
-                    data.id || "none",
-                    ...(reply.data.path || [])
+                    data.ids || "none"
                 ]);
-                return helper.mergeChain(node).fail();
+                if (!isNoNBTInfo(root)) {
+                    const result = datum.tag.validate(root, walker);
+                    helper.merge(result, { errors: false });
+                    for (const e of result.errors) {
+                        const error = e as UnknownsError;
+                        if (error.path) {
+                            addUnknownError(error);
+                        } else {
+                            helper.addErrors(error);
+                        }
+                    }
+                }
             }
-        } else {
-            return helper.fail();
         }
+        return helper.succeed();
+    } else {
+        return helper.fail();
     }
 }
 
-export const parser: Parser = {
-    parse: (reader, prop) => {
-        const helper = new ReturnHelper(prop);
-        const ctxdatafn = resolvePaths(paths, prop.path || []);
-        const data = !ctxdatafn ? undefined : ctxdatafn([]);
-        if (helper.merge(parseNBT(reader, prop, data))) {
-            return helper.succeed();
-        } else {
-            return helper.fail();
-        }
+export const nbtParser: Parser = {
+    parse: (reader, info) => {
+        const helper = new ReturnHelper(info);
+        const ctxdatafn = startPaths(paths, info.path || []);
+        const data = ctxdatafn && ctxdatafn(info.context);
+        return helper.return(validateParse(reader, info, data));
     }
 };

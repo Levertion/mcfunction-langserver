@@ -1,14 +1,14 @@
 import { NBTNode } from "mc-nbt-paths";
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
-import { ReturnSuccess, SuggestResult } from "../../../../types";
+import { ReturnedInfo, ReturnSuccess } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
-import { NBTTag } from "../tag/nbt-tag";
+import { TagType } from "../tag/nbt-tag";
 import {
-    isCompoundNode,
-    isListNode,
+    isNoNBTNode,
     isRootNode,
-    isTypedNode
+    isTypedNode,
+    TypedNode
 } from "./doc-walker-util";
 
 export const ARRAY_START = "[";
@@ -26,50 +26,49 @@ export const COMPOUND_KEY_VALUE_SEP = ":";
 export const COMPOUND_PAIR_SEP = ",";
 
 export interface NBTErrorData {
-    correct: CorrectLevel;
-    parsed?: NBTTag<any>;
-    path?: string[];
+    correct: Correctness;
 }
 
-export enum CorrectLevel {
-    NO,
-    MAYBE,
-    YES
+export enum Correctness {
+    NO = 0,
+    MAYBE = 1,
+    CERTAIN = 2
 }
 
-const parseNumberNBT = (float: boolean) => (reader: StringReader) => {
-    const start = reader.cursor;
-    try {
-        const helper = new ReturnHelper();
-        const f = reader.readFloat();
-        if (!helper.merge(f)) {
-            throw undefined; // This gets caught
-        }
-        const e = reader.readOption(["E", "e"], true, undefined, "option");
-        if (!helper.merge(e)) {
-            throw undefined; // This gets caught
-        }
-        // Returns beyond here because it must be scientific notation
-        const exp = reader.readInt();
-        if (helper.merge(exp)) {
-            return helper.succeed(f.data * Math.pow(10, exp.data));
-        } else {
-            return helper.fail();
-        }
-    } catch (e) {
-        reader.cursor = start;
-        const helper = new ReturnHelper();
-        const int = float ? reader.readFloat() : reader.readInt();
-        if (helper.merge(int)) {
-            return helper.succeed(int.data);
-        } else {
-            return helper.fail();
-        }
+export function tryExponential(reader: StringReader): ReturnedInfo<number> {
+    const helper = new ReturnHelper();
+    const f = reader.readFloat();
+    if (!helper.merge(f, { errors: false })) {
+        return helper.fail();
     }
+    const cur = reader.peek();
+    if (!(cur === "e" || cur === "E")) {
+        return helper.fail();
+    }
+    reader.skip();
+    // Returns beyond here because it must be scientific notation
+    const exp = reader.readInt();
+    if (helper.merge(exp)) {
+        return helper.succeed(f.data * Math.pow(10, exp.data));
+    } else {
+        return helper.fail();
+    }
+}
+
+const suggestTypes: { [k in TypedNode["type"]]?: string } = {
+    byte_array: "[B;",
+    compound: "{",
+    int_array: "[I;",
+    list: "[",
+    long_array: "[L;"
 };
 
-export const parseFloatNBT = parseNumberNBT(true);
-export const parseIntNBT = parseNumberNBT(false);
+export function getStartSuggestion(node: NBTNode): string | undefined {
+    if (isTypedNode(node) && suggestTypes.hasOwnProperty(node.type)) {
+        return suggestTypes[node.type];
+    }
+    return undefined;
+}
 
 export function getNBTSuggestions(
     node: NBTNode,
@@ -81,24 +80,30 @@ export function getNBTSuggestions(
         if (sugg) {
             sugg.forEach(v => {
                 if (typeof v === "string") {
-                    helper.addSuggestion(cursor, v);
+                    helper.addSuggestions({ start: cursor, text: v });
                 } else if ("function" in v) {
                     runSuggestFunction(
                         v.function.id,
                         v.function.params
-                    ).forEach(v2 => helper.addSuggestion(cursor, v2));
-                } else {
-                    helper.addSuggestion(
-                        cursor,
-                        v.value,
-                        undefined,
-                        v.description
+                    ).forEach(v2 =>
+                        helper.addSuggestions({ start: cursor, text: v2 })
                     );
+                } else {
+                    helper.addSuggestions({
+                        description: v.description,
+                        start: cursor,
+                        text: v.value
+                    });
                 }
             });
         }
+    } else {
+        const start = getStartSuggestion(node);
+        if (start) {
+            helper.addSuggestion(cursor, start);
+        }
     }
-    if (isCompoundNode(node) && node.children) {
+    /* if (isCompoundNode(node) && node.children) {
         helper.addSuggestions(
             ...Object.keys(node.children).map<SuggestResult>(v => ({
                 // @ts-ignore
@@ -109,11 +114,33 @@ export function getNBTSuggestions(
         );
     } else if (isListNode(node) && node.item) {
         helper.mergeChain(getNBTSuggestions(node.item, cursor));
+    } */
+    return helper.succeed();
+}
+
+export function createSuggestions(
+    node: NBTNode,
+    cursor: number
+): ReturnSuccess<undefined> {
+    const helper = new ReturnHelper();
+    const sugg = node.suggestions;
+    if (sugg) {
+        sugg.forEach(v => {
+            if (typeof v === "string") {
+                helper.addSuggestion(cursor, v);
+            } else if ("function" in v) {
+                runSuggestFunction(v.function.id, v.function.params).forEach(
+                    v2 => helper.addSuggestion(cursor, v2)
+                );
+            } else {
+                helper.addSuggestion(cursor, v.value, undefined, v.description);
+            }
+        });
     }
     return helper.succeed();
 }
 
-export const tagid2Name: { [P in NBTTag<any>["tagType"]]: string } = {
+export const tagid2Name: { [Type in TagType]: string } = {
     byte: "byte",
     byte_array: "byte[]",
     compound: "compound",
@@ -129,14 +156,15 @@ export const tagid2Name: { [P in NBTTag<any>["tagType"]]: string } = {
 };
 
 export const getHoverText = (node: NBTNode) => {
+    const desc = node.description || "";
     if (!isTypedNode(node)) {
-        return "";
+        return desc;
     }
     if (isRootNode(node)) {
-        return "";
+        return desc;
     }
-    if (node.type === "no-nbt") {
-        return "";
+    if (isNoNBTNode(node)) {
+        return desc;
     }
-    return `(${tagid2Name[node.type]}) ${node.description || ""}`;
+    return `(${tagid2Name[node.type]}) ${desc}`;
 };

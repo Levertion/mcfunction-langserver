@@ -77,12 +77,13 @@ export type SuggestResult = Suggestion | string;
 export type ContextChange = Partial<CommandContext> | undefined;
 
 export interface CommandContext {
+    [key: string]: any;
+    entity?: string | string[];
     /**
      * Whether the executor is definitely a player.
      * (Currently unused)
      */
     isPlayer?: boolean;
-    [key: string]: any;
 }
 
 export interface Parser {

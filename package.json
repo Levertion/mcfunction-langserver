@@ -41,7 +41,7 @@
         "sprintf-js": "^1.1.1",
         "tslib": "^1.9.3",
         "util.promisify": "^1.0.0",
-        "vscode-languageserver": "^5.0.0",
+        "vscode-languageserver": "^5.1.0",
         "vscode-uri": "^1.0.6"
     },
     "devDependencies": {

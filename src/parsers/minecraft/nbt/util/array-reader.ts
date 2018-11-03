@@ -1,17 +1,17 @@
 export class ArrayReader {
-    private readonly arr: string[];
     private index = 0;
+    private readonly inner: string[];
 
     public constructor(arr: string[]) {
-        this.arr = arr;
+        this.inner = arr;
     }
 
-    public end(): boolean {
-        return this.index === this.arr.length;
+    public canRead(length: number = 1): boolean {
+        return this.index + length <= this.inner.length;
     }
 
     public getArray(): string[] {
-        return this.arr;
+        return this.inner;
     }
 
     public getIndex(): number {
@@ -19,19 +19,19 @@ export class ArrayReader {
     }
 
     public getRead(): string[] {
-        return this.arr.slice(0, this.index);
+        return this.inner.slice(0, this.index);
     }
 
-    public insert(val: string[], index: number = 0): void {
-        this.arr.splice(index, 0, ...val);
+    public insert(vals: string[], index: number = 0): void {
+        this.inner.splice(index, 0, ...vals);
     }
 
     public peek(): string {
-        return this.arr[this.index];
+        return this.inner[this.index];
     }
 
     public read(): string {
-        return this.arr[this.index++];
+        return this.inner[this.index++];
     }
 
     public setIndex(val: number): void {
