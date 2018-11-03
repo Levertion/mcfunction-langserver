@@ -126,6 +126,6 @@ export const VALIDATION_ERRORS = {
     ),
     wrongType: new CommandErrorBuilder(
         "argument.nbt.validation.wrongtype",
-        "The tag type '%s' is not the correct type '%s'"
+        "Expected nbt value to be %s, got %s"
     )
 };

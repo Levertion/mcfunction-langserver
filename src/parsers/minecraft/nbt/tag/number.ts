@@ -125,7 +125,9 @@ export class NBTTagNumber extends NBTTag {
         if (isTypedInfo(node)) {
             const actualType = node.node.type;
             if (!ranges.hasOwnProperty(actualType)) {
-                return helper.mergeChain(this.sameType(node)).succeed();
+                return helper
+                    .mergeChain(this.sameType(node, "number"))
+                    .succeed();
             }
             const typeInfo = ranges[actualType as NumberType];
             if (typeInfo.min > this.value) {

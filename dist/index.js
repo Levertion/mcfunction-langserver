@@ -1784,7 +1784,7 @@ function convert(f) {
 exports.VALIDATION_ERRORS = {
     badIndex: new errors_1.CommandErrorBuilder("argument.nbt.validation.list.badpath", "The index '%s' is not a valid index"),
     noSuchChild: new errors_1.CommandErrorBuilder("argument.nbt.validation.compound.nochild", "The tag does not have a child named '%s'", main_1.DiagnosticSeverity.Warning),
-    wrongType: new errors_1.CommandErrorBuilder("argument.nbt.validation.wrongtype", "The tag type '%s' is not the correct type '%s'")
+    wrongType: new errors_1.CommandErrorBuilder("argument.nbt.validation.wrongtype", "Expected nbt value to be %s, got %s")
 };
 },{"../../../../brigadier/errors":"lIyQ","../tag/lists":"zzqM","../tag/compound-tag":"w/DJ"}],"SKCP":[function(require,module,exports) {
 "use strict";
@@ -1828,9 +1828,7 @@ class NBTTag {
             type: "hover"
         };
     }
-    sameType(node,
-    // @ts-ignore this.tagType can be undefined, but this method should not be used until parsing
-    type = this.tagType) {
+    sameType(node, type = this.tagType || "") {
         const helper = new misc_functions_1.ReturnHelper();
         if (!doc_walker_util_1.isTypedInfo(node) || node.node.type !== type) {
             return helper.fail(doc_walker_util_1.VALIDATION_ERRORS.wrongType.create(this.range.start, this.range.end, node.node.type || "", type));
@@ -2207,7 +2205,7 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
         if (doc_walker_util_1.isTypedInfo(node)) {
             const actualType = node.node.type;
             if (!ranges.hasOwnProperty(actualType)) {
-                return helper.mergeChain(this.sameType(node)).succeed();
+                return helper.mergeChain(this.sameType(node, "number")).succeed();
             }
             const typeInfo = ranges[actualType];
             if (typeInfo.min > this.value) {
