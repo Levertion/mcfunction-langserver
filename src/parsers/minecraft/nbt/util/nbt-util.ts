@@ -4,7 +4,12 @@ import { ReturnHelper } from "../../../../misc-functions";
 import { ReturnedInfo, ReturnSuccess } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import { TagType } from "../tag/nbt-tag";
-import { isNoNBTNode, isRootNode, isTypedNode } from "./doc-walker-util";
+import {
+    isNoNBTNode,
+    isRootNode,
+    isTypedNode,
+    TypedNode
+} from "./doc-walker-util";
 
 export const ARRAY_START = "[";
 export const ARRAY_END = "]";
@@ -50,39 +55,20 @@ export function tryExponential(reader: StringReader): ReturnedInfo<number> {
     }
 }
 
-const parseNumberNBT = (float: boolean) => (reader: StringReader) => {
-    const start = reader.cursor;
-    try {
-        const helper = new ReturnHelper();
-        const f = reader.readFloat();
-        if (!helper.merge(f)) {
-            throw undefined; // This gets caught
-        }
-        const e = reader.expectOption("E", "e");
-        if (!helper.merge(e)) {
-            throw undefined; // This gets caught
-        }
-        // Returns beyond here because it must be scientific notation
-        const exp = reader.readInt();
-        if (helper.merge(exp)) {
-            return helper.succeed(f.data * Math.pow(10, exp.data));
-        } else {
-            return helper.fail();
-        }
-    } catch (e) {
-        reader.cursor = start;
-        const helper = new ReturnHelper();
-        const int = float ? reader.readFloat() : reader.readInt();
-        if (helper.merge(int)) {
-            return helper.succeed(int.data);
-        } else {
-            return helper.fail();
-        }
-    }
+const suggestTypes: { [k in TypedNode["type"]]?: string } = {
+    byte_array: "[B;",
+    compound: "{",
+    int_array: "[I;",
+    list: "[",
+    long_array: "[L;"
 };
 
-export const parseFloatNBT = parseNumberNBT(true);
-export const parseIntNBT = parseNumberNBT(false);
+export function getStartSuggestion(node: NBTNode): string | undefined {
+    if (isTypedNode(node) && suggestTypes.hasOwnProperty(node.type)) {
+        return suggestTypes[node.type];
+    }
+    return undefined;
+}
 
 export function getNBTSuggestions(
     node: NBTNode,
@@ -94,21 +80,27 @@ export function getNBTSuggestions(
         if (sugg) {
             sugg.forEach(v => {
                 if (typeof v === "string") {
-                    helper.addSuggestion(cursor, v);
+                    helper.addSuggestions({ start: cursor, text: v });
                 } else if ("function" in v) {
                     runSuggestFunction(
                         v.function.id,
                         v.function.params
-                    ).forEach(v2 => helper.addSuggestion(cursor, v2));
-                } else {
-                    helper.addSuggestion(
-                        cursor,
-                        v.value,
-                        undefined,
-                        v.description
+                    ).forEach(v2 =>
+                        helper.addSuggestions({ start: cursor, text: v2 })
                     );
+                } else {
+                    helper.addSuggestions({
+                        description: v.description,
+                        start: cursor,
+                        text: v.value
+                    });
                 }
             });
+        }
+    } else {
+        const start = getStartSuggestion(node);
+        if (start) {
+            helper.addSuggestion(cursor, start);
         }
     }
     /* if (isCompoundNode(node) && node.children) {

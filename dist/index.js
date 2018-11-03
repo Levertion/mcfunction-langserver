@@ -1658,9 +1658,11 @@ class BaseList extends nbt_tag_1.NBTTag {
             } else {
                 if (value.data) {
                     this.values.push(value.data.tag);
+                    this.unclosed = undefined;
                 }
                 return helper.fail();
             }
+            this.unclosed = undefined;
             const preEnd = reader.cursor;
             reader.skipWhitespace();
             if (reader.peek() === nbt_util_1.LIST_VALUE_SEP) {
@@ -1669,7 +1671,6 @@ class BaseList extends nbt_tag_1.NBTTag {
             }
             if (reader.peek() === nbt_util_1.LIST_END) {
                 reader.skip();
-                this.unclosed = undefined;
                 this.end = { start: preEnd, end: reader.cursor };
                 return helper.succeed();
             }
@@ -1955,38 +1956,20 @@ function tryExponential(reader) {
     }
 }
 exports.tryExponential = tryExponential;
-const parseNumberNBT = float => reader => {
-    const start = reader.cursor;
-    try {
-        const helper = new misc_functions_1.ReturnHelper();
-        const f = reader.readFloat();
-        if (!helper.merge(f)) {
-            throw undefined; // This gets caught
-        }
-        const e = reader.expectOption("E", "e");
-        if (!helper.merge(e)) {
-            throw undefined; // This gets caught
-        }
-        // Returns beyond here because it must be scientific notation
-        const exp = reader.readInt();
-        if (helper.merge(exp)) {
-            return helper.succeed(f.data * Math.pow(10, exp.data));
-        } else {
-            return helper.fail();
-        }
-    } catch (e) {
-        reader.cursor = start;
-        const helper = new misc_functions_1.ReturnHelper();
-        const int = float ? reader.readFloat() : reader.readInt();
-        if (helper.merge(int)) {
-            return helper.succeed(int.data);
-        } else {
-            return helper.fail();
-        }
-    }
+const suggestTypes = {
+    byte_array: "[B;",
+    compound: "{",
+    int_array: "[I;",
+    list: "[",
+    long_array: "[L;"
 };
-exports.parseFloatNBT = parseNumberNBT(true);
-exports.parseIntNBT = parseNumberNBT(false);
+function getStartSuggestion(node) {
+    if (doc_walker_util_1.isTypedNode(node) && suggestTypes.hasOwnProperty(node.type)) {
+        return suggestTypes[node.type];
+    }
+    return undefined;
+}
+exports.getStartSuggestion = getStartSuggestion;
 function getNBTSuggestions(node, cursor) {
     const helper = new misc_functions_1.ReturnHelper();
     if (node.suggestions) {
@@ -1994,13 +1977,22 @@ function getNBTSuggestions(node, cursor) {
         if (sugg) {
             sugg.forEach(v => {
                 if (typeof v === "string") {
-                    helper.addSuggestion(cursor, v);
+                    helper.addSuggestions({ start: cursor, text: v });
                 } else if ("function" in v) {
-                    doc_walker_func_1.runSuggestFunction(v.function.id, v.function.params).forEach(v2 => helper.addSuggestion(cursor, v2));
+                    doc_walker_func_1.runSuggestFunction(v.function.id, v.function.params).forEach(v2 => helper.addSuggestions({ start: cursor, text: v2 }));
                 } else {
-                    helper.addSuggestion(cursor, v.value, undefined, v.description);
+                    helper.addSuggestions({
+                        description: v.description,
+                        start: cursor,
+                        text: v.value
+                    });
                 }
             });
+        }
+    } else {
+        const start = getStartSuggestion(node);
+        if (start) {
+            helper.addSuggestion(cursor, start);
         }
     }
     /* if (isCompoundNode(node) && node.children) {
@@ -2269,7 +2261,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             if (!helper.merge(kvs)) {
                 // E.g. '{"hello",' etc.
                 this.parts.push({
-                    closeIdx: reader.cursor,
+                    closeIdx: -1,
                     key: key.data,
                     keyRange: {
                         end: keyEnd,

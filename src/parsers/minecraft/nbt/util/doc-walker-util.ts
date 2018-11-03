@@ -71,9 +71,8 @@ export function isFunctionNode(node: NBTNode): node is FunctionNode {
     return node.hasOwnProperty("function");
 }
 
-export function isTypedNode(
-    node: NBTNode
-): node is NoPropertyNode | CompoundNode | ListNode | RootNode {
+export type TypedNode = NoPropertyNode | CompoundNode | ListNode | RootNode;
+export function isTypedNode(node: NBTNode): node is TypedNode {
     return node.hasOwnProperty("type");
 }
 

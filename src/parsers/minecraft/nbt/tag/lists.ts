@@ -54,9 +54,11 @@ export abstract class BaseList extends NBTTag {
             } else {
                 if (value.data) {
                     this.values.push(value.data.tag);
+                    this.unclosed = undefined;
                 }
                 return helper.fail();
             }
+            this.unclosed = undefined;
             const preEnd = reader.cursor;
             reader.skipWhitespace();
             if (reader.peek() === LIST_VALUE_SEP) {
@@ -65,7 +67,6 @@ export abstract class BaseList extends NBTTag {
             }
             if (reader.peek() === LIST_END) {
                 reader.skip();
-                this.unclosed = undefined;
                 this.end = { start: preEnd, end: reader.cursor };
                 return helper.succeed();
             }

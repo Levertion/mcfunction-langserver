@@ -263,7 +263,7 @@ export class NBTTagCompound extends NBTTag {
             if (!helper.merge(kvs)) {
                 // E.g. '{"hello",' etc.
                 this.parts.push({
-                    closeIdx: reader.cursor,
+                    closeIdx: -1,
                     key: key.data,
                     keyRange: {
                         end: keyEnd,
