@@ -60,8 +60,6 @@ export const objectiveParser: Parser = {
                 const options = scoreboardData.data.Objectives.map(v => v.Name);
                 const result = reader.readOption(
                     options,
-                    false,
-                    undefined,
                     StringReader.charAllowedInUnquotedString
                 );
                 if (helper.merge(result)) {
@@ -133,8 +131,6 @@ export const teamParser: Parser = {
                 const options = scoreboardData.data.Teams;
                 const result = reader.readOption(
                     options.map(v => v.Name),
-                    false,
-                    undefined,
                     StringReader.charAllowedInUnquotedString
                 );
                 if (helper.merge(result)) {
@@ -190,9 +186,8 @@ export const criteriaParser: Parser = {
                 ...entityCriteria,
                 ...itemCriteria
             ],
-            false,
-            CompletionItemKind.EnumMember,
-            NONWHITESPACE
+            NONWHITESPACE,
+            CompletionItemKind.EnumMember
         );
         const text = optionResult.data;
         if (helper.merge(optionResult)) {
@@ -209,9 +204,8 @@ export const criteriaParser: Parser = {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(
                     COLORS,
-                    false,
-                    CompletionItemKind.Color,
-                    NONWHITESPACE
+                    NONWHITESPACE,
+                    CompletionItemKind.Color
                 );
                 if (helper.merge(result)) {
                     return helper.succeed();
@@ -223,9 +217,8 @@ export const criteriaParser: Parser = {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(
                     entities.map(mapFunction),
-                    false,
-                    CompletionItemKind.Reference,
-                    NONWHITESPACE
+                    NONWHITESPACE,
+                    CompletionItemKind.Reference
                 );
                 if (helper.merge(result)) {
                     return helper.succeed();
@@ -237,9 +230,8 @@ export const criteriaParser: Parser = {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(
                     Object.keys(info.data.globalData.blocks).map(mapFunction),
-                    false,
-                    CompletionItemKind.Constant,
-                    NONWHITESPACE
+                    NONWHITESPACE,
+                    CompletionItemKind.Constant
                 );
                 if (helper.merge(result)) {
                     return helper.succeed();
@@ -251,9 +243,8 @@ export const criteriaParser: Parser = {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(
                     info.data.globalData.items.map(mapFunction),
-                    false,
-                    CompletionItemKind.Keyword,
-                    NONWHITESPACE
+                    NONWHITESPACE,
+                    CompletionItemKind.Keyword
                 );
                 if (helper.merge(result)) {
                     return helper.succeed();

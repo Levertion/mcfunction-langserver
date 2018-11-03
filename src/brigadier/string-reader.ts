@@ -53,7 +53,7 @@ const EXCEPTIONS = {
 
 export const QUOTE = '"';
 const ESCAPE = "\\";
-export type QuotingKind = "both" | "yes" | "no";
+export type QuotingKind = "both" | "yes" | RegExp;
 export class StringReader {
     public static charAllowedInUnquotedString = /^[0-9A-Za-z_\-\.+]$/;
     public static charAllowedNumber = /^[0-9\-\.]$/;
@@ -249,7 +249,7 @@ export class StringReader {
         if (!helper.merge(result, { suggestions: false })) {
             if (result.data && !this.canRead()) {
                 const bestEffort = result.data;
-                 helper.addSuggestions(
+                helper.addSuggestions(
                     ...options
                         .filter(option => option.startsWith(bestEffort))
                         .map<Suggestion>(v =>
@@ -415,10 +415,8 @@ export class StringReader {
                 return this.readString();
             case "yes":
                 return this.readQuotedString();
-            case "no":
-                return getReturned(this.readUnquotedString());
             default:
-                return this.readString();
+                return getReturned(this.readWhileRegexp(kind));
         }
         // tslint:enable:helper-return
     }

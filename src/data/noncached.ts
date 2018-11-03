@@ -1,10 +1,10 @@
 import { nbtDocs, NBTNode, ValueList } from "mc-nbt-paths";
-import { NBTDocs, NonCacheable } from "./types";
 import { SynchronousPromise } from "synchronous-promise";
 import {
     getLanguageService,
     SchemaRequestService
 } from "vscode-json-languageservice";
+import { NBTDocs, NonCacheable } from "./types";
 
 export function loadNBTDocs(): NBTDocs {
     const nbtData = new Map<string, NBTNode | ValueList>();
