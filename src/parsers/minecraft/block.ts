@@ -20,7 +20,7 @@ import {
     parseNamespaceOrTag
 } from "../../misc-functions/parsing/nmsp-tag";
 import { Parser, ParserInfo, ReturnedInfo, Suggestion } from "../../types";
-import { validateParse2 } from "./nbt/nbt";
+import { validateParse } from "./nbt/nbt";
 
 export const predicateParser: Parser = {
     parse: (reader, info) => parseBlockArgument(reader, info, true)
@@ -152,7 +152,7 @@ export function parseBlockArgument(
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = validateParse2(reader, info, {
+                const nbt = validateParse(reader, info, {
                     ids: (parsedResult.resolved || []).map(stringifyNamespace),
                     type: "block"
                 });
@@ -189,7 +189,7 @@ export function parseBlockArgument(
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = validateParse2(reader, info, {
+                const nbt = validateParse(reader, info, {
                     ids: props ? stringifiedName : "none",
                     type: "block"
                 });
@@ -220,7 +220,7 @@ export function parseBlockArgument(
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = validateParse2(reader, info, {
+                const nbt = validateParse(reader, info, {
                     ids: "none",
                     type: "block"
                 });

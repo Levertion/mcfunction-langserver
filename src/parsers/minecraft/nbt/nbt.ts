@@ -38,14 +38,14 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
     },
     {
         data: args => ({
-            ids: args[1],
+            ids: args.entity,
             type: "entity"
         }),
         path: ["summon", "entity", "pos", "nbt"]
     }
 ];
 
-export function validateParse2(
+export function validateParse(
     reader: StringReader,
     info: ParserInfo,
     data?: NBTContextData
@@ -124,6 +124,6 @@ export const parser: Parser = {
         const helper = new ReturnHelper(info);
         const ctxdatafn = resolvePaths(paths, info.path || []);
         const data = ctxdatafn && ctxdatafn(info.context);
-        return helper.return(validateParse2(reader, info, data));
+        return helper.return(validateParse(reader, info, data));
     }
 };

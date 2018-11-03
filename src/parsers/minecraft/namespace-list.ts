@@ -13,14 +13,26 @@ import {
     ReturnHelper,
     stringifyNamespace
 } from "../../misc-functions";
-import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
+import {
+    CommandContext,
+    ContextChange,
+    Parser,
+    ParserInfo,
+    ReturnedInfo
+} from "../../types";
 
 export class NamespaceListParser implements Parser {
+    private readonly context?: keyof CommandContext;
     private readonly error: CommandErrorBuilder;
     private readonly options: string[];
-    public constructor(options: string[], errorBuilder: CommandErrorBuilder) {
+    public constructor(
+        options: string[],
+        errorBuilder: CommandErrorBuilder,
+        context?: keyof CommandContext
+    ) {
         this.options = options;
         this.error = errorBuilder;
+        this.context = context;
     }
     public parse(
         reader: StringReader,
@@ -33,7 +45,13 @@ export class NamespaceListParser implements Parser {
             this.options.map((v, _) => convertToNamespace(v))
         );
         if (helper.merge(result)) {
-            return helper.succeed();
+            if (this.context) {
+                return helper.succeed({
+                    [this.context]: result.data.values.map(stringifyNamespace)
+                });
+            } else {
+                return helper.succeed();
+            }
         } else {
             if (result.data) {
                 return helper
@@ -56,7 +74,11 @@ const summonError = new CommandErrorBuilder(
     "entity.notFound",
     "Unknown entity: %s"
 );
-export const summonParser = new NamespaceListParser(entities, summonError);
+export const summonParser = new NamespaceListParser(
+    entities,
+    summonError,
+    "entity"
+);
 
 const enchantmentError = new CommandErrorBuilder(
     "enchantment.unknown",

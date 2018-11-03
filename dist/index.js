@@ -3156,12 +3156,12 @@ const paths = [{
     path: ["data", "merge", "block", "pos", "nbt"]
 }, {
     data: args => ({
-        ids: args[1],
+        ids: args.entity,
         type: "entity"
     }),
     path: ["summon", "entity", "pos", "nbt"]
 }];
-function validateParse2(reader, info, data) {
+function validateParse(reader, info, data) {
     const helper = new misc_functions_1.ReturnHelper();
     const tag = new compound_tag_1.NBTTagCompound([]);
     const docs = info.data.globalData.nbt_docs;
@@ -3215,13 +3215,13 @@ function validateParse2(reader, info, data) {
         return helper.fail();
     }
 }
-exports.validateParse2 = validateParse2;
+exports.validateParse = validateParse;
 exports.parser = {
     parse: (reader, info) => {
         const helper = new misc_functions_1.ReturnHelper(info);
         const ctxdatafn = context_1.resolvePaths(paths, info.path || []);
         const data = ctxdatafn && ctxdatafn(info.context);
-        return helper.return(validateParse2(reader, info, data));
+        return helper.return(validateParse(reader, info, data));
     }
 };
 },{"../../../misc-functions":"irtH","../../../misc-functions/context":"qA/9","./tag/compound-tag":"w/DJ","./util/doc-walker-util":"TRlg","./util/nbt-util":"R+CJ","./walker":"1JwD"}],"IZJ1":[function(require,module,exports) {
@@ -3282,7 +3282,7 @@ function parseBlockArgument(reader, info, tags) {
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = nbt_1.validateParse2(reader, info, {
+                const nbt = nbt_1.validateParse(reader, info, {
                     ids: (parsedResult.resolved || []).map(misc_functions_1.stringifyNamespace),
                     type: "block"
                 });
@@ -3306,7 +3306,7 @@ function parseBlockArgument(reader, info, tags) {
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = nbt_1.validateParse2(reader, info, {
+                const nbt = nbt_1.validateParse(reader, info, {
                     ids: props ? stringifiedName : "none",
                     type: "block"
                 });
@@ -3326,7 +3326,7 @@ function parseBlockArgument(reader, info, tags) {
                 return helper.fail();
             }
             if (reader.peek() === "{") {
-                const nbt = nbt_1.validateParse2(reader, info, {
+                const nbt = nbt_1.validateParse(reader, info, {
                     ids: "none",
                     type: "block"
                 });
@@ -3575,7 +3575,7 @@ class ItemParser {
                 items.push(name);
             }
             if (reader.peek() === "{") {
-                const nbt = nbt_1.validateParse2(reader, properties, {
+                const nbt = nbt_1.validateParse(reader, properties, {
                     ids: items,
                     type: "item"
                 });
@@ -3587,7 +3587,7 @@ class ItemParser {
             if (parsed.data) {
                 helper.addErrors(UNKNOWNTAG.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsed.data)));
                 if (reader.peek() === "{") {
-                    const nbt = nbt_1.validateParse2(reader, properties, {
+                    const nbt = nbt_1.validateParse(reader, properties, {
                         ids: "none",
                         type: "item"
                     });
@@ -3725,16 +3725,23 @@ const errors_1 = require("../../brigadier/errors");
 const statics_1 = require("../../data/lists/statics");
 const misc_functions_1 = require("../../misc-functions");
 class NamespaceListParser {
-    constructor(options, errorBuilder) {
+    constructor(options, errorBuilder, context) {
         this.options = options;
         this.error = errorBuilder;
+        this.context = context;
     }
     parse(reader, info) {
         const helper = new misc_functions_1.ReturnHelper(info);
         const start = reader.cursor;
         const result = misc_functions_1.parseNamespaceOption(reader, this.options.map((v, _) => misc_functions_1.convertToNamespace(v)));
         if (helper.merge(result)) {
-            return helper.succeed();
+            if (this.context) {
+                return helper.succeed({
+                    [this.context]: result.data.values.map(misc_functions_1.stringifyNamespace)
+                });
+            } else {
+                return helper.succeed();
+            }
         } else {
             if (result.data) {
                 return helper.addErrors(this.error.create(start, reader.cursor, misc_functions_1.stringifyNamespace(result.data))).succeed();
@@ -3746,7 +3753,7 @@ class NamespaceListParser {
 }
 exports.NamespaceListParser = NamespaceListParser;
 const summonError = new errors_1.CommandErrorBuilder("entity.notFound", "Unknown entity: %s");
-exports.summonParser = new NamespaceListParser(statics_1.entities, summonError);
+exports.summonParser = new NamespaceListParser(statics_1.entities, summonError, "entity");
 const enchantmentError = new errors_1.CommandErrorBuilder("enchantment.unknown", "Unknown enchantment: %s");
 exports.enchantmentParser = new NamespaceListParser(statics_1.enchantments, enchantmentError);
 const mobEffectError = new errors_1.CommandErrorBuilder("effect.effectNotFound", "Unknown effect: %s");
