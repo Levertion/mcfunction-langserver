@@ -249,7 +249,7 @@ export class StringReader {
         if (!helper.merge(result, { suggestions: false })) {
             if (result.data && !this.canRead()) {
                 const bestEffort = result.data;
-                helper.addSuggestions(
+                 helper.addSuggestions(
                     ...options
                         .filter(option => option.startsWith(bestEffort))
                         .map<Suggestion>(v =>

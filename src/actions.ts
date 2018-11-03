@@ -24,7 +24,13 @@ import {
 } from "./misc-functions";
 import { typed_keys } from "./misc-functions/third_party/typed-keys";
 import { blankRange } from "./test/blanks";
-import { CommandLine, FunctionInfo, ParseNode, SubAction } from "./types";
+import {
+    CommandLine,
+    FunctionInfo,
+    JSONDocInfo,
+    ParseNode,
+    SubAction
+} from "./types";
 
 export function hoverProvider(
     docLine: CommandLine,
@@ -51,10 +57,31 @@ export function hoverProvider(
         };
         return { contents: map(intervals), range: { start, end } };
     }
+    const json = getActionsOfKind(docLine, pos, "json");
+    if (json.length > 0) {
+        const doc = json[0].data as JSONDocInfo;
+        let result: Hover | null | undefined;
+        const position: Position = {
+            character: pos.character - json[0].low,
+            line: 0
+        };
+        manager.globalData.jsonService
+            .doHover(doc.text, position, doc.json)
+            .then(v => (result = v));
+        if (result) {
+            if (result.range) {
+                result.range.start.line = pos.line;
+                result.range.end.line = pos.line;
+                result.range.start.character += json[0].low;
+                result.range.end.character += json[0].low;
+            }
+            return result;
+        }
+    }
     const hovers = getActionsOfKind(docLine, pos, "hover");
     if (hovers.length > 0) {
         return computeIntervalHovers(hovers, docLine, pos.line, i =>
-            i.map(v => v.data)
+            i.map(v => v.data as string)
         );
     } else {
         const tree = getNodeTree(docLine);

@@ -5,7 +5,6 @@ import {
     buildPath,
     buildTagActions,
     ContextPath,
-    convertToNamespace,
     getResourcesofType,
     parseNamespace,
     parseNamespaceOption,
@@ -13,6 +12,7 @@ import {
     processParsedNamespaceOption,
     ReturnHelper,
     startPaths,
+    stringArrayToNamespaces,
     stringifyNamespace
 } from "../../misc-functions";
 import { Parser } from "../../types";
@@ -128,9 +128,7 @@ const bossbarParser: Parser = {
         if (info.data.localData && info.data.localData.nbt.level) {
             const start = reader.cursor;
             const bars = info.data.localData.nbt.level.Data.CustomBossEvents;
-            const options = Object.keys(bars).map((v, _) =>
-                convertToNamespace(v)
-            );
+            const options = stringArrayToNamespaces(Object.keys(bars));
             const result = parseNamespaceOption(reader, options);
             if (helper.merge(result)) {
                 return helper.succeed();

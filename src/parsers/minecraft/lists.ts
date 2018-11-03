@@ -25,8 +25,9 @@ export class ListParser implements Parser {
         const helper = new ReturnHelper(info);
         const optResult = reader.readOption(
             this.options,
-            "no",
-            CompletionItemKind.EnumMember
+            false,
+            CompletionItemKind.EnumMember,
+            StringReader.charAllowedInUnquotedString
         );
         if (helper.merge(optResult)) {
             return helper.succeed();

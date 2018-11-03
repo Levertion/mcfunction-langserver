@@ -1,7 +1,11 @@
 import { DataInterval, Interval, IntervalTree } from "node-interval-tree";
+import { JSONDocument } from "vscode-json-languageservice";
 import {
     CompletionItemKind,
-    MarkedString
+    InsertTextFormat,
+    MarkedString,
+    MarkupContent,
+    TextDocument
 } from "vscode-languageserver/lib/main";
 import { BlankCommandError, CommandError } from "./brigadier/errors";
 import { StringReader } from "./brigadier/string-reader";
@@ -58,8 +62,10 @@ export interface CommmandData {
 }
 
 export interface Suggestion {
-    description?: string;
+    description?: string | MarkupContent;
+    insertTextFormat?: InsertTextFormat;
     kind?: CompletionItemKind;
+    label?: string;
     /**
      * The start from where value should be replaced. 0 indexed character gaps.
      * E.g. `@e[na` with the suggestion `{value:"name=",start:3}`
@@ -118,13 +124,21 @@ export interface StoredParseResult {
 interface SubActionBase<U extends string, T> extends DataInterval<T> {
     type: U;
 }
+
+export interface JSONDocInfo {
+    json: JSONDocument;
+    text: TextDocument;
+}
+
 export type SubAction =
     // See https://github.com/Microsoft/language-server-protocol/issues/518.
     | SubActionBase<"hover", MarkedString>
     | SubActionBase<"format", string>
-    | SubActionBase<"source", string>;
+    | SubActionBase<"source", string>
+    | SubActionBase<"json", JSONDocInfo>;
 //  | SubActionBase<"highlight", HighlightScope>;
 //  | SubActionBase<"rename", RenameRequest>;
+
 //#endregion
 export type Success = true;
 export const success: Success = true;

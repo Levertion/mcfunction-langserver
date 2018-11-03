@@ -4,6 +4,7 @@ import { Parser } from "../types";
 import * as brigadierParsers from "./brigadier";
 import { literalParser } from "./literal";
 import * as blockParsers from "./minecraft/block";
+import { jsonParser } from "./minecraft/component";
 import * as coordParsers from "./minecraft/coordinates";
 import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
@@ -12,7 +13,12 @@ import * as namespaceParsers from "./minecraft/namespace-list";
 import { parser as NBTPathParser } from "./minecraft/nbt-path";
 import { nbtParser } from "./minecraft/nbt/nbt";
 import { functionParser, resourceParser } from "./minecraft/resources";
-import { objectiveParser, teamParser } from "./minecraft/scoreboard";
+import {
+    criteriaParser,
+    objectiveParser,
+    teamParser
+} from "./minecraft/scoreboard";
+import { timeParser } from "./minecraft/time";
 
 /**
  * Incomplete:
@@ -27,6 +33,8 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:block_predicate": blockParsers.predicateParser,
     "minecraft:block_state": blockParsers.stateParser,
     "minecraft:color": listParsers.colorParser,
+    "minecraft:column_pos": coordParsers.columnPos,
+    "minecraft:component": jsonParser,
     "minecraft:dimension": namespaceParsers.dimensionParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
     "minecraft:entity_summon": namespaceParsers.summonParser,
@@ -44,12 +52,14 @@ const implementedParsers: { [id: string]: Parser } = {
     // Duplication of nbt path is OK - nbt-path is 1.13 whereas nbt_path is 1.14
     "minecraft:nbt_tag": nbtParser,
     "minecraft:objective": objectiveParser,
+    "minecraft:objective_criteria": criteriaParser,
     "minecraft:operation": listParsers.operationParser,
     "minecraft:particle": namespaceParsers.particleParser,
     "minecraft:resource_location": resourceParser,
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
     "minecraft:team": teamParser,
+    "minecraft:time": timeParser,
     "minecraft:vec2": coordParsers.vec2,
     "minecraft:vec3": coordParsers.vec3
 };

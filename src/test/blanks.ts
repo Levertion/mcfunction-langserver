@@ -30,6 +30,7 @@ export const emptyGlobal: GlobalData = {
     blocks: {},
     commands: { type: "root" },
     items: [],
+    jsonService: undefined as any,
     meta_info: { version: "" },
     nbt_docs: new Map(),
     resources: {}
