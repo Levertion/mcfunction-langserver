@@ -2410,7 +2410,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         helper.addActions({
             // Add hover to the open `{`
             data: hoverText,
-            high: this.openIndex,
+            high: this.openIndex - 1,
             low: this.openIndex,
             type: "hover"
         });
@@ -2438,7 +2438,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
                     // Add hover to the close `}`
                     data: hoverText,
                     high: part.closeIdx,
-                    low: part.closeIdx,
+                    low: part.closeIdx - 1,
                     type: "hover"
                 });
             }
