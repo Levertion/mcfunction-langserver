@@ -18,7 +18,7 @@ export const pack_segments: PackLocationSegments = {
 
 export const succeeds: ReturnAssertionInfo = { succeeds: true };
 
-export const emptyRange: LineRange = { start: 0, end: 0 };
+export const emptyRange = (): LineRange => ({ start: 0, end: 0 });
 export const blankproperties: TestParserInfo = {
     context: {},
     data: {} as CommmandData,

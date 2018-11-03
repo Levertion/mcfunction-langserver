@@ -1599,7 +1599,7 @@ exports.pack_segments = {
     rest: ""
 };
 exports.succeeds = { succeeds: true };
-exports.emptyRange = { start: 0, end: 0 };
+exports.emptyRange = () => ({ start: 0, end: 0 });
 exports.blankproperties = {
     context: {},
     data: {},
@@ -1796,7 +1796,7 @@ const doc_walker_util_1 = require("../util/doc-walker-util");
 const nbt_util_1 = require("../util/nbt-util");
 class NBTTag {
     constructor(path) {
-        this.range = blanks_1.emptyRange;
+        this.range = blanks_1.emptyRange();
         this.path = path;
     }
     getRange() {
@@ -2076,7 +2076,7 @@ class NBTTagList extends lists_1.BaseList {
         super(...arguments);
         this.tagType = "list";
         // The open square bracket
-        this.start = blanks_1.emptyRange;
+        this.start = blanks_1.emptyRange();
     }
     validate(anyInfo, walker) {
         const helper = new misc_functions_1.ReturnHelper();
@@ -2251,7 +2251,7 @@ const types = [["B", "byte", "byte_array"], ["I", "int", "int_array"], ["L", "lo
 class NBTTagTypedList extends lists_1.BaseList {
     constructor() {
         super(...arguments);
-        this.start = blanks_1.emptyRange;
+        this.start = blanks_1.emptyRange();
         this.tagType = undefined;
         this.startIndex = -1;
     }
