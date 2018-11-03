@@ -2050,16 +2050,17 @@ exports.tagid2Name = {
     string: "string"
 };
 exports.getHoverText = node => {
+    const desc = node.description || "";
     if (!doc_walker_util_1.isTypedNode(node)) {
-        return "";
+        return desc;
     }
     if (doc_walker_util_1.isRootNode(node)) {
-        return "";
+        return desc;
     }
     if (doc_walker_util_1.isNoNBTNode(node)) {
-        return "";
+        return desc;
     }
-    return `(${exports.tagid2Name[node.type]}) ${node.description || ""}`;
+    return `(${exports.tagid2Name[node.type]}) ${desc}`;
 };
 },{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","./doc-walker-util":"TRlg"}],"ZJrY":[function(require,module,exports) {
 "use strict";
@@ -2452,7 +2453,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
                 for (const childName of Object.keys(children)) {
                     if (childName.startsWith(key)) {
                         keyHelper.addSuggestions({
-                            description: children[childName].description,
+                            description: nbt_util_1.getHoverText(children[childName]),
                             kind: vscode_languageserver_1.CompletionItemKind.Field,
                             start: part.keyRange.start,
                             text: string_reader_1.quoteIfNeeded(childName)

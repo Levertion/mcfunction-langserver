@@ -164,14 +164,15 @@ export const tagid2Name: { [Type in TagType]: string } = {
 };
 
 export const getHoverText = (node: NBTNode) => {
+    const desc = node.description || "";
     if (!isTypedNode(node)) {
-        return "";
+        return desc;
     }
     if (isRootNode(node)) {
-        return "";
+        return desc;
     }
     if (isNoNBTNode(node)) {
-        return "";
+        return desc;
     }
-    return `(${tagid2Name[node.type]}) ${node.description || ""}`;
+    return `(${tagid2Name[node.type]}) ${desc}`;
 };

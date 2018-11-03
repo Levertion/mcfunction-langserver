@@ -163,7 +163,7 @@ export class NBTTagCompound extends NBTTag {
                 for (const childName of Object.keys(children)) {
                     if (childName.startsWith(key)) {
                         keyHelper.addSuggestions({
-                            description: children[childName].description,
+                            description: getHoverText(children[childName]),
                             kind: CompletionItemKind.Field,
                             start: part.keyRange.start,
                             text: quoteIfNeeded(childName)
