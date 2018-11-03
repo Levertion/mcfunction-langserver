@@ -63,7 +63,7 @@ describe("nbt parser test", () => {
                     "}",
                     "Name",
                     "color",
-                    "Lore"
+                    "Lore: ["
                 ] as SuggestResult[],
                 out.suggestions,
                 10
@@ -139,7 +139,7 @@ describe("nbt parser test", () => {
                     },
                     {
                         start: 9,
-                        text: "tag"
+                        text: "tag: {"
                     },
                     {
                         start: 9,

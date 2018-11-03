@@ -20,7 +20,9 @@ import {
     COMPOUND_START,
     Correctness,
     createSuggestions,
-    getHoverText
+    getHoverText,
+    getNBTSuggestions,
+    getStartSuggestion
 } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
 import { NBTTag, ParseReturn } from "./nbt-tag";
@@ -116,12 +118,13 @@ export class NBTTagCompound extends NBTTag {
             low: this.openIndex,
             type: "hover"
         });
+        const children = walker.getChildren(info);
         for (let index = 0; index < this.parts.length; index++) {
             const part = this.parts[index];
             const final = index === this.parts.length - 1;
             if (part.key) {
                 if (part.value) {
-                    const child = walker.getChildWithName(info, part.key);
+                    const child = children[part.key];
                     if (child) {
                         helper.merge(part.value.validate(child, walker));
                         helper.addActions(
@@ -158,22 +161,32 @@ export class NBTTagCompound extends NBTTag {
         function handleNoValue(part: KVPair): ReturnSuccess<undefined> {
             const keyHelper = new ReturnHelper();
             const key = part.key || "";
-            const children = walker.getChildren(info);
             if (part.closeIdx === undefined) {
                 for (const childName of Object.keys(children)) {
                     if (childName.startsWith(key)) {
+                        const thisChild = children[childName];
+                        const text =
+                            thisChild && getStartSuggestion(thisChild.node);
                         keyHelper.addSuggestions({
-                            description: getHoverText(children[childName]),
+                            description: getHoverText(children[childName].node),
                             kind: CompletionItemKind.Field,
+                            label: childName,
                             start: part.keyRange.start,
-                            text: quoteIfNeeded(childName)
+                            text:
+                                quoteIfNeeded(childName) +
+                                (text ? `: ${text}` : "")
                         });
                     }
                 }
             }
             const child = children[key];
             if (child) {
-                keyHelper.addActions(getKeyHover(part.keyRange, child));
+                if (part.closeIdx && part.closeIdx >= 0) {
+                    keyHelper.merge(
+                        getNBTSuggestions(child.node, part.closeIdx)
+                    );
+                }
+                keyHelper.addActions(getKeyHover(part.keyRange, child.node));
             }
             // tslint:disable-next-line:helper-return
             return keyHelper.succeed();

@@ -58,16 +58,25 @@ describe("Documentation Walker Tests", () => {
             const children = walker.getChildren(node as NodeInfo<CompoundNode>);
             assert.deepStrictEqual(children, {
                 bad: {
-                    description: "child_ref_test BAD",
-                    type: "no-nbt"
+                    node: {
+                        description: "child_ref_test BAD",
+                        type: "no-nbt"
+                    },
+                    path: "root.json"
                 },
                 badkey: {
-                    description: "child_ref_test BAD",
-                    type: "no-nbt"
+                    node: {
+                        description: "child_ref_test BAD",
+                        type: "no-nbt"
+                    },
+                    path: "child_ref_test.json"
                 },
                 key0: {
-                    description: "child_ref_test OK",
-                    type: "no-nbt"
+                    node: {
+                        description: "child_ref_test OK",
+                        type: "no-nbt"
+                    },
+                    path: "child_ref_test.json"
                 }
             });
         });

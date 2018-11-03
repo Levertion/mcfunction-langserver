@@ -2887,6 +2887,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
       low: this.openIndex,
       type: "hover"
     });
+    const children = walker.getChildren(info);
 
     for (let index = 0; index < this.parts.length; index++) {
       const part = this.parts[index];
@@ -2894,7 +2895,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
 
       if (part.key) {
         if (part.value) {
-          const child = walker.getChildWithName(info, part.key);
+          const child = children[part.key];
 
           if (child) {
             helper.merge(part.value.validate(child, walker));
@@ -2928,16 +2929,18 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
     function handleNoValue(part) {
       const keyHelper = new misc_functions_1.ReturnHelper();
       const key = part.key || "";
-      const children = walker.getChildren(info);
 
       if (part.closeIdx === undefined) {
         for (const childName of Object.keys(children)) {
           if (childName.startsWith(key)) {
+            const thisChild = children[childName];
+            const text = thisChild && nbt_util_1.getStartSuggestion(thisChild.node);
             keyHelper.addSuggestions({
-              description: nbt_util_1.getHoverText(children[childName]),
+              description: nbt_util_1.getHoverText(children[childName].node),
               kind: vscode_languageserver_1.CompletionItemKind.Field,
+              label: childName,
               start: part.keyRange.start,
-              text: string_reader_1.quoteIfNeeded(childName)
+              text: string_reader_1.quoteIfNeeded(childName) + (text ? `: ${text}` : "")
             });
           }
         }
@@ -2946,7 +2949,11 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
       const child = children[key];
 
       if (child) {
-        keyHelper.addActions(getKeyHover(part.keyRange, child));
+        if (part.closeIdx && part.closeIdx >= 0) {
+          keyHelper.merge(nbt_util_1.getNBTSuggestions(child.node, part.closeIdx));
+        }
+
+        keyHelper.addActions(getKeyHover(part.keyRange, child.node));
       } // tslint:disable-next-line:helper-return
 
 
@@ -3686,7 +3693,11 @@ class NBTWalker {
     }
 
     if (node.children) {
-      Object.assign(result, node.children);
+      for (const key of Object.keys(node.children)) {
+        result[key] = this.followNodePath(Object.assign({}, info, {
+          node: node.children[key]
+        }), new array_reader_1.ArrayReader([]));
+      }
     }
 
     return result;

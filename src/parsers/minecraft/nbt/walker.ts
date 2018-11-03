@@ -154,9 +154,9 @@ export class NBTWalker {
 
     public getChildren(
         info: NodeInfo<CompoundNode>
-    ): { [key: string]: NBTNode } {
+    ): { [key: string]: NodeInfo } {
         const { node } = info;
-        const result = {};
+        const result: { [key: string]: NodeInfo } = {};
         if (node.child_ref) {
             for (const ref of node.child_ref.reverse()) {
                 const refInfo = walkUnwrap(this.resolveRef(ref, info.path));
@@ -166,7 +166,12 @@ export class NBTWalker {
             }
         }
         if (node.children) {
-            Object.assign(result, node.children);
+            for (const key of Object.keys(node.children)) {
+                result[key] = this.followNodePath(
+                    { ...info, node: node.children[key] },
+                    new ArrayReader([])
+                );
+            }
         }
         return result;
     }

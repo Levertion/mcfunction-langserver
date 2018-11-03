@@ -193,7 +193,7 @@ describe("sharedBlockParser", () => {
                 "x",
                 "y",
                 "z",
-                "Items",
+                "Items: [",
                 "LootTable",
                 "LootTableSeed",
                 "CustomName",
