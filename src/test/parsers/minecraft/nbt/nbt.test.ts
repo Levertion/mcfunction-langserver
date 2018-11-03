@@ -1,6 +1,9 @@
 import { StringReader } from "../../../../brigadier/string-reader";
 import { loadNBTDocs } from "../../../../data/noncached";
-import { parser, validateParse } from "../../../../parsers/minecraft/nbt/nbt";
+import {
+    nbtParser,
+    validateParse
+} from "../../../../parsers/minecraft/nbt/nbt";
 import { ParserInfo, SuggestResult } from "../../../../types";
 import {
     assertSuggestions,
@@ -32,7 +35,7 @@ describe("nbt parser test", () => {
                 suggesting: true
             } as ParserInfo;
         });
-        const tester = testParser(parser);
+        const tester = testParser(nbtParser);
         it("should parse correctly", () => {
             tester(info)("{foo:{bar:baz}}", {
                 succeeds: true,

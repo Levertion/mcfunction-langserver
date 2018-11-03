@@ -2062,7 +2062,270 @@ exports.getHoverText = node => {
     }
     return `(${exports.tagid2Name[node.type]}) ${desc}`;
 };
-},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","./doc-walker-util":"TRlg"}],"ZJrY":[function(require,module,exports) {
+},{"../../../../misc-functions":"irtH","../doc-walker-func":"h7oH","./doc-walker-util":"TRlg"}],"w/DJ":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const vscode_languageserver_1 = require("vscode-languageserver");
+const errors_1 = require("../../../../brigadier/errors");
+const string_reader_1 = require("../../../../brigadier/string-reader");
+const misc_functions_1 = require("../../../../misc-functions");
+const tag_parser_1 = require("../tag-parser");
+const nbt_util_1 = require("../util/nbt-util");
+const nbt_tag_1 = require("./nbt-tag");
+const NO_KEY = new errors_1.CommandErrorBuilder("argument.nbt.compound.nokey", "Expected key");
+const NO_VAL = new errors_1.CommandErrorBuilder("argument.nbt.compound.noval", "Expected value");
+exports.UNKNOWN = new errors_1.CommandErrorBuilder("argument.nbt.compound.unknown", "Unknown child '%s'");
+exports.DUPLICATE = new errors_1.CommandErrorBuilder("argument.nbt.compound.duplicate", "'%s' is already defined");
+/**
+ * TODO: refactor (again)!
+ * Help welcome
+ */
+class NBTTagCompound extends nbt_tag_1.NBTTag {
+    constructor() {
+        super(...arguments);
+        this.tagType = "compound";
+        this.value = new Map();
+        this.miscIndex = -1;
+        this.openIndex = -1;
+        /**
+         * If empty => no values, closed instantly (e.g. `{}`, `{ }`)
+         * If last has no key => no key straight after the `{` or `,`
+         * (with spaces) or key could not be parsed (e.g. `{"no-close-quote`)
+         * If last has key but no closed, then it is the last item (e.g. `{"key"`,{key)
+         * If last has key but closed, it has been unparseable either due to an invalid
+         * character after or within the strin
+         */
+        this.parts = [];
+    }
+    getValue() {
+        return this.value;
+    }
+    setValue(val) {
+        this.value = val;
+        return this;
+    }
+    validate(anyInfo, walker) {
+        const helper = new misc_functions_1.ReturnHelper();
+        if (this.openIndex === -1) {
+            // This should never happen
+            nbt_util_1.createSuggestions(anyInfo.node, this.miscIndex);
+            return helper.succeed();
+        }
+        const result = this.sameType(anyInfo);
+        if (!helper.merge(result)) {
+            return helper.succeed();
+        }
+        const info = anyInfo;
+        const hoverText = nbt_util_1.getHoverText(anyInfo.node);
+        if (this.parts.length === 0) {
+            helper.addActions({
+                // Add the hover over the entire object
+                data: hoverText,
+                high: this.miscIndex,
+                low: this.openIndex,
+                type: "hover"
+            });
+            return helper.succeed();
+        }
+        helper.addActions({
+            // Add hover to the open `{`
+            data: hoverText,
+            high: this.openIndex + 1,
+            low: this.openIndex,
+            type: "hover"
+        });
+        for (let index = 0; index < this.parts.length; index++) {
+            const part = this.parts[index];
+            const final = index === this.parts.length - 1;
+            if (part.key) {
+                if (part.value) {
+                    const child = walker.getChildWithName(info, part.key);
+                    if (child) {
+                        helper.merge(part.value.validate(child, walker));
+                        helper.addActions(getKeyHover(part.keyRange, child.node));
+                    } else {
+                        const error = Object.assign({}, exports.UNKNOWN.create(part.keyRange.start, part.keyRange.end, part.key), { path: [...this.path, part.key] });
+                        helper.addErrors(error);
+                    }
+                } else {
+                    helper.merge(handleNoValue(part));
+                }
+            } else {
+                helper.merge(handleNoValue(part));
+            }
+            if (final && part.value && typeof part.closeIdx === "number") {
+                helper.addActions({
+                    // Add hover to the close `}`
+                    data: hoverText,
+                    high: part.closeIdx,
+                    low: part.closeIdx - 1,
+                    type: "hover"
+                });
+            }
+        }
+        return helper.succeed();
+        function handleNoValue(part) {
+            const keyHelper = new misc_functions_1.ReturnHelper();
+            const key = part.key || "";
+            const children = walker.getChildren(info);
+            if (part.closeIdx === undefined) {
+                for (const childName of Object.keys(children)) {
+                    if (childName.startsWith(key)) {
+                        keyHelper.addSuggestions({
+                            description: nbt_util_1.getHoverText(children[childName]),
+                            kind: vscode_languageserver_1.CompletionItemKind.Field,
+                            start: part.keyRange.start,
+                            text: string_reader_1.quoteIfNeeded(childName)
+                        });
+                    }
+                }
+            }
+            const child = children[key];
+            if (child) {
+                keyHelper.addActions(getKeyHover(part.keyRange, child));
+            }
+            // tslint:disable-next-line:helper-return
+            return keyHelper.succeed();
+        }
+        function getKeyHover(range, child) {
+            return {
+                data: nbt_util_1.getHoverText(child),
+                high: range.end,
+                low: range.start,
+                type: "hover"
+            };
+        }
+    }
+    readTag(reader) {
+        const helper = new misc_functions_1.ReturnHelper();
+        const start = reader.cursor;
+        this.miscIndex = start;
+        if (!helper.merge(reader.expect(nbt_util_1.COMPOUND_START))) {
+            return helper.failWithData(nbt_util_1.Correctness.NO);
+        }
+        this.openIndex = start;
+        const afterOpen = reader.cursor;
+        reader.skipWhitespace();
+        if (reader.peek() === nbt_util_1.COMPOUND_END) {
+            this.miscIndex = reader.cursor;
+            reader.skip();
+            return helper.succeed(nbt_util_1.Correctness.CERTAIN);
+        } else if (!reader.canRead()) {
+            helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
+            helper.addErrors(NO_KEY.create(afterOpen, reader.cursor));
+            this.parts.push({
+                keyRange: {
+                    end: reader.cursor,
+                    start: reader.cursor
+                }
+            });
+            return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+        }
+        reader.cursor = afterOpen; // This improves the value of the first kvstart in case of `{  `
+        while (true) {
+            const kvstart = reader.cursor;
+            reader.skipWhitespace();
+            const keyStart = reader.cursor;
+            if (!reader.canRead()) {
+                helper.addErrors(NO_KEY.create(kvstart, reader.cursor));
+                this.parts.push({
+                    keyRange: {
+                        end: reader.cursor,
+                        start: reader.cursor
+                    }
+                });
+                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+            }
+            const key = reader.readString();
+            const keyEnd = reader.cursor;
+            if (!helper.merge(key)) {
+                const keypart = {
+                    key: key.data,
+                    keyRange: { end: keyEnd, start: keyStart }
+                };
+                if (reader.canRead()) {
+                    keypart.closeIdx = reader.cursor;
+                }
+                this.parts.push(keypart);
+                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+            }
+            reader.skipWhitespace();
+            if (this.value.has(key.data)) {
+                helper.addErrors(exports.DUPLICATE.create(keyStart, keyEnd, key.data));
+            }
+            if (!reader.canRead()) {
+                this.parts.push({
+                    key: key.data,
+                    keyRange: {
+                        end: keyEnd,
+                        start: keyStart
+                    }
+                });
+                helper.addErrors(NO_VAL.create(keyStart, reader.cursor));
+                return helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_KEY_VALUE_SEP).failWithData(nbt_util_1.Correctness.CERTAIN);
+            }
+            const kvs = reader.expect(nbt_util_1.COMPOUND_KEY_VALUE_SEP);
+            if (!helper.merge(kvs)) {
+                // E.g. '{"hello",' etc.
+                this.parts.push({
+                    closeIdx: reader.cursor,
+                    key: key.data,
+                    keyRange: {
+                        end: keyEnd,
+                        start: keyStart
+                    }
+                });
+                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+            }
+            const afterSep = reader.cursor;
+            reader.skipWhitespace();
+            if (!reader.canRead()) {
+                this.parts.push({
+                    closeIdx: afterSep,
+                    key: key.data,
+                    keyRange: { start: keyStart, end: keyEnd }
+                });
+                helper.addErrors(NO_VAL.create(keyStart, reader.cursor));
+                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+            }
+            const valResult = tag_parser_1.parseAnyNBTTag(reader, [...this.path, key.data]);
+            const part = {
+                key: key.data,
+                keyRange: { start: keyStart, end: keyEnd },
+                value: valResult.data && valResult.data.tag
+            };
+            if (!helper.merge(valResult)) {
+                this.parts.push(part);
+                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+            }
+            reader.skipWhitespace();
+            this.value.set(key.data, valResult.data.tag);
+            const next = reader.peek();
+            if (!reader.canRead()) {
+                helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
+                helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_PAIR_SEP);
+                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+            }
+            if (next === nbt_util_1.COMPOUND_PAIR_SEP || next === nbt_util_1.COMPOUND_END) {
+                reader.skip();
+                if (!reader.canRead()) {
+                    helper.addSuggestion(reader.cursor - 1, next); // Pretend that we had always made that suggestion, in a sense.
+                }
+                part.closeIdx = reader.cursor;
+                this.parts.push(part);
+                if (next === nbt_util_1.COMPOUND_END) {
+                    this.miscIndex = reader.cursor;
+                    return helper.succeed(nbt_util_1.Correctness.CERTAIN);
+                }
+                continue;
+            }
+            return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
+        }
+    }
+}
+exports.NBTTagCompound = NBTTagCompound;
+},{"../../../../brigadier/errors":"lIyQ","../../../../brigadier/string-reader":"f1BJ","../../../../misc-functions":"irtH","../tag-parser":"unjr","../util/nbt-util":"R+CJ","./nbt-tag":"SKCP"}],"ZJrY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -2342,270 +2605,7 @@ function parseAnyNBTTag(reader, path) {
     }
 }
 exports.parseAnyNBTTag = parseAnyNBTTag;
-},{"../../../misc-functions":"irtH","./tag/compound-tag":"w/DJ","./tag/list-tag":"ZJrY","./tag/number":"R3QY","./tag/string-tag":"tWeb","./tag/typed-list-tag":"H2tq","./util/nbt-util":"R+CJ"}],"w/DJ":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_1 = require("vscode-languageserver");
-const errors_1 = require("../../../../brigadier/errors");
-const string_reader_1 = require("../../../../brigadier/string-reader");
-const misc_functions_1 = require("../../../../misc-functions");
-const tag_parser_1 = require("../tag-parser");
-const nbt_util_1 = require("../util/nbt-util");
-const nbt_tag_1 = require("./nbt-tag");
-const NO_KEY = new errors_1.CommandErrorBuilder("argument.nbt.compound.nokey", "Expected key");
-const NO_VAL = new errors_1.CommandErrorBuilder("argument.nbt.compound.noval", "Expected value");
-exports.UNKNOWN = new errors_1.CommandErrorBuilder("argument.nbt.compound.unknown", "Unknown child '%s'");
-exports.DUPLICATE = new errors_1.CommandErrorBuilder("argument.nbt.compound.duplicate", "'%s' is already defined");
-/**
- * TODO: refactor (again)!
- * Help welcome
- */
-class NBTTagCompound extends nbt_tag_1.NBTTag {
-    constructor() {
-        super(...arguments);
-        this.tagType = "compound";
-        this.value = new Map();
-        this.miscIndex = -1;
-        this.openIndex = -1;
-        /**
-         * If empty => no values, closed instantly (e.g. `{}`, `{ }`)
-         * If last has no key => no key straight after the `{` or `,`
-         * (with spaces) or key could not be parsed (e.g. `{"no-close-quote`)
-         * If last has key but no closed, then it is the last item (e.g. `{"key"`,{key)
-         * If last has key but closed, it has been unparseable either due to an invalid
-         * character after or within the strin
-         */
-        this.parts = [];
-    }
-    getValue() {
-        return this.value;
-    }
-    setValue(val) {
-        this.value = val;
-        return this;
-    }
-    validate(anyInfo, walker) {
-        const helper = new misc_functions_1.ReturnHelper();
-        if (this.openIndex === -1) {
-            // This should never happen
-            nbt_util_1.createSuggestions(anyInfo.node, this.miscIndex);
-            return helper.succeed();
-        }
-        const result = this.sameType(anyInfo);
-        if (!helper.merge(result)) {
-            return helper.succeed();
-        }
-        const info = anyInfo;
-        const hoverText = nbt_util_1.getHoverText(anyInfo.node);
-        if (this.parts.length === 0) {
-            helper.addActions({
-                // Add the hover over the entire object
-                data: hoverText,
-                high: this.miscIndex,
-                low: this.openIndex,
-                type: "hover"
-            });
-            return helper.succeed();
-        }
-        helper.addActions({
-            // Add hover to the open `{`
-            data: hoverText,
-            high: this.openIndex + 1,
-            low: this.openIndex,
-            type: "hover"
-        });
-        for (let index = 0; index < this.parts.length; index++) {
-            const part = this.parts[index];
-            const final = index === this.parts.length - 1;
-            if (part.key) {
-                if (part.value) {
-                    const child = walker.getChildWithName(info, part.key);
-                    if (child) {
-                        helper.merge(part.value.validate(child, walker));
-                        helper.addActions(getKeyHover(part.keyRange, child.node));
-                    } else {
-                        const error = Object.assign({}, exports.UNKNOWN.create(part.keyRange.start, part.keyRange.end, part.key), { path: [...this.path, part.key] });
-                        helper.addErrors(error);
-                    }
-                } else {
-                    helper.merge(handleNoValue(part));
-                }
-            } else {
-                helper.merge(handleNoValue(part));
-            }
-            if (final && part.value && typeof part.closeIdx === "number") {
-                helper.addActions({
-                    // Add hover to the close `}`
-                    data: hoverText,
-                    high: part.closeIdx,
-                    low: part.closeIdx - 1,
-                    type: "hover"
-                });
-            }
-        }
-        return helper.succeed();
-        function handleNoValue(part) {
-            const keyHelper = new misc_functions_1.ReturnHelper();
-            const key = part.key || "";
-            const children = walker.getChildren(info);
-            if (part.closeIdx === undefined) {
-                for (const childName of Object.keys(children)) {
-                    if (childName.startsWith(key)) {
-                        keyHelper.addSuggestions({
-                            description: nbt_util_1.getHoverText(children[childName]),
-                            kind: vscode_languageserver_1.CompletionItemKind.Field,
-                            start: part.keyRange.start,
-                            text: string_reader_1.quoteIfNeeded(childName)
-                        });
-                    }
-                }
-            }
-            const child = children[key];
-            if (child) {
-                keyHelper.addActions(getKeyHover(part.keyRange, child));
-            }
-            // tslint:disable-next-line:helper-return
-            return keyHelper.succeed();
-        }
-        function getKeyHover(range, child) {
-            return {
-                data: nbt_util_1.getHoverText(child),
-                high: range.end,
-                low: range.start,
-                type: "hover"
-            };
-        }
-    }
-    readTag(reader) {
-        const helper = new misc_functions_1.ReturnHelper();
-        const start = reader.cursor;
-        this.miscIndex = start;
-        if (!helper.merge(reader.expect(nbt_util_1.COMPOUND_START))) {
-            return helper.failWithData(nbt_util_1.Correctness.NO);
-        }
-        this.openIndex = start;
-        const afterOpen = reader.cursor;
-        reader.skipWhitespace();
-        if (reader.peek() === nbt_util_1.COMPOUND_END) {
-            this.miscIndex = reader.cursor;
-            reader.skip();
-            return helper.succeed(nbt_util_1.Correctness.CERTAIN);
-        } else if (!reader.canRead()) {
-            helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
-            helper.addErrors(NO_KEY.create(afterOpen, reader.cursor));
-            this.parts.push({
-                keyRange: {
-                    end: reader.cursor,
-                    start: reader.cursor
-                }
-            });
-            return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-        }
-        reader.cursor = afterOpen; // This improves the value of the first kvstart in case of `{  `
-        while (true) {
-            const kvstart = reader.cursor;
-            reader.skipWhitespace();
-            const keyStart = reader.cursor;
-            if (!reader.canRead()) {
-                helper.addErrors(NO_KEY.create(kvstart, reader.cursor));
-                this.parts.push({
-                    keyRange: {
-                        end: reader.cursor,
-                        start: reader.cursor
-                    }
-                });
-                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-            }
-            const key = reader.readString();
-            const keyEnd = reader.cursor;
-            if (!helper.merge(key)) {
-                const keypart = {
-                    key: key.data,
-                    keyRange: { end: keyEnd, start: keyStart }
-                };
-                if (reader.canRead()) {
-                    keypart.closeIdx = reader.cursor;
-                }
-                this.parts.push(keypart);
-                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-            }
-            reader.skipWhitespace();
-            if (this.value.has(key.data)) {
-                helper.addErrors(exports.DUPLICATE.create(keyStart, keyEnd, key.data));
-            }
-            if (!reader.canRead()) {
-                this.parts.push({
-                    key: key.data,
-                    keyRange: {
-                        end: keyEnd,
-                        start: keyStart
-                    }
-                });
-                helper.addErrors(NO_VAL.create(keyStart, reader.cursor));
-                return helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_KEY_VALUE_SEP).failWithData(nbt_util_1.Correctness.CERTAIN);
-            }
-            const kvs = reader.expect(nbt_util_1.COMPOUND_KEY_VALUE_SEP);
-            if (!helper.merge(kvs)) {
-                // E.g. '{"hello",' etc.
-                this.parts.push({
-                    closeIdx: reader.cursor,
-                    key: key.data,
-                    keyRange: {
-                        end: keyEnd,
-                        start: keyStart
-                    }
-                });
-                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-            }
-            const afterSep = reader.cursor;
-            reader.skipWhitespace();
-            if (!reader.canRead()) {
-                this.parts.push({
-                    closeIdx: afterSep,
-                    key: key.data,
-                    keyRange: { start: keyStart, end: keyEnd }
-                });
-                helper.addErrors(NO_VAL.create(keyStart, reader.cursor));
-                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-            }
-            const valResult = tag_parser_1.parseAnyNBTTag(reader, [...this.path, key.data]);
-            const part = {
-                key: key.data,
-                keyRange: { start: keyStart, end: keyEnd },
-                value: valResult.data && valResult.data.tag
-            };
-            if (!helper.merge(valResult)) {
-                this.parts.push(part);
-                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-            }
-            reader.skipWhitespace();
-            this.value.set(key.data, valResult.data.tag);
-            const next = reader.peek();
-            if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
-                helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_PAIR_SEP);
-                return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-            }
-            if (next === nbt_util_1.COMPOUND_PAIR_SEP || next === nbt_util_1.COMPOUND_END) {
-                reader.skip();
-                if (!reader.canRead()) {
-                    helper.addSuggestion(reader.cursor - 1, next); // Pretend that we had always made that suggestion, in a sense.
-                }
-                part.closeIdx = reader.cursor;
-                this.parts.push(part);
-                if (next === nbt_util_1.COMPOUND_END) {
-                    this.miscIndex = reader.cursor;
-                    return helper.succeed(nbt_util_1.Correctness.CERTAIN);
-                }
-                continue;
-            }
-            return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-        }
-    }
-}
-exports.NBTTagCompound = NBTTagCompound;
-},{"../../../../brigadier/errors":"lIyQ","../../../../brigadier/string-reader":"f1BJ","../../../../misc-functions":"irtH","../tag-parser":"unjr","../util/nbt-util":"R+CJ","./nbt-tag":"SKCP"}],"lPiu":[function(require,module,exports) {
+},{"../../../misc-functions":"irtH","./tag/compound-tag":"w/DJ","./tag/list-tag":"ZJrY","./tag/number":"R3QY","./tag/string-tag":"tWeb","./tag/typed-list-tag":"H2tq","./util/nbt-util":"R+CJ"}],"lPiu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3140,7 +3140,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const misc_functions_1 = require("../../../misc-functions");
 const context_1 = require("../../../misc-functions/context");
-const compound_tag_1 = require("./tag/compound-tag");
+const tag_parser_1 = require("./tag-parser");
 const doc_walker_util_1 = require("./util/doc-walker-util");
 const nbt_util_1 = require("./util/nbt-util");
 const walker_1 = require("./walker");
@@ -3148,25 +3148,27 @@ const paths = [{
     data: () => ({
         type: "entity"
     }),
-    path: ["data", "merge", "entity", "target", "nbt"]
+    path: ["data", "merge", "entity"]
 }, {
     data: () => ({
         type: "block"
     }),
-    path: ["data", "merge", "block", "pos", "nbt"]
+    path: ["data", "merge", "block"]
 }, {
     data: args => ({
         ids: args.entity,
         type: "entity"
     }),
-    path: ["summon", "entity", "pos", "nbt"]
+    path: ["summon", "entity"]
+    // TODO - handle nbt_tag in /data modify
 }];
 function validateParse(reader, info, data) {
     const helper = new misc_functions_1.ReturnHelper();
-    const tag = new compound_tag_1.NBTTagCompound([]);
     const docs = info.data.globalData.nbt_docs;
-    const parseResult = tag.parse(reader);
-    if (helper.merge(parseResult) || parseResult.data > nbt_util_1.Correctness.NO) {
+    const parseResult = tag_parser_1.parseAnyNBTTag(reader, []);
+    const datum = parseResult.data;
+    if (datum && ( // This is to appease the type checker
+    helper.merge(parseResult) || datum.correctness > nbt_util_1.Correctness.NO)) {
         if (!!data) {
             const walker = new walker_1.NBTWalker(docs);
             const addUnknownError = (error, id) => {
@@ -3180,7 +3182,7 @@ function validateParse(reader, info, data) {
                 for (const id of data.ids) {
                     const root = walker.getInitialNode([data.type, id]);
                     if (!doc_walker_util_1.isNoNBTInfo(root)) {
-                        const result = tag.validate(root, walker);
+                        const result = datum.tag.validate(root, walker);
                         helper.merge(result, { errors: false });
                         for (const e of result.errors) {
                             const error = e;
@@ -3197,7 +3199,7 @@ function validateParse(reader, info, data) {
             } else {
                 const root = walker.getInitialNode([data.type, data.ids || "none"]);
                 if (!doc_walker_util_1.isNoNBTInfo(root)) {
-                    const result = tag.validate(root, walker);
+                    const result = datum.tag.validate(root, walker);
                     helper.merge(result, { errors: false });
                     for (const e of result.errors) {
                         const error = e;
@@ -3216,15 +3218,15 @@ function validateParse(reader, info, data) {
     }
 }
 exports.validateParse = validateParse;
-exports.parser = {
+exports.nbtParser = {
     parse: (reader, info) => {
         const helper = new misc_functions_1.ReturnHelper(info);
-        const ctxdatafn = context_1.resolvePaths(paths, info.path || []);
+        const ctxdatafn = context_1.startPaths(paths, info.path || []);
         const data = ctxdatafn && ctxdatafn(info.context);
         return helper.return(validateParse(reader, info, data));
     }
 };
-},{"../../../misc-functions":"irtH","../../../misc-functions/context":"qA/9","./tag/compound-tag":"w/DJ","./util/doc-walker-util":"TRlg","./util/nbt-util":"R+CJ","./walker":"1JwD"}],"IZJ1":[function(require,module,exports) {
+},{"../../../misc-functions":"irtH","../../../misc-functions/context":"qA/9","./tag-parser":"unjr","./util/doc-walker-util":"TRlg","./util/nbt-util":"R+CJ","./walker":"1JwD"}],"IZJ1":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -3762,7 +3764,87 @@ const particleError = new errors_1.CommandErrorBuilder("particle.notFound", "Unk
 exports.particleParser = new NamespaceListParser(statics_1.particles, particleError);
 const dimensionError = new errors_1.CommandErrorBuilder("argument.dimension.invalid", "Unknown dimension: '%s'");
 exports.dimensionParser = new NamespaceListParser(statics_1.dimensions, dimensionError);
-},{"../../brigadier/errors":"lIyQ","../../data/lists/statics":"xAGc","../../misc-functions":"irtH"}],"mhMo":[function(require,module,exports) {
+},{"../../brigadier/errors":"lIyQ","../../data/lists/statics":"xAGc","../../misc-functions":"irtH"}],"tjxk":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const errors_1 = require("../../brigadier/errors");
+const misc_functions_1 = require("../../misc-functions");
+const doc_walker_util_1 = require("./nbt/util/doc-walker-util");
+const walker_1 = require("./nbt/walker");
+const DOT = ".";
+const ARROPEN = "[";
+const ARRCLOSE = "]";
+const exceptions = {
+    BAD_CHAR: new errors_1.CommandErrorBuilder("argument.nbt_path.badchar", "Bad character '%s'"),
+    INCORRECT_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Unknown segment '%s'"),
+    START_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.array_start", "Cannot start an nbt path with an array reference"),
+    UNEXPECTED_ARRAY: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array")
+};
+exports.parser = {
+    parse: (reader, prop) => {
+        const helper = new misc_functions_1.ReturnHelper();
+        const out = [];
+        const walker = new walker_1.NBTWalker(prop.data.globalData.nbt_docs);
+        let first = true;
+        let current = walker.getInitialNode([
+            /** Something based on the context data */
+        ]);
+        while (true) {
+            // Whitespace
+            const start = reader.cursor;
+            if (reader.peek() === ARROPEN) {
+                reader.skip();
+                const int = reader.readInt();
+                if (helper.merge(int)) {
+                    out.push(int.data);
+                } else {
+                    return helper.fail();
+                }
+                if (!helper.merge(reader.expect(ARRCLOSE))) {
+                    return helper.fail();
+                }
+                if (current) {
+                    if (doc_walker_util_1.isListInfo(current)) {
+                        current = walker.getItem(current);
+                    } else {
+                        helper.addErrors(exceptions.UNEXPECTED_ARRAY.create(start, reader.cursor));
+                        current = undefined;
+                    }
+                }
+                first = false;
+                continue;
+            }
+            if (reader.peek() === DOT || first) {
+                if (reader.peek() === DOT) {
+                    reader.skip();
+                }
+                const children = current && doc_walker_util_1.isCompoundInfo(current) ? walker.getChildren(current) : {};
+                const res = reader.readOption(Object.keys(children));
+                if (helper.merge(res)) {
+                    current = walker.getChildWithName(current, res.data);
+                } else {
+                    if (current && res.data) {
+                        helper.addErrors(exceptions.INCORRECT_SEGMENT.create(start, reader.cursor, res.data));
+                    }
+                    current = undefined;
+                }
+                first = false;
+                continue;
+            }
+            if (!reader.canRead()) {
+                helper.addSuggestion(reader.cursor, ".");
+                helper.addSuggestion(reader.cursor, "[");
+            }
+            if (/\s/.test(reader.peek())) {
+                return helper.succeed();
+            }
+            return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
+        }
+        return helper.succeed();
+    }
+};
+},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","./nbt/util/doc-walker-util":"TRlg","./nbt/walker":"1JwD"}],"mhMo":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -4006,87 +4088,7 @@ ${JSON.stringify(team, undefined, 4)}
     }
 };
 exports.criteriaParser = undefined;
-},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","../../misc-functions/third_party/typed-keys":"IXKy"}],"tjxk":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const errors_1 = require("../../brigadier/errors");
-const misc_functions_1 = require("../../misc-functions");
-const doc_walker_util_1 = require("./nbt/util/doc-walker-util");
-const walker_1 = require("./nbt/walker");
-const DOT = ".";
-const ARROPEN = "[";
-const ARRCLOSE = "]";
-const exceptions = {
-    BAD_CHAR: new errors_1.CommandErrorBuilder("argument.nbt_path.badchar", "Bad character '%s'"),
-    INCORRECT_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Unknown segment '%s'"),
-    START_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.array_start", "Cannot start an nbt path with an array reference"),
-    UNEXPECTED_ARRAY: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array")
-};
-exports.parser = {
-    parse: (reader, prop) => {
-        const helper = new misc_functions_1.ReturnHelper();
-        const out = [];
-        const walker = new walker_1.NBTWalker(prop.data.globalData.nbt_docs);
-        let first = true;
-        let current = walker.getInitialNode([
-            /** Something based on the context data */
-        ]);
-        while (true) {
-            // Whitespace
-            const start = reader.cursor;
-            if (reader.peek() === ARROPEN) {
-                reader.skip();
-                const int = reader.readInt();
-                if (helper.merge(int)) {
-                    out.push(int.data);
-                } else {
-                    return helper.fail();
-                }
-                if (!helper.merge(reader.expect(ARRCLOSE))) {
-                    return helper.fail();
-                }
-                if (current) {
-                    if (doc_walker_util_1.isListInfo(current)) {
-                        current = walker.getItem(current);
-                    } else {
-                        helper.addErrors(exceptions.UNEXPECTED_ARRAY.create(start, reader.cursor));
-                        current = undefined;
-                    }
-                }
-                first = false;
-                continue;
-            }
-            if (reader.peek() === DOT || first) {
-                if (reader.peek() === DOT) {
-                    reader.skip();
-                }
-                const children = current && doc_walker_util_1.isCompoundInfo(current) ? walker.getChildren(current) : {};
-                const res = reader.readOption(Object.keys(children));
-                if (helper.merge(res)) {
-                    current = walker.getChildWithName(current, res.data);
-                } else {
-                    if (current && res.data) {
-                        helper.addErrors(exceptions.INCORRECT_SEGMENT.create(start, reader.cursor, res.data));
-                    }
-                    current = undefined;
-                }
-                first = false;
-                continue;
-            }
-            if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, ".");
-                helper.addSuggestion(reader.cursor, "[");
-            }
-            if (/\s/.test(reader.peek())) {
-                return helper.succeed();
-            }
-            return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
-        }
-        return helper.succeed();
-    }
-};
-},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","./nbt/util/doc-walker-util":"TRlg","./nbt/walker":"1JwD"}],"vlho":[function(require,module,exports) {
+},{"../../brigadier/errors":"lIyQ","../../misc-functions":"irtH","../../misc-functions/third_party/typed-keys":"IXKy"}],"vlho":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -4099,10 +4101,10 @@ const itemParsers = tslib_1.__importStar(require("./minecraft/item"));
 const listParsers = tslib_1.__importStar(require("./minecraft/lists"));
 const message_1 = require("./minecraft/message");
 const namespaceParsers = tslib_1.__importStar(require("./minecraft/namespace-list"));
-const resources_1 = require("./minecraft/resources");
-const scoreboard_1 = require("./minecraft/scoreboard");
 const nbt_path_1 = require("./minecraft/nbt-path");
 const nbt_1 = require("./minecraft/nbt/nbt");
+const resources_1 = require("./minecraft/resources");
+const scoreboard_1 = require("./minecraft/scoreboard");
 /**
  * Incomplete:
  * https://github.com/Levertion/mcfunction-langserver/projects/1
@@ -4126,8 +4128,12 @@ const implementedParsers = {
     "minecraft:item_stack": itemParsers.stack,
     "minecraft:message": message_1.messageParser,
     "minecraft:mob_effect": namespaceParsers.mobEffectParser,
-    "minecraft:nbt": nbt_1.parser,
+    "minecraft:nbt": nbt_1.nbtParser,
     "minecraft:nbt-path": nbt_path_1.parser,
+    "minecraft:nbt_compound_tag": nbt_1.nbtParser,
+    "minecraft:nbt_path": nbt_path_1.parser,
+    // Duplication of nbt path is OK - nbt-path is 1.13 whereas nbt_path is 1.14
+    "minecraft:nbt_tag": nbt_1.nbtParser,
     "minecraft:objective": scoreboard_1.objectiveParser,
     "minecraft:operation": listParsers.operationParser,
     "minecraft:particle": namespaceParsers.particleParser,
@@ -4167,7 +4173,7 @@ function getArgParser(id) {
 Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
     return undefined;
 }
-},{"./brigadier":"7xRZ","./literal":"OX8H","./minecraft/block":"IZJ1","./minecraft/coordinates":"cUI8","./minecraft/item":"MBE2","./minecraft/lists":"ZBji","./minecraft/message":"o/51","./minecraft/namespace-list":"pM/l","./minecraft/resources":"mhMo","./minecraft/scoreboard":"0BRi","./minecraft/nbt-path":"tjxk","./minecraft/nbt/nbt":"bNud"}],"aDYY":[function(require,module,exports) {
+},{"./brigadier":"7xRZ","./literal":"OX8H","./minecraft/block":"IZJ1","./minecraft/coordinates":"cUI8","./minecraft/item":"MBE2","./minecraft/lists":"ZBji","./minecraft/message":"o/51","./minecraft/namespace-list":"pM/l","./minecraft/nbt-path":"tjxk","./minecraft/nbt/nbt":"bNud","./minecraft/resources":"mhMo","./minecraft/scoreboard":"0BRi"}],"aDYY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });

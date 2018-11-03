@@ -2,7 +2,7 @@ import { StringReader } from "../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../misc-functions";
 import {
     ContextPath,
-    resolvePaths,
+    startPaths,
     stringArrayEqual
 } from "../../../misc-functions/context";
 import {
@@ -11,7 +11,8 @@ import {
     ParserInfo,
     ReturnedInfo
 } from "../../../types";
-import { NBTTagCompound, UnknownsError } from "./tag/compound-tag";
+import { parseAnyNBTTag } from "./tag-parser";
+import { UnknownsError } from "./tag/compound-tag";
 import { isNoNBTInfo } from "./util/doc-walker-util";
 import { Correctness } from "./util/nbt-util";
 import { NBTWalker } from "./walker";
@@ -28,21 +29,22 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
         data: () => ({
             type: "entity"
         }),
-        path: ["data", "merge", "entity", "target", "nbt"]
+        path: ["data", "merge", "entity"]
     },
     {
         data: () => ({
             type: "block"
         }),
-        path: ["data", "merge", "block", "pos", "nbt"]
+        path: ["data", "merge", "block"]
     },
     {
         data: args => ({
             ids: args.entity,
             type: "entity"
         }),
-        path: ["summon", "entity", "pos", "nbt"]
+        path: ["summon", "entity"]
     }
+    // TODO - handle nbt_tag in /data modify
 ];
 
 export function validateParse(
@@ -51,10 +53,13 @@ export function validateParse(
     data?: NBTContextData
 ): ReturnedInfo<undefined> {
     const helper = new ReturnHelper();
-    const tag = new NBTTagCompound([]);
     const docs = info.data.globalData.nbt_docs;
-    const parseResult = tag.parse(reader);
-    if (helper.merge(parseResult) || parseResult.data > Correctness.NO) {
+    const parseResult = parseAnyNBTTag(reader, []);
+    const datum = parseResult.data;
+    if (
+        datum && // This is to appease the type checker
+        (helper.merge(parseResult) || datum.correctness > Correctness.NO)
+    ) {
         if (!!data) {
             const walker = new NBTWalker(docs);
             const addUnknownError = (error: UnknownsError, id?: string) => {
@@ -71,7 +76,7 @@ export function validateParse(
                 for (const id of data.ids) {
                     const root = walker.getInitialNode([data.type, id]);
                     if (!isNoNBTInfo(root)) {
-                        const result = tag.validate(root, walker);
+                        const result = datum.tag.validate(root, walker);
                         helper.merge(result, { errors: false });
                         for (const e of result.errors) {
                             const error = e as UnknownsError;
@@ -100,7 +105,7 @@ export function validateParse(
                     data.ids || "none"
                 ]);
                 if (!isNoNBTInfo(root)) {
-                    const result = tag.validate(root, walker);
+                    const result = datum.tag.validate(root, walker);
                     helper.merge(result, { errors: false });
                     for (const e of result.errors) {
                         const error = e as UnknownsError;
@@ -119,10 +124,10 @@ export function validateParse(
     }
 }
 
-export const parser: Parser = {
+export const nbtParser: Parser = {
     parse: (reader, info) => {
         const helper = new ReturnHelper(info);
-        const ctxdatafn = resolvePaths(paths, info.path || []);
+        const ctxdatafn = startPaths(paths, info.path || []);
         const data = ctxdatafn && ctxdatafn(info.context);
         return helper.return(validateParse(reader, info, data));
     }
