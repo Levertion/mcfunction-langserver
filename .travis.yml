@@ -9,7 +9,7 @@ node_js:
     # Possibly irrelevant as of ~1.27
     - "7"
 before_install:
-    - npm install -g npm@5
+    - npm install -g npm@6
 install:
     - npm ci
 script:
