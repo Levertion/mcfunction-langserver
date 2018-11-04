@@ -6121,8 +6121,7 @@ function buildSignatureHelpForChildren(node, path, commands, depth) {
       const child = node.children[childName];
       const childPath = [...path, childName];
       const childNode = misc_functions_1.getNextNode(child, childPath, commands);
-      const parameterInfo = buildParameterInfoForNode(childNode.node.type === "root" // Handle automatic root redirect
-      ? child : childNode.node, childName);
+      const parameterInfo = buildParameterInfoForNode(child, childName);
 
       if (depth > 0) {
         const next = buildSignatureHelpForChildren(childNode.node, childNode.path, commands, node.executable ? depth - 1 : 0);
