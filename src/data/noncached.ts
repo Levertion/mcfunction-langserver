@@ -1,10 +1,16 @@
+import { nbtDocs, NBTNode, ValueList } from "mc-nbt-paths";
 import { SynchronousPromise } from "synchronous-promise";
 import {
     getLanguageService,
     SchemaRequestService
 } from "vscode-json-languageservice";
-import { NonCacheable } from "./types";
+import { NBTDocs, NonCacheable } from "./types";
 
+export function loadNBTDocs(): NBTDocs {
+    const nbtData = new Map<string, NBTNode | ValueList>();
+    Object.keys(nbtDocs).forEach(k => nbtData.set(k, nbtDocs[k]));
+    return nbtData;
+}
 const textComponentSchema =
     "https://raw.githubusercontent.com/Levertion/minecraft-json-schema/master/java/shared/text_component.json";
 
@@ -39,6 +45,7 @@ export async function loadNonCached(): Promise<NonCacheable> {
     });
 
     return {
-        jsonService
+        jsonService,
+        nbt_docs: loadNBTDocs()
     };
 }

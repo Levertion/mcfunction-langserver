@@ -42,6 +42,10 @@ describe("item parser (no tags)", () => {
                     {
                         start: 0,
                         text: "test:item_one"
+                    },
+                    {
+                        start: 13,
+                        text: "{"
                     }
                 ]
             });
@@ -85,6 +89,10 @@ describe("item parser (no tags)", () => {
                     {
                         start: 0,
                         text: "test:item_four_one"
+                    },
+                    {
+                        start: 14,
+                        text: "{"
                     }
                 ]
             });
@@ -100,16 +108,26 @@ describe("item parser (no tags)", () => {
                         }
                     }
                 ],
-                succeeds: true
+                succeeds: true,
+                suggestions: [
+                    {
+                        start: 13,
+                        text: "{"
+                    }
+                ]
             });
         });
-        it("should succeed with an item with the 'miencraft' namespace", () => {
+        it("should succeed with an item with the 'minecraft' namespace", () => {
             tester("minecraft:coal", {
                 succeeds: true,
                 suggestions: [
                     {
                         start: 0,
                         text: "minecraft:coal"
+                    },
+                    {
+                        start: 14,
+                        text: "{"
                     }
                 ]
             });
@@ -130,6 +148,10 @@ describe("item predicate parser", () => {
                     {
                         start: 0,
                         text: "test:item_one"
+                    },
+                    {
+                        start: 13,
+                        text: "{"
                     }
                 ]
             });
@@ -141,6 +163,10 @@ describe("item predicate parser", () => {
                     {
                         start: 1,
                         text: "test:item_tag_one"
+                    },
+                    {
+                        start: 18,
+                        text: "{"
                     }
                 ]
             });
@@ -156,6 +182,10 @@ describe("item predicate parser", () => {
                     {
                         start: 1,
                         text: "test:item_tag_two_one"
+                    },
+                    {
+                        start: 18,
+                        text: "{"
                     }
                 ]
             });
@@ -171,7 +201,13 @@ describe("item predicate parser", () => {
                         }
                     }
                 ],
-                succeeds: true
+                succeeds: true,
+                suggestions: [
+                    {
+                        start: 13,
+                        text: "{"
+                    }
+                ]
             });
         });
     });

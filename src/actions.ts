@@ -207,12 +207,7 @@ function buildSignatureHelpForChildren(
             const child = node.children[childName];
             const childPath = [...path, childName];
             const childNode = getNextNode(child, childPath, commands);
-            const parameterInfo = buildParameterInfoForNode(
-                (childNode.node as CommandTree).type === "root" // Handle automatic root redirect
-                    ? child
-                    : (childNode.node as CommandNode),
-                childName
-            );
+            const parameterInfo = buildParameterInfoForNode(child, childName);
             if (depth > 0) {
                 const next = buildSignatureHelpForChildren(
                     childNode.node,

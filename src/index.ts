@@ -109,7 +109,7 @@ connection.onDidChangeConfiguration(async params => {
             reparseall();
         }
         const getDataResult = await manager.loadGlobalData();
-        if (getDataResult === true) {
+        if (typeof getDataResult === "boolean") {
             started = true;
             reparseall();
         } else if (!cacheread) {

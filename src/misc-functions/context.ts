@@ -17,7 +17,7 @@ export function resolvePaths<T>(
     return undefined;
 }
 
-function stringArrayEqual(arr1: string[], arr2: string[]): boolean {
+export function stringArrayEqual(arr1: string[], arr2: string[]): boolean {
     return arr1.length === arr2.length && arr1.every((v, i) => v === arr2[i]);
 }
 

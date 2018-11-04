@@ -7,7 +7,15 @@
     This notification should make the client send the server a shutdown and exit
     request.
 
-## To be implemented protocol commands
+### Custom protocol commands
 
 -   `mcfunction/shutdown` (c <- s) (required): Client should call `shutdown` and
-    `exit`. The argument is the error message to be shown.
+    `exit`. The single string argument is the error message to be shown.
+
+## Highlighting
+
+Work out how the API for highlighting should look.
+
+This has been postponed until
+[microsoft/language-server-protocol#18](https://github.com/microsoft/language-server-protocol/issues/18)
+is resolved

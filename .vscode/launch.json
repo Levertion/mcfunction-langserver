@@ -12,6 +12,7 @@
             "args": ["--opts", "${workspaceFolder}/mocha.opts"],
             "internalConsoleOptions": "openOnSessionStart",
             "cwd": "${workspaceFolder}"
+            // "stopOnEntry": true
         }
     ]
 }

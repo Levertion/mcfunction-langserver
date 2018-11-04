@@ -83,12 +83,13 @@ export type SuggestResult = Suggestion | string;
 export type ContextChange = Partial<CommandContext> | undefined;
 
 export interface CommandContext {
+    [key: string]: any;
+    entity?: string | string[];
     /**
      * Whether the executor is definitely a player.
      * (Currently unused)
      */
     isPlayer?: boolean;
-    [key: string]: any;
 }
 
 export interface Parser {
@@ -135,7 +136,9 @@ export type SubAction =
     | SubActionBase<"format", string>
     | SubActionBase<"source", string>
     | SubActionBase<"json", JSONDocInfo>;
-// | SubActionBase<"rename", RenameRequest>;
+//  | SubActionBase<"highlight", HighlightScope>;
+//  | SubActionBase<"rename", RenameRequest>;
+
 //#endregion
 export type Success = true;
 export const success: Success = true;
@@ -196,3 +199,12 @@ export interface ReturnSuccess<T, ErrorKind extends BCE = CE>
 // Helper types to lower the amount of repetition of the names
 export type BCE = BlankCommandError;
 export type CE = CommandError;
+
+//#region Misc types
+
+export interface LineRange {
+    end: number;
+    start: number;
+}
+
+//#endregion

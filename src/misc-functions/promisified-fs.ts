@@ -1,7 +1,5 @@
 import * as fs from "fs";
 import * as path from "path";
-import { shim } from "util.promisify";
-shim();
 import { promisify } from "util";
 import { ReturnedInfo } from "../types";
 import { createJSONFileError } from "./file-errors";

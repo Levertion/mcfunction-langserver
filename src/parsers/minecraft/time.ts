@@ -39,8 +39,6 @@ export const timeParser: Parser = {
         const suffixStart = reader.cursor;
         const suffix = reader.readOption(
             typed_keys(times),
-            false,
-            undefined,
             StringReader.charAllowedInUnquotedString
         );
         if (!helper.merge(suffix)) {

@@ -20,6 +20,7 @@ import {
     parseNamespaceOrTag
 } from "../../misc-functions/parsing/nmsp-tag";
 import { Parser, ParserInfo, ReturnedInfo, Suggestion } from "../../types";
+import { validateParse } from "./nbt/nbt";
 
 export const predicateParser: Parser = {
     parse: (reader, info) => parseBlockArgument(reader, info, true)
@@ -113,6 +114,7 @@ const exceptions = {
     )
 };
 
+// tslint:disable:cyclomatic-complexity
 export function parseBlockArgument(
     reader: StringReader,
     info: ParserInfo,
@@ -149,6 +151,17 @@ export function parseBlockArgument(
             if (!helper.merge(propsResult)) {
                 return helper.fail();
             }
+            if (reader.peek() === "{") {
+                const nbt = validateParse(reader, info, {
+                    ids: (parsedResult.resolved || []).map(stringifyNamespace),
+                    type: "block"
+                });
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
+                }
+            } else {
+                helper.addSuggestion(reader.cursor, "{");
+            }
         } else {
             stringifiedName = stringifyNamespace(parsed.data.parsed);
             if (info.suggesting && !reader.canRead()) {
@@ -175,6 +188,17 @@ export function parseBlockArgument(
             if (!helper.merge(result)) {
                 return helper.fail();
             }
+            if (reader.peek() === "{") {
+                const nbt = validateParse(reader, info, {
+                    ids: props ? stringifiedName : "none",
+                    type: "block"
+                });
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
+                }
+            } else {
+                helper.addSuggestion(reader.cursor, "{");
+            }
         }
     } else {
         if (parsed.data) {
@@ -194,6 +218,17 @@ export function parseBlockArgument(
             );
             if (!helper.merge(propsResult)) {
                 return helper.fail();
+            }
+            if (reader.peek() === "{") {
+                const nbt = validateParse(reader, info, {
+                    ids: "none",
+                    type: "block"
+                });
+                if (!helper.merge(nbt)) {
+                    return helper.fail();
+                }
+            } else {
+                helper.addSuggestion(reader.cursor, "{");
             }
         } else {
             // Parsing of the namespace failed
@@ -223,12 +258,12 @@ function parseProperties(
             const propStart = reader.cursor;
             const propParse = reader.readOption(
                 props,
-                false,
+                undefined,
                 CompletionItemKind.Property
             );
             const propKey = propParse.data;
             const propSuccessful = helper.merge(propParse);
-            if (propKey === false) {
+            if (propKey === undefined) {
                 // Strange order allows better type checker reasoning
                 // Parsing failed
                 return helper.fail();
@@ -269,12 +304,12 @@ function parseProperties(
             const valueStart = reader.cursor;
             const valueParse = reader.readOption(
                 options[propKey] || [],
-                false,
+                undefined,
                 CompletionItemKind.EnumMember
             );
             const valueSuccessful = helper.merge(valueParse);
             const value = valueParse.data;
-            if (value === false) {
+            if (value === undefined) {
                 return helper.fail();
             }
             const error = errors.invalid.create(

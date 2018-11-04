@@ -1,5 +1,5 @@
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
-import { ReturnHelper } from "../misc-functions";
+import { getReturned, ReturnHelper } from "../misc-functions";
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import { CE, ReturnedInfo, Suggestion } from "../types";
 import { CommandErrorBuilder } from "./errors";
@@ -51,9 +51,9 @@ const EXCEPTIONS = {
     )
 };
 
-const QUOTE = '"';
+export const QUOTE = '"';
 const ESCAPE = "\\";
-
+export type QuotingKind = "both" | "yes" | RegExp;
 export class StringReader {
     public static charAllowedInUnquotedString = /^[0-9A-Za-z_\-\.+]$/;
     public static charAllowedNumber = /^[0-9\-\.]$/;
@@ -74,7 +74,10 @@ export class StringReader {
     public expect(str: string): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
         if (str.startsWith(this.getRemaining())) {
-            helper.addSuggestions({ text: str, start: this.cursor });
+            helper.addSuggestions({
+                start: this.cursor,
+                text: str
+            });
         }
         const sub = this.string.substr(this.cursor, str.length);
         if (sub !== str) {
@@ -90,6 +93,35 @@ export class StringReader {
         this.cursor += str.length;
         return helper.succeed();
     }
+
+    public expectOption(...options: string[]): ReturnedInfo<string> {
+        const helper = new ReturnHelper();
+        const start = this.cursor;
+        let out: string | undefined;
+        for (const s of options) {
+            if (
+                helper.merge(this.expect(s), {
+                    suggestions: true
+                })
+            ) {
+                if (!out || out.length < s.length) {
+                    out = s;
+                }
+                this.cursor = start;
+            }
+        }
+        if (!out) {
+            return helper.fail(
+                EXCEPTIONS.EXPECTED_STRING_FROM.create(
+                    start,
+                    start + Math.max(...options.map(v => v.length))
+                )
+            );
+        }
+        this.cursor += out.length;
+        return helper.succeed(out);
+    }
+
     public getRead(): string {
         return this.string.substring(0, this.cursor);
     }
@@ -115,11 +147,10 @@ export class StringReader {
         const helper = new ReturnHelper();
         const start = this.cursor;
         const value = this.readOption<keyof typeof StringReader["bools"]>(
-            typed_keys(StringReader.bools),
-            false
+            typed_keys(StringReader.bools)
         );
         if (!helper.merge(value)) {
-            if (value.data !== false) {
+            if (value.data !== undefined) {
                 return helper.fail(
                     EXCEPTIONS.INVALID_BOOL.create(
                         start,
@@ -149,7 +180,6 @@ export class StringReader {
         }
 
         // The Java readInt throws upon multiple `.`s, but Javascript's doesn't
-
         if ((readToTest.match(/\./g) || []).length > 1) {
             return helper.fail(
                 EXCEPTIONS.INVALID_FLOAT.create(
@@ -202,73 +232,47 @@ export class StringReader {
     }
     /**
      * Expect a string from a selection
+     * @param quoteKind how should the string be handled.
+     * - `both`: StringReader::readString()
+     * - `yes`: StringReader::readQuotedString()
+     * - `no`: StringReader::readUnquotedString()
      */
     public readOption<T extends string>(
         options: T[],
-        addError: boolean = true,
-        completion?: CompletionItemKind,
-        quoted: "both" | RegExp | "yes" = "both"
-    ): ReturnedInfo<T, CE, string | false> {
+        quoteKind: QuotingKind = "both",
+        completion?: CompletionItemKind
+    ): ReturnedInfo<T, CE, string | undefined> {
         const start = this.cursor;
         const helper = new ReturnHelper();
-        const isquoted =
-            this.peek() === QUOTE && (quoted === "yes" || quoted === "both");
-        let resultaux: ReturnedInfo<string>;
-        switch (quoted) {
-            case "both":
-                resultaux = this.readString();
-                break;
-            case "yes":
-                resultaux = this.readQuotedString();
-                break;
-            default:
-                resultaux = new ReturnHelper().succeed(
-                    this.readWhileRegexp(quoted)
-                );
-        }
-        const result = resultaux;
-        if (!helper.merge(result, false)) {
-            if (isquoted && !this.canRead()) {
-                const remaining = this.string.substring(start + 1);
-                // Note that if there are quotes and backslashes, this will fail
+        const result = this.readOptionInner(quoteKind);
+        // Reading failed, which must be due to an invalid quoted string
+        if (!helper.merge(result, { suggestions: false })) {
+            if (result.data && !this.canRead()) {
+                const bestEffort = result.data;
                 helper.addSuggestions(
                     ...options
-                        .filter(v => v.startsWith(remaining))
-                        .map<Suggestion>(v => ({
-                            kind: completion,
-                            start,
-                            text: `${QUOTE}${v}${QUOTE}`
-                        }))
+                        .filter(option => option.startsWith(bestEffort))
+                        .map<Suggestion>(v =>
+                            completionForString(v, start, quoteKind, completion)
+                        )
                 );
             }
-            return helper.failWithData(false as any);
+            return helper.fail();
         }
-        let valid: T | undefined;
-        for (const option of options) {
-            if (option === result.data) {
-                valid = option;
-            }
-        }
+        const valid = options.some(opt => opt === result.data);
         if (!this.canRead()) {
             helper.addSuggestions(
                 ...options
-                    .filter(v => v.startsWith(result.data))
-                    .map<Suggestion>(v => ({
-                        kind: completion,
-                        start,
-                        text:
-                            isquoted || v.includes('"') || v.includes("\\")
-                                ? QUOTE +
-                                  v.replace("\\", "\\\\").replace('"', '\\"') +
-                                  QUOTE
-                                : v
-                    }))
+                    .filter(opt => opt.startsWith(result.data))
+                    .map<Suggestion>(v =>
+                        completionForString(v, start, quoteKind, completion)
+                    )
             );
         }
         if (valid) {
-            return helper.succeed(valid);
+            return helper.succeed(result.data as T);
         } else {
-            if (addError) {
+            /* if (addError) {
                 helper.addErrors(
                     EXCEPTIONS.EXPECTED_STRING_FROM.create(
                         start,
@@ -277,14 +281,14 @@ export class StringReader {
                         result.data
                     )
                 );
-            }
+            } */
             return helper.failWithData(result.data);
         }
     }
     /**
      * Read from the string, returning a string, which, in the original had been surrounded by quotes
      */
-    public readQuotedString(): ReturnedInfo<string> {
+    public readQuotedString(): ReturnedInfo<string, CE, string | undefined> {
         const helper = new ReturnHelper();
         const start = this.cursor;
         if (!this.canRead()) {
@@ -302,43 +306,49 @@ export class StringReader {
         let escaped = false;
         while (this.canRead()) {
             this.skip();
-            const c: string = this.peek();
+            const char: string = this.peek();
             if (escaped) {
-                if (c === QUOTE || c === ESCAPE) {
-                    result += c;
+                if (char === QUOTE || char === ESCAPE) {
+                    result += char;
                     escaped = false;
                 } else {
+                    this.skip();
                     return helper.fail(
                         EXCEPTIONS.INVALID_ESCAPE.create(
-                            this.cursor - 1,
-                            this.cursor + 1,
-                            c
+                            this.cursor - 2,
+                            this.cursor,
+                            char
                         )
                     ); // Includes backslash
                 }
-            } else if (c === ESCAPE) {
+            } else if (char === ESCAPE) {
                 escaped = true;
-            } else if (c === QUOTE) {
+            } else if (char === QUOTE) {
                 this.skip();
                 return helper.succeed(result);
             } else {
-                result += c;
+                result += char;
             }
         }
-        helper.addSuggestion(this.cursor, QUOTE); // Always cannot read at this point
-        return helper.fail(
-            EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(start, this.string.length)
-        );
+        return helper
+            .addSuggestion(this.cursor, QUOTE) // Always cannot read at this point
+            .addErrors(
+                EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(
+                    start,
+                    this.string.length
+                )
+            )
+            .failWithData(result);
     }
     /**
      * Read a string from the string. If it surrounded by quotes, the quotes are ignored.
      * The cursor ends on the last character in the string.
      */
-    public readString(): ReturnedInfo<string> {
+    public readString(): ReturnedInfo<string, CE, string | undefined> {
+        const helper = new ReturnHelper();
         if (this.canRead() && this.peek() === QUOTE) {
-            return this.readQuotedString();
+            return helper.return(this.readQuotedString());
         } else {
-            const helper = new ReturnHelper();
             if (!this.canRead()) {
                 helper.addSuggestions({
                     start: this.cursor,
@@ -396,4 +406,41 @@ export class StringReader {
     public skipWhitespace(): void {
         this.readWhileRegexp(/\s/); // Whitespace
     }
+    private readOptionInner(
+        kind: QuotingKind
+    ): ReturnedInfo<string, CE, string | undefined> {
+        // tslint:disable:helper-return
+        switch (kind) {
+            case "both":
+                return this.readString();
+            case "yes":
+                return this.readQuotedString();
+            default:
+                return getReturned(this.readWhileRegexp(kind));
+        }
+        // tslint:enable:helper-return
+    }
+}
+
+export function completionForString(
+    value: string,
+    start: number,
+    quoting: QuotingKind,
+    kind?: CompletionItemKind
+): Suggestion {
+    return { kind, start, text: quoteIfNeeded(value, quoting) };
+}
+
+export function quoteIfNeeded(
+    value: string,
+    quoting: QuotingKind = "both"
+): string {
+    return quoting !== "no" &&
+        (quoting === "yes" || value.includes('"') || value.includes("\\"))
+        ? QUOTE + escapeQuotes(value) + QUOTE
+        : value;
+}
+
+function escapeQuotes(value: string): string {
+    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }

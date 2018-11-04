@@ -60,10 +60,6 @@ describe("Coordinate tests", () => {
                         {
                             start: 3,
                             text: "~"
-                        },
-                        {
-                            start: 2,
-                            text: " "
                         }
                     ]
                 });

@@ -10,12 +10,15 @@ import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
+import { parser as NBTPathParser } from "./minecraft/nbt-path";
+import { nbtParser } from "./minecraft/nbt/nbt";
 import { functionParser, resourceParser } from "./minecraft/resources";
 import {
     criteriaParser,
     objectiveParser,
     teamParser
 } from "./minecraft/scoreboard";
+import { swizzleParer } from "./minecraft/swizzle";
 import { timeParser } from "./minecraft/time";
 
 /**
@@ -43,6 +46,12 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:item_stack": itemParsers.stack,
     "minecraft:message": messageParser,
     "minecraft:mob_effect": namespaceParsers.mobEffectParser,
+    "minecraft:nbt": nbtParser,
+    "minecraft:nbt-path": NBTPathParser,
+    "minecraft:nbt_compound_tag": nbtParser,
+    "minecraft:nbt_path": NBTPathParser,
+    // Duplication of nbt path is OK - nbt-path is 1.13 whereas nbt_path is 1.14
+    "minecraft:nbt_tag": nbtParser,
     "minecraft:objective": objectiveParser,
     "minecraft:objective_criteria": criteriaParser,
     "minecraft:operation": listParsers.operationParser,
@@ -50,6 +59,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:resource_location": resourceParser,
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
+    "minecraft:swizzle": swizzleParer,
     "minecraft:team": teamParser,
     "minecraft:time": timeParser,
     "minecraft:vec2": coordParsers.vec2,

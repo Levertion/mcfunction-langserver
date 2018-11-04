@@ -8,6 +8,7 @@ import {
     stringifyNamespace
 } from "../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
+import { validateParse } from "./nbt/nbt";
 
 const NOTAG = new CommandErrorBuilder(
     "argument.item.tag.disallowed",
@@ -75,6 +76,15 @@ export class ItemParser implements Parser {
                 }
                 items.push(name);
             }
+            if (reader.peek() === "{") {
+                const nbt = validateParse(reader, properties, {
+                    ids: items,
+                    type: "item"
+                });
+                helper.merge(nbt);
+            } else {
+                helper.addSuggestion(reader.cursor, "{");
+            }
         } else {
             if (parsed.data) {
                 helper.addErrors(
@@ -84,6 +94,15 @@ export class ItemParser implements Parser {
                         stringifyNamespace(parsed.data)
                     )
                 );
+                if (reader.peek() === "{") {
+                    const nbt = validateParse(reader, properties, {
+                        ids: "none",
+                        type: "item"
+                    });
+                    helper.merge(nbt);
+                } else {
+                    helper.addSuggestion(reader.cursor, "{");
+                }
             } else {
                 return helper.fail();
             }

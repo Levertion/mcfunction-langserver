@@ -29,13 +29,13 @@ export interface CoordRules {
 
 const fail = (
     reader: StringReader,
-    helper: ReturnHelper,
     count: number,
     hasWorld: boolean,
     hasLocal: boolean,
     start: number,
     i: number
 ) => {
+    const helper = new ReturnHelper();
     if (!hasWorld) {
         helper.addSuggestions({
             start: reader.cursor,
@@ -75,14 +75,8 @@ export class CoordParser implements Parser {
         const start = reader.cursor;
         for (let i = 0; i < this.rules.count; i++) {
             if (!reader.canRead()) {
-                return fail(
-                    reader,
-                    helper,
-                    this.rules.count,
-                    hasWorld,
-                    hasLocal,
-                    start,
-                    0
+                return helper.return(
+                    fail(reader, this.rules.count, hasWorld, hasLocal, start, 0)
                 );
             }
 
@@ -123,19 +117,29 @@ export class CoordParser implements Parser {
                     }
             }
 
-            if (
-                i < this.rules.count - 1 &&
-                (!reader.canRead() || !helper.merge(reader.expect(" ")))
-            ) {
-                return fail(
-                    reader,
-                    helper,
-                    this.rules.count,
-                    hasWorld,
-                    hasLocal,
-                    start,
-                    i
-                );
+            if (i < this.rules.count - 1) {
+                if (!reader.canRead()) {
+                    return helper.fail(
+                        INCOMPLETE.create(
+                            start,
+                            reader.cursor,
+                            (i + 1).toString(),
+                            this.rules.count.toString()
+                        )
+                    );
+                }
+                if (!helper.merge(reader.expect(" "), { suggestions: false })) {
+                    return helper.return(
+                        fail(
+                            reader,
+                            this.rules.count,
+                            hasWorld,
+                            hasLocal,
+                            start,
+                            i
+                        )
+                    );
+                }
             }
         }
         return helper.succeed();
@@ -146,8 +150,10 @@ export class CoordParser implements Parser {
         allowBlank: boolean = true
     ): ReturnedInfo<number> {
         if ((!reader.canRead() || reader.peek().match(/\s/)) && allowBlank) {
+            // tslint:disable-next-line:helper-return
             return new ReturnHelper().succeed(0);
         }
+        // tslint:disable-next-line:helper-return
         return this.rules.float ? reader.readFloat() : reader.readInt();
     }
 }

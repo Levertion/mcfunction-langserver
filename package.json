@@ -9,7 +9,7 @@
         "build": "parcel build src/index.ts --target=node --no-minify",
         "test": "mocha --opts ./mocha.opts",
         "check": "tsc -p tsconfig.json --noEmit",
-        "lint": "tslint --project .",
+        "lint": "ts-node node_modules/tslint/bin/tslint --project .",
         "prettier": "prettier **/*.{ts,json,yml}",
         "prettier:write": "npm run prettier -- --write",
         "contributors:add": "all-contributors add",
@@ -36,10 +36,12 @@
         "proseWrap": "always"
     },
     "dependencies": {
+        "js-combinatorics": "^0.5.3",
         "long": "^4.0.0",
+        "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git",
         "minecraft-json-schemas": "git+https://github.com/Levertion/minecraft-json-schemas.git",
         "node-interval-tree": "^1.3.3",
-        "request": "^2.83.0",
+        "request": "^2.88.0",
         "request-promise-native": "^1.0.5",
         "sprintf-js": "^1.1.1",
         "synchronous-promise": "^2.0.6",
@@ -50,6 +52,7 @@
         "vscode-uri": "^1.0.6"
     },
     "devDependencies": {
+        "@types/js-combinatorics": "^0.5.29",
         "@types/long": "4.0.0",
         "@types/mocha": "5.2.5",
         "@types/node": "8.10.36",

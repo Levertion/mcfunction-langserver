@@ -3,8 +3,6 @@ import * as fs from "fs";
 import * as path from "path";
 // tslint:disable-next-line:no-implicit-dependencies This is only for testing
 import * as rimraf from "rimraf";
-import { shim } from "util.promisify";
-shim();
 import { promisify } from "util";
 
 import * as cache from "../../data/cache";
@@ -28,7 +26,7 @@ const testData: Cacheable = {
     items: ["minecraft:not_chocolate"],
     meta_info: { version: "1.13" },
     resources: {}
-};
+} as any;
 describe("Cache Management", () => {
     after(async () => rimrafAsync(cacheFolder));
     describe("cacheData", () => {
