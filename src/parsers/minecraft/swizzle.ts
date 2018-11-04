@@ -15,7 +15,7 @@ const DUPLICATE = new CommandErrorBuilder(
     "Duplicate character '%s'"
 );
 
-export const parser: Parser = {
+export const swizzleParer: Parser = {
     parse: (reader: StringReader) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;

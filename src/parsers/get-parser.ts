@@ -18,6 +18,7 @@ import {
     objectiveParser,
     teamParser
 } from "./minecraft/scoreboard";
+import { swizzleParer } from "./minecraft/swizzle";
 import { timeParser } from "./minecraft/time";
 
 /**
@@ -58,6 +59,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:resource_location": resourceParser,
     "minecraft:rotation": coordParsers.rotation,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
+    "minecraft:swizzle": swizzleParer,
     "minecraft:team": teamParser,
     "minecraft:time": timeParser,
     "minecraft:vec2": coordParsers.vec2,

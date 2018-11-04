@@ -33,17 +33,25 @@ const mkdtmpAsync = promisify(fs.mkdtemp);
  */
 export async function collectGlobalData(
     currentversion: string = ""
-): Promise<ReturnSuccess<Cacheable>> {
+): Promise<ReturnSuccess<Cacheable> | undefined> {
     if (mcLangSettings.data.enabled) {
         const javaPath = await checkJavaPath();
+        mcLangLog(`Using java at path ${javaPath}`);
         const dir = await mkdtmpAsync(path.join(tmpdir(), "mcfunction"));
         const jarInfo = await getPathToJar(dir, currentversion);
-        const datadir = await runGenerator(javaPath, dir, jarInfo.jarPath);
-        mcLangLog("Generator Finished");
-        const helper = new ReturnHelper();
-        const data = await collectData(jarInfo.version, datadir);
-        await cacheData(data.data);
-        return helper.mergeChain(data).succeed(data.data);
+        if (jarInfo) {
+            mcLangLog(`Running generator`);
+            const datadir = await runGenerator(javaPath, dir, jarInfo.jarPath);
+            mcLangLog("Generator Finished, collecting data");
+            const helper = new ReturnHelper();
+            const data = await collectData(jarInfo.version, datadir);
+            mcLangLog("Data collected, caching data");
+            await cacheData(data.data);
+            mcLangLog("Caching complete");
+            return helper.mergeChain(data).succeed(data.data);
+        } else {
+            return undefined;
+        }
     } else {
         throw new Error(
             "Data Obtainer disabled in settings. To obtain data automatically, please enable it."

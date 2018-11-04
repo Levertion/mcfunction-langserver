@@ -7,7 +7,7 @@ import requestPromise from "request-promise-native";
 export async function getPathToJar(
     tempdir: string,
     currentversion: string
-): Promise<JarInfo> {
+): Promise<JarInfo | undefined> {
     if (!!mcLangSettings.data.customJar) {
         return { jarPath: mcLangSettings.data.customJar, version: "" };
     } else {
@@ -18,7 +18,7 @@ export async function getPathToJar(
 export async function downloadJar(
     currentversion: string,
     tmpDirName: string
-): Promise<JarInfo> {
+): Promise<JarInfo | undefined> {
     const versionInfo = await getLatestVersionInfo();
     if (versionInfo.id !== currentversion) {
         const singleVersion: SingleVersionInformation = await requestPromise(
@@ -38,9 +38,7 @@ export async function downloadJar(
         await Promise.resolve(requestPromised);
         return { jarPath, version: versionInfo.id };
     } else {
-        throw new Error(
-            "Downloading new global data not needed as current version is the same as the latest version."
-        );
+        return undefined;
     }
 }
 

@@ -1113,7 +1113,7 @@ if (!process.env.MCFUNCTION_CACHE_DIR) {
   throw new Error("Environment variable MCFUNCTION_CACHE_DIR must be set");
 }
 
-const cacheFolder = process.env.MCFUNCTION_CACHE_DIR;
+exports.cacheFolder = process.env.MCFUNCTION_CACHE_DIR;
 const cacheFileNames = {
   blocks: "blocks.json",
   commands: "commands.json",
@@ -1126,7 +1126,7 @@ async function readCache() {
   const data = {};
   const keys = typed_keys_1.typed_keys(cacheFileNames);
   await Promise.all(keys.map(async key => {
-    data[key] = await promisified_fs_1.readJSONRaw(path.join(cacheFolder, cacheFileNames[key]));
+    data[key] = await promisified_fs_1.readJSONRaw(path.join(exports.cacheFolder, cacheFileNames[key]));
   }));
   return data;
 }
@@ -1135,26 +1135,26 @@ exports.readCache = readCache;
 
 async function cacheData(data) {
   try {
-    await promisified_fs_1.mkdirAsync(cacheFolder, "777");
+    await promisified_fs_1.mkdirAsync(exports.cacheFolder, "777");
   } catch (_) {// Don't use the error, which is normally thrown if the folder doesn't exist
   }
 
   const keys = typed_keys_1.typed_keys(cacheFileNames);
-  await Promise.all(keys.map(async key => promisified_fs_1.writeJSON(path.join(cacheFolder, cacheFileNames[key]), data[key])));
+  await Promise.all(keys.map(async key => promisified_fs_1.writeJSON(path.join(exports.cacheFolder, cacheFileNames[key]), data[key])));
   return;
 }
 
 exports.cacheData = cacheData;
 
 async function storeSecurity(security) {
-  await promisified_fs_1.saveFileAsync(path.join(cacheFolder, "security.json"), JSON.stringify(security));
+  await promisified_fs_1.saveFileAsync(path.join(exports.cacheFolder, "security.json"), JSON.stringify(security));
 }
 
 exports.storeSecurity = storeSecurity;
 
 async function readSecurity() {
   try {
-    return await promisified_fs_1.readJSONRaw(path.join(cacheFolder, "security.json"));
+    return await promisified_fs_1.readJSONRaw(path.join(exports.cacheFolder, "security.json"));
   } catch (error) {
     return {};
   }
@@ -5537,7 +5537,47 @@ exports.criteriaParser = {
 function mapFunction(value) {
   return misc_functions_1.stringifyNamespace(misc_functions_1.convertToNamespace(value)).replace(":", ".");
 }
-},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../data/lists/criteria":"heCz","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"Av8O":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../data/lists/criteria":"heCz","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"0R/b":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const js_combinatorics_1 = require("js-combinatorics");
+
+const errors_1 = require("../../brigadier/errors");
+
+const misc_functions_1 = require("../../misc-functions");
+
+const values = ["x", "y", "z"];
+const INVALID_CHAR = new errors_1.CommandErrorBuilder("argument.swizzle.invalid", "Invalid character '%s'");
+const DUPLICATE = new errors_1.CommandErrorBuilder("argument.swizzle.duplicate", "Duplicate character '%s'");
+exports.swizzleParer = {
+  parse: reader => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
+    const arr = reader.readUnquotedString().split("");
+
+    for (const s of arr) {
+      if (values.indexOf(s) === -1) {
+        return helper.fail(INVALID_CHAR.create(start, reader.cursor, s));
+      }
+    }
+
+    for (const v of values) {
+      if (arr.indexOf(v) !== arr.lastIndexOf(v)) {
+        return helper.fail(DUPLICATE.create(start, reader.cursor, v));
+      }
+    }
+
+    const text = reader.string.substring(start, reader.cursor);
+    const suggestions = js_combinatorics_1.power(values.filter(v => text.indexOf(v) === -1)).map(v => text + v.join("")).filter(v => v !== "");
+    suggestions.forEach(v => helper.addSuggestion(0, v));
+    return helper.succeed();
+  }
+};
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"Av8O":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5633,6 +5673,8 @@ const resources_1 = require("./minecraft/resources");
 
 const scoreboard_1 = require("./minecraft/scoreboard");
 
+const swizzle_1 = require("./minecraft/swizzle");
+
 const time_1 = require("./minecraft/time");
 /**
  * Incomplete:
@@ -5674,6 +5716,7 @@ const implementedParsers = {
   "minecraft:resource_location": resources_1.resourceParser,
   "minecraft:rotation": coordParsers.rotation,
   "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
+  "minecraft:swizzle": swizzle_1.swizzleParer,
   "minecraft:team": scoreboard_1.teamParser,
   "minecraft:time": time_1.timeParser,
   "minecraft:vec2": coordParsers.vec2,
@@ -5717,7 +5760,7 @@ function getArgParser(id) {
 Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
   return undefined;
 }
-},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/nbt-path":"wccY","./minecraft/nbt/nbt":"JpDU","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
+},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/nbt-path":"wccY","./minecraft/nbt/nbt":"JpDU","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/swizzle":"0R/b","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -6806,7 +6849,7 @@ async function downloadJar(currentversion, tmpDirName) {
       version: versionInfo.id
     };
   } else {
-    throw new Error("Downloading new global data not needed as current version is the same as the latest version.");
+    return undefined;
   }
 }
 
@@ -6846,6 +6889,8 @@ const path = tslib_1.__importStar(require("path"));
 
 const util_1 = require("util");
 
+const cache_1 = require("../cache");
+
 const execFileAsync = util_1.promisify(child_process_1.execFile);
 /**
  * Get the command used to execute a java version
@@ -6868,12 +6913,15 @@ exports.checkJavaPath = checkJavaPath;
 
 async function runGenerator(javapath, tempdir, jarpath) {
   const resultFolder = path.join(tempdir, "generated");
-  await execFileAsync(javapath, ["-cp", jarpath, "net.minecraft.data.Main", "--output", resultFolder, "--all"]);
+  await execFileAsync(javapath, ["-cp", jarpath, "net.minecraft.data.Main", "--output", resultFolder, "--all"], {
+    cwd: path.join(cache_1.cacheFolder, "..") // For log output to go in the extension folder
+
+  });
   return resultFolder;
 }
 
 exports.runGenerator = runGenerator;
-},{}],"Th+u":[function(require,module,exports) {
+},{"../cache":"tgUj"}],"Th+u":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -6923,14 +6971,23 @@ const mkdtmpAsync = util_1.promisify(fs.mkdtemp);
 async function collectGlobalData(currentversion = "") {
   if (mcLangSettings.data.enabled) {
     const javaPath = await extract_data_1.checkJavaPath();
+    mcLangLog(`Using java at path ${javaPath}`);
     const dir = await mkdtmpAsync(path.join(os_1.tmpdir(), "mcfunction"));
     const jarInfo = await download_1.getPathToJar(dir, currentversion);
-    const datadir = await extract_data_1.runGenerator(javaPath, dir, jarInfo.jarPath);
-    mcLangLog("Generator Finished");
-    const helper = new misc_functions_1.ReturnHelper();
-    const data = await collect_data_1.collectData(jarInfo.version, datadir);
-    await cache_1.cacheData(data.data);
-    return helper.mergeChain(data).succeed(data.data);
+
+    if (jarInfo) {
+      mcLangLog(`Running generator`);
+      const datadir = await extract_data_1.runGenerator(javaPath, dir, jarInfo.jarPath);
+      mcLangLog("Generator Finished, collecting data");
+      const helper = new misc_functions_1.ReturnHelper();
+      const data = await collect_data_1.collectData(jarInfo.version, datadir);
+      mcLangLog("Data collected, caching data");
+      await cache_1.cacheData(data.data);
+      mcLangLog("Caching complete");
+      return helper.mergeChain(data).succeed(data.data);
+    } else {
+      return undefined;
+    }
   } else {
     throw new Error("Data Obtainer disabled in settings. To obtain data automatically, please enable it.");
   }
@@ -6995,6 +7052,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 const vscode_languageserver_1 = require("vscode-languageserver");
+
+const assert_1 = require("assert");
 
 const path_1 = require("path");
 
@@ -7169,15 +7228,19 @@ class DataManager {
     try {
       const helper = new misc_functions_1.ReturnHelper();
       const data = await extractor_1.collectGlobalData(version);
-      helper.merge(data);
 
-      if (this.globalDataInternal) {
-        this.globalDataInternal = Object.assign({}, this.globalDataInternal, data.data);
-      } else {
-        this.globalDataInternal = Object.assign({}, (await noncached_1.loadNonCached()), data.data);
+      if (data) {
+        helper.merge(data);
+
+        if (this.globalDataInternal) {
+          this.globalDataInternal = Object.assign({}, this.globalDataInternal, data.data);
+        } else {
+          this.globalDataInternal = Object.assign({}, (await noncached_1.loadNonCached()), data.data);
+        }
       }
 
-      return true;
+      assert_1.ok(this.globalDataInternal);
+      return false;
     } catch (error) {
       return `Error loading global data: ${error.stack || error.toString()}`;
     }
@@ -7572,7 +7635,7 @@ connection.onDidChangeConfiguration(async params => {
 
     const getDataResult = await manager.loadGlobalData();
 
-    if (getDataResult === true) {
+    if (typeof getDataResult === "boolean") {
       started = true;
       reparseall();
     } else if (!cacheread) {

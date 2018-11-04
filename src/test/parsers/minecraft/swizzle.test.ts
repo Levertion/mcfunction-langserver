@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { StringReader } from "../../../brigadier/string-reader";
-import { parser } from "../../../parsers/minecraft/swizzle";
+import { swizzleParer } from "../../../parsers/minecraft/swizzle";
 import { ParserInfo, Suggestion } from "../../../types";
 
 const prop: ParserInfo = {} as ParserInfo;
@@ -10,7 +10,7 @@ describe("Swizzle", () => {
         ["z", "yx", "xyz"].forEach(v =>
             it(`should not fail when parsing ${v}`, () => {
                 const reader = new StringReader(v);
-                const out = parser.parse(reader, prop);
+                const out = swizzleParer.parse(reader, prop);
                 assert.ok(out.kind);
             })
         );
@@ -19,7 +19,7 @@ describe("Swizzle", () => {
                 v[0]
             }`, () => {
                 const reader = new StringReader(v[0]);
-                const out = parser.parse(reader, prop);
+                const out = swizzleParer.parse(reader, prop);
                 if (out.kind) {
                     assert.fail("Did not throw an error");
                 } else {
@@ -41,7 +41,7 @@ describe("Swizzle", () => {
                 v[0]
             }`, () => {
                 const reader = new StringReader(v[0]);
-                const out = parser.parse(reader, prop);
+                const out = swizzleParer.parse(reader, prop);
                 if (out.kind) {
                     assert.fail("Did not throw an error");
                 } else {
@@ -60,7 +60,7 @@ describe("Swizzle", () => {
             ["xyz", ["xyz"]]
         ].forEach(v =>
             it(`should return correct suggestion for ${v[0]}`, () => {
-                const arg = parser.parse(
+                const arg = swizzleParer.parse(
                     new StringReader(v[0] as string),
                     prop
                 );

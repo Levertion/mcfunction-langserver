@@ -1,6 +1,7 @@
 import { execFile } from "child_process";
 import * as path from "path";
 import { promisify } from "util";
+import { cacheFolder } from "../cache";
 const execFileAsync = promisify(execFile);
 
 /**
@@ -24,13 +25,19 @@ export async function runGenerator(
     jarpath: string
 ): Promise<string> {
     const resultFolder = path.join(tempdir, "generated");
-    await execFileAsync(javapath, [
-        "-cp",
-        jarpath,
-        "net.minecraft.data.Main",
-        "--output",
-        resultFolder,
-        "--all"
-    ]);
+    await execFileAsync(
+        javapath,
+        [
+            "-cp",
+            jarpath,
+            "net.minecraft.data.Main",
+            "--output",
+            resultFolder,
+            "--all"
+        ],
+        {
+            cwd: path.join(cacheFolder, "..") // For log output to go in the extension folder
+        }
+    );
     return resultFolder;
 }

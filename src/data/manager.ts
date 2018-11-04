@@ -3,6 +3,7 @@ import {
     FileChangeType
 } from "vscode-languageserver";
 
+import { ok } from "assert";
 import { extname, join } from "path";
 import { MCMETAFILE } from "../consts";
 import {
@@ -208,7 +209,7 @@ export class DataManager {
         return helper.succeed();
     }
 
-    public async loadGlobalData(): Promise<true | string> {
+    public async loadGlobalData(): Promise<boolean | string> {
         let version: string | undefined;
         if (!!this.globalData.meta_info) {
             version = this.globalData.meta_info.version;
@@ -216,19 +217,22 @@ export class DataManager {
         try {
             const helper = new ReturnHelper();
             const data = await collectGlobalData(version);
-            helper.merge(data);
-            if (this.globalDataInternal) {
-                this.globalDataInternal = {
-                    ...this.globalDataInternal,
-                    ...data.data
-                };
-            } else {
-                this.globalDataInternal = {
-                    ...(await loadNonCached()),
-                    ...data.data
-                };
+            if (data) {
+                helper.merge(data);
+                if (this.globalDataInternal) {
+                    this.globalDataInternal = {
+                        ...this.globalDataInternal,
+                        ...data.data
+                    };
+                } else {
+                    this.globalDataInternal = {
+                        ...(await loadNonCached()),
+                        ...data.data
+                    };
+                }
             }
-            return true;
+            ok(this.globalDataInternal);
+            return false;
         } catch (error) {
             return `Error loading global data: ${error.stack ||
                 error.toString()}`;
