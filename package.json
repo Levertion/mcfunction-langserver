@@ -52,7 +52,7 @@
         "vscode-uri": "^1.0.6"
     },
     "devDependencies": {
-        "@types/js-combinatorics": "^0.5.29",
+        "@types/js-combinatorics": "0.5.29",
         "@types/long": "4.0.0",
         "@types/mocha": "5.2.5",
         "@types/node": "8.10.36",
