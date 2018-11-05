@@ -79,7 +79,7 @@ export function validateParse(
             };
             const pathFor = (v: string) => {
                 if (data.type) {
-                    return [...rootPath, data.type, v];
+                    return [...rootPath, v];
                 } else {
                     return rootPath;
                 }

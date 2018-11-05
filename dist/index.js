@@ -4182,6 +4182,12 @@ function validateParse(reader, info, data) {
   if (datum && ( // This is to appease the type checker
   helper.merge(parseResult) || datum.correctness > nbt_util_1.Correctness.NO)) {
     if (!!data) {
+      const rootPath = data.rootPath || [];
+
+      if (data.type) {
+        rootPath.push(data.type);
+      }
+
       const walker = new walker_1.NBTWalker(docs);
 
       const addUnknownError = (error, id) => {
@@ -4196,9 +4202,17 @@ function validateParse(reader, info, data) {
         }));
       };
 
+      const pathFor = v => {
+        if (data.type) {
+          return [...rootPath, v];
+        } else {
+          return rootPath;
+        }
+      };
+
       if (Array.isArray(data.ids)) {
         for (const id of data.ids) {
-          const root = walker.getInitialNode([data.type, id]);
+          const root = walker.getInitialNode(pathFor(id));
 
           if (!doc_walker_util_1.isNoNBTInfo(root)) {
             const result = datum.tag.validate(root, walker);
@@ -4220,7 +4234,7 @@ function validateParse(reader, info, data) {
           }
         }
       } else {
-        const root = walker.getInitialNode([data.type, data.ids || "none"]);
+        const root = walker.getInitialNode(pathFor(data.ids || "none"));
 
         if (!doc_walker_util_1.isNoNBTInfo(root)) {
           const result = datum.tag.validate(root, walker);
@@ -5054,7 +5068,11 @@ const errors_1 = require("../../brigadier/errors");
 
 const misc_functions_1 = require("../../misc-functions");
 
+const nbt_1 = require("./nbt/nbt");
+
 const doc_walker_util_1 = require("./nbt/util/doc-walker-util");
+
+const nbt_util_1 = require("./nbt/util/nbt-util");
 
 const walker_1 = require("./nbt/walker");
 
@@ -5068,14 +5086,15 @@ const exceptions = {
   UNEXPECTED_ARRAY: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array")
 };
 exports.parser = {
-  parse: (reader, prop) => {
+  parse: (reader, info) => {
     const helper = new misc_functions_1.ReturnHelper();
     const out = [];
-    const walker = new walker_1.NBTWalker(prop.data.globalData.nbt_docs);
+    const walker = new walker_1.NBTWalker(info.data.globalData.nbt_docs);
     let first = true;
-    let current = walker.getInitialNode([
+    const startPath = [
       /** Something based on the context data */
-    ]);
+    ];
+    let current = walker.getInitialNode(startPath);
 
     while (true) {
       // Whitespace
@@ -5083,12 +5102,25 @@ exports.parser = {
 
       if (reader.peek() === ARROPEN) {
         reader.skip();
-        const int = reader.readInt();
 
-        if (helper.merge(int)) {
-          out.push(int.data);
+        if (reader.peek() === nbt_util_1.COMPOUND_START) {
+          const val = nbt_1.validateParse(reader, info, {
+            rootPath: [...startPath, ...out.map(v => v.toString())]
+          });
+
+          if (helper.merge(val)) {
+            out.push(0);
+          } else {
+            return helper.fail();
+          }
         } else {
-          return helper.fail();
+          const int = reader.readInt();
+
+          if (helper.merge(int)) {
+            out.push(int.data);
+          } else {
+            return helper.fail();
+          }
         }
 
         if (!helper.merge(reader.expect(ARRCLOSE))) {
@@ -5108,8 +5140,8 @@ exports.parser = {
         continue;
       }
 
-      if (reader.peek() === DOT || first) {
-        if (reader.peek() === DOT) {
+      if (!first && reader.peek() === DOT || first) {
+        if (!first) {
           reader.skip();
         }
 
@@ -5145,7 +5177,7 @@ exports.parser = {
     return helper.succeed();
   }
 };
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/util/doc-walker-util":"km+2","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/nbt":"JpDU","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
