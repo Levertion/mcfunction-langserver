@@ -21,7 +21,8 @@ type CtxPathFunc = (context: CommandContext) => NBTContextData;
 
 export interface NBTContextData {
     ids?: string | string[];
-    type: "entity" | "item" | "block";
+    rootPath?: string[];
+    type?: "entity" | "item" | "block";
 }
 
 const paths: Array<ContextPath<CtxPathFunc>> = [
@@ -61,6 +62,10 @@ export function validateParse(
         (helper.merge(parseResult) || datum.correctness > Correctness.NO)
     ) {
         if (!!data) {
+            const rootPath = data.rootPath || [];
+            if (data.type) {
+                rootPath.push(data.type);
+            }
             const walker = new NBTWalker(docs);
             const addUnknownError = (error: UnknownsError, id?: string) => {
                 const { path, ...allowed } = error;
@@ -72,9 +77,16 @@ export function validateParse(
                         : error.text
                 });
             };
+            const pathFor = (v: string) => {
+                if (data.type) {
+                    return [...rootPath, data.type, v];
+                } else {
+                    return rootPath;
+                }
+            };
             if (Array.isArray(data.ids)) {
                 for (const id of data.ids) {
-                    const root = walker.getInitialNode([data.type, id]);
+                    const root = walker.getInitialNode(pathFor(id));
                     if (!isNoNBTInfo(root)) {
                         const result = datum.tag.validate(root, walker);
                         helper.merge(result, { errors: false });
@@ -100,10 +112,7 @@ export function validateParse(
                     }
                 }
             } else {
-                const root = walker.getInitialNode([
-                    data.type,
-                    data.ids || "none"
-                ]);
+                const root = walker.getInitialNode(pathFor(data.ids || "none"));
                 if (!isNoNBTInfo(root)) {
                     const result = datum.tag.validate(root, walker);
                     helper.merge(result, { errors: false });

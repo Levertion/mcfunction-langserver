@@ -3,11 +3,13 @@ import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { ReturnHelper } from "../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
+import { validateParse } from "./nbt/nbt";
 import {
     isCompoundInfo,
     isListInfo,
     NodeInfo
 } from "./nbt/util/doc-walker-util";
+import { COMPOUND_START } from "./nbt/util/nbt-util";
 import { NBTWalker } from "./nbt/walker";
 
 const DOT = ".";
@@ -36,25 +38,37 @@ const exceptions = {
 export const parser: Parser = {
     parse: (
         reader: StringReader,
-        prop: ParserInfo
+        info: ParserInfo
     ): ReturnedInfo<undefined> => {
         const helper = new ReturnHelper();
         const out: Array<string | number> = [];
-        const walker = new NBTWalker(prop.data.globalData.nbt_docs);
+        const walker = new NBTWalker(info.data.globalData.nbt_docs);
         let first = true;
-        let current: NodeInfo | undefined = walker.getInitialNode([
+        const startPath: string[] = [
             /** Something based on the context data */
-        ]);
+        ];
+        let current: NodeInfo | undefined = walker.getInitialNode(startPath);
         while (true) {
             // Whitespace
             const start = reader.cursor;
             if (reader.peek() === ARROPEN) {
                 reader.skip();
-                const int = reader.readInt();
-                if (helper.merge(int)) {
-                    out.push(int.data);
+                if (reader.peek() === COMPOUND_START) {
+                    const val = validateParse(reader, info, {
+                        rootPath: [...startPath, ...out.map(v => v.toString())]
+                    });
+                    if (helper.merge(val)) {
+                        out.push(0);
+                    } else {
+                        return helper.fail();
+                    }
                 } else {
-                    return helper.fail();
+                    const int = reader.readInt();
+                    if (helper.merge(int)) {
+                        out.push(int.data);
+                    } else {
+                        return helper.fail();
+                    }
                 }
                 if (!helper.merge(reader.expect(ARRCLOSE))) {
                     return helper.fail();
@@ -75,8 +89,8 @@ export const parser: Parser = {
                 first = false;
                 continue;
             }
-            if (reader.peek() === DOT || first) {
-                if (reader.peek() === DOT) {
+            if ((!first && reader.peek() === DOT) || first) {
+                if (!first) {
                     reader.skip();
                 }
                 const children =
