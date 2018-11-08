@@ -7,6 +7,7 @@ import {
     SLASHREPLACEREGEX,
     TAG_START
 } from "../consts";
+import { entities, fluids } from "../data/lists/statics";
 import {
     DataResource,
     GlobalData,
@@ -18,7 +19,8 @@ import {
 } from "../data/types";
 import { ReturnSuccess } from "../types";
 import { getMatching, getResourcesSplit } from "./group-resources";
-import { convertToNamespace } from "./namespace";
+import { convertToNamespace, stringifyNamespace } from "./namespace";
+import { stringArrayToNamespaces } from "./parsing/namespace";
 import { readJSON } from "./promisified-fs";
 import { ReturnHelper } from "./return-helper";
 import { typed_keys } from "./third_party/typed-keys";
@@ -88,6 +90,38 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 s => globalData.blocks.hasOwnProperty(s)
             ),
         path: ["tags", "blocks"]
+    },
+    entity_tags: {
+        extension: ".json",
+        mapFunction: async (v, packroot, globalData, packsInfo) =>
+            readTag(
+                v,
+                packroot,
+                "entity_tags",
+                getResourcesSplit("entity_tags", globalData, packsInfo),
+                s =>
+                    getMatching(
+                        stringArrayToNamespaces(entities),
+                        convertToNamespace(s)
+                    ).length > 0
+            ),
+        path: ["tags", "entity_types"]
+    },
+    fluid_tags: {
+        extension: ".json",
+        mapFunction: async (v, packroot, globalData, packsInfo) =>
+            readTag(
+                v,
+                packroot,
+                "fluid_tags",
+                getResourcesSplit("fluid_tags", globalData, packsInfo),
+                s =>
+                    getMatching(
+                        stringArrayToNamespaces(fluids),
+                        convertToNamespace(s)
+                    ).length > 0
+            ),
+        path: ["tags", "fluids"]
     },
     function_tags: {
         extension: ".json",
@@ -248,16 +282,15 @@ async function readTag(
                     const seen = new Set<string>();
                     const duplicates = new Set<string>();
                     const unknowns = new Set<string>();
-                    for (const value of tag.data.values) {
+                    for (const v of tag.data.values) {
+                        const valueNamespace = convertToNamespace(v);
+                        const value = stringifyNamespace(valueNamespace);
                         if (seen.has(value)) {
                             duplicates.add(value);
                         }
                         seen.add(value);
                         if (value.startsWith(TAG_START)) {
-                            const result = getMatching(
-                                options,
-                                convertToNamespace(value)
-                            );
+                            const result = getMatching(options, valueNamespace);
                             if (result.length === 0) {
                                 unknowns.add(value);
                             }
