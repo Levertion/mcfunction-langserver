@@ -133,6 +133,8 @@ export interface MinecraftResource extends NamespacedName {
 export interface Resources {
     advancements?: MinecraftResource[];
     block_tags?: MinecraftResource[];
+    entity_tags?: MinecraftResource[];
+    fluid_tags?: MinecraftResource[];
     function_tags?: MinecraftResource[];
     functions?: MinecraftResource[];
     item_tags?: MinecraftResource[];
