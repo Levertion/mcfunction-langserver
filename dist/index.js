@@ -4166,7 +4166,7 @@ const paths = [{
   path: ["data", "merge", "block"]
 }, {
   data: args => ({
-    ids: args.entity,
+    ids: args.otherEntity && args.otherEntity.ids || [],
     type: "entity"
   }),
   path: ["summon", "entity"] // TODO - handle nbt_tag in /data modify
@@ -5005,7 +5005,7 @@ class NamespaceListParser {
   constructor(options, errorBuilder, context) {
     this.options = options;
     this.error = errorBuilder;
-    this.context = context;
+    this.resultFunction = context;
   }
 
   parse(reader, info) {
@@ -5014,10 +5014,9 @@ class NamespaceListParser {
     const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces(this.options));
 
     if (helper.merge(result)) {
-      if (this.context) {
-        return helper.succeed({
-          [this.context]: result.data.values.map(misc_functions_1.stringifyNamespace)
-        });
+      if (this.resultFunction) {
+        this.resultFunction(info.context, result.data.values);
+        return helper.succeed();
       } else {
         return helper.succeed();
       }
@@ -5034,7 +5033,9 @@ class NamespaceListParser {
 
 exports.NamespaceListParser = NamespaceListParser;
 const summonError = new errors_1.CommandErrorBuilder("entity.notFound", "Unknown entity: %s");
-exports.summonParser = new NamespaceListParser(statics_1.entities, summonError, "entity");
+exports.summonParser = new NamespaceListParser(statics_1.entities, summonError, (context, ids) => context.otherEntity = {
+  ids: ids.map(misc_functions_1.stringifyNamespace)
+});
 const enchantmentError = new errors_1.CommandErrorBuilder("enchantment.unknown", "Unknown enchantment: %s");
 exports.enchantmentParser = new NamespaceListParser(statics_1.enchantments, enchantmentError);
 const mobEffectError = new errors_1.CommandErrorBuilder("effect.effectNotFound", "Unknown effect: %s");
@@ -5214,7 +5215,7 @@ exports.functionParser = {
   }
 };
 const idParser = {
-  parse: misc_functions_1.parseNamespace
+  parse: (reader, info) => misc_functions_1.prepareForParser(misc_functions_1.parseNamespace(reader), info)
 };
 const bossbarParser = {
   parse: (reader, info) => {
@@ -5236,7 +5237,8 @@ const bossbarParser = {
         }
       }
     } else {
-      return helper.return(misc_functions_1.parseNamespace(reader));
+      // tslint:disable-next-line:helper-return
+      return misc_functions_1.prepareForParser(helper.return(misc_functions_1.parseNamespace(reader)), info);
     }
   }
 };

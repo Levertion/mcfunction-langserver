@@ -39,7 +39,7 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
     },
     {
         data: args => ({
-            ids: args.entity,
+            ids: (args.otherEntity && args.otherEntity.ids) || [],
             type: "entity"
         }),
         path: ["summon", "entity"]
