@@ -9,6 +9,7 @@ import {
     parseNamespace,
     parseNamespaceOption,
     parseNamespaceOrTag,
+    prepareForParser,
     processParsedNamespaceOption,
     ReturnHelper,
     startPaths,
@@ -119,7 +120,7 @@ export const functionParser: Parser = {
 };
 
 const idParser: Parser = {
-    parse: parseNamespace
+    parse: (reader, info) => prepareForParser(parseNamespace(reader), info)
 };
 
 const bossbarParser: Parser = {
@@ -148,7 +149,10 @@ const bossbarParser: Parser = {
                 }
             }
         } else {
-            return helper.return(parseNamespace(reader));
+            return prepareForParser(
+                helper.return(parseNamespace(reader)),
+                info
+            );
         }
     }
 };
