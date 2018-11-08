@@ -149,6 +149,7 @@ const bossbarParser: Parser = {
                 }
             }
         } else {
+            // tslint:disable-next-line:helper-return
             return prepareForParser(
                 helper.return(parseNamespace(reader)),
                 info
