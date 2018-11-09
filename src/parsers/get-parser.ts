@@ -12,6 +12,7 @@ import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
 import { parser as NBTPathParser } from "./minecraft/nbt-path";
 import { nbtParser } from "./minecraft/nbt/nbt";
+import { floatRange, intRange } from "./minecraft/range";
 import { functionParser, resourceParser } from "./minecraft/resources";
 import {
     criteriaParser,
@@ -39,7 +40,9 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:dimension": namespaceParsers.dimensionParser,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
     "minecraft:entity_summon": namespaceParsers.summonParser,
+    "minecraft:float_range": floatRange,
     "minecraft:function": functionParser,
+    "minecraft:int_range": intRange,
     "minecraft:item_enchantment": namespaceParsers.enchantmentParser,
     "minecraft:item_predicate": itemParsers.predicate,
     "minecraft:item_slot": listParsers.itemSlotParser,
