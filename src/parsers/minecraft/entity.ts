@@ -1,7 +1,7 @@
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { QUOTE, StringReader } from "../../brigadier/string-reader";
-import { JAVAMAXINT } from "../../consts";
+import { JAVAMAXINT, JAVAMININT } from "../../consts";
 import { entities } from "../../data/lists/statics";
 import {
     convertToNamespace,
@@ -36,15 +36,18 @@ interface EntityContext {
     dy?: number;
     dz?: number;
     gamemode?: string[];
+    level?: MCRange;
     limit?: number;
     names?: string[];
+    scores?: Dictionary<MCRange>;
     sort?: string;
     tags?: string[];
     team?: string[];
     type?: string[];
     x?: number;
-    xp?: MCRange;
+    x_rotation?: MCRange;
     y?: number;
+    y_rotation?: MCRange;
     z?: number;
 }
 
@@ -160,6 +163,10 @@ const rangeOptParser = (
 };
 
 const options: { [key: string]: OptionParser } = {
+    /*
+    advancements: (reader, info, context) => {
+        //
+    },*/
     distance: rangeOptParser(true, 0, 3e7, "distance"),
     dx: intOptParser(-3e7, 3e7 - 1, "dx"),
     dy: intOptParser(-3e7, 3e7 - 1, "dy"),
@@ -195,6 +202,7 @@ const options: { [key: string]: OptionParser } = {
             } as EntityContext);
         }
     },
+    level: rangeOptParser(false, 0, JAVAMAXINT, "level"),
     limit: intOptParser(1, JAVAMAXINT, "limit"),
     name: (reader, _, context) => {
         const helper = new ReturnHelper();
@@ -223,11 +231,99 @@ const options: { [key: string]: OptionParser } = {
     },
     nbt: (reader, info) => {
         const helper = new ReturnHelper();
+        isNegated(reader, helper);
         const res = nbtParser.parse(reader, info);
         if (!helper.merge(res)) {
             return helper.fail();
         } else {
             return helper.succeed();
+        }
+    },
+    scores: (reader, info, context) => {
+        const helper = new ReturnHelper();
+        if (context.scores) {
+            return helper.fail();
+        }
+        if (!helper.merge(reader.expect("{"))) {
+            return helper.fail();
+        }
+        if (info.data.localData && info.data.localData.nbt.scoreboard) {
+            const objectivenames = info.data.localData.nbt.scoreboard.data.Objectives.map(
+                v => v.Name
+            );
+            const obj: Dictionary<MCRange> = {};
+            let next = "{";
+            while (next !== "}") {
+                const scoreres = reader.readOption(
+                    objectivenames,
+                    StringReader.charAllowedInUnquotedString
+                );
+
+                if (!helper.merge(scoreres) && scoreres.data === undefined) {
+                    return helper.fail();
+                }
+                // Typescript needs this type assertion
+                const score = scoreres.data as string;
+
+                if (!helper.merge(reader.expect("="))) {
+                    return helper.fail();
+                }
+
+                const range = rangeParser(false)(reader);
+
+                if (!helper.merge(range)) {
+                    return helper.fail();
+                }
+
+                if (obj[score]) {
+                    helper.addErrors();
+                } else {
+                    obj[score] = range.data;
+                }
+
+                const end = reader.expectOption(",", "}");
+                if (!helper.merge(end)) {
+                    return helper.fail();
+                }
+                next = end.data;
+            }
+            return helper.succeed({
+                scores: { ...(context.scores || {}), obj }
+            } as EntityContext);
+        } else {
+            const obj: Dictionary<MCRange> = {};
+            let next = "{";
+            while (next !== "}") {
+                const score = reader.readUnquotedString();
+                if (score === "") {
+                    return helper.fail();
+                }
+
+                if (!helper.merge(reader.expect("="))) {
+                    return helper.fail();
+                }
+
+                const range = rangeParser(false)(reader);
+
+                if (!helper.merge(range)) {
+                    return helper.fail();
+                }
+
+                if (obj[score]) {
+                    helper.addErrors();
+                } else {
+                    obj[score] = range.data;
+                }
+
+                const end = reader.expectOption(",", "}");
+                if (!helper.merge(end)) {
+                    return helper.fail();
+                }
+                next = end.data;
+            }
+            return helper.succeed({
+                scores: { ...(context.scores || {}), obj }
+            } as EntityContext);
         }
     },
     sort: (reader, _, context) => {
@@ -256,12 +352,18 @@ const options: { [key: string]: OptionParser } = {
         const negated = isNegated(reader, helper);
 
         const tag = reader.readUnquotedString();
-        if (tag === "") {
-            return helper.fail();
-        }
         if (
             context.tags &&
             context.tags.indexOf(`${negated ? "!" : ""}${tag}`) !== -1
+        ) {
+            helper.addErrors();
+            return helper.succeed();
+        }
+        if (
+            context.tags &&
+            (tag === "" && negated
+                ? context.tags.length === 0
+                : context.tags.length !== 0)
         ) {
             helper.addErrors();
             return helper.succeed();
@@ -280,7 +382,7 @@ const options: { [key: string]: OptionParser } = {
                 v => v.Name
             );
             const res = reader.readOption(
-                teamnames,
+                [...teamnames, ""],
                 StringReader.charAllowedInUnquotedString
             );
             if (!helper.merge(res)) {
@@ -293,11 +395,13 @@ const options: { [key: string]: OptionParser } = {
 
             const teams = negated
                 ? teamnames.filter(v => v !== res.data)
-                : [res.data];
+                : res.data === ""
+                    ? []
+                    : [res.data];
 
             if (
-                context.type &&
-                context.type.every(v => teams.indexOf(v) !== -1)
+                context.team &&
+                context.team.every(v => teams.indexOf(v) !== -1)
             ) {
                 // Duplicate
                 helper.addErrors();
@@ -374,8 +478,9 @@ const options: { [key: string]: OptionParser } = {
         }
     },
     x: intOptParser(-3e7, 3e7 - 1, "x"),
-    xp: rangeOptParser(false, 0, JAVAMAXINT, "xp"),
+    x_rotation: rangeOptParser(true, JAVAMININT, JAVAMAXINT, "x_rotation"),
     y: intOptParser(0, 255, "y"),
+    y_rotation: rangeOptParser(true, JAVAMININT, JAVAMAXINT, "y_rotation"),
     z: intOptParser(-3e7, 3e7 - 1, "z")
 };
 
