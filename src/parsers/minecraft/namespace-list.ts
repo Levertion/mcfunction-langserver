@@ -7,37 +7,35 @@ import {
     entities,
     particles
 } from "../../data/lists/statics";
+import { NamespacedName } from "../../data/types";
 import {
     parseNamespaceOption,
     ReturnHelper,
     stringArrayToNamespaces,
     stringifyNamespace
 } from "../../misc-functions";
-import {
-    CommandContext,
-    ContextChange,
-    Parser,
-    ParserInfo,
-    ReturnedInfo
-} from "../../types";
+import { CommandContext, Parser, ParserInfo, ReturnedInfo } from "../../types";
 
 export class NamespaceListParser implements Parser {
-    private readonly context?: keyof CommandContext;
     private readonly error: CommandErrorBuilder;
     private readonly options: string[];
+    private readonly resultFunction?: (
+        context: CommandContext,
+        result: NamespacedName[]
+    ) => void;
     public constructor(
         options: string[],
         errorBuilder: CommandErrorBuilder,
-        context?: keyof CommandContext
+        context?: NamespaceListParser["resultFunction"]
     ) {
         this.options = options;
         this.error = errorBuilder;
-        this.context = context;
+        this.resultFunction = context;
     }
     public parse(
         reader: StringReader,
         info: ParserInfo
-    ): ReturnedInfo<ContextChange> {
+    ): ReturnedInfo<undefined> {
         const helper = new ReturnHelper(info);
         const start = reader.cursor;
         const result = parseNamespaceOption(
@@ -45,10 +43,9 @@ export class NamespaceListParser implements Parser {
             stringArrayToNamespaces(this.options)
         );
         if (helper.merge(result)) {
-            if (this.context) {
-                return helper.succeed({
-                    [this.context]: result.data.values.map(stringifyNamespace)
-                });
+            if (this.resultFunction) {
+                this.resultFunction(info.context, result.data.values);
+                return helper.succeed();
             } else {
                 return helper.succeed();
             }
@@ -77,7 +74,8 @@ const summonError = new CommandErrorBuilder(
 export const summonParser = new NamespaceListParser(
     entities,
     summonError,
-    "entity"
+    (context, ids) =>
+        (context.otherEntity = { ids: ids.map(stringifyNamespace) })
 );
 
 const enchantmentError = new CommandErrorBuilder(

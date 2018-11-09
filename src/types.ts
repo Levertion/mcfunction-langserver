@@ -83,13 +83,25 @@ export type SuggestResult = Suggestion | string;
 export type ContextChange = Partial<CommandContext> | undefined;
 
 export interface CommandContext {
-    [key: string]: any;
-    entity?: string | string[];
+    // [key: string]: any;
     /**
-     * Whether the executor is definitely a player.
-     * (Currently unused)
+     * What we know about the executor of the commmand.
+     *
+     * TODO: Possibly allow specifying this within a function as a sort of shebang,
+     * then validate all function calls with this requirement
      */
-    isPlayer?: boolean;
+    executor?: EntityInfo;
+    /**
+     * A different entity which is important during parsing
+     */
+    otherEntity?: EntityInfo;
+}
+
+export interface EntityInfo {
+    /**
+     * The possible entity types of this entity
+     */
+    ids?: string | string[];
 }
 
 export interface Parser {
