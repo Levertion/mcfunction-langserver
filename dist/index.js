@@ -207,7 +207,10 @@ exports.SLASHREGEX = /\//g;
 exports.SLASHREPLACEREGEX = /\\/g;
 exports.MCMETAFILE = "pack.mcmeta"; // Blocks
 
-exports.TAG_START = "#";
+exports.TAG_START = "#"; // Misc
+
+exports.JAVAMAXINT = 2147483647;
+exports.JAVAMININT = -2147483648;
 },{}],"Td8d":[function(require,module,exports) {
 "use strict";
 
@@ -2063,10 +2066,10 @@ Object.defineProperty(exports, "__esModule", {
 
 const errors_1 = require("../../brigadier/errors");
 
+const consts_1 = require("../../consts");
+
 const misc_functions_1 = require("../../misc-functions");
 
-const JAVAMAXINT = 2147483647;
-const JAVAMININT = -2147483648;
 const INTEGEREXCEPTIONS = {
   TOOBIG: new errors_1.CommandErrorBuilder("argument.integer.big", "Integer must not be more than %s, found %s"),
   TOOSMALL: new errors_1.CommandErrorBuilder("argument.integer.low", "Integer must not be less than %s, found %s")
@@ -2084,8 +2087,8 @@ exports.intParser = {
     const maxVal = properties.node_properties.max;
     const minVal = properties.node_properties.min; // See https://stackoverflow.com/a/12957445
 
-    const max = Math.min(typeof maxVal === "number" ? maxVal : JAVAMAXINT, JAVAMAXINT);
-    const min = Math.max(typeof minVal === "number" ? minVal : JAVAMININT, JAVAMININT);
+    const max = Math.min(typeof maxVal === "number" ? maxVal : consts_1.JAVAMAXINT, consts_1.JAVAMAXINT);
+    const min = Math.max(typeof minVal === "number" ? minVal : consts_1.JAVAMININT, consts_1.JAVAMININT);
 
     if (result.data > max) {
       helper.addErrors(INTEGEREXCEPTIONS.TOOBIG.create(start, reader.cursor, max.toString(), result.data.toString()));
@@ -2098,7 +2101,7 @@ exports.intParser = {
     return helper.succeed();
   }
 };
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"2AVt":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../consts":"xb+0","../../misc-functions":"KBGm"}],"2AVt":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5164,7 +5167,95 @@ exports.parser = {
     return helper.succeed();
   }
 };
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/util/doc-walker-util":"km+2","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/util/doc-walker-util":"km+2","./nbt/walker":"YMNQ"}],"1Kfp":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const consts_1 = require("../../consts");
+
+const misc_functions_1 = require("../../misc-functions");
+
+exports.rangeParser = (float = false) => reader => {
+  const helper = new misc_functions_1.ReturnHelper();
+
+  if (helper.merge(reader.expect(".."), {
+    errors: false
+  })) {
+    reader.cursor += 2;
+    const max = float ? reader.readFloat() : reader.readInt();
+
+    if (!helper.merge(max)) {
+      return helper.fail();
+    }
+
+    return helper.succeed({
+      max: max.data,
+      min: consts_1.JAVAMININT
+    });
+  } else {
+    const min = float ? reader.readFloat() : reader.readInt();
+
+    if (!helper.merge(min)) {
+      return helper.fail();
+    }
+
+    if (!helper.merge(reader.expect(".."), {
+      errors: false
+    })) {
+      return helper.succeed({
+        max: min.data,
+        min: min.data
+      });
+    } else if (/\d\./.test(reader.peek())) {
+      const max = float ? reader.readFloat() : reader.readInt();
+
+      if (!helper.merge(max)) {
+        return helper.fail();
+      }
+
+      if (max.data < min.data) {
+        helper.addErrors();
+        return helper.succeed({
+          max: min.data,
+          min: max.data
+        });
+      }
+
+      if (max.data === min.data) {
+        helper.addErrors();
+      }
+
+      return helper.succeed({
+        max: max.data,
+        min: min.data
+      });
+    } else {
+      return helper.succeed({
+        max: consts_1.JAVAMAXINT,
+        min: min.data
+      });
+    }
+  }
+};
+
+exports.floatRange = {
+  parse: reader => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const res = exports.rangeParser(true)(reader);
+    return helper.merge(res) ? helper.succeed() : helper.fail();
+  }
+};
+exports.intRange = {
+  parse: reader => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const res = exports.rangeParser(false)(reader);
+    return helper.merge(res) ? helper.succeed() : helper.fail();
+  }
+};
+},{"../../consts":"xb+0","../../misc-functions":"KBGm"}],"ELUu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5689,6 +5780,8 @@ const nbt_path_1 = require("./minecraft/nbt-path");
 
 const nbt_1 = require("./minecraft/nbt/nbt");
 
+const range_1 = require("./minecraft/range");
+
 const resources_1 = require("./minecraft/resources");
 
 const scoreboard_1 = require("./minecraft/scoreboard");
@@ -5716,7 +5809,9 @@ const implementedParsers = {
   "minecraft:dimension": namespaceParsers.dimensionParser,
   "minecraft:entity_anchor": listParsers.entityAnchorParser,
   "minecraft:entity_summon": namespaceParsers.summonParser,
+  "minecraft:float_range": range_1.floatRange,
   "minecraft:function": resources_1.functionParser,
+  "minecraft:int_range": range_1.intRange,
   "minecraft:item_enchantment": namespaceParsers.enchantmentParser,
   "minecraft:item_predicate": itemParsers.predicate,
   "minecraft:item_slot": listParsers.itemSlotParser,
@@ -5780,7 +5875,7 @@ function getArgParser(id) {
 Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
   return undefined;
 }
-},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/nbt-path":"wccY","./minecraft/nbt/nbt":"JpDU","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/swizzle":"0R/b","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
+},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/nbt-path":"wccY","./minecraft/nbt/nbt":"JpDU","./minecraft/range":"1Kfp","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/swizzle":"0R/b","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

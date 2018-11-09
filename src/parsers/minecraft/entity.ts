@@ -1,6 +1,7 @@
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
-import { StringReader } from "../../brigadier/string-reader";
+import { QUOTE, StringReader } from "../../brigadier/string-reader";
+import { JAVAMAXINT } from "../../consts";
 import { entities } from "../../data/lists/statics";
 import {
     convertToNamespace,
@@ -11,10 +12,13 @@ import {
 } from "../../misc-functions";
 import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
 import { nbtParser } from "./nbt/nbt";
+import { MCRange, rangeParser } from "./range";
 
 const uuidregex = /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g;
 
-/*https://github.com/Levertion/mcfunction-langserver/issues/89*/
+/*
+https://github.com/Levertion/mcfunction-langserver/issues/89
+*/
 const uuidwarn = new CommandErrorBuilder(
     "argument.entity.uuid",
     "Selecting an entity based on its UUID may cause instability [This warning can be disabled in the settings]",
@@ -27,10 +31,18 @@ interface NodeProp {
 }
 
 interface EntityContext {
+    dx?: number;
+    dy?: number;
+    dz?: number;
     limit?: number;
+    names?: string[];
     tags?: string[];
-    team?: string;
+    team?: string[];
     type?: string[];
+    x?: number;
+    xp?: MCRange;
+    y?: number;
+    z?: number;
 }
 
 const contexterr = {
@@ -63,75 +75,241 @@ const getContextError = (cont: EntityContext, prop: NodeProp) => {
     return undefined;
 };
 
-interface OptionParser {
-    allowMultiple: boolean;
-    parse(
-        reader: StringReader,
-        info: ParserInfo,
-        context: EntityContext
-    ): ReturnedInfo<EntityContext | undefined>;
-}
+type OptionParser = (
+    reader: StringReader,
+    info: ParserInfo,
+    context: EntityContext
+) => ReturnedInfo<EntityContext | undefined>;
 
 // tslint:disable-next-line:no-unnecessary-callback-wrapper it gives an error if it isn't wrapped
 const nsEntity = entities.map(v => convertToNamespace(v));
 
+const intOptParser = (min: number, max: number, key: keyof EntityContext) => (
+    reader: StringReader,
+    _: ParserInfo,
+    context: EntityContext
+) => {
+    const helper = new ReturnHelper();
+    const res = reader.readInt();
+    if (!helper.merge(res)) {
+        return helper.fail();
+    }
+    const num = res.data;
+    if (num > max || num < min) {
+        // Add error
+        return helper.succeed();
+    }
+    // The entity context already has a value
+    if (!!context[key]) {
+        // Add error
+        return helper.succeed();
+    }
+    const out: EntityContext = {};
+    out[key] = num;
+    return helper.succeed(out);
+};
+
+const intRangeOptParser = (
+    min: number,
+    max: number,
+    key: keyof EntityContext
+) => (reader: StringReader, _: ParserInfo, context: EntityContext) => {
+    const helper = new ReturnHelper();
+    const res = rangeParser(false)(reader);
+
+    if (!helper.merge(res)) {
+        return helper.fail();
+    }
+
+    const range = res.data;
+
+    if (range.max > max || range.max < min) {
+        helper.addErrors();
+        return helper.succeed();
+    }
+    if (range.min > max || range.min < min) {
+        helper.addErrors();
+        return helper.succeed();
+    }
+    if (!!context[key]) {
+        helper.addErrors();
+        return helper.succeed();
+    }
+    const out: EntityContext = {};
+    out[key] = range;
+    return helper.succeed(out);
+};
+
 const options: { [key: string]: OptionParser } = {
-    nbt: {
-        allowMultiple: true,
-        parse: (reader, info) => {
-            const helper = new ReturnHelper();
-            const res = nbtParser.parse(reader, info);
-            if (!helper.merge(res)) {
-                return helper.fail();
-            } else {
-                return helper.succeed();
-            }
+    dx: intOptParser(-3e7, 3e7 - 1, "dx"),
+    dy: intOptParser(-3e7, 3e7 - 1, "dy"),
+    dz: intOptParser(-3e7, 3e7 - 1, "dz"),
+    limit: intOptParser(1, JAVAMAXINT, "limit"),
+    name: (reader, _, context) => {
+        const helper = new ReturnHelper();
+        const negated = reader.peek() === "!";
+        if (negated) {
+            reader.skip();
+        }
+        const quoted = reader.peek() === QUOTE;
+        const restag = reader.readString();
+        if (!helper.merge(restag)) {
+            return helper.fail();
+        }
+        const name = restag.data;
+        if (!quoted && name === "") {
+            return helper.fail();
+        }
+        if (
+            context.names &&
+            context.names.indexOf(`${negated ? "!" : ""}${name}`) !== -1
+        ) {
+            helper.addErrors();
+            return helper.succeed();
+        }
+        return helper.succeed({
+            tags: [...(context.names || []), `${negated ? "!" : ""}${name}`]
+        });
+    },
+    nbt: (reader, info) => {
+        const helper = new ReturnHelper();
+        const res = nbtParser.parse(reader, info);
+        if (!helper.merge(res)) {
+            return helper.fail();
+        } else {
+            return helper.succeed();
         }
     },
-    type: {
-        allowMultiple: true,
-        parse: (reader, info, context) => {
-            const helper = new ReturnHelper();
-            const negated = reader.peek() === "!";
-            if (negated) {
-                reader.skip();
-            }
-            const ltype = parseNamespaceOrTag(reader, info, "entity_tags");
-            if (!helper.merge(ltype)) {
-                return helper.fail();
-            }
-
-            const types = nsEntity.filter(
-                v =>
-                    negated ===
-                    !(ltype.data.resolved || [ltype.data.parsed]).find(f =>
-                        namespacesEqual(f, v)
-                    )
+    tag: (reader, _, context) => {
+        const helper = new ReturnHelper();
+        const negated = reader.peek() === "!";
+        if (negated) {
+            reader.skip();
+        }
+        const tag = reader.readUnquotedString();
+        if (tag === "") {
+            return helper.fail();
+        }
+        if (
+            context.tags &&
+            context.tags.indexOf(`${negated ? "!" : ""}${tag}`) !== -1
+        ) {
+            helper.addErrors();
+            return helper.succeed();
+        }
+        return helper.succeed({
+            tags: [...(context.tags || []), `${negated ? "!" : ""}${tag}`]
+        });
+    },
+    team: (reader, info, context) => {
+        const helper = new ReturnHelper();
+        const negated = reader.peek() === "!";
+        if (negated) {
+            reader.skip();
+        }
+        if (info.data.localData && info.data.localData.nbt.scoreboard) {
+            const teamnames = info.data.localData.nbt.scoreboard.data.Teams.map(
+                v => v.Name
             );
-
-            const intTypes: string[] = [];
-
-            if (context.type) {
-                for (const type of context.type) {
-                    if (types.find(v => v === convertToNamespace(type))) {
-                        intTypes.push(type);
-                    }
+            const res = reader.readOption(
+                teamnames,
+                StringReader.charAllowedInUnquotedString
+            );
+            if (!helper.merge(res)) {
+                if (res.data) {
+                    return helper.succeed();
+                } else {
+                    return helper.fail();
                 }
-            } else {
-                types.forEach(v =>
-                    intTypes.push(`${v.namespace || "minecraft"}:${v.path}`)
-                );
             }
+
+            const teams = negated
+                ? teamnames.filter(v => v !== res.data)
+                : [res.data];
+
+            if (
+                context.type &&
+                context.type.every(v => teams.indexOf(v) !== -1)
+            ) {
+                // Duplicate
+                helper.addErrors();
+                return helper.succeed();
+            }
+
+            const intTypes: string[] = context.team
+                ? context.team.filter(v => teams.indexOf(v) !== -1)
+                : teams;
 
             if (intTypes.length === 0) {
                 return helper.fail();
             } else {
                 return helper.succeed({
-                    type: intTypes
+                    team: intTypes
                 } as EntityContext);
             }
+        } else {
+            const team = reader.readUnquotedString();
+            if (team === "") {
+                return helper.fail();
+            } else {
+                return helper.succeed(negated ? undefined : { team: [team] });
+            }
         }
-    }
+    },
+    type: (reader, info, context) => {
+        const helper = new ReturnHelper();
+        const negated = reader.peek() === "!";
+        if (negated) {
+            reader.skip();
+        }
+        const ltype = parseNamespaceOrTag(reader, info, "entity_tags");
+        if (!helper.merge(ltype)) {
+            return helper.fail();
+        }
+
+        const literalType = ltype.data.resolved || [ltype.data.parsed];
+
+        const types = nsEntity.filter(
+            v => negated === literalType.some(f => namespacesEqual(f, v))
+        );
+
+        if (
+            context.type &&
+            context.type.every(v =>
+                types.some(f => namespacesEqual(f, convertToNamespace(v)))
+            )
+        ) {
+            // Duplicate
+            helper.addErrors();
+            return helper.succeed();
+        }
+
+        const intTypes: string[] = [];
+
+        if (context.type) {
+            for (const type of context.type) {
+                if (types.some(v => v === convertToNamespace(type))) {
+                    intTypes.push(type);
+                }
+            }
+        } else {
+            types.forEach(v =>
+                intTypes.push(`${v.namespace || "minecraft"}:${v.path}`)
+            );
+        }
+
+        if (intTypes.length === 0) {
+            return helper.fail();
+        } else {
+            return helper.succeed({
+                type: intTypes
+            } as EntityContext);
+        }
+    },
+    x: intOptParser(-3e7, 3e7 - 1, "x"),
+    xp: intRangeOptParser(0, JAVAMAXINT, "xp"),
+    y: intOptParser(0, 255, "y"),
+    z: intOptParser(-3e7, 3e7 - 1, "z")
 };
 
 export class EntityBase implements Parser {
@@ -187,7 +365,7 @@ export class EntityBase implements Parser {
                     }
                     const opt = options[arg];
 
-                    const conc = opt.parse(reader, info, context);
+                    const conc = opt(reader, info, context);
                     if (!helper.merge(conc)) {
                         return helper.fail();
                     }

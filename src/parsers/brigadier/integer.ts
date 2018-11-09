@@ -1,9 +1,7 @@
 import { CommandErrorBuilder } from "../../brigadier/errors";
+import { JAVAMAXINT, JAVAMININT } from "../../consts";
 import { ReturnHelper } from "../../misc-functions";
 import { Parser } from "../../types";
-
-const JAVAMAXINT = 2147483647;
-const JAVAMININT = -2147483648;
 
 const INTEGEREXCEPTIONS = {
     TOOBIG: new CommandErrorBuilder(

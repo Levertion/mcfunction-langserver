@@ -12,3 +12,8 @@ export const MCMETAFILE = "pack.mcmeta";
 
 // Blocks
 export const TAG_START = "#";
+
+// Misc
+
+export const JAVAMAXINT = 2147483647;
+export const JAVAMININT = -2147483648;
