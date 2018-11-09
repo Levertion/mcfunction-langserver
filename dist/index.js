@@ -5174,8 +5174,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-const consts_1 = require("../../consts");
-
 const misc_functions_1 = require("../../misc-functions");
 
 exports.rangeParser = (float = false) => reader => {
@@ -5192,8 +5190,7 @@ exports.rangeParser = (float = false) => reader => {
     }
 
     return helper.succeed({
-      max: max.data,
-      min: consts_1.JAVAMININT
+      max: max.data
     });
   } else {
     const min = float ? reader.readFloat() : reader.readInt();
@@ -5234,7 +5231,6 @@ exports.rangeParser = (float = false) => reader => {
       });
     } else {
       return helper.succeed({
-        max: consts_1.JAVAMAXINT,
         min: min.data
       });
     }
@@ -5255,7 +5251,7 @@ exports.intRange = {
     return helper.merge(res) ? helper.succeed() : helper.fail();
   }
 };
-},{"../../consts":"xb+0","../../misc-functions":"KBGm"}],"ELUu":[function(require,module,exports) {
+},{"../../misc-functions":"KBGm"}],"ELUu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

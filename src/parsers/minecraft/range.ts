@@ -1,11 +1,10 @@
 import { StringReader } from "../../brigadier/string-reader";
-import { JAVAMAXINT, JAVAMININT } from "../../consts";
 import { ReturnHelper } from "../../misc-functions";
 import { Parser, ReturnedInfo } from "../../types";
 
 export interface MCRange {
-    max: number;
-    min: number;
+    max?: number;
+    min?: number;
 }
 
 export const rangeParser = (float: boolean = false) => (
@@ -23,8 +22,7 @@ export const rangeParser = (float: boolean = false) => (
             return helper.fail();
         }
         return helper.succeed({
-            max: max.data,
-            min: JAVAMININT
+            max: max.data
         });
     } else {
         const min = float ? reader.readFloat() : reader.readInt();
@@ -61,7 +59,6 @@ export const rangeParser = (float: boolean = false) => (
             });
         } else {
             return helper.succeed({
-                max: JAVAMAXINT,
                 min: min.data
             });
         }

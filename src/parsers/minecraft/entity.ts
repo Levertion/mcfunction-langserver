@@ -31,11 +31,14 @@ interface NodeProp {
 }
 
 interface EntityContext {
+    distance?: MCRange;
     dx?: number;
     dy?: number;
     dz?: number;
+    gamemode?: string[];
     limit?: number;
     names?: string[];
+    sort?: string;
     tags?: string[];
     team?: string[];
     type?: string[];
@@ -84,6 +87,17 @@ type OptionParser = (
 // tslint:disable-next-line:no-unnecessary-callback-wrapper it gives an error if it isn't wrapped
 const nsEntity = entities.map(v => convertToNamespace(v));
 
+const gamemodes = ["survival", "creative", "adventure", "spectator"];
+
+const isNegated = (reader: StringReader, helper: ReturnHelper) => {
+    helper.addSuggestion(reader.cursor, "!");
+    const neg = reader.peek() === "!";
+    if (neg) {
+        reader.skip();
+    }
+    return neg;
+};
+
 const intOptParser = (min: number, max: number, key: keyof EntityContext) => (
     reader: StringReader,
     _: ParserInfo,
@@ -109,13 +123,14 @@ const intOptParser = (min: number, max: number, key: keyof EntityContext) => (
     return helper.succeed(out);
 };
 
-const intRangeOptParser = (
+const rangeOptParser = (
+    float: boolean,
     min: number,
     max: number,
     key: keyof EntityContext
 ) => (reader: StringReader, _: ParserInfo, context: EntityContext) => {
     const helper = new ReturnHelper();
-    const res = rangeParser(false)(reader);
+    const res = rangeParser(float)(reader);
 
     if (!helper.merge(res)) {
         return helper.fail();
@@ -123,13 +138,17 @@ const intRangeOptParser = (
 
     const range = res.data;
 
-    if (range.max > max || range.max < min) {
-        helper.addErrors();
-        return helper.succeed();
+    if (range.max) {
+        if (range.max > max || range.max < min) {
+            helper.addErrors();
+            return helper.succeed();
+        }
     }
-    if (range.min > max || range.min < min) {
-        helper.addErrors();
-        return helper.succeed();
+    if (range.min) {
+        if (range.min > max || range.min < min) {
+            helper.addErrors();
+            return helper.succeed();
+        }
     }
     if (!!context[key]) {
         helper.addErrors();
@@ -141,16 +160,47 @@ const intRangeOptParser = (
 };
 
 const options: { [key: string]: OptionParser } = {
+    distance: rangeOptParser(true, 0, 3e7, "distance"),
     dx: intOptParser(-3e7, 3e7 - 1, "dx"),
     dy: intOptParser(-3e7, 3e7 - 1, "dy"),
     dz: intOptParser(-3e7, 3e7 - 1, "dz"),
+    gamemode: (reader, _, context) => {
+        const helper = new ReturnHelper();
+
+        const negated = isNegated(reader, helper);
+
+        const res = reader.expectOption(...gamemodes);
+        if (!helper.merge(res)) {
+            return helper.fail();
+        }
+        const neglist = negated
+            ? gamemodes.filter(v => v !== res.data)
+            : [res.data];
+
+        if (context.gamemode && stringArrayEqual(neglist, context.gamemode)) {
+            // Duplicate
+            helper.addErrors();
+            return helper.succeed();
+        }
+
+        const intTypes: string[] = context.gamemode
+            ? context.gamemode.filter(v => neglist.indexOf(v) !== -1)
+            : neglist;
+
+        if (intTypes.length === 0) {
+            return helper.fail();
+        } else {
+            return helper.succeed({
+                gamemode: intTypes
+            } as EntityContext);
+        }
+    },
     limit: intOptParser(1, JAVAMAXINT, "limit"),
     name: (reader, _, context) => {
         const helper = new ReturnHelper();
-        const negated = reader.peek() === "!";
-        if (negated) {
-            reader.skip();
-        }
+
+        const negated = isNegated(reader, helper);
+
         const quoted = reader.peek() === QUOTE;
         const restag = reader.readString();
         if (!helper.merge(restag)) {
@@ -180,12 +230,31 @@ const options: { [key: string]: OptionParser } = {
             return helper.succeed();
         }
     },
+    sort: (reader, _, context) => {
+        const helper = new ReturnHelper();
+
+        const res = reader.expectOption(
+            "arbitrary",
+            "furthest",
+            "nearest",
+            "random"
+        );
+        if (!helper.merge(res)) {
+            return helper.fail();
+        }
+        if (context.sort) {
+            helper.addErrors();
+            return helper.succeed();
+        }
+        return helper.succeed({
+            sort: res.data
+        } as EntityContext);
+    },
     tag: (reader, _, context) => {
         const helper = new ReturnHelper();
-        const negated = reader.peek() === "!";
-        if (negated) {
-            reader.skip();
-        }
+
+        const negated = isNegated(reader, helper);
+
         const tag = reader.readUnquotedString();
         if (tag === "") {
             return helper.fail();
@@ -203,10 +272,9 @@ const options: { [key: string]: OptionParser } = {
     },
     team: (reader, info, context) => {
         const helper = new ReturnHelper();
-        const negated = reader.peek() === "!";
-        if (negated) {
-            reader.skip();
-        }
+
+        const negated = isNegated(reader, helper);
+
         if (info.data.localData && info.data.localData.nbt.scoreboard) {
             const teamnames = info.data.localData.nbt.scoreboard.data.Teams.map(
                 v => v.Name
@@ -258,10 +326,9 @@ const options: { [key: string]: OptionParser } = {
     },
     type: (reader, info, context) => {
         const helper = new ReturnHelper();
-        const negated = reader.peek() === "!";
-        if (negated) {
-            reader.skip();
-        }
+
+        const negated = isNegated(reader, helper);
+
         const ltype = parseNamespaceOrTag(reader, info, "entity_tags");
         if (!helper.merge(ltype)) {
             return helper.fail();
@@ -307,7 +374,7 @@ const options: { [key: string]: OptionParser } = {
         }
     },
     x: intOptParser(-3e7, 3e7 - 1, "x"),
-    xp: intRangeOptParser(0, JAVAMAXINT, "xp"),
+    xp: rangeOptParser(false, 0, JAVAMAXINT, "xp"),
     y: intOptParser(0, 255, "y"),
     z: intOptParser(-3e7, 3e7 - 1, "z")
 };
