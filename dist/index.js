@@ -4166,7 +4166,7 @@ const paths = [{
   path: ["data", "merge", "block"]
 }, {
   data: args => ({
-    ids: args.entity,
+    ids: args.otherEntity,
     type: "entity"
   }),
   path: ["summon", "entity"] // TODO - handle nbt_tag in /data modify
@@ -4182,75 +4182,30 @@ function validateParse(reader, info, data) {
   if (datum && ( // This is to appease the type checker
   helper.merge(parseResult) || datum.correctness > nbt_util_1.Correctness.NO)) {
     if (!!data) {
-      const rootPath = data.rootPath || [];
-
-      if (data.type) {
-        rootPath.push(data.type);
-      }
-
       const walker = new walker_1.NBTWalker(docs);
-
-      const addUnknownError = (error, id) => {
-        const {
-          path
-        } = error,
-              allowed = tslib_1.__rest(error, ["path"]);
-
-        helper.addErrors(Object.assign({}, allowed, {
-          // This will break when translations are added, not sure how best to do this
-          text: id ? `${error.text} for ${data.type} ${id}` : error.text
-        }));
-      };
-
-      const pathFor = v => {
-        if (data.type) {
-          return [...rootPath, v];
-        } else {
-          return rootPath;
-        }
-      };
+      const unknowns = new Set();
 
       if (Array.isArray(data.ids)) {
         for (const id of data.ids) {
-          const root = walker.getInitialNode(pathFor(id));
+          const root = walker.getInitialNode([data.type, id]);
 
           if (!doc_walker_util_1.isNoNBTInfo(root)) {
             const result = datum.tag.validate(root, walker);
             helper.merge(result, {
               errors: false
             });
-
-            for (const e of result.errors) {
-              const error = e;
-
-              if (error.path) {
-                if (!helper.getShared().errors.find(v => context_1.stringArrayEqual(v.path, error.path))) {
-                  addUnknownError(error, id);
-                }
-              } else {
-                helper.addErrors(error);
-              }
-            }
+            helper.merge(solveUnkownErrors(result.errors, unknowns, `${data.type} '${id}'`));
           }
         }
       } else {
-        const root = walker.getInitialNode(pathFor(data.ids || "none"));
+        const root = walker.getInitialNode([data.type, data.ids || "none"]);
 
         if (!doc_walker_util_1.isNoNBTInfo(root)) {
           const result = datum.tag.validate(root, walker);
           helper.merge(result, {
             errors: false
           });
-
-          for (const e of result.errors) {
-            const error = e;
-
-            if (error.path) {
-              addUnknownError(error);
-            } else {
-              helper.addErrors(error);
-            }
-          }
+          helper.merge(solveUnkownErrors(result.errors, unknowns, `${data.type} '${data.ids || "unspecified"}'`));
         }
       }
     }
@@ -4262,6 +4217,58 @@ function validateParse(reader, info, data) {
 }
 
 exports.validateParse = validateParse;
+
+function solveUnkownErrors(errors, unknowns = new Set(), name) {
+  const helper = new misc_functions_1.ReturnHelper();
+
+  for (const error of errors) {
+    if (Array.isArray(error.path)) {
+      const unknownError = error;
+      const pathKey = unknownError.path.join(":");
+
+      if (!unknowns.has(pathKey)) {
+        const {
+          path
+        } = unknownError,
+              allowed = tslib_1.__rest(unknownError, ["path"]);
+
+        helper.addErrors(Object.assign({}, allowed, {
+          // This will break when translations are added, not sure how best to do this
+          text: name ? `${error.text} for ${name}` : error.text
+        }));
+        unknowns.add(pathKey);
+      }
+    } else {
+      helper.addErrors(error);
+    }
+  }
+
+  return helper.succeed();
+}
+
+function parseThenValidate(reader, walker, node) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const parseResult = tag_parser_1.parseAnyNBTTag(reader, []);
+  const parseData = parseResult.data;
+
+  if (parseData && (helper.merge(parseResult) || parseData.correctness > nbt_util_1.Correctness.NO)) {
+    if (node) {
+      if (!doc_walker_util_1.isNoNBTInfo(node)) {
+        const result = parseData.tag.validate(node, walker);
+        helper.merge(result, {
+          errors: false
+        });
+        helper.merge(solveUnkownErrors(result.errors));
+      }
+    }
+
+    return helper.succeed();
+  } else {
+    return helper.fail();
+  }
+}
+
+exports.parseThenValidate = parseThenValidate;
 exports.nbtParser = {
   parse: (reader, info) => {
     const helper = new misc_functions_1.ReturnHelper(info);
@@ -5083,18 +5090,37 @@ const exceptions = {
   BAD_CHAR: new errors_1.CommandErrorBuilder("argument.nbt_path.badchar", "Bad character '%s'"),
   INCORRECT_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Unknown segment '%s'"),
   START_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.array_start", "Cannot start an nbt path with an array reference"),
-  UNEXPECTED_ARRAY: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array")
+  UNEXPECTED_ARRAY: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array"),
+  WRONG_TYPE: new errors_1.CommandErrorBuilder("argument.nbt_path.type", "Expected node to have type %s, actual is %s")
 };
+
+const entityDataPath = path => ({
+  data: c => ({
+    startPath: ["entity"].concat(c.otherEntity && c.otherEntity.ids || "none")
+  }),
+  path
+});
+
+const pathInfo = [entityDataPath(["execute", "if", "data", "entity"]), entityDataPath(["execute", "store", "result", "entity"]), entityDataPath(["execute", "store", "success", "entity"]), entityDataPath(["execute", "unless", "data", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath"]), entityDataPath(["data", "remove", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "insert", "before", "index", "from", "entity"]), entityDataPath(["data", "get", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "set", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "prepend", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "merge", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "insert", "before", "index", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "set", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "prepend", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "merge", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "append", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "insert", "after", "index", "from", "entity"]), entityDataPath([// Todo, add resultType
+"data", "modify", "entity", "target", "targetPath", "insert", "after", "index", "from", "entity"]), entityDataPath([// Todo, add resultType
+"data", "modify", "entity", "target", "targetPath", "append", "from", "entity"])]; // We do not currently support blocks with autocomplete/validation
+// @ts-ignore It is unused - it is just here for posterity/to record what we currently use
+
+const unvalidatedPaths = [[//#region /data
+["data", "get", "block"], ["data", "modify", "block", "targetPos", "targetPath"], ["data", "modify", "block", "targetPos", "targetPath", "append", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "insert", "after", "index", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "insert", "before", "index", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "merge", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "prepend", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "set", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "append", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "insert", "after", "index", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "insert", "before", "index", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "merge", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "prepend", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "set", "from", "block"], ["data", "remove", "block"], //#endregion /data
+//#region /execute
+["execute", "if", "data", "block"], ["execute", "store", "result", "block"], ["execute", "store", "success", "block"], ["execute", "unless", "data", "block"] //#endregion /execute
+]];
 exports.parser = {
+  // tslint:disable-next-line:cyclomatic-complexity
   parse: (reader, info) => {
     const helper = new misc_functions_1.ReturnHelper();
     const out = [];
     const walker = new walker_1.NBTWalker(info.data.globalData.nbt_docs);
     let first = true;
-    const startPath = [
-      /** Something based on the context data */
-    ];
-    let current = walker.getInitialNode(startPath);
+    const pathFunc = misc_functions_1.startPaths(pathInfo, info.path);
+    const context = pathFunc && pathFunc(info.context);
+    let current = context ? walker.getInitialNode(context.startPath) : undefined;
 
     while (true) {
       // Whitespace
@@ -5104,9 +5130,7 @@ exports.parser = {
         reader.skip();
 
         if (reader.peek() === nbt_util_1.COMPOUND_START) {
-          const val = nbt_1.validateParse(reader, info, {
-            rootPath: [...startPath, ...out.map(v => v.toString())]
-          });
+          const val = nbt_1.parseThenValidate(reader, walker, current);
 
           if (helper.merge(val)) {
             out.push(0);
@@ -5136,7 +5160,6 @@ exports.parser = {
           }
         }
 
-        first = false;
         continue;
       }
 
@@ -5149,32 +5172,46 @@ exports.parser = {
         const res = reader.readOption(Object.keys(children));
 
         if (helper.merge(res)) {
-          current = walker.getChildWithName(current, res.data);
+          current = children[res.data];
         } else {
-          if (current && res.data) {
-            helper.addErrors(exceptions.INCORRECT_SEGMENT.create(start, reader.cursor, res.data));
+          if (res.data) {
+            if (current) {
+              helper.addErrors(exceptions.INCORRECT_SEGMENT.create(start, reader.cursor, res.data));
+            }
+          } else {
+            return helper.fail();
           }
 
           current = undefined;
         }
 
-        first = false;
         continue;
       }
 
       if (!reader.canRead()) {
-        helper.addSuggestion(reader.cursor, ".");
-        helper.addSuggestion(reader.cursor, "[");
+        if (!first && (!current || doc_walker_util_1.isCompoundInfo(current))) {
+          helper.addSuggestion(reader.cursor, ".");
+        }
+
+        if (!current || doc_walker_util_1.isListInfo(current)) {
+          helper.addSuggestion(reader.cursor, "[");
+        }
       }
 
+      first = false;
+
       if (/\s/.test(reader.peek())) {
+        if (current && context && context.resultType && doc_walker_util_1.isTypedInfo(current)) {
+          if (current.node.type !== context.resultType) {
+            helper.addErrors(exceptions.WRONG_TYPE.create(start, reader.cursor, context.resultType, current.node.type));
+          }
+        }
+
         return helper.succeed();
       }
 
       return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
     }
-
-    return helper.succeed();
   }
 };
 },{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/nbt":"JpDU","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {

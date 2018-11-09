@@ -1,13 +1,20 @@
-import { CompoundNode } from "mc-nbt-paths";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { ReturnHelper } from "../../misc-functions";
-import { Parser, ParserInfo, ReturnedInfo } from "../../types";
-import { validateParse } from "./nbt/nbt";
+import { ContextPath, ReturnHelper, startPaths } from "../../misc-functions";
+import {
+    CommandContext,
+    ContextChange,
+    Parser,
+    ParserInfo,
+    ReturnedInfo
+} from "../../types";
+import { parseThenValidate } from "./nbt/nbt";
 import {
     isCompoundInfo,
     isListInfo,
-    NodeInfo
+    isTypedInfo,
+    NodeInfo,
+    TypedNode
 } from "./nbt/util/doc-walker-util";
 import { COMPOUND_START } from "./nbt/util/nbt-util";
 import { NBTWalker } from "./nbt/walker";
@@ -32,31 +39,337 @@ const exceptions = {
     UNEXPECTED_ARRAY: new CommandErrorBuilder(
         "argument.nbt_path.unknown",
         "Path segment should not be array"
+    ),
+    WRONG_TYPE: new CommandErrorBuilder(
+        "argument.nbt_path.type",
+        "Expected node to have type %s, actual is %s"
     )
 };
 
+const entityDataPath = (
+    path: string[]
+): ContextPath<(context: CommandContext) => PathResult> => ({
+    data: c => ({
+        startPath: ["entity"].concat(
+            (c.otherEntity && c.otherEntity.ids) || "none"
+        )
+    }),
+    path
+});
+
+interface PathResult {
+    resultType?: TypedNode["type"];
+    startPath: string[];
+}
+
+const pathInfo: Array<ContextPath<(context: CommandContext) => PathResult>> = [
+    entityDataPath(["execute", "if", "data", "entity"]),
+    entityDataPath(["execute", "store", "result", "entity"]),
+    entityDataPath(["execute", "store", "success", "entity"]),
+    entityDataPath(["execute", "unless", "data", "entity"]),
+    entityDataPath(["data", "modify", "entity", "target", "targetPath"]),
+    entityDataPath(["data", "remove", "entity"]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "insert",
+        "before",
+        "index",
+        "from",
+        "entity"
+    ]),
+    entityDataPath(["data", "get", "entity"]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "set",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "prepend",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "merge",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "insert",
+        "before",
+        "index",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "set",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "prepend",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "merge",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "append",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "insert",
+        "after",
+        "index",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        // Todo, add resultType
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "insert",
+        "after",
+        "index",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        // Todo, add resultType
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "append",
+        "from",
+        "entity"
+    ])
+];
+
+// We do not currently support blocks with autocomplete/validation
+// @ts-ignore It is unused - it is just here for posterity/to record what we currently use
+const unvalidatedPaths = [
+    [
+        //#region /data
+        ["data", "get", "block"],
+        ["data", "modify", "block", "targetPos", "targetPath"],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "append",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "insert",
+            "after",
+            "index",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "insert",
+            "before",
+            "index",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "merge",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "prepend",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "set",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "append",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "insert",
+            "after",
+            "index",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "insert",
+            "before",
+            "index",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "merge",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "prepend",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "set",
+            "from",
+            "block"
+        ],
+        ["data", "remove", "block"],
+        //#endregion /data
+        //#region /execute
+        ["execute", "if", "data", "block"],
+        ["execute", "store", "result", "block"],
+        ["execute", "store", "success", "block"],
+        ["execute", "unless", "data", "block"]
+        //#endregion /execute
+    ]
+];
+
 export const parser: Parser = {
+    // tslint:disable-next-line:cyclomatic-complexity
     parse: (
         reader: StringReader,
         info: ParserInfo
-    ): ReturnedInfo<undefined> => {
+    ): ReturnedInfo<ContextChange | undefined> => {
         const helper = new ReturnHelper();
         const out: Array<string | number> = [];
         const walker = new NBTWalker(info.data.globalData.nbt_docs);
         let first = true;
-        const startPath: string[] = [
-            /** Something based on the context data */
-        ];
-        let current: NodeInfo | undefined = walker.getInitialNode(startPath);
+        const pathFunc = startPaths(pathInfo, info.path);
+        const context = pathFunc && pathFunc(info.context);
+        let current: NodeInfo | undefined = context
+            ? walker.getInitialNode(context.startPath)
+            : undefined;
         while (true) {
             // Whitespace
             const start = reader.cursor;
             if (reader.peek() === ARROPEN) {
                 reader.skip();
                 if (reader.peek() === COMPOUND_START) {
-                    const val = validateParse(reader, info, {
-                        rootPath: [...startPath, ...out.map(v => v.toString())]
-                    });
+                    const val = parseThenValidate(reader, walker, current);
                     if (helper.merge(val)) {
                         out.push(0);
                     } else {
@@ -86,7 +399,6 @@ export const parser: Parser = {
                         current = undefined;
                     }
                 }
-                first = false;
                 continue;
             }
             if ((!first && reader.peek() === DOT) || first) {
@@ -99,30 +411,52 @@ export const parser: Parser = {
                         : {};
                 const res = reader.readOption(Object.keys(children));
                 if (helper.merge(res)) {
-                    current = walker.getChildWithName(
-                        current as NodeInfo<CompoundNode>,
-                        res.data
-                    );
+                    current = children[res.data];
                 } else {
-                    if (current && res.data) {
-                        helper.addErrors(
-                            exceptions.INCORRECT_SEGMENT.create(
-                                start,
-                                reader.cursor,
-                                res.data
-                            )
-                        );
+                    if (res.data) {
+                        if (current) {
+                            helper.addErrors(
+                                exceptions.INCORRECT_SEGMENT.create(
+                                    start,
+                                    reader.cursor,
+                                    res.data
+                                )
+                            );
+                        }
+                    } else {
+                        return helper.fail();
                     }
                     current = undefined;
                 }
-                first = false;
                 continue;
             }
             if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, ".");
-                helper.addSuggestion(reader.cursor, "[");
+                if (!first && (!current || isCompoundInfo(current))) {
+                    helper.addSuggestion(reader.cursor, ".");
+                }
+                if (!current || isListInfo(current)) {
+                    helper.addSuggestion(reader.cursor, "[");
+                }
             }
+            first = false;
             if (/\s/.test(reader.peek())) {
+                if (
+                    current &&
+                    context &&
+                    context.resultType &&
+                    isTypedInfo(current)
+                ) {
+                    if (current.node.type !== context.resultType) {
+                        helper.addErrors(
+                            exceptions.WRONG_TYPE.create(
+                                start,
+                                reader.cursor,
+                                context.resultType,
+                                current.node.type
+                            )
+                        );
+                    }
+                }
                 return helper.succeed();
             }
             return helper.fail(
@@ -133,7 +467,5 @@ export const parser: Parser = {
                 )
             );
         }
-
-        return helper.succeed();
     }
 };

@@ -1,19 +1,17 @@
+import { CommandError } from "../../../brigadier/errors";
 import { StringReader } from "../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../misc-functions";
-import {
-    ContextPath,
-    startPaths,
-    stringArrayEqual
-} from "../../../misc-functions/context";
+import { ContextPath, startPaths } from "../../../misc-functions/context";
 import {
     CommandContext,
     Parser,
     ParserInfo,
-    ReturnedInfo
+    ReturnedInfo,
+    ReturnSuccess
 } from "../../../types";
 import { parseAnyNBTTag } from "./tag-parser";
 import { UnknownsError } from "./tag/compound-tag";
-import { isNoNBTInfo } from "./util/doc-walker-util";
+import { isNoNBTInfo, NodeInfo } from "./util/doc-walker-util";
 import { Correctness } from "./util/nbt-util";
 import { NBTWalker } from "./walker";
 
@@ -21,8 +19,7 @@ type CtxPathFunc = (context: CommandContext) => NBTContextData;
 
 export interface NBTContextData {
     ids?: string | string[];
-    rootPath?: string[];
-    type?: "entity" | "item" | "block";
+    type: "entity" | "item" | "block";
 }
 
 const paths: Array<ContextPath<CtxPathFunc>> = [
@@ -40,7 +37,7 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
     },
     {
         data: args => ({
-            ids: args.entity,
+            ids: args.otherEntity,
             type: "entity"
         }),
         path: ["summon", "entity"]
@@ -62,69 +59,90 @@ export function validateParse(
         (helper.merge(parseResult) || datum.correctness > Correctness.NO)
     ) {
         if (!!data) {
-            const rootPath = data.rootPath || [];
-            if (data.type) {
-                rootPath.push(data.type);
-            }
             const walker = new NBTWalker(docs);
-            const addUnknownError = (error: UnknownsError, id?: string) => {
-                const { path, ...allowed } = error;
-                helper.addErrors({
-                    ...allowed,
-                    // This will break when translations are added, not sure how best to do this
-                    text: id
-                        ? `${error.text} for ${data.type} ${id}`
-                        : error.text
-                });
-            };
-            const pathFor = (v: string) => {
-                if (data.type) {
-                    return [...rootPath, v];
-                } else {
-                    return rootPath;
-                }
-            };
+            const unknowns = new Set<string>();
             if (Array.isArray(data.ids)) {
                 for (const id of data.ids) {
-                    const root = walker.getInitialNode(pathFor(id));
+                    const root = walker.getInitialNode([data.type, id]);
                     if (!isNoNBTInfo(root)) {
                         const result = datum.tag.validate(root, walker);
                         helper.merge(result, { errors: false });
-                        for (const e of result.errors) {
-                            const error = e as UnknownsError;
-                            if (error.path) {
-                                if (
-                                    !helper
-                                        .getShared()
-                                        .errors.find(v =>
-                                            stringArrayEqual(
-                                                (v as UnknownsError).path,
-                                                error.path
-                                            )
-                                        )
-                                ) {
-                                    addUnknownError(error, id);
-                                }
-                            } else {
-                                helper.addErrors(error);
-                            }
-                        }
+                        helper.merge(
+                            solveUnkownErrors(
+                                result.errors,
+                                unknowns,
+                                `${data.type} '${id}'`
+                            )
+                        );
                     }
                 }
             } else {
-                const root = walker.getInitialNode(pathFor(data.ids || "none"));
+                const root = walker.getInitialNode([
+                    data.type,
+                    data.ids || "none"
+                ]);
                 if (!isNoNBTInfo(root)) {
                     const result = datum.tag.validate(root, walker);
                     helper.merge(result, { errors: false });
-                    for (const e of result.errors) {
-                        const error = e as UnknownsError;
-                        if (error.path) {
-                            addUnknownError(error);
-                        } else {
-                            helper.addErrors(error);
-                        }
-                    }
+                    helper.merge(
+                        solveUnkownErrors(
+                            result.errors,
+                            unknowns,
+                            `${data.type} '${data.ids || "unspecified"}'`
+                        )
+                    );
                 }
+            }
+        }
+        return helper.succeed();
+    } else {
+        return helper.fail();
+    }
+}
+
+function solveUnkownErrors(
+    errors: Array<CommandError | UnknownsError>,
+    unknowns: Set<string> = new Set(),
+    name?: string
+): ReturnSuccess<undefined> {
+    const helper = new ReturnHelper();
+    for (const error of errors) {
+        if (Array.isArray((error as UnknownsError).path)) {
+            const unknownError = error as UnknownsError;
+            const pathKey = unknownError.path.join(":");
+            if (!unknowns.has(pathKey)) {
+                const { path, ...allowed } = unknownError;
+                helper.addErrors({
+                    ...allowed,
+                    // This will break when translations are added, not sure how best to do this
+                    text: name ? `${error.text} for ${name}` : error.text
+                });
+                unknowns.add(pathKey);
+            }
+        } else {
+            helper.addErrors(error);
+        }
+    }
+    return helper.succeed();
+}
+
+export function parseThenValidate(
+    reader: StringReader,
+    walker: NBTWalker,
+    node?: NodeInfo
+): ReturnedInfo<undefined> {
+    const helper = new ReturnHelper();
+    const parseResult = parseAnyNBTTag(reader, []);
+    const parseData = parseResult.data;
+    if (
+        parseData &&
+        (helper.merge(parseResult) || parseData.correctness > Correctness.NO)
+    ) {
+        if (node) {
+            if (!isNoNBTInfo(node)) {
+                const result = parseData.tag.validate(node, walker);
+                helper.merge(result, { errors: false });
+                helper.merge(solveUnkownErrors(result.errors));
             }
         }
         return helper.succeed();
