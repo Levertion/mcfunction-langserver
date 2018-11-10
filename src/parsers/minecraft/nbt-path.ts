@@ -417,7 +417,16 @@ export const nbtPathParser: Parser = {
                 if (helper.merge(res)) {
                     current = children[res.data];
                 } else {
-                    if (res.data && res.data.length > 0) {
+                    if (res.data) {
+                        if (res.data.length === 0) {
+                            return helper.fail(
+                                exceptions.BAD_CHAR.create(
+                                    reader.cursor - 1,
+                                    reader.cursor,
+                                    reader.peek()
+                                )
+                            );
+                        }
                         if (current) {
                             helper.addErrors(
                                 exceptions.INCORRECT_SEGMENT.create(
