@@ -410,7 +410,10 @@ export const nbtPathParser: Parser = {
                     current && isCompoundInfo(current)
                         ? walker.getChildren(current)
                         : {};
-                const res = reader.readOption(Object.keys(children));
+                const res = reader.readOption(Object.keys(children), {
+                    quote: true,
+                    unquoted: /^[0-9A-Za-z_\-+]$/
+                });
                 if (helper.merge(res)) {
                     current = children[res.data];
                 } else {

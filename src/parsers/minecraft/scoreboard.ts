@@ -58,10 +58,10 @@ export const objectiveParser: Parser = {
             const scoreboardData = info.data.localData.nbt.scoreboard;
             if (scoreboardData) {
                 const options = scoreboardData.data.Objectives.map(v => v.Name);
-                const result = reader.readOption(
-                    options,
-                    StringReader.charAllowedInUnquotedString
-                );
+                const result = reader.readOption(options, {
+                    quote: false,
+                    unquoted: StringReader.charAllowedInUnquotedString
+                });
                 if (helper.merge(result)) {
                     if (!info.suggesting) {
                         for (const objective of scoreboardData.data
@@ -129,10 +129,10 @@ export const teamParser: Parser = {
             const scoreboardData = info.data.localData.nbt.scoreboard;
             if (scoreboardData) {
                 const options = scoreboardData.data.Teams;
-                const result = reader.readOption(
-                    options.map(v => v.Name),
-                    StringReader.charAllowedInUnquotedString
-                );
+                const result = reader.readOption(options.map(v => v.Name), {
+                    quote: false,
+                    unquoted: StringReader.charAllowedInUnquotedString
+                });
                 if (helper.merge(result)) {
                     for (const team of options) {
                         if (team.Name === result.data) {
@@ -186,7 +186,10 @@ export const criteriaParser: Parser = {
                 ...entityCriteria,
                 ...itemCriteria
             ],
-            NONWHITESPACE,
+            {
+                quote: false,
+                unquoted: NONWHITESPACE
+            },
             CompletionItemKind.EnumMember
         );
         const text = optionResult.data;
@@ -204,7 +207,10 @@ export const criteriaParser: Parser = {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(
                     COLORS,
-                    NONWHITESPACE,
+                    {
+                        quote: false,
+                        unquoted: NONWHITESPACE
+                    },
                     CompletionItemKind.Color
                 );
                 if (helper.merge(result)) {
@@ -217,7 +223,10 @@ export const criteriaParser: Parser = {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(
                     entities.map(mapFunction),
-                    NONWHITESPACE,
+                    {
+                        quote: false,
+                        unquoted: NONWHITESPACE
+                    },
                     CompletionItemKind.Reference
                 );
                 if (helper.merge(result)) {
@@ -230,7 +239,10 @@ export const criteriaParser: Parser = {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(
                     Object.keys(info.data.globalData.blocks).map(mapFunction),
-                    NONWHITESPACE,
+                    {
+                        quote: false,
+                        unquoted: NONWHITESPACE
+                    },
                     CompletionItemKind.Constant
                 );
                 if (helper.merge(result)) {
@@ -243,7 +255,10 @@ export const criteriaParser: Parser = {
                 reader.cursor = start + choice.length;
                 const result = reader.readOption(
                     info.data.globalData.items.map(mapFunction),
-                    NONWHITESPACE,
+                    {
+                        quote: false,
+                        unquoted: NONWHITESPACE
+                    },
                     CompletionItemKind.Keyword
                 );
                 if (helper.merge(result)) {

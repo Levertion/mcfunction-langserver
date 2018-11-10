@@ -1800,7 +1800,7 @@ class StringReader {
    */
 
 
-  readOption(options, quoteKind = "both", completion) {
+  readOption(options, quoteKind = StringReader.defaultQuotingInfo, completion) {
     const start = this.cursor;
     const helper = new misc_functions_1.ReturnHelper();
     const result = this.readOptionInner(quoteKind); // Reading failed, which must be due to an invalid quoted string
@@ -1889,7 +1889,7 @@ class StringReader {
    */
 
 
-  readString() {
+  readString(unquotedRegex = StringReader.charAllowedInUnquotedString) {
     const helper = new misc_functions_1.ReturnHelper();
 
     if (this.canRead() && this.peek() === exports.QUOTE) {
@@ -1902,7 +1902,7 @@ class StringReader {
         });
       }
 
-      return helper.succeed(this.readUnquotedString());
+      return helper.succeed(this.readWhileRegexp(unquotedRegex));
     }
   }
   /**
@@ -1963,17 +1963,12 @@ class StringReader {
     this.readWhileRegexp(/\s/); // Whitespace
   }
 
-  readOptionInner(kind) {
+  readOptionInner(info) {
     // tslint:disable:helper-return
-    switch (kind) {
-      case "both":
-        return this.readString();
-
-      case "yes":
-        return this.readQuotedString();
-
-      default:
-        return misc_functions_1.getReturned(this.readWhileRegexp(kind));
+    if (info.quote) {
+      return this.readString(info.unquoted);
+    } else {
+      return misc_functions_1.getReturned(this.readWhileRegexp(StringReader.charAllowedInUnquotedString));
     } // tslint:enable:helper-return
 
   }
@@ -1982,6 +1977,10 @@ class StringReader {
 
 StringReader.charAllowedInUnquotedString = /^[0-9A-Za-z_\-\.+]$/;
 StringReader.charAllowedNumber = /^[0-9\-\.]$/;
+StringReader.defaultQuotingInfo = {
+  quote: true,
+  unquoted: StringReader.charAllowedInUnquotedString
+};
 StringReader.bools = {
   true: true,
   false: false
@@ -1998,8 +1997,22 @@ function completionForString(value, start, quoting, kind) {
 
 exports.completionForString = completionForString;
 
-function quoteIfNeeded(value, quoting = "both") {
-  return quoting !== "no" && (quoting === "yes" || value.includes('"') || value.includes("\\")) ? exports.QUOTE + escapeQuotes(value) + exports.QUOTE : value;
+function quoteIfNeeded(value, quoting = StringReader.defaultQuotingInfo) {
+  if (!quoting.quote) {
+    return value;
+  } else {
+    if (quoting.unquoted) {
+      for (const char of value) {
+        if (!char.match(quoting.unquoted)) {
+          return exports.QUOTE + escapeQuotes(value) + exports.QUOTE;
+        }
+      }
+
+      return value;
+    }
+
+    return exports.QUOTE + escapeQuotes(value) + exports.QUOTE;
+  }
 }
 
 exports.quoteIfNeeded = quoteIfNeeded;
@@ -5001,7 +5014,10 @@ class ListParser {
   parse(reader, info) {
     const start = reader.cursor;
     const helper = new misc_functions_1.ReturnHelper(info);
-    const optResult = reader.readOption(this.options, string_reader_1.StringReader.charAllowedInUnquotedString, vscode_languageserver_1.CompletionItemKind.EnumMember);
+    const optResult = reader.readOption(this.options, {
+      quote: false,
+      unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+    }, vscode_languageserver_1.CompletionItemKind.EnumMember);
 
     if (helper.merge(optResult)) {
       return helper.succeed();
@@ -5197,7 +5213,10 @@ exports.nbtPathParser = {
         }
 
         const children = current && doc_walker_util_1.isCompoundInfo(current) ? walker.getChildren(current) : {};
-        const res = reader.readOption(Object.keys(children));
+        const res = reader.readOption(Object.keys(children), {
+          quote: true,
+          unquoted: /^[0-9A-Za-z_\-+]$/
+        });
 
         if (helper.merge(res)) {
           current = children[res.data];
@@ -5478,7 +5497,10 @@ exports.objectiveParser = {
 
       if (scoreboardData) {
         const options = scoreboardData.data.Objectives.map(v => v.Name);
-        const result = reader.readOption(options, string_reader_1.StringReader.charAllowedInUnquotedString);
+        const result = reader.readOption(options, {
+          quote: false,
+          unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+        });
 
         if (helper.merge(result)) {
           if (!info.suggesting) {
@@ -5535,7 +5557,10 @@ exports.teamParser = {
 
       if (scoreboardData) {
         const options = scoreboardData.data.Teams;
-        const result = reader.readOption(options.map(v => v.Name), string_reader_1.StringReader.charAllowedInUnquotedString);
+        const result = reader.readOption(options.map(v => v.Name), {
+          quote: false,
+          unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+        });
 
         if (helper.merge(result)) {
           for (const team of options) {
@@ -5572,7 +5597,10 @@ exports.criteriaParser = {
   parse: (reader, info) => {
     const start = reader.cursor;
     const helper = new misc_functions_1.ReturnHelper(info);
-    const optionResult = reader.readOption([...criteria_1.verbatimCriteria, ...criteria_1.blockCriteria, ...criteria_1.colorCriteria, ...criteria_1.entityCriteria, ...criteria_1.itemCriteria], NONWHITESPACE, vscode_languageserver_1.CompletionItemKind.EnumMember);
+    const optionResult = reader.readOption([...criteria_1.verbatimCriteria, ...criteria_1.blockCriteria, ...criteria_1.colorCriteria, ...criteria_1.entityCriteria, ...criteria_1.itemCriteria], {
+      quote: false,
+      unquoted: NONWHITESPACE
+    }, vscode_languageserver_1.CompletionItemKind.EnumMember);
     const text = optionResult.data;
 
     if (helper.merge(optionResult)) {
@@ -5590,7 +5618,10 @@ exports.criteriaParser = {
     for (const choice of criteria_1.colorCriteria) {
       if (text.startsWith(choice)) {
         reader.cursor = start + choice.length;
-        const result = reader.readOption(colors_1.COLORS, NONWHITESPACE, vscode_languageserver_1.CompletionItemKind.Color);
+        const result = reader.readOption(colors_1.COLORS, {
+          quote: false,
+          unquoted: NONWHITESPACE
+        }, vscode_languageserver_1.CompletionItemKind.Color);
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -5601,7 +5632,10 @@ exports.criteriaParser = {
     for (const choice of criteria_1.entityCriteria) {
       if (text.startsWith(choice)) {
         reader.cursor = start + choice.length;
-        const result = reader.readOption(statics_1.entities.map(mapFunction), NONWHITESPACE, vscode_languageserver_1.CompletionItemKind.Reference);
+        const result = reader.readOption(statics_1.entities.map(mapFunction), {
+          quote: false,
+          unquoted: NONWHITESPACE
+        }, vscode_languageserver_1.CompletionItemKind.Reference);
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -5612,7 +5646,10 @@ exports.criteriaParser = {
     for (const choice of criteria_1.blockCriteria) {
       if (text.startsWith(choice)) {
         reader.cursor = start + choice.length;
-        const result = reader.readOption(Object.keys(info.data.globalData.blocks).map(mapFunction), NONWHITESPACE, vscode_languageserver_1.CompletionItemKind.Constant);
+        const result = reader.readOption(Object.keys(info.data.globalData.blocks).map(mapFunction), {
+          quote: false,
+          unquoted: NONWHITESPACE
+        }, vscode_languageserver_1.CompletionItemKind.Constant);
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -5623,7 +5660,10 @@ exports.criteriaParser = {
     for (const choice of criteria_1.itemCriteria) {
       if (text.startsWith(choice)) {
         reader.cursor = start + choice.length;
-        const result = reader.readOption(info.data.globalData.items.map(mapFunction), NONWHITESPACE, vscode_languageserver_1.CompletionItemKind.Keyword);
+        const result = reader.readOption(info.data.globalData.items.map(mapFunction), {
+          quote: false,
+          unquoted: NONWHITESPACE
+        }, vscode_languageserver_1.CompletionItemKind.Keyword);
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -5718,7 +5758,10 @@ exports.timeParser = {
     }
 
     const suffixStart = reader.cursor;
-    const suffix = reader.readOption(typed_keys_1.typed_keys(exports.times), string_reader_1.StringReader.charAllowedInUnquotedString);
+    const suffix = reader.readOption(typed_keys_1.typed_keys(exports.times), {
+      quote: false,
+      unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+    });
 
     if (!helper.merge(suffix)) {
       if (suffix.data !== "") {
