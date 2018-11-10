@@ -5202,7 +5202,7 @@ exports.nbtPathParser = {
         if (helper.merge(res)) {
           current = children[res.data];
         } else {
-          if (res.data) {
+          if (res.data && res.data.length > 0) {
             if (current) {
               helper.addErrors(exceptions.INCORRECT_SEGMENT.create(start, reader.cursor, res.data));
             }
