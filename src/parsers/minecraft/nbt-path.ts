@@ -349,7 +349,7 @@ const unvalidatedPaths = [
     ]
 ];
 
-export const parser: Parser = {
+export const nbtPathParser: Parser = {
     // tslint:disable-next-line:cyclomatic-complexity
     parse: (
         reader: StringReader,
@@ -402,9 +402,7 @@ export const parser: Parser = {
                         current = undefined;
                     }
                 }
-                continue;
-            }
-            if ((!first && reader.peek() === DOT) || first) {
+            } else if ((!first && reader.peek() === DOT) || first) {
                 if (!first) {
                     reader.skip();
                 }
@@ -431,8 +429,16 @@ export const parser: Parser = {
                     }
                     current = undefined;
                 }
-                continue;
+            } else {
+                return helper.fail(
+                    exceptions.BAD_CHAR.create(
+                        reader.cursor - 1,
+                        reader.cursor,
+                        reader.peek()
+                    )
+                );
             }
+            first = false;
             if (!reader.canRead()) {
                 if (!first && (!current || isCompoundInfo(current))) {
                     helper.addSuggestion(reader.cursor, ".");
@@ -440,8 +446,8 @@ export const parser: Parser = {
                 if (!current || isListInfo(current)) {
                     helper.addSuggestion(reader.cursor, "[");
                 }
+                return helper.succeed({ nbt_path: current });
             }
-            first = false;
             if (/\s/.test(reader.peek())) {
                 if (
                     current &&
@@ -462,13 +468,6 @@ export const parser: Parser = {
                 }
                 return helper.succeed<ContextChange>({ nbt_path: current });
             }
-            return helper.fail(
-                exceptions.BAD_CHAR.create(
-                    reader.cursor - 1,
-                    reader.cursor,
-                    reader.peek()
-                )
-            );
         }
     }
 };

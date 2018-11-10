@@ -5143,7 +5143,7 @@ const unvalidatedPaths = [[//#region /data
 //#region /execute
 ["execute", "if", "data", "block"], ["execute", "store", "result", "block"], ["execute", "store", "success", "block"], ["execute", "unless", "data", "block"] //#endregion /execute
 ]];
-exports.parser = {
+exports.nbtPathParser = {
   // tslint:disable-next-line:cyclomatic-complexity
   parse: (reader, info) => {
     const helper = new misc_functions_1.ReturnHelper();
@@ -5191,11 +5191,7 @@ exports.parser = {
             current = undefined;
           }
         }
-
-        continue;
-      }
-
-      if (!first && reader.peek() === DOT || first) {
+      } else if (!first && reader.peek() === DOT || first) {
         if (!first) {
           reader.skip();
         }
@@ -5216,9 +5212,11 @@ exports.parser = {
 
           current = undefined;
         }
-
-        continue;
+      } else {
+        return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
       }
+
+      first = false;
 
       if (!reader.canRead()) {
         if (!first && (!current || doc_walker_util_1.isCompoundInfo(current))) {
@@ -5228,9 +5226,11 @@ exports.parser = {
         if (!current || doc_walker_util_1.isListInfo(current)) {
           helper.addSuggestion(reader.cursor, "[");
         }
-      }
 
-      first = false;
+        return helper.succeed({
+          nbt_path: current
+        });
+      }
 
       if (/\s/.test(reader.peek())) {
         if (current && context && context.resultType && doc_walker_util_1.isTypedInfo(current)) {
@@ -5243,8 +5243,6 @@ exports.parser = {
           nbt_path: current
         });
       }
-
-      return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
     }
   }
 };
@@ -5808,10 +5806,10 @@ const implementedParsers = {
   "minecraft:message": message_1.messageParser,
   "minecraft:mob_effect": namespaceParsers.mobEffectParser,
   "minecraft:nbt": nbt_1.nbtParser,
-  "minecraft:nbt-path": nbt_path_1.parser,
+  // TODO: determine if nbt-path is ever used
+  "minecraft:nbt-path": nbt_path_1.nbtPathParser,
   "minecraft:nbt_compound_tag": nbt_1.nbtParser,
-  "minecraft:nbt_path": nbt_path_1.parser,
-  // Duplication of nbt path is OK - nbt-path is 1.13 whereas nbt_path is 1.14
+  "minecraft:nbt_path": nbt_path_1.nbtPathParser,
   "minecraft:nbt_tag": nbt_1.nbtParser,
   "minecraft:objective": scoreboard_1.objectiveParser,
   "minecraft:objective_criteria": scoreboard_1.criteriaParser,
