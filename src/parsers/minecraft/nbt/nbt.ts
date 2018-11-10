@@ -17,28 +17,30 @@ import { NBTWalker } from "./walker";
 
 type CtxPathFunc = (context: CommandContext) => NBTContextData;
 
-export interface NBTContextData {
+export type NBTContextData = NBTIDInfo | NodeInfo;
+
+export interface NBTIDInfo {
     ids?: string | string[];
-    type: "entity" | "item" | "block";
+    kind: "entity" | "item" | "block";
 }
 
 const paths: Array<ContextPath<CtxPathFunc>> = [
     {
         data: () => ({
-            type: "entity"
+            kind: "entity"
         }),
         path: ["data", "merge", "entity"]
     },
     {
         data: () => ({
-            type: "block"
+            kind: "block"
         }),
         path: ["data", "merge", "block"]
     },
     {
         data: args => ({
             ids: (args.otherEntity && args.otherEntity.ids) || [],
-            type: "entity"
+            kind: "entity"
         }),
         path: ["summon", "entity"]
     }
@@ -60,10 +62,33 @@ export function validateParse(
     ) {
         if (!!data) {
             const walker = new NBTWalker(docs);
+            const asNBTIDInfo = data as NBTIDInfo;
+            const asNodeInfo = data as NodeInfo;
             const unknowns = new Set<string>();
-            if (Array.isArray(data.ids)) {
-                for (const id of data.ids) {
-                    const root = walker.getInitialNode([data.type, id]);
+            if (asNBTIDInfo.kind) {
+                if (Array.isArray(asNBTIDInfo.ids)) {
+                    for (const id of asNBTIDInfo.ids) {
+                        const root = walker.getInitialNode([
+                            asNBTIDInfo.kind,
+                            id
+                        ]);
+                        if (!isNoNBTInfo(root)) {
+                            const result = datum.tag.validate(root, walker);
+                            helper.merge(result, { errors: false });
+                            helper.merge(
+                                solveUnkownErrors(
+                                    result.errors,
+                                    unknowns,
+                                    `${asNBTIDInfo.kind} '${id}'`
+                                )
+                            );
+                        }
+                    }
+                } else {
+                    const root = walker.getInitialNode([
+                        asNBTIDInfo.kind,
+                        asNBTIDInfo.ids || "none"
+                    ]);
                     if (!isNoNBTInfo(root)) {
                         const result = datum.tag.validate(root, walker);
                         helper.merge(result, { errors: false });
@@ -71,26 +96,17 @@ export function validateParse(
                             solveUnkownErrors(
                                 result.errors,
                                 unknowns,
-                                `${data.type} '${id}'`
+                                `${asNBTIDInfo.kind} '${asNBTIDInfo.ids ||
+                                    "unspecified"}'`
                             )
                         );
                     }
                 }
             } else {
-                const root = walker.getInitialNode([
-                    data.type,
-                    data.ids || "none"
-                ]);
-                if (!isNoNBTInfo(root)) {
-                    const result = datum.tag.validate(root, walker);
+                if (!isNoNBTInfo(asNodeInfo)) {
+                    const result = datum.tag.validate(asNodeInfo, walker);
                     helper.merge(result, { errors: false });
-                    helper.merge(
-                        solveUnkownErrors(
-                            result.errors,
-                            unknowns,
-                            `${data.type} '${data.ids || "unspecified"}'`
-                        )
-                    );
+                    helper.merge(solveUnkownErrors(result.errors));
                 }
             }
         }

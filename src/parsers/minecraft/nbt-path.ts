@@ -46,20 +46,23 @@ const exceptions = {
     )
 };
 
-const entityDataPath = (
+function entityDataPath(
     path: string[]
-): ContextPath<(context: CommandContext) => PathResult> => ({
-    data: c => ({
-        startPath: ["entity"].concat(
-            (c.otherEntity && c.otherEntity.ids) || "none"
-        )
-    }),
-    path
-});
+): ContextPath<(context: CommandContext) => PathResult> {
+    return {
+        data: c => ({
+            resultType: c.nbt_path && (c.nbt_path.node as TypedNode).type,
+            start: ["entity"].concat(
+                (c.otherEntity && c.otherEntity.ids) || "none"
+            )
+        }),
+        path
+    };
+}
 
 interface PathResult {
     resultType?: TypedNode["type"];
-    startPath: string[];
+    start: string[];
 }
 
 const pathInfo: Array<ContextPath<(context: CommandContext) => PathResult>> = [
@@ -177,7 +180,6 @@ const pathInfo: Array<ContextPath<(context: CommandContext) => PathResult>> = [
         "entity"
     ]),
     entityDataPath([
-        // Todo, add resultType
         "data",
         "modify",
         "entity",
@@ -190,7 +192,6 @@ const pathInfo: Array<ContextPath<(context: CommandContext) => PathResult>> = [
         "entity"
     ]),
     entityDataPath([
-        // Todo, add resultType
         "data",
         "modify",
         "entity",
@@ -203,7 +204,7 @@ const pathInfo: Array<ContextPath<(context: CommandContext) => PathResult>> = [
 ];
 
 // We do not currently support blocks with autocomplete/validation
-// @ts-ignore It is unused - it is just here for posterity/to record what we currently use
+// @ts-ignore It is unused - it is just here to record what we currently do not use
 const unvalidatedPaths = [
     [
         //#region /data
@@ -360,9 +361,11 @@ export const parser: Parser = {
         let first = true;
         const pathFunc = startPaths(pathInfo, info.path);
         const context = pathFunc && pathFunc(info.context);
-        let current: NodeInfo | undefined = context
-            ? walker.getInitialNode(context.startPath)
-            : undefined;
+        let current: NodeInfo | undefined =
+            context &&
+            (Array.isArray(context.start)
+                ? walker.getInitialNode(context.start)
+                : context.start);
         while (true) {
             // Whitespace
             const start = reader.cursor;
@@ -457,7 +460,7 @@ export const parser: Parser = {
                         );
                     }
                 }
-                return helper.succeed();
+                return helper.succeed<ContextChange>({ nbt_path: current });
             }
             return helper.fail(
                 exceptions.BAD_CHAR.create(

@@ -11,6 +11,7 @@ import { BlankCommandError, CommandError } from "./brigadier/errors";
 import { StringReader } from "./brigadier/string-reader";
 import { CommandNodePath, GlobalData, LocalData } from "./data/types";
 import { PackLocationSegments } from "./misc-functions";
+import { NodeInfo } from "./parsers/minecraft/nbt/util/doc-walker-util";
 
 //#region Document
 export interface FunctionInfo {
@@ -91,6 +92,10 @@ export interface CommandContext {
      * then validate all function calls with this requirement
      */
     executor?: EntityInfo;
+    /**
+     * The result from an nbt path
+     */
+    nbt_path?: NodeInfo;
     /**
      * A different entity which is important during parsing
      */
