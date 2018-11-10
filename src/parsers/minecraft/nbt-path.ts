@@ -1,13 +1,22 @@
-import { CompoundNode } from "mc-nbt-paths";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { ReturnHelper } from "../../misc-functions";
-import { Parser, ParserInfo, ReturnedInfo } from "../../types";
+import { ContextPath, ReturnHelper, startPaths } from "../../misc-functions";
+import {
+    CommandContext,
+    ContextChange,
+    Parser,
+    ParserInfo,
+    ReturnedInfo
+} from "../../types";
+import { parseThenValidate } from "./nbt/nbt";
 import {
     isCompoundInfo,
     isListInfo,
-    NodeInfo
+    isTypedInfo,
+    NodeInfo,
+    TypedNode
 } from "./nbt/util/doc-walker-util";
+import { COMPOUND_START } from "./nbt/util/nbt-util";
 import { NBTWalker } from "./nbt/walker";
 
 const DOT = ".";
@@ -30,31 +39,352 @@ const exceptions = {
     UNEXPECTED_ARRAY: new CommandErrorBuilder(
         "argument.nbt_path.unknown",
         "Path segment should not be array"
+    ),
+    WRONG_TYPE: new CommandErrorBuilder(
+        "argument.nbt_path.type",
+        "Expected node to have type %s, actual is %s"
     )
 };
 
-export const parser: Parser = {
+function entityDataPath(
+    path: string[]
+): ContextPath<(context: CommandContext) => PathResult> {
+    return {
+        data: c => ({
+            resultType: c.nbt_path && (c.nbt_path.node as TypedNode).type,
+            start: ["entity"].concat(
+                (c.otherEntity && c.otherEntity.ids) || "none"
+            )
+        }),
+        path
+    };
+}
+
+interface PathResult {
+    resultType?: TypedNode["type"];
+    start: string[];
+}
+
+const pathInfo: Array<ContextPath<(context: CommandContext) => PathResult>> = [
+    entityDataPath(["execute", "if", "data", "entity"]),
+    entityDataPath(["execute", "store", "result", "entity"]),
+    entityDataPath(["execute", "store", "success", "entity"]),
+    entityDataPath(["execute", "unless", "data", "entity"]),
+    entityDataPath(["data", "modify", "entity", "target", "targetPath"]),
+    entityDataPath(["data", "remove", "entity"]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "insert",
+        "before",
+        "index",
+        "from",
+        "entity"
+    ]),
+    entityDataPath(["data", "get", "entity"]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "set",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "prepend",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "merge",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "insert",
+        "before",
+        "index",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "set",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "prepend",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "merge",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "append",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "block",
+        "targetPos",
+        "targetPath",
+        "insert",
+        "after",
+        "index",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "insert",
+        "after",
+        "index",
+        "from",
+        "entity"
+    ]),
+    entityDataPath([
+        "data",
+        "modify",
+        "entity",
+        "target",
+        "targetPath",
+        "append",
+        "from",
+        "entity"
+    ])
+];
+
+// We do not currently support blocks with autocomplete/validation
+// @ts-ignore It is unused - it is just here to record what we currently do not use
+const unvalidatedPaths = [
+    [
+        //#region /data
+        ["data", "get", "block"],
+        ["data", "modify", "block", "targetPos", "targetPath"],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "append",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "insert",
+            "after",
+            "index",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "insert",
+            "before",
+            "index",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "merge",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "prepend",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "block",
+            "targetPos",
+            "targetPath",
+            "set",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "append",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "insert",
+            "after",
+            "index",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "insert",
+            "before",
+            "index",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "merge",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "prepend",
+            "from",
+            "block"
+        ],
+        [
+            "data",
+            "modify",
+            "entity",
+            "target",
+            "targetPath",
+            "set",
+            "from",
+            "block"
+        ],
+        ["data", "remove", "block"],
+        //#endregion /data
+        //#region /execute
+        ["execute", "if", "data", "block"],
+        ["execute", "store", "result", "block"],
+        ["execute", "store", "success", "block"],
+        ["execute", "unless", "data", "block"]
+        //#endregion /execute
+    ]
+];
+
+export const nbtPathParser: Parser = {
+    // tslint:disable-next-line:cyclomatic-complexity
     parse: (
         reader: StringReader,
-        prop: ParserInfo
-    ): ReturnedInfo<undefined> => {
+        info: ParserInfo
+    ): ReturnedInfo<ContextChange | undefined> => {
         const helper = new ReturnHelper();
         const out: Array<string | number> = [];
-        const walker = new NBTWalker(prop.data.globalData.nbt_docs);
+        const walker = new NBTWalker(info.data.globalData.nbt_docs);
         let first = true;
-        let current: NodeInfo | undefined = walker.getInitialNode([
-            /** Something based on the context data */
-        ]);
+        const pathFunc = startPaths(pathInfo, info.path);
+        const context = pathFunc && pathFunc(info.context);
+        let current: NodeInfo | undefined =
+            context &&
+            (Array.isArray(context.start)
+                ? walker.getInitialNode(context.start)
+                : context.start);
         while (true) {
             // Whitespace
             const start = reader.cursor;
             if (reader.peek() === ARROPEN) {
                 reader.skip();
-                const int = reader.readInt();
-                if (helper.merge(int)) {
-                    out.push(int.data);
+                if (reader.peek() === COMPOUND_START) {
+                    const val = parseThenValidate(reader, walker, current);
+                    if (helper.merge(val)) {
+                        out.push(0);
+                    } else {
+                        return helper.fail();
+                    }
                 } else {
-                    return helper.fail();
+                    const int = reader.readInt();
+                    if (helper.merge(int)) {
+                        out.push(int.data);
+                    } else {
+                        return helper.fail();
+                    }
                 }
                 if (!helper.merge(reader.expect(ARRCLOSE))) {
                     return helper.fail();
@@ -72,54 +402,84 @@ export const parser: Parser = {
                         current = undefined;
                     }
                 }
-                first = false;
-                continue;
-            }
-            if (reader.peek() === DOT || first) {
-                if (reader.peek() === DOT) {
+            } else if ((!first && reader.peek() === DOT) || first) {
+                if (!first) {
                     reader.skip();
                 }
                 const children =
                     current && isCompoundInfo(current)
                         ? walker.getChildren(current)
                         : {};
-                const res = reader.readOption(Object.keys(children));
+                const res = reader.readOption(Object.keys(children), {
+                    quote: true,
+                    unquoted: /^[0-9A-Za-z_\-+]$/
+                });
                 if (helper.merge(res)) {
-                    current = walker.getChildWithName(
-                        current as NodeInfo<CompoundNode>,
-                        res.data
-                    );
+                    current = children[res.data];
                 } else {
-                    if (current && res.data) {
-                        helper.addErrors(
-                            exceptions.INCORRECT_SEGMENT.create(
-                                start,
-                                reader.cursor,
-                                res.data
-                            )
-                        );
+                    if (res.data !== undefined) {
+                        if (res.data.length === 0) {
+                            return helper.fail(
+                                exceptions.BAD_CHAR.create(
+                                    reader.cursor - 1,
+                                    reader.cursor,
+                                    reader.peek()
+                                )
+                            );
+                        }
+                        if (current) {
+                            helper.addErrors(
+                                exceptions.INCORRECT_SEGMENT.create(
+                                    start,
+                                    reader.cursor,
+                                    res.data
+                                )
+                            );
+                        }
+                    } else {
+                        return helper.fail();
                     }
                     current = undefined;
                 }
-                first = false;
-                continue;
+            } else {
+                return helper.fail(
+                    exceptions.BAD_CHAR.create(
+                        reader.cursor - 1,
+                        reader.cursor,
+                        reader.peek()
+                    )
+                );
             }
+            first = false;
             if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, ".");
-                helper.addSuggestion(reader.cursor, "[");
+                if (!first && (!current || isCompoundInfo(current))) {
+                    helper.addSuggestion(reader.cursor, ".");
+                }
+                if (!current || isListInfo(current)) {
+                    helper.addSuggestion(reader.cursor, "[");
+                }
+                return helper.succeed({ nbt_path: current });
             }
             if (/\s/.test(reader.peek())) {
-                return helper.succeed();
+                if (
+                    current &&
+                    context &&
+                    context.resultType &&
+                    isTypedInfo(current)
+                ) {
+                    if (current.node.type !== context.resultType) {
+                        helper.addErrors(
+                            exceptions.WRONG_TYPE.create(
+                                start,
+                                reader.cursor,
+                                context.resultType,
+                                current.node.type
+                            )
+                        );
+                    }
+                }
+                return helper.succeed<ContextChange>({ nbt_path: current });
             }
-            return helper.fail(
-                exceptions.BAD_CHAR.create(
-                    reader.cursor - 1,
-                    reader.cursor,
-                    reader.peek()
-                )
-            );
         }
-
-        return helper.succeed();
     }
 };

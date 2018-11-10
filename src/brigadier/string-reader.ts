@@ -54,9 +54,25 @@ const EXCEPTIONS = {
 export const QUOTE = '"';
 const ESCAPE = "\\";
 export type QuotingKind = "both" | "yes" | RegExp;
+
+export interface QuotingInfo {
+    /**
+     * True if quoting is allowed
+     */
+    quote: boolean;
+    /**
+     * Defined if not quoting is allowed
+     */
+    unquoted?: RegExp;
+}
 export class StringReader {
     public static charAllowedInUnquotedString = /^[0-9A-Za-z_\-\.+]$/;
     public static charAllowedNumber = /^[0-9\-\.]$/;
+    public static defaultQuotingInfo: QuotingInfo = {
+        quote: true,
+        unquoted: StringReader.charAllowedInUnquotedString
+    };
+
     private static readonly bools = { true: true, false: false };
     public cursor = 0;
     public readonly string: string;
@@ -239,7 +255,7 @@ export class StringReader {
      */
     public readOption<T extends string>(
         options: T[],
-        quoteKind: QuotingKind = "both",
+        quoteKind: QuotingInfo = StringReader.defaultQuotingInfo,
         completion?: CompletionItemKind
     ): ReturnedInfo<T, CE, string | undefined> {
         const start = this.cursor;
@@ -344,7 +360,9 @@ export class StringReader {
      * Read a string from the string. If it surrounded by quotes, the quotes are ignored.
      * The cursor ends on the last character in the string.
      */
-    public readString(): ReturnedInfo<string, CE, string | undefined> {
+    public readString(
+        unquotedRegex: RegExp = StringReader.charAllowedInUnquotedString
+    ): ReturnedInfo<string, CE, string | undefined> {
         const helper = new ReturnHelper();
         if (this.canRead() && this.peek() === QUOTE) {
             return helper.return(this.readQuotedString());
@@ -355,7 +373,7 @@ export class StringReader {
                     text: QUOTE
                 });
             }
-            return helper.succeed(this.readUnquotedString());
+            return helper.succeed(this.readWhileRegexp(unquotedRegex));
         }
     }
 
@@ -407,16 +425,15 @@ export class StringReader {
         this.readWhileRegexp(/\s/); // Whitespace
     }
     private readOptionInner(
-        kind: QuotingKind
+        info: QuotingInfo
     ): ReturnedInfo<string, CE, string | undefined> {
         // tslint:disable:helper-return
-        switch (kind) {
-            case "both":
-                return this.readString();
-            case "yes":
-                return this.readQuotedString();
-            default:
-                return getReturned(this.readWhileRegexp(kind));
+        if (info.quote) {
+            return this.readString(info.unquoted);
+        } else {
+            return getReturned(
+                this.readWhileRegexp(StringReader.charAllowedInUnquotedString)
+            );
         }
         // tslint:enable:helper-return
     }
@@ -425,7 +442,7 @@ export class StringReader {
 export function completionForString(
     value: string,
     start: number,
-    quoting: QuotingKind,
+    quoting: QuotingInfo,
     kind?: CompletionItemKind
 ): Suggestion {
     return { kind, start, text: quoteIfNeeded(value, quoting) };
@@ -433,12 +450,21 @@ export function completionForString(
 
 export function quoteIfNeeded(
     value: string,
-    quoting: QuotingKind = "both"
+    quoting: QuotingInfo = StringReader.defaultQuotingInfo
 ): string {
-    return quoting !== "no" &&
-        (quoting === "yes" || value.includes('"') || value.includes("\\"))
-        ? QUOTE + escapeQuotes(value) + QUOTE
-        : value;
+    if (!quoting.quote) {
+        return value;
+    } else {
+        if (quoting.unquoted) {
+            for (const char of value) {
+                if (!char.match(quoting.unquoted)) {
+                    return QUOTE + escapeQuotes(value) + QUOTE;
+                }
+            }
+            return value;
+        }
+        return QUOTE + escapeQuotes(value) + QUOTE;
+    }
 }
 
 function escapeQuotes(value: string): string {

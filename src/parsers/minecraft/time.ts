@@ -37,10 +37,10 @@ export const timeParser: Parser = {
             return helper.fail();
         }
         const suffixStart = reader.cursor;
-        const suffix = reader.readOption(
-            typed_keys(times),
-            StringReader.charAllowedInUnquotedString
-        );
+        const suffix = reader.readOption(typed_keys(times), {
+            quote: false,
+            unquoted: StringReader.charAllowedInUnquotedString
+        });
         if (!helper.merge(suffix)) {
             if (suffix.data !== "") {
                 return helper
