@@ -996,6 +996,18 @@ exports.parseDataPath = parseDataPath;
 exports.resourceTypes = {
   advancements: {
     extension: ".json",
+    mapFunction: async (v, packroot) => {
+      const helper = new return_helper_1.ReturnHelper();
+
+      try {
+        const advancement = await promisified_fs_1.readJSONRaw(getPath(v, packroot, "advancements"));
+        return helper.succeed(Object.assign({}, v, {
+          data: Object.keys(advancement.criteria)
+        }));
+      } catch (e) {
+        return helper.succeed(v);
+      }
+    },
     path: ["advancements"]
   },
   block_tags: {

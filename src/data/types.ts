@@ -152,5 +152,9 @@ export interface Tag {
     replace?: boolean;
     values: string[];
 }
+
+export interface Advancement {
+    criteria: Dictionary<any>;
+}
 //#endregion
 //#endregion
