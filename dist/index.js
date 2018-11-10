@@ -4233,11 +4233,11 @@ function validateParse(reader, info, data) {
   const docs = info.data.globalData.nbt_docs;
   const parseResult = tag_parser_1.parseAnyNBTTag(reader, []);
   const datum = parseResult.data;
+  const walker = new walker_1.NBTWalker(docs);
 
   if (datum && ( // This is to appease the type checker
   helper.merge(parseResult) || datum.correctness > nbt_util_1.Correctness.NO)) {
     if (!!data) {
-      const walker = new walker_1.NBTWalker(docs);
       const asNBTIDInfo = data;
       const asNodeInfo = data;
       const unknowns = new Set();
@@ -4279,6 +4279,17 @@ function validateParse(reader, info, data) {
 
     return helper.succeed();
   } else {
+    if (!!data && !reader.canRead()) {
+      const asNodeInfo = data;
+      const asNBTIDInfo = data;
+      const root = asNBTIDInfo.kind ? walker.getInitialNode([asNBTIDInfo.kind].concat(asNBTIDInfo.ids || "none")) : asNodeInfo;
+      const suggestion = nbt_util_1.getStartSuggestion(root.node);
+
+      if (suggestion) {
+        helper.addSuggestion(reader.cursor, suggestion);
+      }
+    }
+
     return helper.fail();
   }
 }
@@ -4331,6 +4342,14 @@ function parseThenValidate(reader, walker, node) {
 
     return helper.succeed();
   } else {
+    if (node && !reader.canRead()) {
+      const suggestion = nbt_util_1.getStartSuggestion(node.node);
+
+      if (suggestion) {
+        helper.addSuggestion(reader.cursor, suggestion);
+      }
+    }
+
     return helper.fail();
   }
 }

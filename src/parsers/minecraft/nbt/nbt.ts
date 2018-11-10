@@ -12,7 +12,7 @@ import {
 import { parseAnyNBTTag } from "./tag-parser";
 import { UnknownsError } from "./tag/compound-tag";
 import { isNoNBTInfo, NodeInfo } from "./util/doc-walker-util";
-import { Correctness } from "./util/nbt-util";
+import { Correctness, getStartSuggestion } from "./util/nbt-util";
 import { NBTWalker } from "./walker";
 
 type CtxPathFunc = (context: CommandContext) => NBTContextData;
@@ -56,12 +56,12 @@ export function validateParse(
     const docs = info.data.globalData.nbt_docs;
     const parseResult = parseAnyNBTTag(reader, []);
     const datum = parseResult.data;
+    const walker = new NBTWalker(docs);
     if (
         datum && // This is to appease the type checker
         (helper.merge(parseResult) || datum.correctness > Correctness.NO)
     ) {
         if (!!data) {
-            const walker = new NBTWalker(docs);
             const asNBTIDInfo = data as NBTIDInfo;
             const asNodeInfo = data as NodeInfo;
             const unknowns = new Set<string>();
@@ -112,6 +112,21 @@ export function validateParse(
         }
         return helper.succeed();
     } else {
+        if (!!data && !reader.canRead()) {
+            const asNodeInfo = data as NodeInfo;
+            const asNBTIDInfo = data as NBTIDInfo;
+            const root = asNBTIDInfo.kind
+                ? walker.getInitialNode(
+                      [asNBTIDInfo.kind as string].concat(
+                          asNBTIDInfo.ids || "none"
+                      )
+                  )
+                : asNodeInfo;
+            const suggestion = getStartSuggestion(root.node);
+            if (suggestion) {
+                helper.addSuggestion(reader.cursor, suggestion);
+            }
+        }
         return helper.fail();
     }
 }
@@ -163,6 +178,12 @@ export function parseThenValidate(
         }
         return helper.succeed();
     } else {
+        if (node && !reader.canRead()) {
+            const suggestion = getStartSuggestion(node.node);
+            if (suggestion) {
+                helper.addSuggestion(reader.cursor, suggestion);
+            }
+        }
         return helper.fail();
     }
 }
