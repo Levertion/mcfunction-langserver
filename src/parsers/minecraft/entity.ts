@@ -7,8 +7,8 @@ import { Scoreboard } from "../../data/nbt/nbt-types";
 import { DataResource, NamespacedName } from "../../data/types";
 import {
     convertToNamespace,
+    getResourcesofType,
     namespacesEqual,
-    parseNamespace,
     parseNamespaceOption,
     parseNamespaceOrTag,
     ReturnHelper,
@@ -73,7 +73,10 @@ const contexterr = {
     )
 };
 
-const getContextError = (cont: EntityContext, prop: NodeProp) => {
+function getContextError(
+    cont: EntityContext,
+    prop: NodeProp
+): CommandErrorBuilder | undefined {
     if (
         prop.type === "player" &&
         stringArrayEqual(cont.type || [], ["minecraft:player"])
@@ -86,7 +89,7 @@ const getContextError = (cont: EntityContext, prop: NodeProp) => {
             : contexterr.onePlayer;
     }
     return undefined;
-};
+}
 
 type OptionParser = (
     reader: StringReader,
@@ -99,14 +102,14 @@ const nsEntity = entities.map(v => convertToNamespace(v));
 
 const gamemodes = ["survival", "creative", "adventure", "spectator"];
 
-const isNegated = (reader: StringReader, helper: ReturnHelper) => {
+function isNegated(reader: StringReader, helper: ReturnHelper): boolean {
     helper.addSuggestion(reader.cursor, "!");
     const neg = reader.peek() === "!";
     if (neg) {
         reader.skip();
     }
     return neg;
-};
+}
 
 const intOptParser = (min: number, max: number, key: keyof EntityContext) => (
     reader: StringReader,
@@ -169,10 +172,10 @@ const rangeOptParser = (
     return helper.succeed(out);
 };
 
-const parseScores = (
+function parseScores(
     reader: StringReader,
     scoreboard: Scoreboard | undefined
-): ReturnedInfo<Dictionary<MCRange>> => {
+): ReturnedInfo<Dictionary<MCRange>> {
     const helper = new ReturnHelper();
     if (!helper.merge(reader.expect("{"))) {
         return helper.fail();
@@ -214,10 +217,13 @@ const parseScores = (
         next = end.data;
     }
     return helper.succeed(out);
-};
+}
 
-const parseAdvancements = (reader: StringReader, info: ParserInfo) => {
-    const adv = info.data.globalData.resources.advancements;
+function parseAdvancements(
+    reader: StringReader,
+    info: ParserInfo
+): ReturnedInfo<Map<NamespacedName, AdvancementOption>> {
+    const adv = getResourcesofType(info.data, "advancements");
 
     const helper = new ReturnHelper();
 
@@ -231,29 +237,28 @@ const parseAdvancements = (reader: StringReader, info: ParserInfo) => {
     while (next !== "}") {
         let advname: NamespacedName;
 
-        if (adv) {
-            const res = parseNamespaceOption(
-                reader,
-                adv.map<NamespacedName>(v => ({
-                    namespace: v.namespace,
-                    path: v.path
-                }))
-            );
-            if (!helper.merge(res)) {
-                if (!res.data) {
-                    return helper.fail();
-                } else {
-                    advname = res.data;
-                }
+        const criteriaOptions: string[] = [];
+
+        const res = parseNamespaceOption(
+            reader,
+            adv.map<NamespacedName>(v => ({
+                namespace: v.namespace,
+                path: v.path
+            }))
+        );
+        if (!helper.merge(res)) {
+            if (!res.data) {
+                return helper.fail();
             } else {
-                advname = res.data.literal;
+                advname = res.data;
             }
         } else {
-            const res = parseNamespace(reader);
-            if (!helper.merge(res)) {
-                return helper.fail();
-            }
-            advname = res.data;
+            advname = res.data.literal;
+            res.data.values.forEach(v =>
+                criteriaOptions.push(
+                    ...((v as DataResource<string[]>).data as string[])
+                )
+            );
         }
 
         if (!helper.merge(reader.expect("="))) {
@@ -266,60 +271,30 @@ const parseAdvancements = (reader: StringReader, info: ParserInfo) => {
 
             const criteria: Dictionary<boolean> = {};
 
-            const advancement = adv
-                ? (adv.find(v =>
-                      namespacesEqual(
-                          {
-                              namespace: v.namespace,
-                              path: v.path
-                          },
-                          advname
-                      )
-                  ) as DataResource<string[]>)
-                : undefined;
-
             while (cnext !== "}") {
-                if (advancement && advancement.data) {
-                    const criterion = reader.readOption(
-                        advancement.data,
-                        StringReader.charAllowedInUnquotedString
-                    );
-                    if (!helper.merge(criterion)) {
-                        if (!criterion.data) {
-                            return helper.fail();
-                        }
-                    }
-                    if (criterion.data === "") {
+                const criterion = reader.readOption(
+                    criteriaOptions,
+                    StringReader.charAllowedInUnquotedString
+                );
+                if (!helper.merge(criterion)) {
+                    if (!criterion.data) {
                         return helper.fail();
                     }
-
-                    if (!helper.merge(reader.expect("="))) {
-                        return helper.fail();
-                    }
-
-                    const critval = reader.readBoolean();
-                    if (!helper.merge(critval)) {
-                        return helper.fail();
-                    }
-
-                    criteria[criterion.data as string] = critval.data;
-                } else {
-                    const criterion = reader.readUnquotedString();
-                    if (criterion === "") {
-                        return helper.fail();
-                    }
-
-                    if (!helper.merge(reader.expect("="))) {
-                        return helper.fail();
-                    }
-
-                    const critval = reader.readBoolean();
-                    if (!helper.merge(critval)) {
-                        return helper.fail();
-                    }
-
-                    criteria[criterion] = critval.data;
                 }
+                if (criterion.data === "") {
+                    return helper.fail();
+                }
+
+                if (!helper.merge(reader.expect("="))) {
+                    return helper.fail();
+                }
+
+                const critval = reader.readBoolean();
+                if (!helper.merge(critval)) {
+                    return helper.fail();
+                }
+
+                criteria[criterion.data as string] = critval.data;
 
                 const cend = reader.expectOption(",", "}");
                 if (!helper.merge(cend)) {
@@ -344,7 +319,7 @@ const parseAdvancements = (reader: StringReader, info: ParserInfo) => {
     }
 
     return helper.succeed(out);
-};
+}
 
 const options: { [key: string]: OptionParser } = {
     advancements: (reader, info, context) => {
