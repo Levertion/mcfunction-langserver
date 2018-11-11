@@ -79,7 +79,7 @@ export class ItemParser implements Parser {
             if (reader.peek() === "{") {
                 const nbt = validateParse(reader, properties, {
                     ids: items,
-                    type: "item"
+                    kind: "item"
                 });
                 helper.merge(nbt);
             } else {
@@ -97,7 +97,7 @@ export class ItemParser implements Parser {
                 if (reader.peek() === "{") {
                     const nbt = validateParse(reader, properties, {
                         ids: "none",
-                        type: "item"
+                        kind: "item"
                     });
                     helper.merge(nbt);
                 } else {

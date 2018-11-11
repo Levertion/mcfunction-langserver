@@ -52,7 +52,7 @@ describe("nbt parser test", () => {
             const reader = new StringReader("{display:{");
             const out = validateParse(reader, reginfo, {
                 ids: "minecraft:apple",
-                type: "item"
+                kind: "item"
             });
             assertSuggestions(
                 [
@@ -73,7 +73,7 @@ describe("nbt parser test", () => {
             const reader = new StringReader("{AttributeModifiers:[{");
             const out = validateParse(reader, reginfo, {
                 ids: "minecraft:stick",
-                type: "item"
+                kind: "item"
             });
             assertSuggestions(
                 [
@@ -121,7 +121,7 @@ describe("nbt parser test", () => {
             const reader = new StringReader("{Items:[{");
             const out = validateParse(reader, reginfo, {
                 ids: "minecraft:chest",
-                type: "block"
+                kind: "block"
             });
             assertSuggestions(
                 [

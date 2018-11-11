@@ -10,7 +10,7 @@ import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
-import { parser as NBTPathParser } from "./minecraft/nbt-path";
+import { nbtPathParser } from "./minecraft/nbt-path";
 import { nbtParser } from "./minecraft/nbt/nbt";
 import { floatRange, intRange } from "./minecraft/range";
 import { functionParser, resourceParser } from "./minecraft/resources";
@@ -50,10 +50,10 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:message": messageParser,
     "minecraft:mob_effect": namespaceParsers.mobEffectParser,
     "minecraft:nbt": nbtParser,
-    "minecraft:nbt-path": NBTPathParser,
+    // TODO: determine if nbt-path is ever used
+    "minecraft:nbt-path": nbtPathParser,
     "minecraft:nbt_compound_tag": nbtParser,
-    "minecraft:nbt_path": NBTPathParser,
-    // Duplication of nbt path is OK - nbt-path is 1.13 whereas nbt_path is 1.14
+    "minecraft:nbt_path": nbtPathParser,
     "minecraft:nbt_tag": nbtParser,
     "minecraft:objective": objectiveParser,
     "minecraft:objective_criteria": criteriaParser,

@@ -154,7 +154,7 @@ export function parseBlockArgument(
             if (reader.peek() === "{") {
                 const nbt = validateParse(reader, info, {
                     ids: (parsedResult.resolved || []).map(stringifyNamespace),
-                    type: "block"
+                    kind: "block"
                 });
                 if (!helper.merge(nbt)) {
                     return helper.fail();
@@ -191,7 +191,7 @@ export function parseBlockArgument(
             if (reader.peek() === "{") {
                 const nbt = validateParse(reader, info, {
                     ids: props ? stringifiedName : "none",
-                    type: "block"
+                    kind: "block"
                 });
                 if (!helper.merge(nbt)) {
                     return helper.fail();
@@ -222,7 +222,7 @@ export function parseBlockArgument(
             if (reader.peek() === "{") {
                 const nbt = validateParse(reader, info, {
                     ids: "none",
-                    type: "block"
+                    kind: "block"
                 });
                 if (!helper.merge(nbt)) {
                     return helper.fail();

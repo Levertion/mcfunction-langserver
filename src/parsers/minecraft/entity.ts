@@ -189,10 +189,10 @@ function parseScores(
     while (next !== "}") {
         let obj: string;
         if (objnames) {
-            const res = reader.readOption(
-                objnames,
-                StringReader.charAllowedInUnquotedString
-            );
+            const res = reader.readOption(objnames, {
+                quote: false,
+                unquoted: StringReader.charAllowedInUnquotedString
+            });
             if (!helper.merge(res) && !res.data) {
                 return helper.fail();
             }
@@ -272,10 +272,10 @@ function parseAdvancements(
             const criteria: Dictionary<boolean> = {};
 
             while (cnext !== "}") {
-                const criterion = reader.readOption(
-                    criteriaOptions,
-                    StringReader.charAllowedInUnquotedString
-                );
+                const criterion = reader.readOption(criteriaOptions, {
+                    quote: false,
+                    unquoted: StringReader.charAllowedInUnquotedString
+                });
                 if (!helper.merge(criterion)) {
                     if (!criterion.data) {
                         return helper.fail();
@@ -438,7 +438,10 @@ const options: { [key: string]: OptionParser } = {
 
         const res = reader.readOption(
             ["arbitrary", "furthest", "nearest", "random"],
-            StringReader.charAllowedInUnquotedString
+            {
+                quote: false,
+                unquoted: StringReader.charAllowedInUnquotedString
+            }
         );
         if (!helper.merge(res)) {
             if (!res.data) {
@@ -488,10 +491,10 @@ const options: { [key: string]: OptionParser } = {
             const teamnames = info.data.localData.nbt.scoreboard.data.Teams.map(
                 v => v.Name
             );
-            const res = reader.readOption(
-                [...teamnames, ""],
-                StringReader.charAllowedInUnquotedString
-            );
+            const res = reader.readOption([...teamnames, ""], {
+                quote: false,
+                unquoted: StringReader.charAllowedInUnquotedString
+            });
             if (!helper.merge(res)) {
                 if (res.data) {
                     return helper.succeed();
