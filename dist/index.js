@@ -5306,10 +5306,13 @@ const options = {
       tags: [...(context.names || []), `${negated ? "!" : ""}${name}`]
     });
   },
-  nbt: (reader, info) => {
+  nbt: (reader, info, context) => {
     const helper = new misc_functions_1.ReturnHelper();
     isNegated(reader, helper);
-    const res = nbt_1.nbtParser.parse(reader, info);
+    const res = nbt_1.validateParse(reader, info, {
+      ids: context.type,
+      kind: "entity"
+    });
 
     if (!helper.merge(res)) {
       return helper.fail();
@@ -5473,14 +5476,15 @@ const options = {
 };
 
 class EntityBase {
-  constructor(fakePlayer) {
+  constructor(fakePlayer, selector) {
     this.fakePlayer = fakePlayer;
+    this.selector = selector;
   }
 
   parse(reader, info) {
     const helper = new misc_functions_1.ReturnHelper();
 
-    if (helper.merge(reader.expect("@"), {
+    if (this.selector && helper.merge(reader.expect("@"), {
       errors: false
     })) {
       const start = reader.cursor;
@@ -5508,6 +5512,7 @@ class EntityBase {
 
         case "s":
           context.limit = 1;
+          context.type = (info.context.executor || {}).ids;
           break;
 
         case "e":
@@ -5602,8 +5607,9 @@ class EntityBase {
 }
 
 exports.EntityBase = EntityBase;
-exports.entity = new EntityBase(false);
-exports.scoreHolder = new EntityBase(true);
+exports.entity = new EntityBase(false, true);
+exports.scoreHolder = new EntityBase(true, true);
+exports.gameProfile = new EntityBase(false, false);
 },{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../consts":"xb+0","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
 "use strict";
 
@@ -6622,6 +6628,7 @@ const implementedParsers = {
   "minecraft:entity_summon": namespaceParsers.summonParser,
   "minecraft:float_range": range_1.floatRange,
   "minecraft:function": resources_1.functionParser,
+  "minecraft:game_profile": entityParser.gameProfile,
   "minecraft:int_range": range_1.intRange,
   "minecraft:item_enchantment": namespaceParsers.enchantmentParser,
   "minecraft:item_predicate": itemParsers.predicate,

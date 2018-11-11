@@ -44,6 +44,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:entity_summon": namespaceParsers.summonParser,
     "minecraft:float_range": floatRange,
     "minecraft:function": functionParser,
+    "minecraft:game_profile": entityParser.gameProfile,
     "minecraft:int_range": intRange,
     "minecraft:item_enchantment": namespaceParsers.enchantmentParser,
     "minecraft:item_predicate": itemParsers.predicate,

@@ -106,7 +106,7 @@ export interface EntityInfo {
     /**
      * The possible entity types of this entity
      */
-    ids?: string | string[];
+    ids?: string[];
 }
 
 export interface Parser {

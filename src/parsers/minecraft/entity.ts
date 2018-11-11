@@ -15,7 +15,7 @@ import {
     stringArrayEqual
 } from "../../misc-functions";
 import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
-import { nbtParser } from "./nbt/nbt";
+import { validateParse } from "./nbt/nbt";
 import { MCRange, rangeParser } from "./range";
 // tslint:disable:cyclomatic-complexity
 const uuidregex = /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g;
@@ -34,7 +34,7 @@ interface NodeProp {
     type: "entity" | "player";
 }
 
-interface EntityContext {
+export interface EntityContext {
     advancements?: Map<NamespacedName, AdvancementOption>;
     distance?: MCRange;
     dx?: number;
@@ -404,10 +404,13 @@ const options: { [key: string]: OptionParser } = {
             tags: [...(context.names || []), `${negated ? "!" : ""}${name}`]
         });
     },
-    nbt: (reader, info) => {
+    nbt: (reader, info, context) => {
         const helper = new ReturnHelper();
         isNegated(reader, helper);
-        const res = nbtParser.parse(reader, info);
+        const res = validateParse(reader, info, {
+            ids: context.type,
+            kind: "entity"
+        });
         if (!helper.merge(res)) {
             return helper.fail();
         } else {
@@ -598,9 +601,11 @@ const options: { [key: string]: OptionParser } = {
 
 export class EntityBase implements Parser {
     private readonly fakePlayer: boolean;
+    private readonly selector: boolean;
 
-    public constructor(fakePlayer: boolean) {
+    public constructor(fakePlayer: boolean, selector: boolean) {
         this.fakePlayer = fakePlayer;
+        this.selector = selector;
     }
 
     public parse(
@@ -609,6 +614,7 @@ export class EntityBase implements Parser {
     ): ReturnedInfo<ContextChange> {
         const helper = new ReturnHelper();
         if (
+            this.selector &&
             helper.merge(reader.expect("@"), {
                 errors: false
             })
@@ -633,6 +639,7 @@ export class EntityBase implements Parser {
                     break;
                 case "s":
                     context.limit = 1;
+                    context.type = (info.context.executor || {}).ids;
                     break;
                 case "e":
                     break;
@@ -713,5 +720,6 @@ export class EntityBase implements Parser {
     }
 }
 
-export const entity = new EntityBase(false);
-export const scoreHolder = new EntityBase(true);
+export const entity = new EntityBase(false, true);
+export const scoreHolder = new EntityBase(true, true);
+export const gameProfile = new EntityBase(false, false);
