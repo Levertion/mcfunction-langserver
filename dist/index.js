@@ -4868,7 +4868,743 @@ exports.columnPos = new CoordParser({
   float: false,
   local: false
 });
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"LoiV":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"1Kfp":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const misc_functions_1 = require("../../misc-functions");
+
+exports.rangeParser = (float = false) => reader => {
+  const helper = new misc_functions_1.ReturnHelper();
+
+  if (helper.merge(reader.expect(".."), {
+    errors: false
+  })) {
+    reader.cursor += 2;
+    const max = float ? reader.readFloat() : reader.readInt();
+
+    if (!helper.merge(max)) {
+      return helper.fail();
+    }
+
+    return helper.succeed({
+      max: max.data
+    });
+  } else {
+    const min = float ? reader.readFloat() : reader.readInt();
+
+    if (!helper.merge(min)) {
+      return helper.fail();
+    }
+
+    if (!helper.merge(reader.expect(".."), {
+      errors: false
+    })) {
+      return helper.succeed({
+        max: min.data,
+        min: min.data
+      });
+    } else if (/\d\./.test(reader.peek())) {
+      const max = float ? reader.readFloat() : reader.readInt();
+
+      if (!helper.merge(max)) {
+        return helper.fail();
+      }
+
+      if (max.data < min.data) {
+        helper.addErrors();
+        return helper.succeed({
+          max: min.data,
+          min: max.data
+        });
+      }
+
+      if (max.data === min.data) {
+        helper.addErrors();
+      }
+
+      return helper.succeed({
+        max: max.data,
+        min: min.data
+      });
+    } else {
+      return helper.succeed({
+        min: min.data
+      });
+    }
+  }
+};
+
+exports.floatRange = {
+  parse: reader => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const res = exports.rangeParser(true)(reader);
+    return helper.merge(res) ? helper.succeed() : helper.fail();
+  }
+};
+exports.intRange = {
+  parse: reader => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const res = exports.rangeParser(false)(reader);
+    return helper.merge(res) ? helper.succeed() : helper.fail();
+  }
+};
+},{"../../misc-functions":"KBGm"}],"1kly":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const vscode_languageserver_1 = require("vscode-languageserver");
+
+const errors_1 = require("../../brigadier/errors");
+
+const string_reader_1 = require("../../brigadier/string-reader");
+
+const consts_1 = require("../../consts");
+
+const statics_1 = require("../../data/lists/statics");
+
+const misc_functions_1 = require("../../misc-functions");
+
+const nbt_1 = require("./nbt/nbt");
+
+const range_1 = require("./range"); // tslint:disable:cyclomatic-complexity
+
+
+const uuidregex = /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g;
+/*
+https://github.com/Levertion/mcfunction-langserver/issues/89
+*/
+
+const uuidwarn = new errors_1.CommandErrorBuilder("argument.entity.uuid", "Selecting an entity based on its UUID may cause instability [This warning can be disabled in the settings]", vscode_languageserver_1.DiagnosticSeverity.Warning);
+const contexterr = {
+  oneEntity: new errors_1.CommandErrorBuilder("argument.entity.toomany", "Only one entity is allowed, but the provided selector allows more than one"),
+  onePlayer: new errors_1.CommandErrorBuilder("argument.player.toomany", "Only one player is allowed, but the provided selector allows more than one"),
+  onlyPlayer: new errors_1.CommandErrorBuilder("argument.player.entities", "Only players may be affected by this command, but the provided selector includes entities")
+};
+
+function getContextError(cont, prop) {
+  if (prop.type === "player" && misc_functions_1.stringArrayEqual(cont.type || [], ["minecraft:player"])) {
+    return contexterr.onlyPlayer;
+  }
+
+  if (prop.amount === "single" && cont.limit !== 1) {
+    return prop.type === "entity" ? contexterr.oneEntity : contexterr.onePlayer;
+  }
+
+  return undefined;
+} // tslint:disable-next-line:no-unnecessary-callback-wrapper it gives an error if it isn't wrapped
+
+
+const nsEntity = statics_1.entities.map(v => misc_functions_1.convertToNamespace(v));
+const gamemodes = ["survival", "creative", "adventure", "spectator"];
+
+function isNegated(reader, helper) {
+  helper.addSuggestion(reader.cursor, "!");
+  const neg = reader.peek() === "!";
+
+  if (neg) {
+    reader.skip();
+  }
+
+  return neg;
+}
+
+const intOptParser = (min, max, key) => (reader, _, context) => {
+  const helper = new misc_functions_1.ReturnHelper();
+  const res = reader.readInt();
+
+  if (!helper.merge(res)) {
+    return helper.fail();
+  }
+
+  const num = res.data;
+
+  if (num > max || num < min) {
+    // Add error
+    return helper.succeed();
+  } // The entity context already has a value
+
+
+  if (!!context[key]) {
+    // Add error
+    return helper.succeed();
+  }
+
+  const out = {};
+  out[key] = num;
+  return helper.succeed(out);
+};
+
+const rangeOptParser = (float, min, max, key) => (reader, _, context) => {
+  const helper = new misc_functions_1.ReturnHelper();
+  const res = range_1.rangeParser(float)(reader);
+
+  if (!helper.merge(res)) {
+    return helper.fail();
+  }
+
+  const range = res.data;
+
+  if (range.max) {
+    if (range.max > max || range.max < min) {
+      helper.addErrors();
+      return helper.succeed();
+    }
+  }
+
+  if (range.min) {
+    if (range.min > max || range.min < min) {
+      helper.addErrors();
+      return helper.succeed();
+    }
+  }
+
+  if (!!context[key]) {
+    helper.addErrors();
+    return helper.succeed();
+  }
+
+  const out = {};
+  out[key] = range;
+  return helper.succeed(out);
+};
+
+function parseScores(reader, scoreboard) {
+  const helper = new misc_functions_1.ReturnHelper();
+
+  if (!helper.merge(reader.expect("{"))) {
+    return helper.fail();
+  }
+
+  const objnames = scoreboard ? scoreboard.data.Objectives.map(v => v.Name) : undefined;
+  const out = {};
+  let next = "{";
+
+  while (next !== "}") {
+    let obj;
+
+    if (objnames) {
+      const res = reader.readOption(objnames, {
+        quote: false,
+        unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+      });
+
+      if (!helper.merge(res) && !res.data) {
+        return helper.fail();
+      }
+
+      obj = res.data;
+    } else {
+      obj = reader.readUnquotedString();
+    }
+
+    if (obj === "") {
+      return helper.fail();
+    }
+
+    const range = range_1.rangeParser(false)(reader);
+
+    if (!helper.merge(range)) {
+      return helper.fail();
+    }
+
+    out[obj] = range.data;
+    const end = reader.expectOption(",", "}");
+
+    if (!helper.merge(end)) {
+      return helper.fail();
+    }
+
+    next = end.data;
+  }
+
+  return helper.succeed(out);
+}
+
+function parseAdvancements(reader, info) {
+  const adv = misc_functions_1.getResourcesofType(info.data, "advancements");
+  const helper = new misc_functions_1.ReturnHelper();
+
+  if (!helper.merge(reader.expect("{"))) {
+    return helper.fail();
+  }
+
+  const out = new Map();
+  let next = "{";
+
+  while (next !== "}") {
+    let advname;
+    const criteriaOptions = [];
+    const res = misc_functions_1.parseNamespaceOption(reader, adv.map(v => ({
+      namespace: v.namespace,
+      path: v.path
+    })));
+
+    if (!helper.merge(res)) {
+      if (!res.data) {
+        return helper.fail();
+      } else {
+        advname = res.data;
+      }
+    } else {
+      advname = res.data.literal;
+      res.data.values.forEach(v => criteriaOptions.push(...v.data));
+    }
+
+    if (!helper.merge(reader.expect("="))) {
+      return helper.fail();
+    }
+
+    if (reader.peek() === "{") {
+      reader.skip();
+      let cnext = "{";
+      const criteria = {};
+
+      while (cnext !== "}") {
+        const criterion = reader.readOption(criteriaOptions, {
+          quote: false,
+          unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+        });
+
+        if (!helper.merge(criterion)) {
+          if (!criterion.data) {
+            return helper.fail();
+          }
+        }
+
+        if (criterion.data === "") {
+          return helper.fail();
+        }
+
+        if (!helper.merge(reader.expect("="))) {
+          return helper.fail();
+        }
+
+        const critval = reader.readBoolean();
+
+        if (!helper.merge(critval)) {
+          return helper.fail();
+        }
+
+        criteria[criterion.data] = critval.data;
+        const cend = reader.expectOption(",", "}");
+
+        if (!helper.merge(cend)) {
+          return helper.fail();
+        }
+
+        cnext = cend.data;
+      }
+
+      out.set(advname, criteria);
+    } else {
+      const bool = reader.readBoolean();
+
+      if (!helper.merge(bool)) {
+        return helper.fail();
+      }
+
+      out.set(advname, bool.data);
+    }
+
+    const end = reader.expectOption(",", "}");
+
+    if (!helper.merge(end)) {
+      return helper.fail();
+    }
+
+    next = end.data;
+  }
+
+  return helper.succeed(out);
+}
+
+const options = {
+  advancements: (reader, info, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const res = parseAdvancements(reader, info);
+
+    if (!helper.merge(res)) {
+      return helper.fail();
+    }
+
+    if (context.advancements) {
+      helper.addErrors();
+      return helper.succeed();
+    } else {
+      return helper.succeed({
+        advancements: res.data
+      });
+    }
+  },
+  distance: rangeOptParser(true, 0, 3e7, "distance"),
+  dx: intOptParser(-3e7, 3e7 - 1, "dx"),
+  dy: intOptParser(-3e7, 3e7 - 1, "dy"),
+  dz: intOptParser(-3e7, 3e7 - 1, "dz"),
+  gamemode: (reader, _, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const negated = isNegated(reader, helper);
+    const res = reader.readOption(gamemodes);
+
+    if (!helper.merge(res)) {
+      if (res.data) {
+        return helper.succeed();
+      } else {
+        return helper.fail();
+      }
+    }
+
+    const neglist = negated ? gamemodes.filter(v => v !== res.data) : [res.data];
+
+    if (context.gamemode && misc_functions_1.stringArrayEqual(neglist, context.gamemode)) {
+      // Duplicate
+      helper.addErrors();
+      return helper.succeed();
+    }
+
+    const intTypes = context.gamemode ? context.gamemode.filter(v => neglist.indexOf(v) !== -1) : neglist;
+
+    if (intTypes.length === 0) {
+      helper.addErrors();
+      return helper.succeed();
+    } else {
+      return helper.succeed({
+        gamemode: intTypes
+      });
+    }
+  },
+  level: rangeOptParser(false, 0, consts_1.JAVAMAXINT, "level"),
+  limit: intOptParser(1, consts_1.JAVAMAXINT, "limit"),
+  name: (reader, _, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const negated = isNegated(reader, helper);
+    const quoted = reader.peek() === string_reader_1.QUOTE;
+    const restag = reader.readString();
+
+    if (!helper.merge(restag)) {
+      return helper.fail();
+    }
+
+    const name = restag.data;
+
+    if (!quoted && name === "") {
+      return helper.fail();
+    }
+
+    if (context.names && context.names.indexOf(`${negated ? "!" : ""}${name}`) !== -1) {
+      helper.addErrors();
+      return helper.succeed();
+    }
+
+    return helper.succeed({
+      tags: [...(context.names || []), `${negated ? "!" : ""}${name}`]
+    });
+  },
+  nbt: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    isNegated(reader, helper);
+    const res = nbt_1.nbtParser.parse(reader, info);
+
+    if (!helper.merge(res)) {
+      return helper.fail();
+    } else {
+      return helper.succeed();
+    }
+  },
+  scores: (reader, info, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    /*const start = reader.cursor;*/
+
+    const obj = parseScores(reader, info.data.localData ? info.data.localData.nbt.scoreboard : undefined);
+
+    if (!helper.merge(obj)) {
+      return helper.fail();
+    }
+
+    if (context.scores) {
+      helper.addErrors();
+      return helper.succeed();
+    } else {
+      return helper.succeed({
+        scores: obj.data
+      });
+    }
+  },
+  sort: (reader, _, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const res = reader.readOption(["arbitrary", "furthest", "nearest", "random"], {
+      quote: false,
+      unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+    });
+
+    if (!helper.merge(res)) {
+      if (!res.data) {
+        return helper.fail();
+      }
+    }
+
+    if (context.sort) {
+      helper.addErrors();
+      return helper.succeed();
+    }
+
+    return helper.succeed({
+      sort: res.data
+    });
+  },
+  tag: (reader, _, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const negated = isNegated(reader, helper);
+    const tag = reader.readUnquotedString();
+
+    if (context.tags && context.tags.indexOf(`${negated ? "!" : ""}${tag}`) !== -1) {
+      helper.addErrors();
+      return helper.succeed();
+    }
+
+    if (context.tags && (tag === "" && negated ? context.tags.length === 0 : context.tags.length !== 0)) {
+      helper.addErrors();
+      return helper.succeed();
+    }
+
+    return helper.succeed({
+      tags: [...(context.tags || []), `${negated ? "!" : ""}${tag}`]
+    });
+  },
+  team: (reader, info, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const negated = isNegated(reader, helper);
+
+    if (info.data.localData && info.data.localData.nbt.scoreboard) {
+      const teamnames = info.data.localData.nbt.scoreboard.data.Teams.map(v => v.Name);
+      const res = reader.readOption([...teamnames, ""], {
+        quote: false,
+        unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+      });
+
+      if (!helper.merge(res)) {
+        if (res.data) {
+          return helper.succeed();
+        } else {
+          return helper.fail();
+        }
+      }
+
+      const teams = negated ? teamnames.filter(v => v !== res.data) : res.data === "" ? [] : [res.data];
+
+      if (context.team && context.team.every(v => teams.indexOf(v) !== -1)) {
+        // Duplicate
+        helper.addErrors();
+        return helper.succeed();
+      }
+
+      const intTypes = context.team ? context.team.filter(v => teams.indexOf(v) !== -1) : teams;
+
+      if (intTypes.length === 0) {
+        helper.addErrors();
+        return helper.succeed();
+      } else {
+        return helper.succeed({
+          team: intTypes
+        });
+      }
+    } else {
+      const team = reader.readUnquotedString();
+
+      if (team === "") {
+        return helper.fail();
+      } else {
+        return helper.succeed(negated ? undefined : {
+          team: [team]
+        });
+      }
+    }
+  },
+  type: (reader, info, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const negated = isNegated(reader, helper);
+    const ltype = misc_functions_1.parseNamespaceOrTag(reader, info, "entity_tags");
+
+    if (!helper.merge(ltype)) {
+      return helper.fail();
+    }
+
+    const literalType = ltype.data.resolved || [ltype.data.parsed];
+    const types = nsEntity.filter(v => negated === literalType.some(f => misc_functions_1.namespacesEqual(f, v)));
+
+    if (context.type && context.type.every(v => types.some(f => misc_functions_1.namespacesEqual(f, misc_functions_1.convertToNamespace(v))))) {
+      // Duplicate
+      helper.addErrors();
+      return helper.succeed();
+    }
+
+    const intTypes = [];
+
+    if (context.type) {
+      for (const type of context.type) {
+        if (types.some(v => v === misc_functions_1.convertToNamespace(type))) {
+          intTypes.push(type);
+        }
+      }
+    } else {
+      types.forEach(v => intTypes.push(`${v.namespace || "minecraft"}:${v.path}`));
+    }
+
+    if (intTypes.length === 0) {
+      helper.addErrors();
+      return helper.succeed();
+    } else {
+      return helper.succeed({
+        type: intTypes
+      });
+    }
+  },
+  x: intOptParser(-3e7, 3e7 - 1, "x"),
+  x_rotation: rangeOptParser(true, consts_1.JAVAMININT, consts_1.JAVAMAXINT, "x_rotation"),
+  y: intOptParser(0, 255, "y"),
+  y_rotation: rangeOptParser(true, consts_1.JAVAMININT, consts_1.JAVAMAXINT, "y_rotation"),
+  z: intOptParser(-3e7, 3e7 - 1, "z")
+};
+
+class EntityBase {
+  constructor(fakePlayer) {
+    this.fakePlayer = fakePlayer;
+  }
+
+  parse(reader, info) {
+    const helper = new misc_functions_1.ReturnHelper();
+
+    if (helper.merge(reader.expect("@"), {
+      errors: false
+    })) {
+      const start = reader.cursor;
+      const context = {};
+      const exp = reader.expectOption("p", "a", "r", "s", "e");
+
+      if (!helper.merge(exp)) {
+        return helper.fail();
+      }
+
+      switch (exp.data) {
+        case "p":
+          context.limit = 1;
+          context.type = ["minecraft:player"];
+          break;
+
+        case "a":
+          context.type = ["minecraft:player"];
+          break;
+
+        case "r":
+          context.limit = 1;
+          context.type = ["minecraft:player"];
+          break;
+
+        case "s":
+          context.limit = 1;
+          break;
+
+        case "e":
+          break;
+
+        default:
+          throw new TypeError();
+      }
+
+      if (reader.canRead() && reader.peek() === "[") {
+        let next = reader.read();
+
+        while (next !== "]") {
+          const arg = reader.readUnquotedString();
+
+          if (!helper.merge(reader.expect("="))) {
+            return helper.fail();
+          }
+
+          const opt = options[arg];
+          const conc = opt(reader, info, context);
+
+          if (!helper.merge(conc)) {
+            return helper.fail();
+          }
+
+          if (conc.data) {
+            Object.assign(context, conc.data);
+          }
+
+          const nextc = reader.expectOption(",", "]");
+
+          if (!helper.merge(nextc)) {
+            return helper.fail();
+          }
+
+          next = nextc.data;
+        }
+      }
+
+      const conterr = getContextError(context, info.node_properties);
+
+      if (conterr) {
+        return helper.fail(conterr.create(start, reader.cursor));
+      }
+
+      return helper.succeed();
+    } else if (uuidregex.test(reader.getRemaining().substr(0, 36))) {
+      helper.addErrors(uuidwarn.create(reader.cursor, reader.cursor + 36));
+      reader.cursor += 36;
+      /*
+      const conterr = getContextError(
+          {
+              ...info.context,
+              limit: 1
+          },
+          info.node_properties as NodeProp
+      );
+      if (conterr) {
+          return helper.fail(
+              conterr.create(reader.cursor - 36, reader.cursor)
+          );
+      }
+      */
+
+      return helper.succeed();
+    } else if (this.fakePlayer) {
+      if (info.data.localData && info.data.localData.nbt.scoreboard) {
+        for (const score of info.data.localData.nbt.scoreboard.data.PlayerScores) {
+          if (reader.getRemaining().startsWith(score.Name)) {
+            helper.addSuggestion(reader.cursor, score.Name);
+          }
+        }
+      }
+
+      reader.readWhileRegexp(/[^\s]/);
+      return helper.succeed();
+    }
+
+    const name = reader.readUnquotedString();
+
+    if (name === "") {
+      return helper.fail();
+    }
+
+    return helper.succeed({
+      entity: "minecraft:player",
+      isSingle: true
+    });
+  }
+
+}
+
+exports.EntityBase = EntityBase;
+exports.entity = new EntityBase(false);
+exports.scoreHolder = new EntityBase(true);
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../consts":"xb+0","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5303,91 +6039,7 @@ exports.nbtPathParser = {
     }
   }
 };
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/nbt":"JpDU","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"1Kfp":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const misc_functions_1 = require("../../misc-functions");
-
-exports.rangeParser = (float = false) => reader => {
-  const helper = new misc_functions_1.ReturnHelper();
-
-  if (helper.merge(reader.expect(".."), {
-    errors: false
-  })) {
-    reader.cursor += 2;
-    const max = float ? reader.readFloat() : reader.readInt();
-
-    if (!helper.merge(max)) {
-      return helper.fail();
-    }
-
-    return helper.succeed({
-      max: max.data
-    });
-  } else {
-    const min = float ? reader.readFloat() : reader.readInt();
-
-    if (!helper.merge(min)) {
-      return helper.fail();
-    }
-
-    if (!helper.merge(reader.expect(".."), {
-      errors: false
-    })) {
-      return helper.succeed({
-        max: min.data,
-        min: min.data
-      });
-    } else if (/\d\./.test(reader.peek())) {
-      const max = float ? reader.readFloat() : reader.readInt();
-
-      if (!helper.merge(max)) {
-        return helper.fail();
-      }
-
-      if (max.data < min.data) {
-        helper.addErrors();
-        return helper.succeed({
-          max: min.data,
-          min: max.data
-        });
-      }
-
-      if (max.data === min.data) {
-        helper.addErrors();
-      }
-
-      return helper.succeed({
-        max: max.data,
-        min: min.data
-      });
-    } else {
-      return helper.succeed({
-        min: min.data
-      });
-    }
-  }
-};
-
-exports.floatRange = {
-  parse: reader => {
-    const helper = new misc_functions_1.ReturnHelper();
-    const res = exports.rangeParser(true)(reader);
-    return helper.merge(res) ? helper.succeed() : helper.fail();
-  }
-};
-exports.intRange = {
-  parse: reader => {
-    const helper = new misc_functions_1.ReturnHelper();
-    const res = exports.rangeParser(false)(reader);
-    return helper.merge(res) ? helper.succeed() : helper.fail();
-  }
-};
-},{"../../misc-functions":"KBGm"}],"ELUu":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/nbt":"JpDU","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5924,6 +6576,8 @@ const component_1 = require("./minecraft/component");
 
 const coordParsers = tslib_1.__importStar(require("./minecraft/coordinates"));
 
+const entityParser = tslib_1.__importStar(require("./minecraft/entity"));
+
 const itemParsers = tslib_1.__importStar(require("./minecraft/item"));
 
 const listParsers = tslib_1.__importStar(require("./minecraft/lists"));
@@ -5963,6 +6617,7 @@ const implementedParsers = {
   "minecraft:column_pos": coordParsers.columnPos,
   "minecraft:component": component_1.jsonParser,
   "minecraft:dimension": namespaceParsers.dimensionParser,
+  "minecraft:entity": entityParser.entity,
   "minecraft:entity_anchor": listParsers.entityAnchorParser,
   "minecraft:entity_summon": namespaceParsers.summonParser,
   "minecraft:float_range": range_1.floatRange,
@@ -5986,6 +6641,7 @@ const implementedParsers = {
   "minecraft:particle": namespaceParsers.particleParser,
   "minecraft:resource_location": resources_1.resourceParser,
   "minecraft:rotation": coordParsers.rotation,
+  "minecraft:score_holder": entityParser.scoreHolder,
   "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
   "minecraft:swizzle": swizzle_1.swizzleParer,
   "minecraft:team": scoreboard_1.teamParser,
@@ -6031,7 +6687,7 @@ function getArgParser(id) {
 Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
   return undefined;
 }
-},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/nbt-path":"wccY","./minecraft/nbt/nbt":"JpDU","./minecraft/range":"1Kfp","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/swizzle":"0R/b","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
+},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/entity":"1kly","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/nbt-path":"wccY","./minecraft/nbt/nbt":"JpDU","./minecraft/range":"1Kfp","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/swizzle":"0R/b","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

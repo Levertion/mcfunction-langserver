@@ -712,3 +712,6 @@ export class EntityBase implements Parser {
         } as ContextChange);
     }
 }
+
+export const entity = new EntityBase(false);
+export const scoreHolder = new EntityBase(true);
