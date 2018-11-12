@@ -117,7 +117,7 @@ export class StringReader {
         for (const s of options) {
             if (
                 helper.merge(this.expect(s), {
-                    suggestions: true
+                    errors: false
                 })
             ) {
                 if (!out || out.length < s.length) {
@@ -130,7 +130,10 @@ export class StringReader {
             return helper.fail(
                 EXCEPTIONS.EXPECTED_STRING_FROM.create(
                     start,
-                    start + Math.max(...options.map(v => v.length))
+                    Math.min(
+                        this.getTotalLength(),
+                        start + Math.max(...options.map(v => v.length))
+                    )
                 )
             );
         }

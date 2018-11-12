@@ -1694,7 +1694,7 @@ class StringReader {
 
     for (const s of options) {
       if (helper.merge(this.expect(s), {
-        suggestions: true
+        errors: false
       })) {
         if (!out || out.length < s.length) {
           out = s;
@@ -1705,7 +1705,7 @@ class StringReader {
     }
 
     if (!out) {
-      return helper.fail(EXCEPTIONS.EXPECTED_STRING_FROM.create(start, start + Math.max(...options.map(v => v.length))));
+      return helper.fail(EXCEPTIONS.EXPECTED_STRING_FROM.create(start, Math.min(this.getTotalLength(), start + Math.max(...options.map(v => v.length)))));
     }
 
     this.cursor += out.length;
@@ -4971,12 +4971,14 @@ const statics_1 = require("../../data/lists/statics");
 
 const misc_functions_1 = require("../../misc-functions");
 
+const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
+
 const nbt_1 = require("./nbt/nbt");
 
 const range_1 = require("./range"); // tslint:disable:cyclomatic-complexity
 
 
-const uuidregex = /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g;
+const uuidregex = /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/;
 /*
 https://github.com/Levertion/mcfunction-langserver/issues/89
 */
@@ -4986,6 +4988,15 @@ const contexterr = {
   oneEntity: new errors_1.CommandErrorBuilder("argument.entity.toomany", "Only one entity is allowed, but the provided selector allows more than one"),
   onePlayer: new errors_1.CommandErrorBuilder("argument.player.toomany", "Only one player is allowed, but the provided selector allows more than one"),
   onlyPlayer: new errors_1.CommandErrorBuilder("argument.player.entities", "Only players may be affected by this command, but the provided selector includes entities")
+};
+const argerr = {
+  badIntersection: new errors_1.CommandErrorBuilder("argument.entity.option.invalidArgument", "Argument '%s' cannot match any entity"),
+  duplicate: new errors_1.CommandErrorBuilder("argument.entity.option.duplicate", "Duplicate argument '%s'"),
+  intOpt: {
+    aboveMax: new errors_1.CommandErrorBuilder("argument.entity.option.number.abovemax", "Argument '%s' is greater than %s"),
+    belowMin: new errors_1.CommandErrorBuilder("argument.entity.option.number.belowmin", "Argument '%s' is less than %s")
+  },
+  noInfo: new errors_1.CommandErrorBuilder("argument.entity.option.noinfo", "Argument '%s' is redundant")
 };
 
 function getContextError(cont, prop) {
@@ -5017,6 +5028,7 @@ function isNegated(reader, helper) {
 
 const intOptParser = (min, max, key) => (reader, _, context) => {
   const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
   const res = reader.readInt();
 
   if (!helper.merge(res)) {
@@ -5025,14 +5037,19 @@ const intOptParser = (min, max, key) => (reader, _, context) => {
 
   const num = res.data;
 
-  if (num > max || num < min) {
-    // Add error
+  if (max && num > max) {
+    helper.addErrors(argerr.intOpt.aboveMax.create(start, reader.cursor, key, max.toString()));
+    return helper.succeed();
+  }
+
+  if (min && num < min) {
+    helper.addErrors(argerr.intOpt.belowMin.create(start, reader.cursor, key, min.toString()));
     return helper.succeed();
   } // The entity context already has a value
 
 
   if (!!context[key]) {
-    // Add error
+    helper.addErrors(argerr.duplicate.create(start, reader.cursor, key));
     return helper.succeed();
   }
 
@@ -5043,6 +5060,7 @@ const intOptParser = (min, max, key) => (reader, _, context) => {
 
 const rangeOptParser = (float, min, max, key) => (reader, _, context) => {
   const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
   const res = range_1.rangeParser(float)(reader);
 
   if (!helper.merge(res)) {
@@ -5052,21 +5070,31 @@ const rangeOptParser = (float, min, max, key) => (reader, _, context) => {
   const range = res.data;
 
   if (range.max) {
-    if (range.max > max || range.max < min) {
-      helper.addErrors();
+    if (max && range.max > max) {
+      helper.addErrors(argerr.intOpt.aboveMax.create(start, reader.cursor, key, max.toString()));
+      return helper.succeed();
+    }
+
+    if (min && range.max < min) {
+      helper.addErrors(argerr.intOpt.belowMin.create(start, reader.cursor, key, min.toString()));
       return helper.succeed();
     }
   }
 
   if (range.min) {
-    if (range.min > max || range.min < min) {
-      helper.addErrors();
+    if (max && range.min > max) {
+      helper.addErrors(argerr.intOpt.aboveMax.create(start, reader.cursor, key, max.toString()));
+      return helper.succeed();
+    }
+
+    if (min && range.min < min) {
+      helper.addErrors(argerr.intOpt.belowMin.create(start, reader.cursor, key, min.toString()));
       return helper.succeed();
     }
   }
 
   if (!!context[key]) {
-    helper.addErrors();
+    helper.addErrors(argerr.duplicate.create(start, reader.cursor, key));
     return helper.succeed();
   }
 
@@ -5082,30 +5110,20 @@ function parseScores(reader, scoreboard) {
     return helper.fail();
   }
 
-  const objnames = scoreboard ? scoreboard.data.Objectives.map(v => v.Name) : undefined;
+  const objnames = scoreboard ? scoreboard.data.Objectives.map(v => v.Name) : [];
   const out = {};
   let next = "{";
 
   while (next !== "}") {
-    let obj;
+    const res = scoreboard ? reader.readOption(objnames, {
+      quote: false,
+      unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+    }) : new misc_functions_1.ReturnHelper().succeed(reader.readUnquotedString());
 
-    if (objnames) {
-      const res = reader.readOption(objnames, {
-        quote: false,
-        unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
-      });
-
-      if (!helper.merge(res) && !res.data) {
+    if (!helper.merge(res)) {
+      if (!res.data) {
         return helper.fail();
       }
-
-      obj = res.data;
-    } else {
-      obj = reader.readUnquotedString();
-    }
-
-    if (obj === "") {
-      return helper.fail();
     }
 
     const range = range_1.rangeParser(false)(reader);
@@ -5114,7 +5132,7 @@ function parseScores(reader, scoreboard) {
       return helper.fail();
     }
 
-    out[obj] = range.data;
+    out[res.data] = range.data;
     const end = reader.expectOption(",", "}");
 
     if (!helper.merge(end)) {
@@ -5178,10 +5196,6 @@ function parseAdvancements(reader, info) {
           }
         }
 
-        if (criterion.data === "") {
-          return helper.fail();
-        }
-
         if (!helper.merge(reader.expect("="))) {
           return helper.fail();
         }
@@ -5228,6 +5242,7 @@ function parseAdvancements(reader, info) {
 const options = {
   advancements: (reader, info, context) => {
     const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
     const res = parseAdvancements(reader, info);
 
     if (!helper.merge(res)) {
@@ -5235,7 +5250,7 @@ const options = {
     }
 
     if (context.advancements) {
-      helper.addErrors();
+      helper.addErrors(argerr.duplicate.create(start, reader.cursor, "advancements"));
       return helper.succeed();
     } else {
       return helper.succeed({
@@ -5244,11 +5259,12 @@ const options = {
     }
   },
   distance: rangeOptParser(true, 0, 3e7, "distance"),
-  dx: intOptParser(-3e7, 3e7 - 1, "dx"),
-  dy: intOptParser(-3e7, 3e7 - 1, "dy"),
-  dz: intOptParser(-3e7, 3e7 - 1, "dz"),
+  dx: intOptParser(undefined, undefined, "dx"),
+  dy: intOptParser(undefined, undefined, "dy"),
+  dz: intOptParser(undefined, undefined, "dz"),
   gamemode: (reader, _, context) => {
     const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
     const negated = isNegated(reader, helper);
     const res = reader.readOption(gamemodes);
 
@@ -5263,7 +5279,6 @@ const options = {
     const neglist = negated ? gamemodes.filter(v => v !== res.data) : [res.data];
 
     if (context.gamemode && misc_functions_1.stringArrayEqual(neglist, context.gamemode)) {
-      // Duplicate
       helper.addErrors();
       return helper.succeed();
     }
@@ -5271,7 +5286,7 @@ const options = {
     const intTypes = context.gamemode ? context.gamemode.filter(v => neglist.indexOf(v) !== -1) : neglist;
 
     if (intTypes.length === 0) {
-      helper.addErrors();
+      helper.addErrors(argerr.badIntersection.create(start, reader.cursor, "gamemode"));
       return helper.succeed();
     } else {
       return helper.succeed({
@@ -5279,12 +5294,12 @@ const options = {
       });
     }
   },
-  level: rangeOptParser(false, 0, consts_1.JAVAMAXINT, "level"),
-  limit: intOptParser(1, consts_1.JAVAMAXINT, "limit"),
+  level: rangeOptParser(false, 0, undefined, "level"),
+  limit: intOptParser(1, undefined, "limit"),
   name: (reader, _, context) => {
     const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
     const negated = isNegated(reader, helper);
-    const quoted = reader.peek() === string_reader_1.QUOTE;
     const restag = reader.readString();
 
     if (!helper.merge(restag)) {
@@ -5293,17 +5308,13 @@ const options = {
 
     const name = restag.data;
 
-    if (!quoted && name === "") {
-      return helper.fail();
-    }
-
-    if (context.names && context.names.indexOf(`${negated ? "!" : ""}${name}`) !== -1) {
-      helper.addErrors();
+    if (context.name && context.name.indexOf(`${negated ? "!" : ""}${name}`) !== -1) {
+      helper.addErrors(argerr.noInfo.create(start, reader.cursor, "name"));
       return helper.succeed();
     }
 
     return helper.succeed({
-      tags: [...(context.names || []), `${negated ? "!" : ""}${name}`]
+      name: [...(context.name || []), `${negated ? "!" : ""}${name}`]
     });
   },
   nbt: (reader, info, context) => {
@@ -5322,8 +5333,7 @@ const options = {
   },
   scores: (reader, info, context) => {
     const helper = new misc_functions_1.ReturnHelper();
-    /*const start = reader.cursor;*/
-
+    const start = reader.cursor;
     const obj = parseScores(reader, info.data.localData ? info.data.localData.nbt.scoreboard : undefined);
 
     if (!helper.merge(obj)) {
@@ -5331,7 +5341,7 @@ const options = {
     }
 
     if (context.scores) {
-      helper.addErrors();
+      helper.addErrors(argerr.duplicate.create(start, reader.cursor, "scores"));
       return helper.succeed();
     } else {
       return helper.succeed({
@@ -5341,6 +5351,7 @@ const options = {
   },
   sort: (reader, _, context) => {
     const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
     const res = reader.readOption(["arbitrary", "furthest", "nearest", "random"], {
       quote: false,
       unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
@@ -5353,7 +5364,7 @@ const options = {
     }
 
     if (context.sort) {
-      helper.addErrors();
+      helper.addErrors(argerr.duplicate.create(start, reader.cursor, "scores"));
       return helper.succeed();
     }
 
@@ -5363,25 +5374,27 @@ const options = {
   },
   tag: (reader, _, context) => {
     const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
     const negated = isNegated(reader, helper);
     const tag = reader.readUnquotedString();
 
-    if (context.tags && context.tags.indexOf(`${negated ? "!" : ""}${tag}`) !== -1) {
-      helper.addErrors();
+    if (context.tag && context.tag.indexOf(`${negated ? "!" : ""}${tag}`) !== -1) {
+      helper.addErrors(argerr.noInfo.create(start, reader.cursor, "tag"));
       return helper.succeed();
     }
 
-    if (context.tags && (tag === "" && negated ? context.tags.length === 0 : context.tags.length !== 0)) {
-      helper.addErrors();
+    if (context.tag && (tag === "" && negated ? context.tag.length === 0 : context.tag.length !== 0)) {
+      helper.addErrors(argerr.badIntersection.create(start, reader.cursor, "tag"));
       return helper.succeed();
     }
 
     return helper.succeed({
-      tags: [...(context.tags || []), `${negated ? "!" : ""}${tag}`]
+      tag: [...(context.tag || []), `${negated ? "!" : ""}${tag}`]
     });
   },
   team: (reader, info, context) => {
     const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
     const negated = isNegated(reader, helper);
 
     if (info.data.localData && info.data.localData.nbt.scoreboard) {
@@ -5402,15 +5415,14 @@ const options = {
       const teams = negated ? teamnames.filter(v => v !== res.data) : res.data === "" ? [] : [res.data];
 
       if (context.team && context.team.every(v => teams.indexOf(v) !== -1)) {
-        // Duplicate
-        helper.addErrors();
+        helper.addErrors(argerr.duplicate.create(start, reader.cursor, "team"));
         return helper.succeed();
       }
 
       const intTypes = context.team ? context.team.filter(v => teams.indexOf(v) !== -1) : teams;
 
       if (intTypes.length === 0) {
-        helper.addErrors();
+        helper.addErrors(argerr.badIntersection.create(start, reader.cursor, "team"));
         return helper.succeed();
       } else {
         return helper.succeed({
@@ -5419,18 +5431,14 @@ const options = {
       }
     } else {
       const team = reader.readUnquotedString();
-
-      if (team === "") {
-        return helper.fail();
-      } else {
-        return helper.succeed(negated ? undefined : {
-          team: [team]
-        });
-      }
+      return helper.succeed(negated ? undefined : {
+        team: [team]
+      });
     }
   },
   type: (reader, info, context) => {
     const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
     const negated = isNegated(reader, helper);
     const ltype = misc_functions_1.parseNamespaceOrTag(reader, info, "entity_tags");
 
@@ -5442,8 +5450,7 @@ const options = {
     const types = nsEntity.filter(v => negated === literalType.some(f => misc_functions_1.namespacesEqual(f, v)));
 
     if (context.type && context.type.every(v => types.some(f => misc_functions_1.namespacesEqual(f, misc_functions_1.convertToNamespace(v))))) {
-      // Duplicate
-      helper.addErrors();
+      helper.addErrors(argerr.duplicate.create(start, reader.cursor, "type"));
       return helper.succeed();
     }
 
@@ -5460,7 +5467,7 @@ const options = {
     }
 
     if (intTypes.length === 0) {
-      helper.addErrors();
+      helper.addErrors(argerr.badIntersection.create(start, reader.cursor, "type"));
       return helper.succeed();
     } else {
       return helper.succeed({
@@ -5482,7 +5489,7 @@ class EntityBase {
   }
 
   parse(reader, info) {
-    const helper = new misc_functions_1.ReturnHelper();
+    const helper = new misc_functions_1.ReturnHelper(info);
 
     if (this.selector && helper.merge(reader.expect("@"), {
       errors: false
@@ -5526,13 +5533,17 @@ class EntityBase {
         let next = reader.read();
 
         while (next !== "]") {
-          const arg = reader.readUnquotedString();
+          const arg = reader.expectOption(...typed_keys_1.typed_keys(options));
+
+          if (!helper.merge(arg)) {
+            return helper.fail();
+          }
 
           if (!helper.merge(reader.expect("="))) {
             return helper.fail();
           }
 
-          const opt = options[arg];
+          const opt = options[arg.data];
           const conc = opt(reader, info, context);
 
           if (!helper.merge(conc)) {
@@ -5563,26 +5574,19 @@ class EntityBase {
     } else if (uuidregex.test(reader.getRemaining().substr(0, 36))) {
       helper.addErrors(uuidwarn.create(reader.cursor, reader.cursor + 36));
       reader.cursor += 36;
-      /*
-      const conterr = getContextError(
-          {
-              ...info.context,
-              limit: 1
-          },
-          info.node_properties as NodeProp
-      );
+      const conterr = getContextError(Object.assign({}, info.context, {
+        limit: 1
+      }), info.node_properties);
+
       if (conterr) {
-          return helper.fail(
-              conterr.create(reader.cursor - 36, reader.cursor)
-          );
+        return helper.fail(conterr.create(reader.cursor - 36, reader.cursor));
       }
-      */
 
       return helper.succeed();
     } else if (this.fakePlayer) {
       if (info.data.localData && info.data.localData.nbt.scoreboard) {
         for (const score of info.data.localData.nbt.scoreboard.data.PlayerScores) {
-          if (reader.getRemaining().startsWith(score.Name)) {
+          if (score.Name.startsWith(reader.getRemaining())) {
             helper.addSuggestion(reader.cursor, score.Name);
           }
         }
@@ -5610,7 +5614,7 @@ exports.EntityBase = EntityBase;
 exports.entity = new EntityBase(false, true);
 exports.scoreHolder = new EntityBase(true, true);
 exports.gameProfile = new EntityBase(false, false);
-},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../consts":"xb+0","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../consts":"xb+0","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
