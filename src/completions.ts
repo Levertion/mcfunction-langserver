@@ -14,7 +14,7 @@ import { followPath, getNextNode } from "./misc-functions/node-tree";
 import { getParser } from "./parsers/get-parser";
 import {
     CommandContext,
-    CommmandData,
+    CommandData,
     FunctionInfo,
     ParseNode,
     SuggestResult
@@ -30,7 +30,7 @@ export function computeCompletions(
     if (line.parseInfo === undefined || line.text.startsWith(COMMENT_START)) {
         return CompletionList.create([], true);
     }
-    const commandData: CommmandData = {
+    const commandData: CommandData = {
         globalData: data.globalData,
         localData: data.getPackFolderData(document.pack_segments)
     };
@@ -108,7 +108,7 @@ function getCompletionsFromNode(
     end: number,
     text: string,
     nodepath: CommandNodePath,
-    data: CommmandData,
+    data: CommandData,
     context: CommandContext
 ): CompletionItem[] {
     const parent = getNextNode(

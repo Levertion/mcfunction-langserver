@@ -3,7 +3,7 @@ import { ok } from "assert";
 import { loadNBTDocs } from "../../../data/noncached";
 import { GlobalData } from "../../../data/types";
 import { parseBlockArgument } from "../../../parsers/minecraft/block";
-import { CommmandData, Parser } from "../../../types";
+import { CommandData, Parser } from "../../../types";
 import {
     convertToResource,
     SuggestedOption,
@@ -19,7 +19,7 @@ const parser: Parser = {
 
 const blockArgumentTester = testParser(parser);
 
-const data: CommmandData = {
+const data: CommandData = {
     globalData: {
         blocks: {
             "langserver:multi": {

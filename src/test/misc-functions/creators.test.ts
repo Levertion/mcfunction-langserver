@@ -5,7 +5,7 @@ import {
     createParserInfo,
     splitLines
 } from "../../misc-functions/creators";
-import { CommmandData, ParserInfo } from "../../types";
+import { CommandData, ParserInfo } from "../../types";
 
 describe("Instance Creation Functions (Misc)", () => {
     describe("createCommandLines()", () => {
@@ -17,7 +17,7 @@ describe("Instance Creation Functions (Misc)", () => {
         });
     });
 
-    const data = {} as CommmandData;
+    const data = {} as CommandData;
     describe("createParserInfo", () => {
         it("should create a parser info based on a node's properties", () => {
             const expected: ParserInfo = {

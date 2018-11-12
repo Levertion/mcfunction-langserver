@@ -5,12 +5,12 @@ import {
     Resources,
     WorldInfo
 } from "../data/types";
-import { CommmandData } from "../types";
+import { CommandData } from "../types";
 import { namespacesEqual } from "./namespace";
 
 export function getResourcesofType<
     T extends MinecraftResource = MinecraftResource
->(resources: CommmandData, type: keyof Resources): T[] {
+>(resources: CommandData, type: keyof Resources): T[] {
     return getResourcesSplit<T>(
         type,
         resources.globalData,

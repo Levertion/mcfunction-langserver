@@ -1,17 +1,12 @@
 import { CommandNode, CommandNodePath } from "../data/types";
-import {
-    CommandContext,
-    CommandLine,
-    CommmandData,
-    ParserInfo
-} from "../types";
+import { CommandContext, CommandData, CommandLine, ParserInfo } from "../types";
 
 /**
  * Build parser info from the data required
  */
 export function createParserInfo(
     node: CommandNode,
-    data: CommmandData,
+    data: CommandData,
     path: CommandNodePath,
     context: CommandContext,
     suggesting: boolean
