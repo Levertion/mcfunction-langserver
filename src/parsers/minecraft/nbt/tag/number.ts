@@ -8,6 +8,10 @@ import { Correctness, tryExponential } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 const exceptions = {
+    BOOL_SHORTHAND: new CommandErrorBuilder(
+        "argument.nbt.number.shorthand",
+        "The boolean shorthand was used for value %s, which is not supported by %s"
+    ),
     FLOAT: new CommandErrorBuilder(
         "argument.nbt.number.float",
         "%s is not a float type, but the given text is a float"
@@ -28,6 +32,7 @@ const exceptions = {
 
 export type NumberType = "float" | "double" | "short" | "int" | "byte" | "long";
 interface NumberInfo {
+    bool?: boolean;
     float: boolean;
     max: number;
     min: number;
@@ -42,7 +47,7 @@ const intnumberInfo = (pow: number, suffix: string): NumberInfo => ({
 });
 
 const ranges: { [type in NumberType]: NumberInfo } = {
-    byte: intnumberInfo(7, "b"),
+    byte: { ...intnumberInfo(7, "b"), bool: true },
     // tslint:disable:binary-expression-operand-order
     double: {
         float: true,
@@ -143,6 +148,16 @@ export class NBTTagNumber extends NBTTag {
             }
             const typeInfo = ranges[actualType as NumberType];
             if (typeof this.value === "boolean") {
+                if (!typeInfo.bool) {
+                    helper.addErrors(
+                        exceptions.BOOL_SHORTHAND.create(
+                            this.range.start,
+                            this.range.end,
+                            this.value.toString(),
+                            actualType
+                        )
+                    );
+                }
                 return helper.succeed();
             } else {
                 if (typeInfo.min > this.value) {

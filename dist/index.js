@@ -3274,6 +3274,7 @@ const nbt_util_1 = require("../util/nbt-util");
 const nbt_tag_1 = require("./nbt-tag");
 
 const exceptions = {
+  BOOL_SHORTHAND: new errors_1.CommandErrorBuilder("argument.nbt.number.shorthand", "The boolean shorthand was used for value %s, which is not supported by %s"),
   FLOAT: new errors_1.CommandErrorBuilder("argument.nbt.number.float", "%s is not a float type, but the given text is a float"),
   SUFFIX: new errors_1.CommandErrorBuilder("argument.nbt.number.suffix", "Expected suffix '%s' for %s, got %s"),
   TOO_BIG: new errors_1.CommandErrorBuilder("argument.nbt.number.big", "%s must not be more than %s, found %s"),
@@ -3288,7 +3289,9 @@ const intnumberInfo = (pow, suffix) => ({
 });
 
 const ranges = {
-  byte: intnumberInfo(7, "b"),
+  byte: Object.assign({}, intnumberInfo(7, "b"), {
+    bool: true
+  }),
   // tslint:disable:binary-expression-operand-order
   double: {
     float: true,
@@ -3402,6 +3405,10 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
       const typeInfo = ranges[actualType];
 
       if (typeof this.value === "boolean") {
+        if (!typeInfo.bool) {
+          helper.addErrors(exceptions.BOOL_SHORTHAND.create(this.range.start, this.range.end, this.value.toString(), actualType));
+        }
+
         return helper.succeed();
       } else {
         if (typeInfo.min > this.value) {
