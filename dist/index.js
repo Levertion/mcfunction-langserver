@@ -2035,6 +2035,8 @@ exports.quoteIfNeeded = quoteIfNeeded;
 function escapeQuotes(value) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
+
+exports.READER_EXCEPTIONS = EXCEPTIONS;
 },{"../misc-functions":"KBGm","../misc-functions/third_party/typed-keys":"kca+","./errors":"aP4V"}],"Q/Gg":[function(require,module,exports) {
 "use strict";
 
@@ -4875,7 +4877,69 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+const string_reader_1 = require("../../brigadier/string-reader");
+
 const misc_functions_1 = require("../../misc-functions");
+
+const digregex = /\d/;
+
+function readIntLimited(reader) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
+  const neg = reader.peek() === "-";
+
+  if (neg) {
+    reader.skip();
+  }
+
+  const num = reader.readWhileRegexp(digregex);
+
+  if (num.length === 0) {
+    if (neg) {
+      return helper.fail(string_reader_1.READER_EXCEPTIONS.INVALID_INT.create(start, reader.cursor));
+    } else {
+      return helper.fail(string_reader_1.READER_EXCEPTIONS.EXPECTED_INT.create(start, reader.cursor));
+    }
+  }
+
+  return helper.succeed(parseInt(`${neg ? "-" : ""}${num}`, 10));
+}
+
+function readFloatLimited(reader) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
+  const neg = reader.peek() === "-";
+
+  if (neg) {
+    reader.skip();
+  }
+
+  let hasDecPoint = false;
+  const num = reader.readWhileFunction(v => {
+    if (v === ".") {
+      if (hasDecPoint) {
+        return false;
+      } else {
+        hasDecPoint = true;
+        return true;
+      }
+    } else if (/\d/.test(v)) {
+      return true;
+    }
+
+    return false;
+  });
+
+  if (num.length === 0) {
+    if (neg) {
+      return helper.fail(string_reader_1.READER_EXCEPTIONS.INVALID_FLOAT.create(start, reader.cursor));
+    } else {
+      return helper.fail(string_reader_1.READER_EXCEPTIONS.EXPECTED_FLOAT.create(start, reader.cursor));
+    }
+  }
+
+  return helper.succeed(parseFloat(`${neg ? "-" : ""}${num}`));
+}
 
 exports.rangeParser = (float = false) => reader => {
   const helper = new misc_functions_1.ReturnHelper();
@@ -4883,8 +4947,7 @@ exports.rangeParser = (float = false) => reader => {
   if (helper.merge(reader.expect(".."), {
     errors: false
   })) {
-    reader.cursor += 2;
-    const max = float ? reader.readFloat() : reader.readInt();
+    const max = float ? readFloatLimited(reader) : readIntLimited(reader);
 
     if (!helper.merge(max)) {
       return helper.fail();
@@ -4894,7 +4957,7 @@ exports.rangeParser = (float = false) => reader => {
       max: max.data
     });
   } else {
-    const min = float ? reader.readFloat() : reader.readInt();
+    const min = float ? readFloatLimited(reader) : readIntLimited(reader);
 
     if (!helper.merge(min)) {
       return helper.fail();
@@ -4908,7 +4971,7 @@ exports.rangeParser = (float = false) => reader => {
         min: min.data
       });
     } else if (/\d\./.test(reader.peek())) {
-      const max = float ? reader.readFloat() : reader.readInt();
+      const max = float ? readFloatLimited(reader) : readIntLimited(reader);
 
       if (!helper.merge(max)) {
         return helper.fail();
@@ -4952,7 +5015,7 @@ exports.intRange = {
     return helper.merge(res) ? helper.succeed() : helper.fail();
   }
 };
-},{"../../misc-functions":"KBGm"}],"1kly":[function(require,module,exports) {
+},{"../../brigadier/string-reader":"iLhI","../../misc-functions":"KBGm"}],"1kly":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5026,10 +5089,10 @@ function isNegated(reader, helper) {
   return neg;
 }
 
-const intOptParser = (min, max, key) => (reader, _, context) => {
+exports.numOptParser = (float, min, max, key) => (reader, _, context) => {
   const helper = new misc_functions_1.ReturnHelper();
   const start = reader.cursor;
-  const res = reader.readInt();
+  const res = float ? reader.readFloat() : reader.readInt();
 
   if (!helper.merge(res)) {
     return helper.fail();
@@ -5058,7 +5121,7 @@ const intOptParser = (min, max, key) => (reader, _, context) => {
   return helper.succeed(out);
 };
 
-const rangeOptParser = (float, min, max, key) => (reader, _, context) => {
+exports.rangeOptParser = (float, min, max, key) => (reader, _, context) => {
   const helper = new misc_functions_1.ReturnHelper();
   const start = reader.cursor;
   const res = range_1.rangeParser(float)(reader);
@@ -5144,6 +5207,8 @@ function parseScores(reader, scoreboard) {
 
   return helper.succeed(out);
 }
+
+exports.parseScores = parseScores;
 
 function parseAdvancements(reader, info) {
   const adv = misc_functions_1.getResourcesofType(info.data, "advancements");
@@ -5239,7 +5304,8 @@ function parseAdvancements(reader, info) {
   return helper.succeed(out);
 }
 
-const options = {
+exports.parseAdvancements = parseAdvancements;
+exports.options = {
   advancements: (reader, info, context) => {
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
@@ -5258,10 +5324,10 @@ const options = {
       });
     }
   },
-  distance: rangeOptParser(true, 0, 3e7, "distance"),
-  dx: intOptParser(undefined, undefined, "dx"),
-  dy: intOptParser(undefined, undefined, "dy"),
-  dz: intOptParser(undefined, undefined, "dz"),
+  distance: exports.rangeOptParser(true, 0, 3e7, "distance"),
+  dx: exports.numOptParser(true, undefined, undefined, "dx"),
+  dy: exports.numOptParser(true, undefined, undefined, "dy"),
+  dz: exports.numOptParser(true, undefined, undefined, "dz"),
   gamemode: (reader, _, context) => {
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
@@ -5294,8 +5360,8 @@ const options = {
       });
     }
   },
-  level: rangeOptParser(false, 0, undefined, "level"),
-  limit: intOptParser(1, undefined, "limit"),
+  level: exports.rangeOptParser(false, 0, undefined, "level"),
+  limit: exports.numOptParser(false, 1, undefined, "limit"),
   name: (reader, _, context) => {
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
@@ -5475,11 +5541,11 @@ const options = {
       });
     }
   },
-  x: intOptParser(-3e7, 3e7 - 1, "x"),
-  x_rotation: rangeOptParser(true, consts_1.JAVAMININT, consts_1.JAVAMAXINT, "x_rotation"),
-  y: intOptParser(0, 255, "y"),
-  y_rotation: rangeOptParser(true, consts_1.JAVAMININT, consts_1.JAVAMAXINT, "y_rotation"),
-  z: intOptParser(-3e7, 3e7 - 1, "z")
+  x: exports.numOptParser(true, -3e7, 3e7 - 1, "x"),
+  x_rotation: exports.rangeOptParser(true, consts_1.JAVAMININT, consts_1.JAVAMAXINT, "x_rotation"),
+  y: exports.numOptParser(true, 0, 255, "y"),
+  y_rotation: exports.rangeOptParser(true, consts_1.JAVAMININT, consts_1.JAVAMAXINT, "y_rotation"),
+  z: exports.numOptParser(true, -3e7, 3e7 - 1, "z")
 };
 
 class EntityBase {
@@ -5533,7 +5599,7 @@ class EntityBase {
         let next = reader.read();
 
         while (next !== "]") {
-          const arg = reader.expectOption(...typed_keys_1.typed_keys(options));
+          const arg = reader.expectOption(...typed_keys_1.typed_keys(exports.options));
 
           if (!helper.merge(arg)) {
             return helper.fail();
@@ -5543,7 +5609,7 @@ class EntityBase {
             return helper.fail();
           }
 
-          const opt = options[arg.data];
+          const opt = exports.options[arg.data];
           const conc = opt(reader, info, context);
 
           if (!helper.merge(conc)) {

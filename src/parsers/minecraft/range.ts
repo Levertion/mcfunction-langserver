@@ -1,10 +1,71 @@
-import { StringReader } from "../../brigadier/string-reader";
+import { READER_EXCEPTIONS, StringReader } from "../../brigadier/string-reader";
 import { ReturnHelper } from "../../misc-functions";
 import { Parser, ReturnedInfo } from "../../types";
 
 export interface MCRange {
     max?: number;
     min?: number;
+}
+
+const digregex = /\d/;
+
+function readIntLimited(reader: StringReader): ReturnedInfo<number> {
+    const helper = new ReturnHelper();
+    const start = reader.cursor;
+    const neg = reader.peek() === "-";
+    if (neg) {
+        reader.skip();
+    }
+    const num = reader.readWhileRegexp(digregex);
+    if (num.length === 0) {
+        if (neg) {
+            return helper.fail(
+                READER_EXCEPTIONS.INVALID_INT.create(start, reader.cursor)
+            );
+        } else {
+            return helper.fail(
+                READER_EXCEPTIONS.EXPECTED_INT.create(start, reader.cursor)
+            );
+        }
+    }
+    return helper.succeed(parseInt(`${neg ? "-" : ""}${num}`, 10));
+}
+
+function readFloatLimited(reader: StringReader): ReturnedInfo<number> {
+    const helper = new ReturnHelper();
+    const start = reader.cursor;
+    const neg = reader.peek() === "-";
+    if (neg) {
+        reader.skip();
+    }
+
+    let hasDecPoint = false;
+
+    const num = reader.readWhileFunction(v => {
+        if (v === ".") {
+            if (hasDecPoint) {
+                return false;
+            } else {
+                hasDecPoint = true;
+                return true;
+            }
+        } else if (/\d/.test(v)) {
+            return true;
+        }
+        return false;
+    });
+    if (num.length === 0) {
+        if (neg) {
+            return helper.fail(
+                READER_EXCEPTIONS.INVALID_FLOAT.create(start, reader.cursor)
+            );
+        } else {
+            return helper.fail(
+                READER_EXCEPTIONS.EXPECTED_FLOAT.create(start, reader.cursor)
+            );
+        }
+    }
+    return helper.succeed(parseFloat(`${neg ? "-" : ""}${num}`));
 }
 
 export const rangeParser = (float: boolean = false) => (
@@ -16,8 +77,7 @@ export const rangeParser = (float: boolean = false) => (
             errors: false
         })
     ) {
-        reader.cursor += 2;
-        const max = float ? reader.readFloat() : reader.readInt();
+        const max = float ? readFloatLimited(reader) : readIntLimited(reader);
         if (!helper.merge(max)) {
             return helper.fail();
         }
@@ -25,7 +85,7 @@ export const rangeParser = (float: boolean = false) => (
             max: max.data
         });
     } else {
-        const min = float ? reader.readFloat() : reader.readInt();
+        const min = float ? readFloatLimited(reader) : readIntLimited(reader);
         if (!helper.merge(min)) {
             return helper.fail();
         }
@@ -39,7 +99,9 @@ export const rangeParser = (float: boolean = false) => (
                 min: min.data
             });
         } else if (/\d\./.test(reader.peek())) {
-            const max = float ? reader.readFloat() : reader.readInt();
+            const max = float
+                ? readFloatLimited(reader)
+                : readIntLimited(reader);
             if (!helper.merge(max)) {
                 return helper.fail();
             }

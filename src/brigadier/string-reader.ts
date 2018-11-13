@@ -473,3 +473,5 @@ export function quoteIfNeeded(
 function escapeQuotes(value: string): string {
     return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
+
+export const READER_EXCEPTIONS = EXCEPTIONS;

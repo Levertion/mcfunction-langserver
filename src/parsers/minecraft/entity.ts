@@ -19,7 +19,7 @@ import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
 import { validateParse } from "./nbt/nbt";
 import { MCRange, rangeParser } from "./range";
 // tslint:disable:cyclomatic-complexity
-const uuidregex = /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/g;
+const uuidregex = /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/;
 
 /*
 https://github.com/Levertion/mcfunction-langserver/issues/89
@@ -60,7 +60,7 @@ interface EntityContextInner extends EntityContextType {
     z: number;
 }
 
-type EntityContext = Partial<EntityContextInner>;
+export type EntityContext = Partial<EntityContextInner>;
 
 type AdvancementOption = boolean | Dictionary<boolean>;
 
@@ -79,7 +79,7 @@ const contexterr = {
     )
 };
 
-type Option =
+export type Option =
     | "advancements"
     | "distance"
     | "dx"
@@ -144,7 +144,7 @@ function getContextError(
     return undefined;
 }
 
-type OptionParser = (
+export type OptionParser = (
     reader: StringReader,
     info: ParserInfo,
     context: EntityContext
@@ -164,14 +164,15 @@ function isNegated(reader: StringReader, helper: ReturnHelper): boolean {
     return neg;
 }
 
-const intOptParser = (
+export const numOptParser = (
+    float: boolean,
     min: number | undefined,
     max: number | undefined,
     key: Option
 ) => (reader: StringReader, _: ParserInfo, context: EntityContext) => {
     const helper = new ReturnHelper();
     const start = reader.cursor;
-    const res = reader.readInt();
+    const res = float ? reader.readFloat() : reader.readInt();
     if (!helper.merge(res)) {
         return helper.fail();
     }
@@ -208,7 +209,7 @@ const intOptParser = (
     return helper.succeed(out);
 };
 
-const rangeOptParser = (
+export const rangeOptParser = (
     float: boolean,
     min: number | undefined,
     max: number | undefined,
@@ -281,7 +282,7 @@ const rangeOptParser = (
     return helper.succeed(out);
 };
 
-function parseScores(
+export function parseScores(
     reader: StringReader,
     scoreboard: Scoreboard | undefined
 ): ReturnedInfo<Dictionary<MCRange>> {
@@ -323,7 +324,7 @@ function parseScores(
     return helper.succeed(out);
 }
 
-function parseAdvancements(
+export function parseAdvancements(
     reader: StringReader,
     info: ParserInfo
 ): ReturnedInfo<Map<NamespacedName, AdvancementOption>> {
@@ -422,7 +423,7 @@ function parseAdvancements(
     return helper.succeed(out);
 }
 
-const options: { [K in Option]: OptionParser } = {
+export const options: { [K in Option]: OptionParser } = {
     advancements: (reader, info, context) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
@@ -442,9 +443,9 @@ const options: { [K in Option]: OptionParser } = {
         }
     },
     distance: rangeOptParser(true, 0, 3e7, "distance"),
-    dx: intOptParser(undefined, undefined, "dx"),
-    dy: intOptParser(undefined, undefined, "dy"),
-    dz: intOptParser(undefined, undefined, "dz"),
+    dx: numOptParser(true, undefined, undefined, "dx"),
+    dy: numOptParser(true, undefined, undefined, "dy"),
+    dz: numOptParser(true, undefined, undefined, "dz"),
     gamemode: (reader, _, context) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
@@ -484,7 +485,7 @@ const options: { [K in Option]: OptionParser } = {
         }
     },
     level: rangeOptParser(false, 0, undefined, "level"),
-    limit: intOptParser(1, undefined, "limit"),
+    limit: numOptParser(false, 1, undefined, "limit"),
     name: (reader, _, context) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
@@ -704,11 +705,11 @@ const options: { [K in Option]: OptionParser } = {
             } as EntityContext);
         }
     },
-    x: intOptParser(-3e7, 3e7 - 1, "x"),
+    x: numOptParser(true, -3e7, 3e7 - 1, "x"),
     x_rotation: rangeOptParser(true, JAVAMININT, JAVAMAXINT, "x_rotation"),
-    y: intOptParser(0, 255, "y"),
+    y: numOptParser(true, 0, 255, "y"),
     y_rotation: rangeOptParser(true, JAVAMININT, JAVAMAXINT, "y_rotation"),
-    z: intOptParser(-3e7, 3e7 - 1, "z")
+    z: numOptParser(true, -3e7, 3e7 - 1, "z")
 };
 
 export class EntityBase implements Parser {
@@ -724,7 +725,7 @@ export class EntityBase implements Parser {
         reader: StringReader,
         info: ParserInfo
     ): ReturnedInfo<ContextChange> {
-        const helper = new ReturnHelper();
+        const helper = new ReturnHelper(info);
         if (
             this.selector &&
             helper.merge(reader.expect("@"), {
@@ -814,7 +815,7 @@ export class EntityBase implements Parser {
             if (info.data.localData && info.data.localData.nbt.scoreboard) {
                 for (const score of info.data.localData.nbt.scoreboard.data
                     .PlayerScores) {
-                    if (reader.getRemaining().startsWith(score.Name)) {
+                    if (score.Name.startsWith(reader.getRemaining())) {
                         helper.addSuggestion(reader.cursor, score.Name);
                     }
                 }
