@@ -159,11 +159,12 @@ export class StringReader {
     /**
      * Read a boolean value from the string
      */
-    public readBoolean(): ReturnedInfo<boolean> {
+    public readBoolean(quoting?: QuotingInfo): ReturnedInfo<boolean> {
         const helper = new ReturnHelper();
         const start = this.cursor;
         const value = this.readOption<keyof typeof StringReader["bools"]>(
-            typed_keys(StringReader.bools)
+            typed_keys(StringReader.bools),
+            quoting
         );
         if (!helper.merge(value)) {
             if (value.data !== undefined) {

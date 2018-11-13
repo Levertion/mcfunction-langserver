@@ -8,6 +8,10 @@ import { Correctness, tryExponential } from "../util/nbt-util";
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 const exceptions = {
+    BOOL_SHORTHAND: new CommandErrorBuilder(
+        "argument.nbt.number.shorthand",
+        "The boolean shorthand was used for value %s, which is not supported by %s"
+    ),
     FLOAT: new CommandErrorBuilder(
         "argument.nbt.number.float",
         "%s is not a float type, but the given text is a float"
@@ -28,6 +32,7 @@ const exceptions = {
 
 export type NumberType = "float" | "double" | "short" | "int" | "byte" | "long";
 interface NumberInfo {
+    bool?: boolean;
     float: boolean;
     max: number;
     min: number;
@@ -42,7 +47,7 @@ const intnumberInfo = (pow: number, suffix: string): NumberInfo => ({
 });
 
 const ranges: { [type in NumberType]: NumberInfo } = {
-    byte: intnumberInfo(7, "b"),
+    byte: { ...intnumberInfo(7, "b"), bool: true },
     // tslint:disable:binary-expression-operand-order
     double: {
         float: true,
@@ -74,11 +79,11 @@ function typeForSuffix(rawsuffix: string): NumberInfo | undefined {
 
 export class NBTTagNumber extends NBTTag {
     protected tagType = undefined;
-    protected value = 0;
+    protected value: number | boolean = 0;
     private float = false;
     private suffix: string | undefined;
 
-    public getValue(): number {
+    public getValue(): number | boolean {
         return this.value;
     }
 
@@ -102,12 +107,24 @@ export class NBTTagNumber extends NBTTag {
         }
         reader.cursor = start;
         const float = reader.readFloat();
-        if (helper.merge(float)) {
+        if (isSuccessful(float)) {
+            helper.merge(float);
             this.float = true;
             this.value = float.data;
             this.checkSuffix(reader);
             return helper.succeed(Correctness.CERTAIN);
         } else {
+            reader.cursor = start;
+            const bool = reader.readBoolean({
+                quote: false,
+                unquoted: StringReader.charAllowedInUnquotedString
+            });
+            if (isSuccessful(bool)) {
+                // We do not merge as this does not do anything
+                this.value = bool.data;
+                return helper.succeed(Correctness.CERTAIN);
+            }
+            helper.merge(float);
             return helper.failWithData(Correctness.NO);
         }
     }
@@ -130,48 +147,62 @@ export class NBTTagNumber extends NBTTag {
                     .succeed();
             }
             const typeInfo = ranges[actualType as NumberType];
-            if (typeInfo.min > this.value) {
-                helper.addErrors(
-                    exceptions.TOO_LOW.create(
-                        this.range.start,
-                        this.range.end,
-                        actualType,
-                        typeInfo.min.toString(),
-                        this.value.toString()
-                    )
-                );
-            } else if (typeInfo.max < this.value) {
-                helper.addErrors(
-                    exceptions.TOO_BIG.create(
-                        this.range.start,
-                        this.range.end,
-                        actualType,
-                        typeInfo.min.toString(),
-                        this.value.toString()
-                    )
-                );
+            if (typeof this.value === "boolean") {
+                if (!typeInfo.bool) {
+                    helper.addErrors(
+                        exceptions.BOOL_SHORTHAND.create(
+                            this.range.start,
+                            this.range.end,
+                            this.value.toString(),
+                            actualType
+                        )
+                    );
+                }
+                return helper.succeed();
+            } else {
+                if (typeInfo.min > this.value) {
+                    helper.addErrors(
+                        exceptions.TOO_LOW.create(
+                            this.range.start,
+                            this.range.end,
+                            actualType,
+                            typeInfo.min.toString(),
+                            this.value.toString()
+                        )
+                    );
+                } else if (typeInfo.max < this.value) {
+                    helper.addErrors(
+                        exceptions.TOO_BIG.create(
+                            this.range.start,
+                            this.range.end,
+                            actualType,
+                            typeInfo.min.toString(),
+                            this.value.toString()
+                        )
+                    );
+                }
+                if (this.float && !typeInfo.float) {
+                    helper.addErrors(
+                        exceptions.FLOAT.create(
+                            this.range.start,
+                            this.range.end,
+                            actualType
+                        )
+                    );
+                }
+                if (this.suffix && this.suffix !== typeInfo.suffix) {
+                    helper.addErrors(
+                        exceptions.SUFFIX.create(
+                            this.range.end - 1,
+                            this.range.end,
+                            typeInfo.suffix,
+                            actualType,
+                            this.suffix
+                        )
+                    );
+                }
+                return helper.succeed();
             }
-            if (this.float && !typeInfo.float) {
-                helper.addErrors(
-                    exceptions.FLOAT.create(
-                        this.range.start,
-                        this.range.end,
-                        actualType
-                    )
-                );
-            }
-            if (this.suffix && this.suffix !== typeInfo.suffix) {
-                helper.addErrors(
-                    exceptions.SUFFIX.create(
-                        this.range.end - 1,
-                        this.range.end,
-                        typeInfo.suffix,
-                        actualType,
-                        this.suffix
-                    )
-                );
-            }
-            return helper.succeed();
         } else {
             // Will always add the error in this case
             return helper.mergeChain(this.sameType(node)).succeed();

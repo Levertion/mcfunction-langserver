@@ -1725,10 +1725,10 @@ class StringReader {
    */
 
 
-  readBoolean() {
+  readBoolean(quoting) {
     const helper = new misc_functions_1.ReturnHelper();
     const start = this.cursor;
-    const value = this.readOption(typed_keys_1.typed_keys(StringReader.bools));
+    const value = this.readOption(typed_keys_1.typed_keys(StringReader.bools), quoting);
 
     if (!helper.merge(value)) {
       if (value.data !== undefined) {
@@ -3261,6 +3261,8 @@ Object.defineProperty(exports, "__esModule", {
 
 const errors_1 = require("../../../../brigadier/errors");
 
+const string_reader_1 = require("../../../../brigadier/string-reader");
+
 const misc_functions_1 = require("../../../../misc-functions");
 
 const typed_keys_1 = require("../../../../misc-functions/third_party/typed-keys");
@@ -3272,6 +3274,7 @@ const nbt_util_1 = require("../util/nbt-util");
 const nbt_tag_1 = require("./nbt-tag");
 
 const exceptions = {
+  BOOL_SHORTHAND: new errors_1.CommandErrorBuilder("argument.nbt.number.shorthand", "The boolean shorthand was used for value %s, which is not supported by %s"),
   FLOAT: new errors_1.CommandErrorBuilder("argument.nbt.number.float", "%s is not a float type, but the given text is a float"),
   SUFFIX: new errors_1.CommandErrorBuilder("argument.nbt.number.suffix", "Expected suffix '%s' for %s, got %s"),
   TOO_BIG: new errors_1.CommandErrorBuilder("argument.nbt.number.big", "%s must not be more than %s, found %s"),
@@ -3286,7 +3289,9 @@ const intnumberInfo = (pow, suffix) => ({
 });
 
 const ranges = {
-  byte: intnumberInfo(7, "b"),
+  byte: Object.assign({}, intnumberInfo(7, "b"), {
+    bool: true
+  }),
   // tslint:disable:binary-expression-operand-order
   double: {
     float: true,
@@ -3355,12 +3360,26 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
     reader.cursor = start;
     const float = reader.readFloat();
 
-    if (helper.merge(float)) {
+    if (misc_functions_1.isSuccessful(float)) {
+      helper.merge(float);
       this.float = true;
       this.value = float.data;
       this.checkSuffix(reader);
       return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     } else {
+      reader.cursor = start;
+      const bool = reader.readBoolean({
+        quote: false,
+        unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+      });
+
+      if (misc_functions_1.isSuccessful(bool)) {
+        // We do not merge as this does not do anything
+        this.value = bool.data;
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
+      }
+
+      helper.merge(float);
       return helper.failWithData(nbt_util_1.Correctness.NO);
     }
   }
@@ -3385,21 +3404,29 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
 
       const typeInfo = ranges[actualType];
 
-      if (typeInfo.min > this.value) {
-        helper.addErrors(exceptions.TOO_LOW.create(this.range.start, this.range.end, actualType, typeInfo.min.toString(), this.value.toString()));
-      } else if (typeInfo.max < this.value) {
-        helper.addErrors(exceptions.TOO_BIG.create(this.range.start, this.range.end, actualType, typeInfo.min.toString(), this.value.toString()));
-      }
+      if (typeof this.value === "boolean") {
+        if (!typeInfo.bool) {
+          helper.addErrors(exceptions.BOOL_SHORTHAND.create(this.range.start, this.range.end, this.value.toString(), actualType));
+        }
 
-      if (this.float && !typeInfo.float) {
-        helper.addErrors(exceptions.FLOAT.create(this.range.start, this.range.end, actualType));
-      }
+        return helper.succeed();
+      } else {
+        if (typeInfo.min > this.value) {
+          helper.addErrors(exceptions.TOO_LOW.create(this.range.start, this.range.end, actualType, typeInfo.min.toString(), this.value.toString()));
+        } else if (typeInfo.max < this.value) {
+          helper.addErrors(exceptions.TOO_BIG.create(this.range.start, this.range.end, actualType, typeInfo.min.toString(), this.value.toString()));
+        }
 
-      if (this.suffix && this.suffix !== typeInfo.suffix) {
-        helper.addErrors(exceptions.SUFFIX.create(this.range.end - 1, this.range.end, typeInfo.suffix, actualType, this.suffix));
-      }
+        if (this.float && !typeInfo.float) {
+          helper.addErrors(exceptions.FLOAT.create(this.range.start, this.range.end, actualType));
+        }
 
-      return helper.succeed();
+        if (this.suffix && this.suffix !== typeInfo.suffix) {
+          helper.addErrors(exceptions.SUFFIX.create(this.range.end - 1, this.range.end, typeInfo.suffix, actualType, this.suffix));
+        }
+
+        return helper.succeed();
+      }
     } else {
       // Will always add the error in this case
       return helper.mergeChain(this.sameType(node)).succeed();
@@ -3421,7 +3448,7 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
 }
 
 exports.NBTTagNumber = NBTTagNumber;
-},{"../../../../brigadier/errors":"aP4V","../../../../misc-functions":"KBGm","../../../../misc-functions/third_party/typed-keys":"kca+","../util/doc-walker-util":"km+2","../util/nbt-util":"OoHl","./nbt-tag":"8yQQ"}],"QKwA":[function(require,module,exports) {
+},{"../../../../brigadier/errors":"aP4V","../../../../brigadier/string-reader":"iLhI","../../../../misc-functions":"KBGm","../../../../misc-functions/third_party/typed-keys":"kca+","../util/doc-walker-util":"km+2","../util/nbt-util":"OoHl","./nbt-tag":"8yQQ"}],"QKwA":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
