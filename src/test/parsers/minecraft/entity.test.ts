@@ -137,6 +137,10 @@ describe("entity parser", () => {
                         {
                             start: 1,
                             text: "p"
+                        },
+                        {
+                            start: 2,
+                            text: "["
                         }
                     ]
                 });
@@ -303,6 +307,20 @@ describe("entity parser", () => {
             });
             describe("float", () => {
                 //
+            });
+        });
+        describe("argument selector", () => {
+            const tester = testerBuilder({});
+            it("should succeed with no arguments", () => {
+                tester("@a[]", {
+                    succeeds: true,
+                    suggestions: [
+                        {
+                            start: 3,
+                            text: "]"
+                        }
+                    ]
+                });
             });
         });
     });

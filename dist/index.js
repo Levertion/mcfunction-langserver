@@ -5059,6 +5059,7 @@ const argerr = {
     aboveMax: new errors_1.CommandErrorBuilder("argument.entity.option.number.abovemax", "Argument '%s' is greater than %s"),
     belowMin: new errors_1.CommandErrorBuilder("argument.entity.option.number.belowmin", "Argument '%s' is less than %s")
   },
+  noArg: new errors_1.CommandErrorBuilder("argument.entity.option.noopt", "Expected ']'"),
   noInfo: new errors_1.CommandErrorBuilder("argument.entity.option.noinfo", "Argument '%s' is redundant")
 };
 
@@ -5079,14 +5080,13 @@ const nsEntity = statics_1.entities.map(v => misc_functions_1.convertToNamespace
 const gamemodes = ["survival", "creative", "adventure", "spectator"];
 
 function isNegated(reader, helper) {
-  helper.addSuggestion(reader.cursor, "!");
-  const neg = reader.peek() === "!";
-
-  if (neg) {
-    reader.skip();
+  if (helper.merge(reader.expect("!"), {
+    errors: false
+  })) {
+    return true;
+  } else {
+    return false;
   }
-
-  return neg;
 }
 
 exports.numOptParser = (float, min, max, key) => (reader, _, context) => {
@@ -5595,38 +5595,49 @@ class EntityBase {
           throw new TypeError();
       }
 
-      if (reader.canRead() && reader.peek() === "[") {
-        let next = reader.read();
+      if (helper.merge(reader.expect("["), {
+        errors: false
+      })) {
+        if (!reader.canRead()) {
+          helper.addSuggestion(reader.cursor, "[");
+          return helper.fail(argerr.noArg.create(start, reader.cursor));
+        }
 
-        while (next !== "]") {
-          const arg = reader.expectOption(...typed_keys_1.typed_keys(exports.options));
+        if (!helper.merge(reader.expect("]"), {
+          errors: false
+        })) {
+          let next = "";
 
-          if (!helper.merge(arg)) {
-            return helper.fail();
+          while (next !== "]") {
+            const arg = reader.expectOption(...typed_keys_1.typed_keys(exports.options));
+
+            if (!helper.merge(arg)) {
+              return helper.fail();
+            }
+
+            if (!helper.merge(reader.expect("="))) {
+              return helper.fail();
+            }
+
+            const opt = exports.options[arg.data];
+            const conc = opt(reader, info, context);
+
+            if (!helper.merge(conc)) {
+              return helper.fail();
+            }
+
+            if (conc.data) {
+              Object.assign(context, conc.data);
+            }
+
+            const nextc = reader.expectOption(",", "]");
+
+            if (!helper.merge(nextc)) {
+              return helper.fail();
+            }
+
+            next = nextc.data;
           }
-
-          if (!helper.merge(reader.expect("="))) {
-            return helper.fail();
-          }
-
-          const opt = exports.options[arg.data];
-          const conc = opt(reader, info, context);
-
-          if (!helper.merge(conc)) {
-            return helper.fail();
-          }
-
-          if (conc.data) {
-            Object.assign(context, conc.data);
-          }
-
-          const nextc = reader.expectOption(",", "]");
-
-          if (!helper.merge(nextc)) {
-            return helper.fail();
-          }
-
-          next = nextc.data;
         }
       }
 
