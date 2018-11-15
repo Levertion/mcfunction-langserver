@@ -1968,7 +1968,11 @@ class StringReader {
     if (info.quote) {
       return this.readString(info.unquoted);
     } else {
-      return misc_functions_1.getReturned(this.readWhileRegexp(StringReader.charAllowedInUnquotedString));
+      if (info.unquoted) {
+        return misc_functions_1.getReturned(this.readWhileRegexp(info.unquoted));
+      } else {
+        return misc_functions_1.getReturned(undefined);
+      }
     } // tslint:enable:helper-return
 
   }
@@ -3038,20 +3042,11 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
     const afterOpen = reader.cursor;
     reader.skipWhitespace();
 
-    if (reader.peek() === nbt_util_1.COMPOUND_END) {
+    if (helper.merge(reader.expect(nbt_util_1.COMPOUND_END), {
+      errors: false
+    })) {
       this.miscIndex = reader.cursor;
-      reader.skip();
       return helper.succeed(nbt_util_1.Correctness.CERTAIN);
-    } else if (!reader.canRead()) {
-      helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
-      helper.addErrors(NO_KEY.create(afterOpen, reader.cursor));
-      this.parts.push({
-        keyRange: {
-          end: reader.cursor,
-          start: reader.cursor
-        }
-      });
-      return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
     }
 
     reader.cursor = afterOpen; // This improves the value of the first kvstart in case of `{  `
@@ -3085,6 +3080,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         };
 
         if (reader.canRead()) {
+          // Still support suggesting an unclosed quoted
           keypart.closeIdx = reader.cursor;
         }
 

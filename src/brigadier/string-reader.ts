@@ -432,9 +432,11 @@ export class StringReader {
         if (info.quote) {
             return this.readString(info.unquoted);
         } else {
-            return getReturned(
-                this.readWhileRegexp(StringReader.charAllowedInUnquotedString)
-            );
+            if (info.unquoted) {
+                return getReturned(this.readWhileRegexp(info.unquoted));
+            } else {
+                return getReturned<string>(undefined);
+            }
         }
         // tslint:enable:helper-return
     }
