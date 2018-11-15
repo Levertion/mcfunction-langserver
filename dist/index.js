@@ -2298,8 +2298,9 @@ class BaseList extends nbt_tag_1.NBTTag {
   parseInner(reader) {
     const helper = new misc_functions_1.ReturnHelper();
 
-    if (reader.peek() === nbt_util_1.LIST_END) {
-      reader.skip();
+    if (helper.merge(reader.expect(nbt_util_1.LIST_END), {
+      errors: false
+    })) {
       return helper.succeed();
     }
 
@@ -2311,7 +2312,6 @@ class BaseList extends nbt_tag_1.NBTTag {
       reader.skipWhitespace();
 
       if (!reader.canRead()) {
-        helper.addSuggestion(reader.cursor, nbt_util_1.LIST_END);
         helper.addErrors(NOVAL.create(start, reader.cursor));
         return helper.fail();
       }
@@ -2333,23 +2333,20 @@ class BaseList extends nbt_tag_1.NBTTag {
       const preEnd = reader.cursor;
       reader.skipWhitespace();
 
-      if (reader.peek() === nbt_util_1.LIST_VALUE_SEP) {
-        reader.skip();
+      if (helper.merge(reader.expect(nbt_util_1.LIST_VALUE_SEP), {
+        errors: false
+      })) {
         continue;
       }
 
-      if (reader.peek() === nbt_util_1.LIST_END) {
-        reader.skip();
+      if (helper.merge(reader.expect(nbt_util_1.LIST_END), {
+        errors: false
+      })) {
         this.end = {
           start: preEnd,
           end: reader.cursor
         };
         return helper.succeed();
-      }
-
-      if (!reader.canRead()) {
-        helper.addSuggestion(reader.cursor, nbt_util_1.LIST_END);
-        helper.addSuggestion(reader.cursor, nbt_util_1.LIST_VALUE_SEP);
       }
 
       return helper.fail(NOVAL.create(preEnd, reader.cursor));
@@ -2875,8 +2872,9 @@ const nbt_tag_1 = require("./nbt-tag");
 
 const NO_KEY = new errors_1.CommandErrorBuilder("argument.nbt.compound.nokey", "Expected key");
 const NO_VAL = new errors_1.CommandErrorBuilder("argument.nbt.compound.noval", "Expected value");
-exports.UNKNOWN = new errors_1.CommandErrorBuilder("argument.nbt.compound.unknown", "Unknown child '%s'");
-exports.DUPLICATE = new errors_1.CommandErrorBuilder("argument.nbt.compound.duplicate", "'%s' is already defined");
+const UNKNOWN = new errors_1.CommandErrorBuilder("argument.nbt.compound.unknown", "Unknown child '%s'");
+const DUPLICATE = new errors_1.CommandErrorBuilder("argument.nbt.compound.duplicate", "'%s' is already defined");
+const UNCLOSED = new errors_1.CommandErrorBuilder("argument.nbt.compound.unclosed", "Compound is not closed, expected `}`");
 /**
  * TODO: refactor (again)!
  * Help welcome
@@ -2887,7 +2885,6 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
     super(...arguments);
     this.tagType = "compound";
     this.value = new Map();
-    this.miscIndex = -1;
     this.openIndex = -1;
     /**
      * If empty => no values, closed instantly (e.g. `{}`, `{ }`)
@@ -2915,7 +2912,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
 
     if (this.openIndex === -1) {
       // This should never happen
-      nbt_util_1.createSuggestions(anyInfo.node, this.miscIndex);
+      nbt_util_1.createSuggestions(anyInfo.node, this.range.end);
       return helper.succeed();
     }
 
@@ -2932,7 +2929,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
       helper.addActions({
         // Add the hover over the entire object
         data: hoverText,
-        high: this.miscIndex,
+        high: this.range.end,
         low: this.openIndex,
         type: "hover"
       });
@@ -2960,7 +2957,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             helper.merge(part.value.validate(child, walker));
             helper.addActions(getKeyHover(part.keyRange, child.node));
           } else {
-            const error = Object.assign({}, exports.UNKNOWN.create(part.keyRange.start, part.keyRange.end, part.key), {
+            const error = Object.assign({}, UNKNOWN.create(part.keyRange.start, part.keyRange.end, part.key), {
               path: [...this.path, part.key]
             });
             helper.addErrors(error);
@@ -3008,10 +3005,13 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
       const child = children[key];
 
       if (child) {
-        if (part.closeIdx && part.closeIdx >= 0) {
-          keyHelper.merge(nbt_util_1.getNBTSuggestions(child.node, part.closeIdx));
-        }
+        // Not sure what this would have ever done, feels like a bug
 
+        /* if (part.closeIdx && part.closeIdx >= 0) {
+            keyHelper.merge(
+                getNBTSuggestions(child.node, part.closeIdx)
+            );
+        }*/
         keyHelper.addActions(getKeyHover(part.keyRange, child.node));
       } // tslint:disable-next-line:helper-return
 
@@ -3032,28 +3032,23 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
   readTag(reader) {
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
-    this.miscIndex = start;
 
     if (!helper.merge(reader.expect(nbt_util_1.COMPOUND_START))) {
       return helper.failWithData(nbt_util_1.Correctness.NO);
     }
 
     this.openIndex = start;
-    const afterOpen = reader.cursor;
     reader.skipWhitespace();
 
     if (helper.merge(reader.expect(nbt_util_1.COMPOUND_END), {
       errors: false
     })) {
-      this.miscIndex = reader.cursor;
       return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     }
 
-    reader.cursor = afterOpen; // This improves the value of the first kvstart in case of `{  `
-
     while (true) {
-      const kvstart = reader.cursor;
       reader.skipWhitespace();
+      const kvstart = reader.cursor;
       const keyStart = reader.cursor;
 
       if (!reader.canRead()) {
@@ -3080,8 +3075,8 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         };
 
         if (reader.canRead()) {
-          // Still support suggesting an unclosed quoted
-          keypart.closeIdx = reader.cursor;
+          // Support suggesting for an unclosed quoted string otherwise
+          keypart.closeIdx = reader.cursor; // I'm not sure that this does anything :P
         }
 
         this.parts.push(keypart);
@@ -3091,7 +3086,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
       reader.skipWhitespace();
 
       if (this.value.has(key.data)) {
-        helper.addErrors(exports.DUPLICATE.create(keyStart, keyEnd, key.data));
+        helper.addErrors(DUPLICATE.create(keyStart, keyEnd, key.data));
       }
 
       if (!reader.canRead()) {
@@ -3106,9 +3101,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         return helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_KEY_VALUE_SEP).failWithData(nbt_util_1.Correctness.CERTAIN);
       }
 
-      const kvs = reader.expect(nbt_util_1.COMPOUND_KEY_VALUE_SEP);
-
-      if (!helper.merge(kvs)) {
+      if (!helper.merge(reader.expect(nbt_util_1.COMPOUND_KEY_VALUE_SEP))) {
         // E.g. '{"hello",' etc.
         this.parts.push({
           closeIdx: -1,
@@ -3152,34 +3145,26 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
       }
 
+      const preEnd = reader.cursor;
       reader.skipWhitespace();
       this.value.set(key.data, valResult.data.tag);
-      const next = reader.peek();
 
-      if (!reader.canRead()) {
-        helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
-        helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_PAIR_SEP);
-        return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-      }
-
-      if (next === nbt_util_1.COMPOUND_PAIR_SEP || next === nbt_util_1.COMPOUND_END) {
-        reader.skip();
-
-        if (!reader.canRead()) {
-          helper.addSuggestion(reader.cursor - 1, next); // Pretend that we had always made that suggestion, in a sense.
-        }
-
+      if (helper.merge(reader.expect(nbt_util_1.COMPOUND_PAIR_SEP), {
+        errors: false
+      })) {
         part.closeIdx = reader.cursor;
         this.parts.push(part);
-
-        if (next === nbt_util_1.COMPOUND_END) {
-          this.miscIndex = reader.cursor;
-          return helper.succeed(nbt_util_1.Correctness.CERTAIN);
-        }
-
         continue;
+      } else if (helper.merge(reader.expect(nbt_util_1.COMPOUND_END), {
+        errors: false
+      })) {
+        part.closeIdx = reader.cursor;
+        this.parts.push(part);
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
       }
 
+      this.parts.push(part);
+      helper.addErrors(UNCLOSED.create(preEnd, reader.cursor));
       return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
     }
   }
@@ -4536,16 +4521,24 @@ exports.parseBlockArgument = parseBlockArgument; // Ugly call signature. Need to
 function parseProperties(reader, options, errors, name) {
   const helper = new misc_functions_1.ReturnHelper();
   const result = new Map();
+  const start = reader.cursor;
 
-  if (reader.peek() === "[") {
-    const start = reader.cursor;
-    reader.skip();
+  if (helper.merge(reader.expect("["), {
+    errors: false
+  })) {
     const props = Object.keys(options);
     reader.skipWhitespace();
 
-    while (reader.canRead() && reader.peek() !== "]") {
+    if (helper.merge(reader.expectOption("]"), {
+      errors: false
+    })) {
+      return helper.succeed(result);
+    }
+
+    while (true) {
       reader.skipWhitespace();
       const propStart = reader.cursor;
+      const isUnclosed = !reader.canRead();
       const propParse = reader.readOption(props, undefined, main_1.CompletionItemKind.Property);
       const propKey = propParse.data;
       const propSuccessful = helper.merge(propParse);
@@ -4554,6 +4547,10 @@ function parseProperties(reader, options, errors, name) {
         // Strange order allows better type checker reasoning
         // Parsing failed
         return helper.fail();
+      }
+
+      if (isUnclosed) {
+        return helper.fail(exceptions.unclosed_props.create(start, reader.cursor));
       }
 
       if (!propSuccessful) {
@@ -4566,11 +4563,12 @@ function parseProperties(reader, options, errors, name) {
 
       reader.skipWhitespace();
 
-      if (!reader.canRead() || reader.peek() !== "=") {
+      if (!helper.merge(reader.expect("="), {
+        errors: false
+      })) {
         return helper.fail(errors.novalue.create(propStart, reader.cursor, propKey, name));
       }
 
-      reader.skip();
       reader.skipWhitespace();
       const valueStart = reader.cursor;
       const valueParse = reader.readOption(options[propKey] || [], undefined, main_1.CompletionItemKind.EnumMember);
@@ -4589,32 +4587,22 @@ function parseProperties(reader, options, errors, name) {
       result.set(propKey, value);
       reader.skipWhitespace();
 
-      if (reader.canRead()) {
-        if (reader.peek() === ",") {
-          adderrorIf(value.length === 0);
-          reader.skip();
-          continue;
-        }
+      if (helper.merge(reader.expect(","), {
+        errors: false
+      })) {
+        adderrorIf(value.length === 0);
+        continue;
+      }
 
-        if (reader.peek() === "]") {
-          adderrorIf(value.length === 0);
-          break;
-        }
+      if (helper.merge(reader.expect("]"), {
+        errors: false
+      })) {
+        adderrorIf(value.length === 0);
+        return helper.succeed(result);
       }
 
       return helper.fail(exceptions.unclosed_props.create(start, reader.cursor));
     }
-
-    if (!reader.canRead()) {
-      helper.addSuggestions(...props.map(prop => ({
-        kind: main_1.CompletionItemKind.Property,
-        start: reader.cursor,
-        text: prop
-      })));
-      return helper.fail(exceptions.unclosed_props.create(start, reader.cursor));
-    }
-
-    reader.expect("]"); // Sanity check
   }
 
   return helper.succeed(result);

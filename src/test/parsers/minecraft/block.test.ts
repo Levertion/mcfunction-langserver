@@ -92,6 +92,10 @@ describe("sharedBlockParser", () => {
                     {
                         start: 11,
                         text: "{"
+                    },
+                    {
+                        start: 11,
+                        text: "["
                     }
                 ]
             });
@@ -109,6 +113,10 @@ describe("sharedBlockParser", () => {
                     {
                         start: 13,
                         text: "{"
+                    },
+                    {
+                        start: 13,
+                        text: "["
                     }
                 ]
             });
@@ -124,7 +132,14 @@ describe("sharedBlockParser", () => {
                 numActions: 1,
                 start: 12,
                 succeeds: false,
-                suggestions: ["otherprop", "prop1", "prop", "state"]
+                suggestions: [
+                    "otherprop",
+                    "prop1",
+                    "prop",
+                    "state",
+                    { start: 11, text: "[" },
+                    "]"
+                ]
             });
             ok(result.actions.every(a => a.type === "hover"));
         });
@@ -292,6 +307,10 @@ describe("sharedBlockParser", () => {
                     {
                         start: 18,
                         text: "{"
+                    },
+                    {
+                        start: 18,
+                        text: "["
                     }
                 ]
             });
@@ -336,31 +355,35 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
     it("should allow a plain block", () => {
         test("langserver:noprops", {
             succeeds: true,
-            suggestions: ["langserver:noprops", { start: 18, text: "{" }]
+            suggestions: [
+                "langserver:noprops",
+                { start: 18, text: "{" },
+                { start: 18, text: "[" }
+            ]
         });
     });
     it("should successfully parse an empty properties", () => {
         test("langserver:noprops[]", {
             succeeds: true,
-            suggestions: [{ start: 20, text: "{" }]
+            suggestions: [{ start: 20, text: "{" }, { start: 19, text: "]" }]
         });
     });
     it("should successfully parse an empty properties with whitespace", () => {
         test("langserver:noprops[  ]", {
             succeeds: true,
-            suggestions: [{ start: 22, text: "{" }]
+            suggestions: [{ start: 22, text: "{" }, { start: 21, text: "]" }]
         });
     });
     it("should successfully parse a single block's properties", () => {
         test("langserver:props[prop=value]", {
             succeeds: true,
-            suggestions: [{ start: 28, text: "{" }]
+            suggestions: [{ start: 28, text: "{" }, { start: 27, text: "]" }]
         });
     });
     it("should successfully parse a single block's properties with quotes", () => {
         test('langserver:props["prop"="value"]', {
             succeeds: true,
-            suggestions: [{ start: 32, text: "{" }]
+            suggestions: [{ start: 32, text: "{" }, { start: 31, text: "]" }]
         });
     });
     it("should give the correct error for an unknown property", () => {
@@ -372,7 +395,7 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                 }
             ],
             succeeds: true,
-            suggestions: [{ start: 31, text: "{" }]
+            suggestions: [{ start: 31, text: "{" }, { start: 30, text: "]" }]
         });
     });
     it("should give an error for an incorrect property value", () => {
@@ -384,13 +407,13 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                 }
             ],
             succeeds: true,
-            suggestions: [{ start: 30, text: "{" }]
+            suggestions: [{ start: 30, text: "{" }, { start: 29, text: "]" }]
         });
     });
     it("should allow multiple properties", () => {
         test("langserver:multi[otherprop=propvalue,prop1=other]", {
             succeeds: true,
-            suggestions: [{ start: 49, text: "{" }]
+            suggestions: [{ start: 49, text: "{" }, { start: 48, text: "]" }]
         });
     });
     it("should give an error for duplicate properties", () => {
@@ -402,7 +425,7 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                 }
             ],
             succeeds: true,
-            suggestions: [{ start: 52, text: "{" }]
+            suggestions: [{ start: 52, text: "{" }, { start: 51, text: "]" }]
         });
     });
     it("should give an error when the properties are not closed", () => {
@@ -414,7 +437,11 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                 }
             ],
             succeeds: false,
-            suggestions: [{ start: 27, text: "lang" }]
+            suggestions: [
+                { start: 27, text: "lang" },
+                { start: 31, text: "]" },
+                { start: 31, text: "," }
+            ]
         });
     });
     it("should give the correct block suggestions", () => {
@@ -433,6 +460,10 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                 {
                     start: 11,
                     text: "{"
+                },
+                {
+                    start: 11,
+                    text: "["
                 }
             ]
         });
@@ -448,6 +479,10 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                 {
                     start: 4,
                     text: "{"
+                },
+                {
+                    start: 4,
+                    text: "["
                 }
             ]
         });
@@ -462,7 +497,7 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
             ],
             start: 17,
             succeeds: false,
-            suggestions: ["prop1", "otherprop"]
+            suggestions: ["prop1", "otherprop", "]", { start: 16, text: "[" }]
         });
     });
     it("should give an error when there is no value given", () => {
@@ -474,7 +509,7 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
                 }
             ],
             succeeds: false,
-            suggestions: [{ start: 17, text: "prop" }]
+            suggestions: [{ start: 17, text: "prop" }, { start: 21, text: "=" }]
         });
     });
     it("should give an error when there is no value given", () => {
@@ -498,7 +533,14 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
             ],
             start: 22,
             succeeds: false,
-            suggestions: ["value", "value2", "other"]
+            suggestions: [
+                "value",
+                "value2",
+                "other",
+                "]",
+                ",",
+                { start: 21, text: "=" }
+            ]
         });
     });
     it("should give the correct suggestions for a started property value", () => {
@@ -515,7 +557,12 @@ function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
             ],
             start: 22,
             succeeds: false,
-            suggestions: ["value", "value2"]
+            suggestions: [
+                "value",
+                "value2",
+                { start: 25, text: "]" },
+                { start: 25, text: "," }
+            ]
         });
     });
 }

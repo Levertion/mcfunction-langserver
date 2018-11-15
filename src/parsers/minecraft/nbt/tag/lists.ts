@@ -30,18 +30,15 @@ export abstract class BaseList extends NBTTag {
 
     public parseInner(reader: StringReader): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
-        if (reader.peek() === LIST_END) {
-            reader.skip();
+        if (helper.merge(reader.expect(LIST_END), { errors: false })) {
             return helper.succeed();
         }
-
         let index = 0;
         while (true) {
             this.unclosed = reader.cursor;
             const start = reader.cursor;
             reader.skipWhitespace();
             if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, LIST_END);
                 helper.addErrors(NOVAL.create(start, reader.cursor));
                 return helper.fail();
             }
@@ -61,18 +58,14 @@ export abstract class BaseList extends NBTTag {
             this.unclosed = undefined;
             const preEnd = reader.cursor;
             reader.skipWhitespace();
-            if (reader.peek() === LIST_VALUE_SEP) {
-                reader.skip();
+            if (
+                helper.merge(reader.expect(LIST_VALUE_SEP), { errors: false })
+            ) {
                 continue;
             }
-            if (reader.peek() === LIST_END) {
-                reader.skip();
+            if (helper.merge(reader.expect(LIST_END), { errors: false })) {
                 this.end = { start: preEnd, end: reader.cursor };
                 return helper.succeed();
-            }
-            if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, LIST_END);
-                helper.addSuggestion(reader.cursor, LIST_VALUE_SEP);
             }
             return helper.fail(NOVAL.create(preEnd, reader.cursor));
         }
