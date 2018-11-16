@@ -3284,12 +3284,12 @@ const ranges = {
     float: true,
     max: 3.4 * 10 ** 38,
     min: -3.4 * 10 ** 38,
-    suffix: "d"
+    suffix: "f"
   },
   // tslint:enable:binary-expression-operand-order
   int: intnumberInfo(31, ""),
   long: intnumberInfo(63, "l"),
-  short: intnumberInfo(15, "b")
+  short: intnumberInfo(15, "s")
 };
 
 function typeForSuffix(rawsuffix) {
@@ -3309,6 +3309,7 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
     super(...arguments);
     this.tagType = undefined;
     this.value = 0;
+    this.endsString = true;
     this.float = false;
   }
 
@@ -3402,8 +3403,12 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
           helper.addErrors(exceptions.FLOAT.create(this.range.start, this.range.end, actualType));
         }
 
-        if (this.suffix && this.suffix !== typeInfo.suffix) {
-          helper.addErrors(exceptions.SUFFIX.create(this.range.end - 1, this.range.end, typeInfo.suffix, actualType, this.suffix));
+        if (this.suffix) {
+          if (this.suffix !== typeInfo.suffix) {
+            helper.addErrors(exceptions.SUFFIX.create(this.range.end - 1, this.range.end, typeInfo.suffix, actualType, this.suffix));
+          }
+        } else if (this.endsString) {
+          helper.addSuggestion(this.range.end, typeInfo.suffix);
         }
 
         return helper.succeed();
@@ -3422,7 +3427,10 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
 
       if (type) {
         this.suffix = suffix;
+        reader.skip();
       }
+    } else {
+      this.endsString = true;
     }
   }
 
