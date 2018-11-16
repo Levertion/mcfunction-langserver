@@ -1740,10 +1740,10 @@ class StringReader {
    */
 
 
-  readBoolean() {
+  readBoolean(quoting) {
     const helper = new misc_functions_1.ReturnHelper();
     const start = this.cursor;
-    const value = this.readOption(typed_keys_1.typed_keys(StringReader.bools));
+    const value = this.readOption(typed_keys_1.typed_keys(StringReader.bools), quoting);
 
     if (!helper.merge(value)) {
       if (value.data !== undefined) {
@@ -1983,7 +1983,11 @@ class StringReader {
     if (info.quote) {
       return this.readString(info.unquoted);
     } else {
-      return misc_functions_1.getReturned(this.readWhileRegexp(StringReader.charAllowedInUnquotedString));
+      if (info.unquoted) {
+        return misc_functions_1.getReturned(this.readWhileRegexp(info.unquoted));
+      } else {
+        return misc_functions_1.getReturned(undefined);
+      }
     } // tslint:enable:helper-return
 
   }
@@ -2311,8 +2315,9 @@ class BaseList extends nbt_tag_1.NBTTag {
   parseInner(reader) {
     const helper = new misc_functions_1.ReturnHelper();
 
-    if (reader.peek() === nbt_util_1.LIST_END) {
-      reader.skip();
+    if (helper.merge(reader.expect(nbt_util_1.LIST_END), {
+      errors: false
+    })) {
       return helper.succeed();
     }
 
@@ -2324,7 +2329,6 @@ class BaseList extends nbt_tag_1.NBTTag {
       reader.skipWhitespace();
 
       if (!reader.canRead()) {
-        helper.addSuggestion(reader.cursor, nbt_util_1.LIST_END);
         helper.addErrors(NOVAL.create(start, reader.cursor));
         return helper.fail();
       }
@@ -2346,23 +2350,20 @@ class BaseList extends nbt_tag_1.NBTTag {
       const preEnd = reader.cursor;
       reader.skipWhitespace();
 
-      if (reader.peek() === nbt_util_1.LIST_VALUE_SEP) {
-        reader.skip();
+      if (helper.merge(reader.expect(nbt_util_1.LIST_VALUE_SEP), {
+        errors: false
+      })) {
         continue;
       }
 
-      if (reader.peek() === nbt_util_1.LIST_END) {
-        reader.skip();
+      if (helper.merge(reader.expect(nbt_util_1.LIST_END), {
+        errors: false
+      })) {
         this.end = {
           start: preEnd,
           end: reader.cursor
         };
         return helper.succeed();
-      }
-
-      if (!reader.canRead()) {
-        helper.addSuggestion(reader.cursor, nbt_util_1.LIST_END);
-        helper.addSuggestion(reader.cursor, nbt_util_1.LIST_VALUE_SEP);
       }
 
       return helper.fail(NOVAL.create(preEnd, reader.cursor));
@@ -2888,8 +2889,9 @@ const nbt_tag_1 = require("./nbt-tag");
 
 const NO_KEY = new errors_1.CommandErrorBuilder("argument.nbt.compound.nokey", "Expected key");
 const NO_VAL = new errors_1.CommandErrorBuilder("argument.nbt.compound.noval", "Expected value");
-exports.UNKNOWN = new errors_1.CommandErrorBuilder("argument.nbt.compound.unknown", "Unknown child '%s'");
-exports.DUPLICATE = new errors_1.CommandErrorBuilder("argument.nbt.compound.duplicate", "'%s' is already defined");
+const UNKNOWN = new errors_1.CommandErrorBuilder("argument.nbt.compound.unknown", "Unknown child '%s'");
+const DUPLICATE = new errors_1.CommandErrorBuilder("argument.nbt.compound.duplicate", "'%s' is already defined");
+const UNCLOSED = new errors_1.CommandErrorBuilder("argument.nbt.compound.unclosed", "Compound is not closed, expected `}`");
 /**
  * TODO: refactor (again)!
  * Help welcome
@@ -2900,7 +2902,6 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
     super(...arguments);
     this.tagType = "compound";
     this.value = new Map();
-    this.miscIndex = -1;
     this.openIndex = -1;
     /**
      * If empty => no values, closed instantly (e.g. `{}`, `{ }`)
@@ -2928,7 +2929,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
 
     if (this.openIndex === -1) {
       // This should never happen
-      nbt_util_1.createSuggestions(anyInfo.node, this.miscIndex);
+      nbt_util_1.createSuggestions(anyInfo.node, this.range.end);
       return helper.succeed();
     }
 
@@ -2945,7 +2946,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
       helper.addActions({
         // Add the hover over the entire object
         data: hoverText,
-        high: this.miscIndex,
+        high: this.range.end,
         low: this.openIndex,
         type: "hover"
       });
@@ -2973,7 +2974,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
             helper.merge(part.value.validate(child, walker));
             helper.addActions(getKeyHover(part.keyRange, child.node));
           } else {
-            const error = Object.assign({}, exports.UNKNOWN.create(part.keyRange.start, part.keyRange.end, part.key), {
+            const error = Object.assign({}, UNKNOWN.create(part.keyRange.start, part.keyRange.end, part.key), {
               path: [...this.path, part.key]
             });
             helper.addErrors(error);
@@ -3021,10 +3022,13 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
       const child = children[key];
 
       if (child) {
-        if (part.closeIdx && part.closeIdx >= 0) {
-          keyHelper.merge(nbt_util_1.getNBTSuggestions(child.node, part.closeIdx));
-        }
+        // Not sure what this would have ever done, feels like a bug
 
+        /* if (part.closeIdx && part.closeIdx >= 0) {
+            keyHelper.merge(
+                getNBTSuggestions(child.node, part.closeIdx)
+            );
+        }*/
         keyHelper.addActions(getKeyHover(part.keyRange, child.node));
       } // tslint:disable-next-line:helper-return
 
@@ -3045,37 +3049,23 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
   readTag(reader) {
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
-    this.miscIndex = start;
 
     if (!helper.merge(reader.expect(nbt_util_1.COMPOUND_START))) {
       return helper.failWithData(nbt_util_1.Correctness.NO);
     }
 
     this.openIndex = start;
-    const afterOpen = reader.cursor;
     reader.skipWhitespace();
 
-    if (reader.peek() === nbt_util_1.COMPOUND_END) {
-      this.miscIndex = reader.cursor;
-      reader.skip();
+    if (helper.merge(reader.expect(nbt_util_1.COMPOUND_END), {
+      errors: false
+    })) {
       return helper.succeed(nbt_util_1.Correctness.CERTAIN);
-    } else if (!reader.canRead()) {
-      helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
-      helper.addErrors(NO_KEY.create(afterOpen, reader.cursor));
-      this.parts.push({
-        keyRange: {
-          end: reader.cursor,
-          start: reader.cursor
-        }
-      });
-      return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
     }
 
-    reader.cursor = afterOpen; // This improves the value of the first kvstart in case of `{  `
-
     while (true) {
-      const kvstart = reader.cursor;
       reader.skipWhitespace();
+      const kvstart = reader.cursor;
       const keyStart = reader.cursor;
 
       if (!reader.canRead()) {
@@ -3102,7 +3092,8 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         };
 
         if (reader.canRead()) {
-          keypart.closeIdx = reader.cursor;
+          // Support suggesting for an unclosed quoted string otherwise
+          keypart.closeIdx = reader.cursor; // I'm not sure that this does anything :P
         }
 
         this.parts.push(keypart);
@@ -3112,7 +3103,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
       reader.skipWhitespace();
 
       if (this.value.has(key.data)) {
-        helper.addErrors(exports.DUPLICATE.create(keyStart, keyEnd, key.data));
+        helper.addErrors(DUPLICATE.create(keyStart, keyEnd, key.data));
       }
 
       if (!reader.canRead()) {
@@ -3127,9 +3118,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         return helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_KEY_VALUE_SEP).failWithData(nbt_util_1.Correctness.CERTAIN);
       }
 
-      const kvs = reader.expect(nbt_util_1.COMPOUND_KEY_VALUE_SEP);
-
-      if (!helper.merge(kvs)) {
+      if (!helper.merge(reader.expect(nbt_util_1.COMPOUND_KEY_VALUE_SEP))) {
         // E.g. '{"hello",' etc.
         this.parts.push({
           closeIdx: -1,
@@ -3173,34 +3162,26 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
         return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
       }
 
+      const preEnd = reader.cursor;
       reader.skipWhitespace();
       this.value.set(key.data, valResult.data.tag);
-      const next = reader.peek();
 
-      if (!reader.canRead()) {
-        helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_END);
-        helper.addSuggestion(reader.cursor, nbt_util_1.COMPOUND_PAIR_SEP);
-        return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
-      }
-
-      if (next === nbt_util_1.COMPOUND_PAIR_SEP || next === nbt_util_1.COMPOUND_END) {
-        reader.skip();
-
-        if (!reader.canRead()) {
-          helper.addSuggestion(reader.cursor - 1, next); // Pretend that we had always made that suggestion, in a sense.
-        }
-
+      if (helper.merge(reader.expect(nbt_util_1.COMPOUND_PAIR_SEP), {
+        errors: false
+      })) {
         part.closeIdx = reader.cursor;
         this.parts.push(part);
-
-        if (next === nbt_util_1.COMPOUND_END) {
-          this.miscIndex = reader.cursor;
-          return helper.succeed(nbt_util_1.Correctness.CERTAIN);
-        }
-
         continue;
+      } else if (helper.merge(reader.expect(nbt_util_1.COMPOUND_END), {
+        errors: false
+      })) {
+        part.closeIdx = reader.cursor;
+        this.parts.push(part);
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
       }
 
+      this.parts.push(part);
+      helper.addErrors(UNCLOSED.create(preEnd, reader.cursor));
       return helper.failWithData(nbt_util_1.Correctness.CERTAIN);
     }
   }
@@ -3278,6 +3259,8 @@ Object.defineProperty(exports, "__esModule", {
 
 const errors_1 = require("../../../../brigadier/errors");
 
+const string_reader_1 = require("../../../../brigadier/string-reader");
+
 const misc_functions_1 = require("../../../../misc-functions");
 
 const typed_keys_1 = require("../../../../misc-functions/third_party/typed-keys");
@@ -3289,6 +3272,7 @@ const nbt_util_1 = require("../util/nbt-util");
 const nbt_tag_1 = require("./nbt-tag");
 
 const exceptions = {
+  BOOL_SHORTHAND: new errors_1.CommandErrorBuilder("argument.nbt.number.shorthand", "The boolean shorthand was used for value %s, which is not supported by %s"),
   FLOAT: new errors_1.CommandErrorBuilder("argument.nbt.number.float", "%s is not a float type, but the given text is a float"),
   SUFFIX: new errors_1.CommandErrorBuilder("argument.nbt.number.suffix", "Expected suffix '%s' for %s, got %s"),
   TOO_BIG: new errors_1.CommandErrorBuilder("argument.nbt.number.big", "%s must not be more than %s, found %s"),
@@ -3303,7 +3287,9 @@ const intnumberInfo = (pow, suffix) => ({
 });
 
 const ranges = {
-  byte: intnumberInfo(7, "b"),
+  byte: Object.assign({}, intnumberInfo(7, "b"), {
+    bool: true
+  }),
   // tslint:disable:binary-expression-operand-order
   double: {
     float: true,
@@ -3315,12 +3301,12 @@ const ranges = {
     float: true,
     max: 3.4 * 10 ** 38,
     min: -3.4 * 10 ** 38,
-    suffix: "d"
+    suffix: "f"
   },
   // tslint:enable:binary-expression-operand-order
   int: intnumberInfo(31, ""),
   long: intnumberInfo(63, "l"),
-  short: intnumberInfo(15, "b")
+  short: intnumberInfo(15, "s")
 };
 
 function typeForSuffix(rawsuffix) {
@@ -3340,6 +3326,7 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
     super(...arguments);
     this.tagType = undefined;
     this.value = 0;
+    this.endsString = true;
     this.float = false;
   }
 
@@ -3372,12 +3359,26 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
     reader.cursor = start;
     const float = reader.readFloat();
 
-    if (helper.merge(float)) {
+    if (misc_functions_1.isSuccessful(float)) {
+      helper.merge(float);
       this.float = true;
       this.value = float.data;
       this.checkSuffix(reader);
       return helper.succeed(nbt_util_1.Correctness.CERTAIN);
     } else {
+      reader.cursor = start;
+      const bool = reader.readBoolean({
+        quote: false,
+        unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+      });
+
+      if (misc_functions_1.isSuccessful(bool)) {
+        // We do not merge as this does not do anything
+        this.value = bool.data;
+        return helper.succeed(nbt_util_1.Correctness.CERTAIN);
+      }
+
+      helper.merge(float);
       return helper.failWithData(nbt_util_1.Correctness.NO);
     }
   }
@@ -3402,21 +3403,33 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
 
       const typeInfo = ranges[actualType];
 
-      if (typeInfo.min > this.value) {
-        helper.addErrors(exceptions.TOO_LOW.create(this.range.start, this.range.end, actualType, typeInfo.min.toString(), this.value.toString()));
-      } else if (typeInfo.max < this.value) {
-        helper.addErrors(exceptions.TOO_BIG.create(this.range.start, this.range.end, actualType, typeInfo.min.toString(), this.value.toString()));
-      }
+      if (typeof this.value === "boolean") {
+        if (!typeInfo.bool) {
+          helper.addErrors(exceptions.BOOL_SHORTHAND.create(this.range.start, this.range.end, this.value.toString(), actualType));
+        }
 
-      if (this.float && !typeInfo.float) {
-        helper.addErrors(exceptions.FLOAT.create(this.range.start, this.range.end, actualType));
-      }
+        return helper.succeed();
+      } else {
+        if (typeInfo.min > this.value) {
+          helper.addErrors(exceptions.TOO_LOW.create(this.range.start, this.range.end, actualType, typeInfo.min.toString(), this.value.toString()));
+        } else if (typeInfo.max < this.value) {
+          helper.addErrors(exceptions.TOO_BIG.create(this.range.start, this.range.end, actualType, typeInfo.min.toString(), this.value.toString()));
+        }
 
-      if (this.suffix && this.suffix !== typeInfo.suffix) {
-        helper.addErrors(exceptions.SUFFIX.create(this.range.end - 1, this.range.end, typeInfo.suffix, actualType, this.suffix));
-      }
+        if (this.float && !typeInfo.float) {
+          helper.addErrors(exceptions.FLOAT.create(this.range.start, this.range.end, actualType));
+        }
 
-      return helper.succeed();
+        if (this.suffix) {
+          if (this.suffix !== typeInfo.suffix) {
+            helper.addErrors(exceptions.SUFFIX.create(this.range.end - 1, this.range.end, typeInfo.suffix, actualType, this.suffix));
+          }
+        } else if (this.endsString) {
+          helper.addSuggestion(this.range.end, typeInfo.suffix);
+        }
+
+        return helper.succeed();
+      }
     } else {
       // Will always add the error in this case
       return helper.mergeChain(this.sameType(node)).succeed();
@@ -3431,14 +3444,17 @@ class NBTTagNumber extends nbt_tag_1.NBTTag {
 
       if (type) {
         this.suffix = suffix;
+        reader.skip();
       }
+    } else {
+      this.endsString = true;
     }
   }
 
 }
 
 exports.NBTTagNumber = NBTTagNumber;
-},{"../../../../brigadier/errors":"aP4V","../../../../misc-functions":"KBGm","../../../../misc-functions/third_party/typed-keys":"kca+","../util/doc-walker-util":"km+2","../util/nbt-util":"OoHl","./nbt-tag":"8yQQ"}],"QKwA":[function(require,module,exports) {
+},{"../../../../brigadier/errors":"aP4V","../../../../brigadier/string-reader":"iLhI","../../../../misc-functions":"KBGm","../../../../misc-functions/third_party/typed-keys":"kca+","../util/doc-walker-util":"km+2","../util/nbt-util":"OoHl","./nbt-tag":"8yQQ"}],"QKwA":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -4530,16 +4546,24 @@ exports.parseBlockArgument = parseBlockArgument; // Ugly call signature. Need to
 function parseProperties(reader, options, errors, name) {
   const helper = new misc_functions_1.ReturnHelper();
   const result = new Map();
+  const start = reader.cursor;
 
-  if (reader.peek() === "[") {
-    const start = reader.cursor;
-    reader.skip();
+  if (helper.merge(reader.expect("["), {
+    errors: false
+  })) {
     const props = Object.keys(options);
     reader.skipWhitespace();
 
-    while (reader.canRead() && reader.peek() !== "]") {
+    if (helper.merge(reader.expectOption("]"), {
+      errors: false
+    })) {
+      return helper.succeed(result);
+    }
+
+    while (true) {
       reader.skipWhitespace();
       const propStart = reader.cursor;
+      const isUnclosed = !reader.canRead();
       const propParse = reader.readOption(props, undefined, main_1.CompletionItemKind.Property);
       const propKey = propParse.data;
       const propSuccessful = helper.merge(propParse);
@@ -4548,6 +4572,10 @@ function parseProperties(reader, options, errors, name) {
         // Strange order allows better type checker reasoning
         // Parsing failed
         return helper.fail();
+      }
+
+      if (isUnclosed) {
+        return helper.fail(exceptions.unclosed_props.create(start, reader.cursor));
       }
 
       if (!propSuccessful) {
@@ -4560,11 +4588,12 @@ function parseProperties(reader, options, errors, name) {
 
       reader.skipWhitespace();
 
-      if (!reader.canRead() || reader.peek() !== "=") {
+      if (!helper.merge(reader.expect("="), {
+        errors: false
+      })) {
         return helper.fail(errors.novalue.create(propStart, reader.cursor, propKey, name));
       }
 
-      reader.skip();
       reader.skipWhitespace();
       const valueStart = reader.cursor;
       const valueParse = reader.readOption(options[propKey] || [], undefined, main_1.CompletionItemKind.EnumMember);
@@ -4583,32 +4612,22 @@ function parseProperties(reader, options, errors, name) {
       result.set(propKey, value);
       reader.skipWhitespace();
 
-      if (reader.canRead()) {
-        if (reader.peek() === ",") {
-          adderrorIf(value.length === 0);
-          reader.skip();
-          continue;
-        }
+      if (helper.merge(reader.expect(","), {
+        errors: false
+      })) {
+        adderrorIf(value.length === 0);
+        continue;
+      }
 
-        if (reader.peek() === "]") {
-          adderrorIf(value.length === 0);
-          break;
-        }
+      if (helper.merge(reader.expect("]"), {
+        errors: false
+      })) {
+        adderrorIf(value.length === 0);
+        return helper.succeed(result);
       }
 
       return helper.fail(exceptions.unclosed_props.create(start, reader.cursor));
     }
-
-    if (!reader.canRead()) {
-      helper.addSuggestions(...props.map(prop => ({
-        kind: main_1.CompletionItemKind.Property,
-        start: reader.cursor,
-        text: prop
-      })));
-      return helper.fail(exceptions.unclosed_props.create(start, reader.cursor));
-    }
-
-    reader.expect("]"); // Sanity check
   }
 
   return helper.succeed(result);
@@ -4877,10 +4896,16 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+const vscode_languageserver_1 = require("vscode-languageserver");
+
+const errors_1 = require("../../brigadier/errors");
+
 const string_reader_1 = require("../../brigadier/string-reader");
 
 const misc_functions_1 = require("../../misc-functions");
 
+const swapped = new errors_1.CommandErrorBuilder("argument.range.swapped", "Min cannot be bigger than max");
+const equalEnds = new errors_1.CommandErrorBuilder("argument.range.equal", "Min and max are eqaul and can be replaced by '%s'", vscode_languageserver_1.DiagnosticSeverity.Hint);
 const digregex = /\d/;
 
 function readIntLimited(reader) {
@@ -4943,6 +4968,7 @@ function readFloatLimited(reader) {
 
 exports.rangeParser = (float = false) => reader => {
   const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
 
   if (helper.merge(reader.expect(".."), {
     errors: false
@@ -4970,7 +4996,7 @@ exports.rangeParser = (float = false) => reader => {
         max: min.data,
         min: min.data
       });
-    } else if (/\d\./.test(reader.peek())) {
+    } else if (string_reader_1.StringReader.charAllowedNumber.test(reader.peek())) {
       const max = float ? readFloatLimited(reader) : readIntLimited(reader);
 
       if (!helper.merge(max)) {
@@ -4978,7 +5004,13 @@ exports.rangeParser = (float = false) => reader => {
       }
 
       if (max.data < min.data) {
-        helper.addErrors();
+        helper.addErrors(swapped.create(start, reader.cursor));
+        helper.addActions({
+          data: `${max.data}..${min.data}`,
+          high: reader.cursor,
+          low: start,
+          type: "format"
+        });
         return helper.succeed({
           max: min.data,
           min: max.data
@@ -4986,7 +5018,13 @@ exports.rangeParser = (float = false) => reader => {
       }
 
       if (max.data === min.data) {
-        helper.addErrors();
+        helper.addErrors(equalEnds.create(start, reader.cursor, min.data.toString()));
+        helper.addActions({
+          data: `${min.data}`,
+          high: reader.cursor,
+          low: start,
+          type: "format"
+        });
       }
 
       return helper.succeed({
@@ -5002,20 +5040,20 @@ exports.rangeParser = (float = false) => reader => {
 };
 
 exports.floatRange = {
-  parse: reader => {
-    const helper = new misc_functions_1.ReturnHelper();
+  parse: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper(info);
     const res = exports.rangeParser(true)(reader);
     return helper.merge(res) ? helper.succeed() : helper.fail();
   }
 };
 exports.intRange = {
-  parse: reader => {
-    const helper = new misc_functions_1.ReturnHelper();
+  parse: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper(info);
     const res = exports.rangeParser(false)(reader);
     return helper.merge(res) ? helper.succeed() : helper.fail();
   }
 };
-},{"../../brigadier/string-reader":"iLhI","../../misc-functions":"KBGm"}],"1kly":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../misc-functions":"KBGm"}],"1kly":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5027,8 +5065,6 @@ const vscode_languageserver_1 = require("vscode-languageserver");
 const errors_1 = require("../../brigadier/errors");
 
 const string_reader_1 = require("../../brigadier/string-reader");
-
-const consts_1 = require("../../consts");
 
 const statics_1 = require("../../data/lists/statics");
 
@@ -5053,8 +5089,13 @@ const contexterr = {
   onlyPlayer: new errors_1.CommandErrorBuilder("argument.player.entities", "Only players may be affected by this command, but the provided selector includes entities")
 };
 const argerr = {
-  badIntersection: new errors_1.CommandErrorBuilder("argument.entity.option.invalidArgument", "Argument '%s' cannot match any entity"),
+  badIntersection: new errors_1.CommandErrorBuilder("argument.entity.option.nointersect", "Argument '%s' cannot match any entity"),
   duplicate: new errors_1.CommandErrorBuilder("argument.entity.option.duplicate", "Duplicate argument '%s'"),
+  expectSort: new errors_1.CommandErrorBuilder("argument.entity.option.sort.invalid", "Invalid sort type '%s'"),
+  gamemode: {
+    expected: new errors_1.CommandErrorBuilder("argument.entity.option.gamemode.expected", "Expected gamemode"),
+    invalid: new errors_1.CommandErrorBuilder("argument.entity.option.gamemode.invalid", "Invalid gamemode '%s'")
+  },
   intOpt: {
     aboveMax: new errors_1.CommandErrorBuilder("argument.entity.option.number.abovemax", "Argument '%s' is greater than %s"),
     belowMin: new errors_1.CommandErrorBuilder("argument.entity.option.number.belowmin", "Argument '%s' is less than %s")
@@ -5089,7 +5130,7 @@ function isNegated(reader, helper) {
   }
 }
 
-exports.numOptParser = (float, min, max, key) => (reader, _, context) => {
+exports.numOptParser = (float, min, max, key) => (reader, _, context, argStart) => {
   const helper = new misc_functions_1.ReturnHelper();
   const start = reader.cursor;
   const res = float ? reader.readFloat() : reader.readInt();
@@ -5112,7 +5153,7 @@ exports.numOptParser = (float, min, max, key) => (reader, _, context) => {
 
 
   if (!!context[key]) {
-    helper.addErrors(argerr.duplicate.create(start, reader.cursor, key));
+    helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, key));
     return helper.succeed();
   }
 
@@ -5121,7 +5162,7 @@ exports.numOptParser = (float, min, max, key) => (reader, _, context) => {
   return helper.succeed(out);
 };
 
-exports.rangeOptParser = (float, min, max, key) => (reader, _, context) => {
+exports.rangeOptParser = (float, min, max, key) => (reader, _, context, argStart) => {
   const helper = new misc_functions_1.ReturnHelper();
   const start = reader.cursor;
   const res = range_1.rangeParser(float)(reader);
@@ -5157,7 +5198,7 @@ exports.rangeOptParser = (float, min, max, key) => (reader, _, context) => {
   }
 
   if (!!context[key]) {
-    helper.addErrors(argerr.duplicate.create(start, reader.cursor, key));
+    helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, key));
     return helper.succeed();
   }
 
@@ -5306,9 +5347,8 @@ function parseAdvancements(reader, info) {
 
 exports.parseAdvancements = parseAdvancements;
 exports.options = {
-  advancements: (reader, info, context) => {
+  advancements: (reader, info, context, argStart) => {
     const helper = new misc_functions_1.ReturnHelper();
-    const start = reader.cursor;
     const res = parseAdvancements(reader, info);
 
     if (!helper.merge(res)) {
@@ -5316,7 +5356,7 @@ exports.options = {
     }
 
     if (context.advancements) {
-      helper.addErrors(argerr.duplicate.create(start, reader.cursor, "advancements"));
+      helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, "advancements"));
       return helper.succeed();
     } else {
       return helper.succeed({
@@ -5332,20 +5372,23 @@ exports.options = {
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
     const negated = isNegated(reader, helper);
-    const res = reader.readOption(gamemodes);
+    const res = reader.readOption(gamemodes, {
+      quote: false
+    });
 
     if (!helper.merge(res)) {
       if (res.data) {
+        helper.addErrors(argerr.gamemode.invalid.create(start, reader.cursor, res.data));
         return helper.succeed();
       } else {
-        return helper.fail();
+        return helper.fail(argerr.gamemode.expected.create(start, reader.cursor));
       }
     }
 
     const neglist = negated ? gamemodes.filter(v => v !== res.data) : [res.data];
 
     if (context.gamemode && misc_functions_1.stringArrayEqual(neglist, context.gamemode)) {
-      helper.addErrors();
+      helper.addErrors(argerr.noInfo.create(start, reader.cursor));
       return helper.succeed();
     }
 
@@ -5397,9 +5440,8 @@ exports.options = {
       return helper.succeed();
     }
   },
-  scores: (reader, info, context) => {
+  scores: (reader, info, context, argStart) => {
     const helper = new misc_functions_1.ReturnHelper();
-    const start = reader.cursor;
     const obj = parseScores(reader, info.data.localData ? info.data.localData.nbt.scoreboard : undefined);
 
     if (!helper.merge(obj)) {
@@ -5407,7 +5449,7 @@ exports.options = {
     }
 
     if (context.scores) {
-      helper.addErrors(argerr.duplicate.create(start, reader.cursor, "scores"));
+      helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, "scores"));
       return helper.succeed();
     } else {
       return helper.succeed({
@@ -5415,7 +5457,7 @@ exports.options = {
       });
     }
   },
-  sort: (reader, _, context) => {
+  sort: (reader, _, context, argStart) => {
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
     const res = reader.readOption(["arbitrary", "furthest", "nearest", "random"], {
@@ -5426,11 +5468,13 @@ exports.options = {
     if (!helper.merge(res)) {
       if (!res.data) {
         return helper.fail();
+      } else {
+        helper.addErrors(argerr.expectSort.create(start, reader.cursor, res.data));
       }
     }
 
     if (context.sort) {
-      helper.addErrors(argerr.duplicate.create(start, reader.cursor, "scores"));
+      helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, "scores"));
       return helper.succeed();
     }
 
@@ -5444,18 +5488,25 @@ exports.options = {
     const negated = isNegated(reader, helper);
     const tag = reader.readUnquotedString();
 
-    if (context.tag && context.tag.indexOf(`${negated ? "!" : ""}${tag}`) !== -1) {
-      helper.addErrors(argerr.noInfo.create(start, reader.cursor, "tag"));
-      return helper.succeed();
-    }
+    if (context.tag) {
+      if (context.tag.indexOf(`${negated ? "!" : ""}${tag}`) !== -1) {
+        helper.addErrors(argerr.noInfo.create(start, reader.cursor, "tag"));
+        return helper.succeed();
+      }
 
-    if (context.tag && (tag === "" && negated ? context.tag.length === 0 : context.tag.length !== 0)) {
-      helper.addErrors(argerr.badIntersection.create(start, reader.cursor, "tag"));
-      return helper.succeed();
+      if (context.tag.indexOf(`${negated ? "" : "!"}${tag}`) !== -1) {
+        helper.addErrors(argerr.badIntersection.create(start, reader.cursor, "tag"));
+        return helper.succeed();
+      }
+
+      if (tag === "" && negated && !context.tag.some(v => v.startsWith("!"))) {
+        helper.addErrors(argerr.badIntersection.create(start, reader.cursor, "tag"));
+        return helper.succeed();
+      }
     }
 
     return helper.succeed({
-      tag: [...(context.tag || []), `${negated ? "!" : ""}${tag}`]
+      tag: tag === "" ? [] : [...(context.tag || []), `${negated ? "!" : ""}${tag}`]
     });
   },
   team: (reader, info, context) => {
@@ -5481,7 +5532,7 @@ exports.options = {
       const teams = negated ? teamnames.filter(v => v !== res.data) : res.data === "" ? [] : [res.data];
 
       if (context.team && context.team.every(v => teams.indexOf(v) !== -1)) {
-        helper.addErrors(argerr.duplicate.create(start, reader.cursor, "team"));
+        helper.addErrors(argerr.noInfo.create(start, reader.cursor, "team"));
         return helper.succeed();
       }
 
@@ -5542,9 +5593,9 @@ exports.options = {
     }
   },
   x: exports.numOptParser(true, -3e7, 3e7 - 1, "x"),
-  x_rotation: exports.rangeOptParser(true, consts_1.JAVAMININT, consts_1.JAVAMAXINT, "x_rotation"),
+  x_rotation: exports.rangeOptParser(true, undefined, undefined, "x_rotation"),
   y: exports.numOptParser(true, 0, 255, "y"),
-  y_rotation: exports.rangeOptParser(true, consts_1.JAVAMININT, consts_1.JAVAMAXINT, "y_rotation"),
+  y_rotation: exports.rangeOptParser(true, undefined, undefined, "y_rotation"),
   z: exports.numOptParser(true, -3e7, 3e7 - 1, "z")
 };
 
@@ -5556,11 +5607,11 @@ class EntityBase {
 
   parse(reader, info) {
     const helper = new misc_functions_1.ReturnHelper(info);
+    const start = reader.cursor;
 
     if (this.selector && helper.merge(reader.expect("@"), {
       errors: false
     })) {
-      const start = reader.cursor;
       const context = {};
       const exp = reader.expectOption("p", "a", "r", "s", "e");
 
@@ -5599,7 +5650,7 @@ class EntityBase {
         errors: false
       })) {
         if (!reader.canRead()) {
-          helper.addSuggestion(reader.cursor, "[");
+          helper.addSuggestion(reader.cursor, "]");
           return helper.fail(argerr.noArg.create(start, reader.cursor));
         }
 
@@ -5609,6 +5660,7 @@ class EntityBase {
           let next = "";
 
           while (next !== "]") {
+            const argStart = reader.cursor;
             const arg = reader.expectOption(...typed_keys_1.typed_keys(exports.options));
 
             if (!helper.merge(arg)) {
@@ -5620,7 +5672,7 @@ class EntityBase {
             }
 
             const opt = exports.options[arg.data];
-            const conc = opt(reader, info, context);
+            const conc = opt(reader, info, context, argStart);
 
             if (!helper.merge(conc)) {
               return helper.fail();
@@ -5691,7 +5743,7 @@ exports.EntityBase = EntityBase;
 exports.entity = new EntityBase(false, true);
 exports.scoreHolder = new EntityBase(true, true);
 exports.gameProfile = new EntityBase(false, false);
-},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../consts":"xb+0","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

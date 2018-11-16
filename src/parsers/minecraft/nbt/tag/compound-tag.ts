@@ -21,7 +21,6 @@ import {
     Correctness,
     createSuggestions,
     getHoverText,
-    getNBTSuggestions,
     getStartSuggestion
 } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
@@ -44,13 +43,17 @@ export interface KVPair {
     value?: NBTTag;
 }
 
-export const UNKNOWN = new CommandErrorBuilder(
+const UNKNOWN = new CommandErrorBuilder(
     "argument.nbt.compound.unknown",
     "Unknown child '%s'"
 );
-export const DUPLICATE = new CommandErrorBuilder(
+const DUPLICATE = new CommandErrorBuilder(
     "argument.nbt.compound.duplicate",
     "'%s' is already defined"
+);
+const UNCLOSED = new CommandErrorBuilder(
+    "argument.nbt.compound.unclosed",
+    "Compound is not closed, expected `}`"
 );
 
 export interface UnknownsError extends CommandError {
@@ -64,7 +67,6 @@ export interface UnknownsError extends CommandError {
 export class NBTTagCompound extends NBTTag {
     protected tagType: "compound" = "compound";
     protected value: Map<string, NBTTag> = new Map();
-    private miscIndex = -1;
     private openIndex = -1;
     /**
      * If empty => no values, closed instantly (e.g. `{}`, `{ }`)
@@ -92,7 +94,7 @@ export class NBTTagCompound extends NBTTag {
         const helper = new ReturnHelper();
         if (this.openIndex === -1) {
             // This should never happen
-            createSuggestions(anyInfo.node, this.miscIndex);
+            createSuggestions(anyInfo.node, this.range.end);
             return helper.succeed();
         }
         const result = this.sameType(anyInfo);
@@ -105,7 +107,7 @@ export class NBTTagCompound extends NBTTag {
             helper.addActions({
                 // Add the hover over the entire object
                 data: hoverText,
-                high: this.miscIndex,
+                high: this.range.end,
                 low: this.openIndex,
                 type: "hover"
             });
@@ -181,11 +183,12 @@ export class NBTTagCompound extends NBTTag {
             }
             const child = children[key];
             if (child) {
-                if (part.closeIdx && part.closeIdx >= 0) {
+                // Not sure what this would have ever done, feels like a bug
+                /* if (part.closeIdx && part.closeIdx >= 0) {
                     keyHelper.merge(
                         getNBTSuggestions(child.node, part.closeIdx)
-                    );
-                }
+                    ); 
+                }*/
                 keyHelper.addActions(getKeyHover(part.keyRange, child.node));
             }
             // tslint:disable-next-line:helper-return
@@ -204,32 +207,17 @@ export class NBTTagCompound extends NBTTag {
     protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
         const start = reader.cursor;
-        this.miscIndex = start;
         if (!helper.merge(reader.expect(COMPOUND_START))) {
             return helper.failWithData(Correctness.NO);
         }
         this.openIndex = start;
-        const afterOpen = reader.cursor;
         reader.skipWhitespace();
-        if (reader.peek() === COMPOUND_END) {
-            this.miscIndex = reader.cursor;
-            reader.skip();
+        if (helper.merge(reader.expect(COMPOUND_END), { errors: false })) {
             return helper.succeed(Correctness.CERTAIN);
-        } else if (!reader.canRead()) {
-            helper.addSuggestion(reader.cursor, COMPOUND_END);
-            helper.addErrors(NO_KEY.create(afterOpen, reader.cursor));
-            this.parts.push({
-                keyRange: {
-                    end: reader.cursor,
-                    start: reader.cursor
-                }
-            });
-            return helper.failWithData(Correctness.CERTAIN);
         }
-        reader.cursor = afterOpen; // This improves the value of the first kvstart in case of `{  `
         while (true) {
-            const kvstart = reader.cursor;
             reader.skipWhitespace();
+            const kvstart = reader.cursor;
             const keyStart = reader.cursor;
             if (!reader.canRead()) {
                 helper.addErrors(NO_KEY.create(kvstart, reader.cursor));
@@ -249,7 +237,9 @@ export class NBTTagCompound extends NBTTag {
                     keyRange: { end: keyEnd, start: keyStart }
                 };
                 if (reader.canRead()) {
+                    // Support suggesting for an unclosed quoted string otherwise
                     keypart.closeIdx = reader.cursor;
+                    // I'm not sure that this does anything :P
                 }
                 this.parts.push(keypart);
                 return helper.failWithData(Correctness.CERTAIN);
@@ -271,9 +261,8 @@ export class NBTTagCompound extends NBTTag {
                     .addSuggestion(reader.cursor, COMPOUND_KEY_VALUE_SEP)
                     .failWithData(Correctness.CERTAIN);
             }
-            const kvs = reader.expect(COMPOUND_KEY_VALUE_SEP);
 
-            if (!helper.merge(kvs)) {
+            if (!helper.merge(reader.expect(COMPOUND_KEY_VALUE_SEP))) {
                 // E.g. '{"hello",' etc.
                 this.parts.push({
                     closeIdx: -1,
@@ -306,28 +295,28 @@ export class NBTTagCompound extends NBTTag {
                 this.parts.push(part);
                 return helper.failWithData(Correctness.CERTAIN);
             }
+            const preEnd = reader.cursor;
             reader.skipWhitespace();
             this.value.set(key.data, valResult.data.tag);
-            const next = reader.peek();
-            if (!reader.canRead()) {
-                helper.addSuggestion(reader.cursor, COMPOUND_END);
-                helper.addSuggestion(reader.cursor, COMPOUND_PAIR_SEP);
-                return helper.failWithData(Correctness.CERTAIN);
-            }
-            if (next === COMPOUND_PAIR_SEP || next === COMPOUND_END) {
-                reader.skip();
-                if (!reader.canRead()) {
-                    helper.addSuggestion(reader.cursor - 1, next); // Pretend that we had always made that suggestion, in a sense.
-                }
+            if (
+                helper.merge(reader.expect(COMPOUND_PAIR_SEP), {
+                    errors: false
+                })
+            ) {
                 part.closeIdx = reader.cursor;
                 this.parts.push(part);
-                if (next === COMPOUND_END) {
-                    this.miscIndex = reader.cursor;
-                    return helper.succeed(Correctness.CERTAIN);
-                }
                 continue;
+            } else if (
+                helper.merge(reader.expect(COMPOUND_END), {
+                    errors: false
+                })
+            ) {
+                part.closeIdx = reader.cursor;
+                this.parts.push(part);
+                return helper.succeed(Correctness.CERTAIN);
             }
-
+            this.parts.push(part);
+            helper.addErrors(UNCLOSED.create(preEnd, reader.cursor));
             return helper.failWithData(Correctness.CERTAIN);
         }
     }

@@ -1,7 +1,6 @@
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { JAVAMAXINT, JAVAMININT } from "../../consts";
 import { entities } from "../../data/lists/statics";
 import { Scoreboard } from "../../data/nbt/nbt-types";
 import { DataResource, NamespacedName } from "../../data/types";
@@ -103,13 +102,27 @@ export type Option =
 
 const argerr = {
     badIntersection: new CommandErrorBuilder(
-        "argument.entity.option.invalidArgument",
+        "argument.entity.option.nointersect",
         "Argument '%s' cannot match any entity"
     ),
     duplicate: new CommandErrorBuilder(
         "argument.entity.option.duplicate",
         "Duplicate argument '%s'"
     ),
+    expectSort: new CommandErrorBuilder(
+        "argument.entity.option.sort.invalid",
+        "Invalid sort type '%s'"
+    ),
+    gamemode: {
+        expected: new CommandErrorBuilder(
+            "argument.entity.option.gamemode.expected",
+            "Expected gamemode"
+        ),
+        invalid: new CommandErrorBuilder(
+            "argument.entity.option.gamemode.invalid",
+            "Invalid gamemode '%s'"
+        )
+    },
     intOpt: {
         aboveMax: new CommandErrorBuilder(
             "argument.entity.option.number.abovemax",
@@ -151,7 +164,8 @@ function getContextError(
 export type OptionParser = (
     reader: StringReader,
     info: ParserInfo,
-    context: EntityContext
+    context: EntityContext,
+    argStart: number
 ) => ReturnedInfo<EntityContext | undefined>;
 
 // tslint:disable-next-line:no-unnecessary-callback-wrapper it gives an error if it isn't wrapped
@@ -172,7 +186,12 @@ export const numOptParser = (
     min: number | undefined,
     max: number | undefined,
     key: Option
-) => (reader: StringReader, _: ParserInfo, context: EntityContext) => {
+) => (
+    reader: StringReader,
+    _: ParserInfo,
+    context: EntityContext,
+    argStart: number
+) => {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const res = float ? reader.readFloat() : reader.readInt();
@@ -204,7 +223,7 @@ export const numOptParser = (
     }
     // The entity context already has a value
     if (!!context[key]) {
-        helper.addErrors(argerr.duplicate.create(start, reader.cursor, key));
+        helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, key));
         return helper.succeed();
     }
     const out: EntityContext = {};
@@ -217,7 +236,12 @@ export const rangeOptParser = (
     min: number | undefined,
     max: number | undefined,
     key: Option
-) => (reader: StringReader, _: ParserInfo, context: EntityContext) => {
+) => (
+    reader: StringReader,
+    _: ParserInfo,
+    context: EntityContext,
+    argStart: number
+) => {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const res = rangeParser(float)(reader);
@@ -277,7 +301,7 @@ export const rangeOptParser = (
         }
     }
     if (!!context[key]) {
-        helper.addErrors(argerr.duplicate.create(start, reader.cursor, key));
+        helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, key));
         return helper.succeed();
     }
     const out: EntityContext = {};
@@ -427,16 +451,15 @@ export function parseAdvancements(
 }
 
 export const options: { [K in Option]: OptionParser } = {
-    advancements: (reader, info, context) => {
+    advancements: (reader, info, context, argStart) => {
         const helper = new ReturnHelper();
-        const start = reader.cursor;
         const res = parseAdvancements(reader, info);
         if (!helper.merge(res)) {
             return helper.fail();
         }
         if (context.advancements) {
             helper.addErrors(
-                argerr.duplicate.create(start, reader.cursor, "advancements")
+                argerr.duplicate.create(argStart, reader.cursor, "advancements")
             );
             return helper.succeed();
         } else {
@@ -455,12 +478,23 @@ export const options: { [K in Option]: OptionParser } = {
 
         const negated = isNegated(reader, helper);
 
-        const res = reader.readOption(gamemodes);
+        const res = reader.readOption(gamemodes, {
+            quote: false
+        });
         if (!helper.merge(res)) {
             if (res.data) {
+                helper.addErrors(
+                    argerr.gamemode.invalid.create(
+                        start,
+                        reader.cursor,
+                        res.data
+                    )
+                );
                 return helper.succeed();
             } else {
-                return helper.fail();
+                return helper.fail(
+                    argerr.gamemode.expected.create(start, reader.cursor)
+                );
             }
         }
         const neglist = negated
@@ -468,7 +502,7 @@ export const options: { [K in Option]: OptionParser } = {
             : [res.data];
 
         if (context.gamemode && stringArrayEqual(neglist, context.gamemode)) {
-            helper.addErrors();
+            helper.addErrors(argerr.noInfo.create(start, reader.cursor));
             return helper.succeed();
         }
 
@@ -525,9 +559,8 @@ export const options: { [K in Option]: OptionParser } = {
             return helper.succeed();
         }
     },
-    scores: (reader, info, context) => {
+    scores: (reader, info, context, argStart) => {
         const helper = new ReturnHelper();
-        const start = reader.cursor;
         const obj = parseScores(
             reader,
             info.data.localData ? info.data.localData.nbt.scoreboard : undefined
@@ -537,7 +570,7 @@ export const options: { [K in Option]: OptionParser } = {
         }
         if (context.scores) {
             helper.addErrors(
-                argerr.duplicate.create(start, reader.cursor, "scores")
+                argerr.duplicate.create(argStart, reader.cursor, "scores")
             );
             return helper.succeed();
         } else {
@@ -546,7 +579,7 @@ export const options: { [K in Option]: OptionParser } = {
             } as EntityContext);
         }
     },
-    sort: (reader, _, context) => {
+    sort: (reader, _, context, argStart) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const res = reader.readOption(
@@ -559,11 +592,15 @@ export const options: { [K in Option]: OptionParser } = {
         if (!helper.merge(res)) {
             if (!res.data) {
                 return helper.fail();
+            } else {
+                helper.addErrors(
+                    argerr.expectSort.create(start, reader.cursor, res.data)
+                );
             }
         }
         if (context.sort) {
             helper.addErrors(
-                argerr.duplicate.create(start, reader.cursor, "scores")
+                argerr.duplicate.create(argStart, reader.cursor, "scores")
             );
             return helper.succeed();
         }
@@ -577,26 +614,37 @@ export const options: { [K in Option]: OptionParser } = {
         const negated = isNegated(reader, helper);
 
         const tag = reader.readUnquotedString();
-        if (
-            context.tag &&
-            context.tag.indexOf(`${negated ? "!" : ""}${tag}`) !== -1
-        ) {
-            helper.addErrors(argerr.noInfo.create(start, reader.cursor, "tag"));
-            return helper.succeed();
+
+        if (context.tag) {
+            if (context.tag.indexOf(`${negated ? "!" : ""}${tag}`) !== -1) {
+                helper.addErrors(
+                    argerr.noInfo.create(start, reader.cursor, "tag")
+                );
+                return helper.succeed();
+            }
+            if (context.tag.indexOf(`${negated ? "" : "!"}${tag}`) !== -1) {
+                helper.addErrors(
+                    argerr.badIntersection.create(start, reader.cursor, "tag")
+                );
+                return helper.succeed();
+            }
+            if (
+                tag === "" &&
+                negated &&
+                !context.tag.some(v => v.startsWith("!"))
+            ) {
+                helper.addErrors(
+                    argerr.badIntersection.create(start, reader.cursor, "tag")
+                );
+                return helper.succeed();
+            }
         }
-        if (
-            context.tag &&
-            (tag === "" && negated
-                ? context.tag.length === 0
-                : context.tag.length !== 0)
-        ) {
-            helper.addErrors(
-                argerr.badIntersection.create(start, reader.cursor, "tag")
-            );
-            return helper.succeed();
-        }
+
         return helper.succeed({
-            tag: [...(context.tag || []), `${negated ? "!" : ""}${tag}`]
+            tag:
+                tag === ""
+                    ? []
+                    : [...(context.tag || []), `${negated ? "!" : ""}${tag}`]
         });
     },
     team: (reader, info, context) => {
@@ -631,7 +679,7 @@ export const options: { [K in Option]: OptionParser } = {
                 context.team.every(v => teams.indexOf(v) !== -1)
             ) {
                 helper.addErrors(
-                    argerr.duplicate.create(start, reader.cursor, "team")
+                    argerr.noInfo.create(start, reader.cursor, "team")
                 );
                 return helper.succeed();
             }
@@ -709,9 +757,9 @@ export const options: { [K in Option]: OptionParser } = {
         }
     },
     x: numOptParser(true, -3e7, 3e7 - 1, "x"),
-    x_rotation: rangeOptParser(true, JAVAMININT, JAVAMAXINT, "x_rotation"),
+    x_rotation: rangeOptParser(true, undefined, undefined, "x_rotation"),
     y: numOptParser(true, 0, 255, "y"),
-    y_rotation: rangeOptParser(true, JAVAMININT, JAVAMAXINT, "y_rotation"),
+    y_rotation: rangeOptParser(true, undefined, undefined, "y_rotation"),
     z: numOptParser(true, -3e7, 3e7 - 1, "z")
 };
 
@@ -729,13 +777,13 @@ export class EntityBase implements Parser {
         info: ParserInfo
     ): ReturnedInfo<ContextChange> {
         const helper = new ReturnHelper(info);
+        const start = reader.cursor;
         if (
             this.selector &&
             helper.merge(reader.expect("@"), {
                 errors: false
             })
         ) {
-            const start = reader.cursor;
             const context: EntityContext = {};
             const exp = reader.expectOption("p", "a", "r", "s", "e");
             if (!helper.merge(exp)) {
@@ -768,7 +816,7 @@ export class EntityBase implements Parser {
                 })
             ) {
                 if (!reader.canRead()) {
-                    helper.addSuggestion(reader.cursor, "[");
+                    helper.addSuggestion(reader.cursor, "]");
                     return helper.fail(
                         argerr.noArg.create(start, reader.cursor)
                     );
@@ -780,6 +828,7 @@ export class EntityBase implements Parser {
                 ) {
                     let next = "";
                     while (next !== "]") {
+                        const argStart = reader.cursor;
                         const arg = reader.expectOption(...typed_keys(options));
                         if (!helper.merge(arg)) {
                             return helper.fail();
@@ -789,7 +838,7 @@ export class EntityBase implements Parser {
                         }
                         const opt = options[arg.data as Option];
 
-                        const conc = opt(reader, info, context);
+                        const conc = opt(reader, info, context, argStart);
                         if (!helper.merge(conc)) {
                             return helper.fail();
                         }

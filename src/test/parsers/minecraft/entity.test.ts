@@ -1,41 +1,7 @@
-import { deepStrictEqual } from "assert";
-import { StringReader } from "../../../brigadier/string-reader";
-import {
-    EntityBase,
-    EntityContext,
-    numOptParser,
-    OptionParser
-} from "../../../parsers/minecraft/entity";
-import { CommandData, ParserInfo } from "../../../types";
-import {
-    returnAssert,
-    ReturnAssertionInfo,
-    testParser,
-    TestParserInfo
-} from "../../assertions";
-import { blankproperties } from "../../blanks";
-
-const optionTester = (parser: OptionParser) => (
-    context: EntityContext,
-    info: Partial<TestParserInfo> = {}
-) => (
-    text: string,
-    expected: ReturnAssertionInfo,
-    expectedData?: EntityContext
-) => {
-    const out = parser(
-        new StringReader(text),
-        {
-            // These parsers should used `suggesting`
-            ...blankproperties,
-            ...info
-        } as ParserInfo,
-        context
-    );
-    if (returnAssert(out, expected) && expectedData) {
-        deepStrictEqual(out.data, expectedData);
-    }
-};
+import { NBTNode } from "mc-nbt-paths";
+import { EntityBase } from "../../../parsers/minecraft/entity";
+import { CommandData } from "../../../types";
+import { testParser } from "../../assertions";
 
 describe("entity parser", () => {
     describe("player name", () => {
@@ -197,120 +163,39 @@ describe("entity parser", () => {
                 });
             });
         });
-        describe("number argument", () => {
-            describe("integer", () => {
-                const tester = optionTester(numOptParser(false, -12, 34, "x"))(
-                    {}
-                );
-                it("should parse correctly", () => {
-                    tester(
-                        "15",
-                        {
-                            succeeds: true
-                        },
-                        {
-                            x: 15
-                        }
-                    );
-                });
-                it("should fail if it is a decimal", () => {
-                    tester("1.2", {
-                        errors: [
-                            {
-                                code: "parsing.int.invalid",
-                                range: {
-                                    end: 3,
-                                    start: 0
-                                }
-                            }
-                        ],
-                        succeeds: false
-                    });
-                });
-                it("should have errors it is below the min", () => {
-                    tester("-123", {
-                        errors: [
-                            {
-                                code: "argument.entity.option.number.belowmin",
-                                range: {
-                                    end: 4,
-                                    start: 0
-                                }
-                            }
-                        ],
-                        succeeds: true
-                    });
-                });
-                it("should have errors if it is above the max", () => {
-                    tester("123", {
-                        errors: [
-                            {
-                                code: "argument.entity.option.number.abovemax",
-                                range: {
-                                    end: 3,
-                                    start: 0
-                                }
-                            }
-                        ],
-                        succeeds: true
-                    });
-                });
-            });
-            describe("float", () => {
-                const tester = optionTester(
-                    numOptParser(true, -12.34, 56.7, "x")
-                )({});
-                it("should parse correctly", () => {
-                    tester(
-                        "15.21",
-                        {
-                            succeeds: true
-                        },
-                        {
-                            x: 15.21
-                        }
-                    );
-                });
-                it("should have errors it is below the min", () => {
-                    tester("-123.45", {
-                        errors: [
-                            {
-                                code: "argument.entity.option.number.belowmin",
-                                range: {
-                                    end: 7,
-                                    start: 0
-                                }
-                            }
-                        ],
-                        succeeds: true
-                    });
-                });
-                it("should have errors if it is above the max", () => {
-                    tester("123", {
-                        errors: [
-                            {
-                                code: "argument.entity.option.number.abovemax",
-                                range: {
-                                    end: 3,
-                                    start: 0
-                                }
-                            }
-                        ],
-                        succeeds: true
-                    });
-                });
-            });
-        });
-        describe("range argument", () => {
-            describe("integer", () => {
-                //
-            });
-            describe("float", () => {
-                //
-            });
-        });
         describe("argument selector", () => {
-            const tester = testerBuilder({});
+            const tester = testerBuilder({
+                data: {
+                    globalData: {
+                        nbt_docs: new Map<string, NBTNode>([
+                            [
+                                "root.json",
+                                {
+                                    children: {
+                                        "minecraft:cow": {
+                                            children: {
+                                                foo: {
+                                                    type: "string"
+                                                }
+                                            },
+                                            type: "compound"
+                                        },
+                                        none: {
+                                            children: {
+                                                key: {
+                                                    type: "string"
+                                                }
+                                            },
+                                            type: "compound"
+                                        }
+                                    },
+                                    type: "root"
+                                }
+                            ]
+                        ])
+                    }
+                } as CommandData
+            });
             it("should succeed with no arguments", () => {
                 tester("@a[]", {
                     succeeds: true,
@@ -320,6 +205,298 @@ describe("entity parser", () => {
                             text: "]"
                         }
                     ]
+                });
+            });
+            it("should fail if there isn't a closing bracket", () => {
+                tester("@e[", {
+                    errors: [
+                        {
+                            code: "argument.entity.option.noopt",
+                            range: {
+                                end: 3,
+                                start: 0
+                            }
+                        }
+                    ],
+                    succeeds: false,
+                    suggestions: [
+                        {
+                            start: 2,
+                            text: "["
+                        },
+                        {
+                            start: 3,
+                            text: "]"
+                        }
+                    ]
+                });
+            });
+            describe("x, y, z", () => {
+                it("should succeed with a coord argument", () => {
+                    tester("@e[x=12]", {
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 7,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should add errors if the coord is out of bounds", () => {
+                    tester("@e[x=30000000]", {
+                        errors: [
+                            {
+                                code: "argument.entity.option.number.abovemax",
+                                range: {
+                                    end: 13,
+                                    start: 5
+                                }
+                            }
+                        ],
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 13,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should add errors if the arg is already present", () => {
+                    tester("@p[x=10,x=13]", {
+                        errors: [
+                            {
+                                code: "argument.entity.option.duplicate",
+                                range: {
+                                    end: 12,
+                                    start: 8
+                                }
+                            }
+                        ],
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 12,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+            });
+            describe("dx, dy, dz", () => {
+                it("should succeed with a distance argument", () => {
+                    tester("@a[dx=123]", {
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 9,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+            });
+            describe("gamemode", () => {
+                it("should parse correctly", () => {
+                    tester("@p[gamemode=survival]", {
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 20,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should add errors when using an incorrect option", () => {
+                    tester("@a[gamemode=error]", {
+                        errors: [
+                            {
+                                code: "argument.entity.option.gamemode.invalid",
+                                range: {
+                                    end: 17,
+                                    start: 12
+                                }
+                            }
+                        ],
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 17,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should add all of the correct suggestions", () => {
+                    tester("@p[gamemode=", {
+                        errors: [
+                            {
+                                code:
+                                    "argument.entity.option.gamemode.expected",
+                                range: {
+                                    end: 12,
+                                    start: 12
+                                }
+                            }
+                        ],
+                        succeeds: false,
+                        suggestions: [
+                            {
+                                start: 11,
+                                text: "="
+                            },
+                            {
+                                start: 12,
+                                text: "!"
+                            },
+                            {
+                                start: 12,
+                                text: "survival"
+                            },
+                            {
+                                start: 12,
+                                text: "creative"
+                            },
+                            {
+                                start: 12,
+                                text: "adventure"
+                            },
+                            {
+                                start: 12,
+                                text: "spectator"
+                            }
+                        ]
+                    });
+                });
+                it("should add errors when an argument is a duplicate", () => {
+                    tester("@a[gamemode=creative,gamemode=creative]", {
+                        errors: [
+                            {
+                                code: "argument.entity.option.noinfo",
+                                range: {
+                                    end: 38,
+                                    start: 30
+                                }
+                            }
+                        ],
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 38,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should add errors when an argument is impossible", () => {
+                    tester("@a[gamemode=survival,gamemode=!survival]", {
+                        errors: [
+                            {
+                                code: "argument.entity.option.nointersect",
+                                range: {
+                                    end: 39,
+                                    start: 30
+                                }
+                            }
+                        ],
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 39,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+            });
+            describe("tag", () => {
+                it("should be valid with one tag", () => {
+                    tester("@e[tag=foo]", {
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 10,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should be valid with many tags", () => {
+                    tester("@a[tag=one,tag=two,tag=three]", {
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 28,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should add errors if there is conflicting specific tags", () => {
+                    tester("@p[tag=foo,tag=!foo]", {
+                        errors: [
+                            {
+                                code: "argument.entity.option.nointersect",
+                                range: {
+                                    end: 19,
+                                    start: 15
+                                }
+                            }
+                        ],
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 19,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should add errors if there is tags but there cannot be any tags", () => {
+                    tester("@r[tag=foo,tag=!]", {
+                        errors: [
+                            {
+                                code: "argument.entity.option.nointersect",
+                                range: {
+                                    end: 16,
+                                    start: 15
+                                }
+                            }
+                        ],
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 16,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+                it("should not add an error if there is a blank tag (not inverted)", () => {
+                    tester("@e[tag=]", {
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 7,
+                                text: "]"
+                            }
+                        ]
+                    });
+                });
+            });
+            describe("type", () => {
+                it("should parse correctly", () => {
+                    tester("@e[type=cow]", {
+                        succeeds: true,
+                        suggestions: [
+                            {
+                                start: 11,
+                                text: "]"
+                            }
+                        ]
+                    });
                 });
             });
         });

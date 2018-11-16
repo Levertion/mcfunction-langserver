@@ -1,3 +1,5 @@
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { CommandErrorBuilder } from "../../brigadier/errors";
 import { READER_EXCEPTIONS, StringReader } from "../../brigadier/string-reader";
 import { ReturnHelper } from "../../misc-functions";
 import { Parser, ReturnedInfo } from "../../types";
@@ -6,6 +8,16 @@ export interface MCRange {
     max?: number;
     min?: number;
 }
+
+const swapped = new CommandErrorBuilder(
+    "argument.range.swapped",
+    "Min cannot be bigger than max"
+);
+const equalEnds = new CommandErrorBuilder(
+    "argument.range.equal",
+    "Min and max are eqaul and can be replaced by '%s'",
+    DiagnosticSeverity.Hint
+);
 
 const digregex = /\d/;
 
@@ -72,6 +84,7 @@ export const rangeParser = (float: boolean = false) => (
     reader: StringReader
 ): ReturnedInfo<MCRange> => {
     const helper = new ReturnHelper();
+    const start = reader.cursor;
     if (
         helper.merge(reader.expect(".."), {
             errors: false
@@ -98,7 +111,7 @@ export const rangeParser = (float: boolean = false) => (
                 max: min.data,
                 min: min.data
             });
-        } else if (/\d\./.test(reader.peek())) {
+        } else if (StringReader.charAllowedNumber.test(reader.peek())) {
             const max = float
                 ? readFloatLimited(reader)
                 : readIntLimited(reader);
@@ -106,14 +119,28 @@ export const rangeParser = (float: boolean = false) => (
                 return helper.fail();
             }
             if (max.data < min.data) {
-                helper.addErrors();
+                helper.addErrors(swapped.create(start, reader.cursor));
+                helper.addActions({
+                    data: `${max.data}..${min.data}`,
+                    high: reader.cursor,
+                    low: start,
+                    type: "format"
+                });
                 return helper.succeed({
                     max: min.data,
                     min: max.data
                 });
             }
             if (max.data === min.data) {
-                helper.addErrors();
+                helper.addErrors(
+                    equalEnds.create(start, reader.cursor, min.data.toString())
+                );
+                helper.addActions({
+                    data: `${min.data}`,
+                    high: reader.cursor,
+                    low: start,
+                    type: "format"
+                });
             }
             return helper.succeed({
                 max: max.data,
@@ -128,16 +155,16 @@ export const rangeParser = (float: boolean = false) => (
 };
 
 export const floatRange: Parser = {
-    parse: reader => {
-        const helper = new ReturnHelper();
+    parse: (reader, info) => {
+        const helper = new ReturnHelper(info);
         const res = rangeParser(true)(reader);
         return helper.merge(res) ? helper.succeed() : helper.fail();
     }
 };
 
 export const intRange: Parser = {
-    parse: reader => {
-        const helper = new ReturnHelper();
+    parse: (reader, info) => {
+        const helper = new ReturnHelper(info);
         const res = rangeParser(false)(reader);
         return helper.merge(res) ? helper.succeed() : helper.fail();
     }
