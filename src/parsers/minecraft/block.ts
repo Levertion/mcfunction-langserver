@@ -19,7 +19,7 @@ import {
     buildTagActions,
     parseNamespaceOrTag
 } from "../../misc-functions/parsing/nmsp-tag";
-import { Parser, ParserInfo, ReturnedInfo, Suggestion } from "../../types";
+import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 import { validateParse } from "./nbt/nbt";
 
 export const predicateParser: Parser = {
@@ -248,14 +248,17 @@ function parseProperties(
 ): ReturnedInfo<Map<string, string>> {
     const helper = new ReturnHelper();
     const result = new Map<string, string>();
-    if (reader.peek() === "[") {
-        const start = reader.cursor;
-        reader.skip();
+    const start = reader.cursor;
+    if (helper.merge(reader.expect("["), { errors: false })) {
         const props = Object.keys(options);
         reader.skipWhitespace();
-        while (reader.canRead() && reader.peek() !== "]") {
+        if (helper.merge(reader.expectOption("]"), { errors: false })) {
+            return helper.succeed(result);
+        }
+        while (true) {
             reader.skipWhitespace();
             const propStart = reader.cursor;
+            const isUnclosed = !reader.canRead();
             const propParse = reader.readOption(
                 props,
                 undefined,
@@ -268,6 +271,11 @@ function parseProperties(
                 // Parsing failed
                 return helper.fail();
             }
+            if (isUnclosed) {
+                return helper.fail(
+                    exceptions.unclosed_props.create(start, reader.cursor)
+                );
+            }
             if (!propSuccessful) {
                 helper.addErrors(
                     errors.unknown.create(
@@ -278,6 +286,7 @@ function parseProperties(
                     )
                 );
             }
+
             if (result.has(propKey)) {
                 helper.addErrors(
                     errors.duplicate.create(
@@ -289,7 +298,7 @@ function parseProperties(
                 );
             }
             reader.skipWhitespace();
-            if (!reader.canRead() || reader.peek() !== "=") {
+            if (!helper.merge(reader.expect("="), { errors: false })) {
                 return helper.fail(
                     errors.novalue.create(
                         propStart,
@@ -299,7 +308,6 @@ function parseProperties(
                     )
                 );
             }
-            reader.skip();
             reader.skipWhitespace();
             const valueStart = reader.cursor;
             const valueParse = reader.readOption(
@@ -326,34 +334,18 @@ function parseProperties(
             adderrorIf(value.length > 0);
             result.set(propKey, value);
             reader.skipWhitespace();
-            if (reader.canRead()) {
-                if (reader.peek() === ",") {
-                    adderrorIf(value.length === 0);
-                    reader.skip();
-                    continue;
-                }
-                if (reader.peek() === "]") {
-                    adderrorIf(value.length === 0);
-                    break;
-                }
+            if (helper.merge(reader.expect(","), { errors: false })) {
+                adderrorIf(value.length === 0);
+                continue;
+            }
+            if (helper.merge(reader.expect("]"), { errors: false })) {
+                adderrorIf(value.length === 0);
+                return helper.succeed(result);
             }
             return helper.fail(
                 exceptions.unclosed_props.create(start, reader.cursor)
             );
         }
-        if (!reader.canRead()) {
-            helper.addSuggestions(
-                ...props.map<Suggestion>(prop => ({
-                    kind: CompletionItemKind.Property,
-                    start: reader.cursor,
-                    text: prop
-                }))
-            );
-            return helper.fail(
-                exceptions.unclosed_props.create(start, reader.cursor)
-            );
-        }
-        reader.expect("]"); // Sanity check
     }
     return helper.succeed(result);
 }
