@@ -101,7 +101,6 @@ export class StringReader {
                 EXCEPTIONS.EXPECTED_SYMBOL.create(
                     this.cursor,
                     Math.min(this.string.length, this.cursor + str.length),
-                    sub,
                     str
                 )
             );

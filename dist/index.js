@@ -1330,6 +1330,7 @@ const NAMESPACEEXCEPTIONS = {
   invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "Invalid character '%s' in location %s")
 };
 const disallowedPath = /[^0-9a-z_/\.-]/g;
+exports.namespaceChars = /^[0-9a-z_:/\.-]$/;
 
 function stringArrayToNamespaces(strings) {
   // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
@@ -1342,8 +1343,7 @@ exports.namespacedEntities = stringArrayToNamespaces(statics_1.entities);
 exports.namespacedFluids = stringArrayToNamespaces(statics_1.fluids);
 
 function readNamespaceText(reader) {
-  const namespaceChars = /^[0-9a-z_:/\.-]$/;
-  return reader.readWhileRegexp(namespaceChars);
+  return reader.readWhileRegexp(exports.namespaceChars);
 }
 
 exports.readNamespaceText = readNamespaceText;
@@ -1684,7 +1684,7 @@ class StringReader {
     const sub = this.string.substr(this.cursor, str.length);
 
     if (sub !== str) {
-      return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL.create(this.cursor, Math.min(this.string.length, this.cursor + str.length), sub, str));
+      return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL.create(this.cursor, Math.min(this.string.length, this.cursor + str.length), str));
     }
 
     this.cursor += str.length;
@@ -5298,7 +5298,7 @@ function parseAdvancements(reader, info) {
       while (true) {
         const criterion = reader.readOption(criteriaOptions, {
           quote: false,
-          unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+          unquoted: misc_functions_1.namespaceChars
         });
 
         if (!helper.merge(criterion)) {
