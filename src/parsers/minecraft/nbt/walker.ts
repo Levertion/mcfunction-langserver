@@ -140,8 +140,8 @@ export class NBTWalker {
                         nextPath
                     ) as ValueList);
                     if (
-                        list.find(
-                            v => (isString(v) ? v === name : v.value === name)
+                        list.find(v =>
+                            isString(v) ? v === name : v.value === name
                         )
                     ) {
                         return { ...info, node: info.node.children[key] };
