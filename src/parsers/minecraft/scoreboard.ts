@@ -3,6 +3,7 @@ import { CompletionItemKind } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { COLORS } from "../../colors";
+import { NONWHITESPACE } from "../../consts";
 import {
     blockCriteria,
     colorCriteria,
@@ -171,8 +172,6 @@ const UNKNOWN_CRITERIA = new CommandErrorBuilder(
     "argument.criteria.invalid",
     "Unknown criteria '%s'"
 );
-
-const NONWHITESPACE = /\S/;
 
 export const criteriaParser: Parser = {
     parse: (reader, info) => {

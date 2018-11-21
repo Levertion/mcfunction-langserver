@@ -110,7 +110,7 @@ export class StringReader {
         return helper.succeed();
     }
 
-    public expectOption(...options: string[]): ReturnedInfo<string> {
+    public expectOption<T extends string>(...options: T[]): ReturnedInfo<T> {
         const helper = new ReturnHelper();
         const start = this.cursor;
         let out: string | undefined;
@@ -120,7 +120,7 @@ export class StringReader {
                     errors: false
                 })
             ) {
-                if (!out || out.length < s.length) {
+                if (!out || s.length > out.length) {
                     out = s;
                 }
                 this.cursor = start;
@@ -138,7 +138,7 @@ export class StringReader {
             );
         }
         this.cursor += out.length;
-        return helper.succeed(out);
+        return helper.succeed(out as T);
     }
 
     public getRead(): string {
@@ -438,7 +438,9 @@ export class StringReader {
             if (info.unquoted) {
                 return getReturned(this.readWhileRegexp(info.unquoted));
             } else {
-                return getReturned<string>(undefined);
+                throw new Error(
+                    "Quoting kind which doesn't support quoting or any characters"
+                );
             }
         }
         // tslint:enable:helper-return

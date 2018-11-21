@@ -80,9 +80,10 @@ function readFloatLimited(reader: StringReader): ReturnedInfo<number> {
     return helper.succeed(parseFloat(`${neg ? "-" : ""}${num}`));
 }
 
-export const rangeParser = (float: boolean = false) => (
-    reader: StringReader
-): ReturnedInfo<MCRange> => {
+export function parseRange(
+    reader: StringReader,
+    float: boolean = false
+): ReturnedInfo<MCRange> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     if (
@@ -152,12 +153,12 @@ export const rangeParser = (float: boolean = false) => (
             });
         }
     }
-};
+}
 
 export const floatRange: Parser = {
     parse: (reader, info) => {
         const helper = new ReturnHelper(info);
-        const res = rangeParser(true)(reader);
+        const res = parseRange(reader, true);
         return helper.merge(res) ? helper.succeed() : helper.fail();
     }
 };
@@ -165,7 +166,7 @@ export const floatRange: Parser = {
 export const intRange: Parser = {
     parse: (reader, info) => {
         const helper = new ReturnHelper(info);
-        const res = rangeParser(false)(reader);
+        const res = parseRange(reader, false);
         return helper.merge(res) ? helper.succeed() : helper.fail();
     }
 };

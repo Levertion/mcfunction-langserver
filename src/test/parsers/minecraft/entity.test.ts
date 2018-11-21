@@ -72,7 +72,7 @@ describe("entity parser", () => {
         });
         it("should give the correct suggestions", () => {
             tester("", {
-                succeeds: true,
+                succeeds: false,
                 suggestions: [
                     {
                         start: 0,
@@ -85,7 +85,7 @@ describe("entity parser", () => {
                 ]
             });
         });
-        it("should succeed if there is no scoreboard data", () => {
+        it("should not fail if there is no scoreboard data available", () => {
             nodatatester("Foobar", {
                 succeeds: true
             });
@@ -458,7 +458,7 @@ describe("entity parser", () => {
                     tester("@r[tag=foo,tag=!]", {
                         errors: [
                             {
-                                code: "argument.entity.option.nointersect",
+                                code: "argument.entity.option.duplicate",
                                 range: {
                                     end: 16,
                                     start: 15

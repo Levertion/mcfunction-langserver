@@ -17,3 +17,5 @@ export const TAG_START = "#";
 
 export const JAVAMAXINT = 2147483647;
 export const JAVAMININT = -2147483648;
+
+export const NONWHITESPACE = /\S/;

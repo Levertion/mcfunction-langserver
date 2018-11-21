@@ -1,43 +1,75 @@
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { entities } from "../../data/lists/statics";
+import { NONWHITESPACE } from "../../consts";
 import { Scoreboard } from "../../data/nbt/nbt-types";
-import { DataResource, NamespacedName } from "../../data/types";
+import { DataResource } from "../../data/types";
 import {
-    convertToNamespace,
     getResourcesofType,
-    namespacesEqual,
+    getReturned,
     parseNamespaceOption,
     parseNamespaceOrTag,
     ReturnHelper,
-    stringArrayEqual
+    stringArrayEqual,
+    stringifyNamespace
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
+import {
+    ContextChange,
+    EntityInfo,
+    Parser,
+    ParserInfo,
+    ReturnedInfo
+} from "../../types";
 import { validateParse } from "./nbt/nbt";
-import { MCRange, rangeParser } from "./range";
+import { MCRange, parseRange } from "./range";
 // tslint:disable:cyclomatic-complexity
 const uuidregex = /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/;
-
 /*
+Should be disabled if not wanted
 https://github.com/Levertion/mcfunction-langserver/issues/89
 */
 const uuidwarn = new CommandErrorBuilder(
     "argument.entity.uuid",
-    "Selecting an entity based on its UUID may cause instability [This warning can be disabled in the settings]",
+    "Selecting an entity based on its UUID may cause instability [This warning can be disabled in the settings (Although not at the moment)]",
     DiagnosticSeverity.Warning
 );
-
 interface NodeProp {
     amount: "single" | "multiple";
     type: "entity" | "player";
 }
-
-type EntityContextType = { [K in Option]: {} };
+type EntityContextType = { [K in ArgumentType]: {} };
+interface TagInfo {
+    /**
+     * Whether there is an empty tag.
+     *
+     * True=>Entity must have a tag (`tag=!`)
+     *
+     * False=>Entity must not have a tag (`tag=`)
+     */
+    all?: boolean;
+    set: Set<string>;
+    unset: Set<string>;
+}
+interface TeamInfo {
+    /**
+     * Whether there is an empty team.
+     *
+     * True=>Entity must have a team (`team=!`)
+     *
+     * False=>Entity must not have a team (`team=`)
+     */
+    all?: boolean;
+    set?: string;
+    unset: Set<string>;
+}
+interface TypeInfo {
+    set: Set<string>;
+    unset: Set<string>;
+}
 
 interface EntityContextInner extends EntityContextType {
-    advancements: Map<NamespacedName, AdvancementOption>;
+    advancements: Dictionary<AdvancementOption>;
     distance: MCRange;
     dx: number;
     dy: number;
@@ -45,24 +77,21 @@ interface EntityContextInner extends EntityContextType {
     gamemode: string[];
     level: MCRange;
     limit: number;
-    name: string[];
+    name: Set<string>;
     nbt: {};
     scores: Dictionary<MCRange>;
     sort: string;
-    tag: string[];
-    team: string[];
-    type: string[];
+    tag: TagInfo;
+    team: TeamInfo;
+    type: TypeInfo;
     x: number;
     x_rotation: MCRange;
     y: number;
     y_rotation: MCRange;
     z: number;
 }
-
 export type EntityContext = Partial<EntityContextInner>;
-
 type AdvancementOption = boolean | Dictionary<boolean>;
-
 const contexterr = {
     oneEntity: new CommandErrorBuilder(
         "argument.entity.toomany",
@@ -77,8 +106,7 @@ const contexterr = {
         "Only players may be affected by this command, but the provided selector includes entities"
     )
 };
-
-export type Option =
+export type ArgumentType =
     | "advancements"
     | "distance"
     | "dx"
@@ -99,19 +127,10 @@ export type Option =
     | "y"
     | "y_rotation"
     | "z";
-
-const argerr = {
-    badIntersection: new CommandErrorBuilder(
-        "argument.entity.option.nointersect",
-        "Argument '%s' cannot match any entity"
-    ),
+const errors = {
     duplicate: new CommandErrorBuilder(
         "argument.entity.option.duplicate",
         "Duplicate argument '%s'"
-    ),
-    expectSort: new CommandErrorBuilder(
-        "argument.entity.option.sort.invalid",
-        "Invalid sort type '%s'"
     ),
     gamemode: {
         expected: new CommandErrorBuilder(
@@ -123,6 +142,10 @@ const argerr = {
             "Invalid gamemode '%s'"
         )
     },
+    impossible: new CommandErrorBuilder(
+        "argument.entity.option.nointersect",
+        "Argument '%s' cannot match any entity"
+    ),
     intOpt: {
         aboveMax: new CommandErrorBuilder(
             "argument.entity.option.number.abovemax",
@@ -133,6 +156,10 @@ const argerr = {
             "Argument '%s' is less than %s"
         )
     },
+    invalidSort: new CommandErrorBuilder(
+        "argument.entity.option.sort.invalid",
+        "Invalid sort type '%s'"
+    ),
     noArg: new CommandErrorBuilder(
         "argument.entity.option.noopt",
         "Expected ']'"
@@ -140,52 +167,48 @@ const argerr = {
     noInfo: new CommandErrorBuilder(
         "argument.entity.option.noinfo",
         "Argument '%s' is redundant"
+    ),
+    unknown_tag: new CommandErrorBuilder(
+        "arguments.entity.tag.unknown",
+        "Unknown entity tag '%s'"
     )
 };
-
 function getContextError(
-    cont: EntityContext,
+    context: EntityContext,
     prop: NodeProp
 ): CommandErrorBuilder | undefined {
     if (
         prop.type === "player" &&
-        stringArrayEqual(cont.type || [], ["minecraft:player"])
+        context.type &&
+        context.type.set &&
+        context.type.set.size === 1 &&
+        context.type.set.has("minecraft:player")
     ) {
         return contexterr.onlyPlayer;
     }
-    if (prop.amount === "single" && cont.limit !== 1) {
-        return prop.type === "entity"
-            ? contexterr.oneEntity
-            : contexterr.onePlayer;
+    if (prop.amount === "single" && context.limit !== 1) {
+        return prop.type === "player"
+            ? contexterr.onePlayer
+            : contexterr.oneEntity;
     }
     return undefined;
 }
-
 export type OptionParser = (
     reader: StringReader,
     info: ParserInfo,
     context: EntityContext,
     argStart: number
-) => ReturnedInfo<EntityContext | undefined>;
-
+) => ReturnedInfo<undefined>;
 // tslint:disable-next-line:no-unnecessary-callback-wrapper it gives an error if it isn't wrapped
-const nsEntity = entities.map(v => convertToNamespace(v));
-
 const gamemodes = ["survival", "creative", "adventure", "spectator"];
-
 function isNegated(reader: StringReader, helper: ReturnHelper): boolean {
-    if (helper.merge(reader.expect("!"), { errors: false })) {
-        return true;
-    } else {
-        return false;
-    }
+    return helper.merge(reader.expect("!"), { errors: false });
 }
-
 export const numOptParser = (
     float: boolean,
     min: number | undefined,
     max: number | undefined,
-    key: Option
+    key: ArgumentType
 ) => (
     reader: StringReader,
     _: ParserInfo,
@@ -201,7 +224,7 @@ export const numOptParser = (
     const num = res.data;
     if (max && num > max) {
         helper.addErrors(
-            argerr.intOpt.aboveMax.create(
+            errors.intOpt.aboveMax.create(
                 start,
                 reader.cursor,
                 key,
@@ -212,7 +235,7 @@ export const numOptParser = (
     }
     if (min && num < min) {
         helper.addErrors(
-            argerr.intOpt.belowMin.create(
+            errors.intOpt.belowMin.create(
                 start,
                 reader.cursor,
                 key,
@@ -223,19 +246,17 @@ export const numOptParser = (
     }
     // The entity context already has a value
     if (!!context[key]) {
-        helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, key));
+        helper.addErrors(errors.duplicate.create(argStart, reader.cursor, key));
         return helper.succeed();
     }
-    const out: EntityContext = {};
-    out[key] = num;
-    return helper.succeed(out);
+    context[key] = num;
+    return helper.succeed();
 };
-
 export const rangeOptParser = (
     float: boolean,
     min: number | undefined,
     max: number | undefined,
-    key: Option
+    key: ArgumentType
 ) => (
     reader: StringReader,
     _: ParserInfo,
@@ -244,18 +265,15 @@ export const rangeOptParser = (
 ) => {
     const helper = new ReturnHelper();
     const start = reader.cursor;
-    const res = rangeParser(float)(reader);
-
+    const res = parseRange(reader, float);
     if (!helper.merge(res)) {
         return helper.fail();
     }
-
     const range = res.data;
-
     if (range.max) {
         if (max && range.max > max) {
             helper.addErrors(
-                argerr.intOpt.aboveMax.create(
+                errors.intOpt.aboveMax.create(
                     start,
                     reader.cursor,
                     key,
@@ -266,7 +284,7 @@ export const rangeOptParser = (
         }
         if (min && range.max < min) {
             helper.addErrors(
-                argerr.intOpt.belowMin.create(
+                errors.intOpt.belowMin.create(
                     start,
                     reader.cursor,
                     key,
@@ -279,7 +297,7 @@ export const rangeOptParser = (
     if (range.min) {
         if (max && range.min > max) {
             helper.addErrors(
-                argerr.intOpt.aboveMax.create(
+                errors.intOpt.aboveMax.create(
                     start,
                     reader.cursor,
                     key,
@@ -290,7 +308,7 @@ export const rangeOptParser = (
         }
         if (min && range.min < min) {
             helper.addErrors(
-                argerr.intOpt.belowMin.create(
+                errors.intOpt.belowMin.create(
                     start,
                     reader.cursor,
                     key,
@@ -301,14 +319,12 @@ export const rangeOptParser = (
         }
     }
     if (!!context[key]) {
-        helper.addErrors(argerr.duplicate.create(argStart, reader.cursor, key));
+        helper.addErrors(errors.duplicate.create(argStart, reader.cursor, key));
         return helper.succeed();
     }
-    const out: EntityContext = {};
-    out[key] = range;
-    return helper.succeed(out);
+    context[key] = range;
+    return helper.succeed();
 };
-
 export function parseScores(
     reader: StringReader,
     scoreboard: Scoreboard | undefined
@@ -321,89 +337,71 @@ export function parseScores(
         ? scoreboard.data.Objectives.map(v => v.Name)
         : [];
     const out: Dictionary<MCRange> = {};
-
-    let next = "{";
-    while (next !== "}") {
-        const res = scoreboard
-            ? reader.readOption(objnames, {
-                  quote: false,
-                  unquoted: StringReader.charAllowedInUnquotedString
-              })
-            : new ReturnHelper().succeed(reader.readUnquotedString());
-        if (!helper.merge(res)) {
-            if (!res.data) {
+    if (!helper.merge(reader.expect("}"), { errors: false })) {
+        while (true) {
+            const res = scoreboard
+                ? reader.readOption(objnames, {
+                      quote: false,
+                      unquoted: StringReader.charAllowedInUnquotedString
+                  })
+                : getReturned(reader.readUnquotedString());
+            const data = res.data;
+            if (!helper.merge(res) && data === undefined) {
                 return helper.fail();
             }
+            const range = parseRange(reader);
+            if (!helper.merge(range)) {
+                return helper.fail();
+            }
+            out[data as string] = range.data;
+            if (helper.merge(reader.expect(","), { errors: false })) {
+                continue;
+            } else if (helper.merge(reader.expect("}"), { errors: false })) {
+                break;
+            } else {
+                const error = reader.expectOption(",", "}"); // Get the error for expected option
+                return helper.mergeChain(error, { suggestions: false }).fail();
+            }
         }
-
-        const range = rangeParser(false)(reader);
-        if (!helper.merge(range)) {
-            return helper.fail();
-        }
-        out[res.data as string] = range.data;
-
-        const end = reader.expectOption(",", "}");
-        if (!helper.merge(end)) {
-            return helper.fail();
-        }
-        next = end.data;
     }
     return helper.succeed(out);
 }
-
 export function parseAdvancements(
     reader: StringReader,
     info: ParserInfo
-): ReturnedInfo<Map<NamespacedName, AdvancementOption>> {
-    const adv = getResourcesofType(info.data, "advancements");
-
+): ReturnedInfo<Dictionary<AdvancementOption>> {
+    const advancements = getResourcesofType(info.data, "advancements");
     const helper = new ReturnHelper();
-
     if (!helper.merge(reader.expect("{"))) {
         return helper.fail();
     }
-
-    const out = new Map<NamespacedName, AdvancementOption>();
-
-    let next = "{";
-    while (next !== "}") {
-        let advname: NamespacedName;
-
+    const out: Dictionary<AdvancementOption> = {};
+    while (true) {
+        let advname: string;
         const criteriaOptions: string[] = [];
-
-        const res = parseNamespaceOption(
+        const res = parseNamespaceOption<DataResource<string[]>>(
             reader,
-            adv.map<NamespacedName>(v => ({
-                namespace: v.namespace,
-                path: v.path
-            }))
+            advancements
         );
         if (!helper.merge(res)) {
             if (!res.data) {
                 return helper.fail();
             } else {
-                advname = res.data;
+                advname = stringifyNamespace(res.data);
             }
         } else {
-            advname = res.data.literal;
-            res.data.values.forEach(v =>
-                criteriaOptions.push(
-                    ...((v as DataResource<string[]>).data as string[])
-                )
-            );
+            advname = stringifyNamespace(res.data.literal);
+            res.data.values
+                .map(v => v.data)
+                .filter(v => !!v)
+                .forEach(v => criteriaOptions.push(...(v as string[])));
         }
-
         if (!helper.merge(reader.expect("="))) {
             return helper.fail();
         }
-
-        if (reader.peek() === "{") {
-            reader.skip();
-            let cnext = "{";
-
+        if (helper.merge(reader.expect("{"), { errors: false })) {
             const criteria: Dictionary<boolean> = {};
-
-            while (cnext !== "}") {
+            while (true) {
                 const criterion = reader.readOption(criteriaOptions, {
                     quote: false,
                     unquoted: StringReader.charAllowedInUnquotedString
@@ -413,44 +411,47 @@ export function parseAdvancements(
                         return helper.fail();
                     }
                 }
-
                 if (!helper.merge(reader.expect("="))) {
                     return helper.fail();
                 }
-
                 const critval = reader.readBoolean();
                 if (!helper.merge(critval)) {
                     return helper.fail();
                 }
-
                 criteria[criterion.data as string] = critval.data;
-
-                const cend = reader.expectOption(",", "}");
-                if (!helper.merge(cend)) {
-                    return helper.fail();
+                if (helper.merge(reader.expect(","), { errors: false })) {
+                    continue;
+                } else if (
+                    helper.merge(reader.expect("}"), { errors: false })
+                ) {
+                    break;
+                } else {
+                    const error = reader.expectOption(",", "}"); // Get the error for expected option
+                    return helper
+                        .mergeChain(error, { suggestions: false })
+                        .fail();
                 }
-                cnext = cend.data;
             }
-            out.set(advname, criteria);
+            out[advname] = criteria;
         } else {
             const bool = reader.readBoolean();
             if (!helper.merge(bool)) {
                 return helper.fail();
             }
-            out.set(advname, bool.data);
+            out[advname] = bool.data;
         }
-
-        const end = reader.expectOption(",", "}");
-        if (!helper.merge(end)) {
-            return helper.fail();
+        if (helper.merge(reader.expect(","), { errors: false })) {
+            continue;
+        } else if (helper.merge(reader.expect("}"), { errors: false })) {
+            break;
+        } else {
+            const error = reader.expectOption(",", "}"); // Get the error for expected option
+            return helper.mergeChain(error, { suggestions: false }).fail();
         }
-        next = end.data;
     }
-
     return helper.succeed(out);
 }
-
-export const options: { [K in Option]: OptionParser } = {
+export const argParsers: { [K in ArgumentType]: OptionParser } = {
     advancements: (reader, info, context, argStart) => {
         const helper = new ReturnHelper();
         const res = parseAdvancements(reader, info);
@@ -459,14 +460,13 @@ export const options: { [K in Option]: OptionParser } = {
         }
         if (context.advancements) {
             helper.addErrors(
-                argerr.duplicate.create(argStart, reader.cursor, "advancements")
+                errors.duplicate.create(argStart, reader.cursor, "advancements")
             );
-            return helper.succeed();
+            Object.assign(context.advancements, res.data);
         } else {
-            return helper.succeed({
-                advancements: res.data
-            } as EntityContext);
+            context.advancements = res.data;
         }
+        return helper.succeed();
     },
     distance: rangeOptParser(true, 0, 3e7, "distance"),
     dx: numOptParser(true, undefined, undefined, "dx"),
@@ -475,16 +475,15 @@ export const options: { [K in Option]: OptionParser } = {
     gamemode: (reader, _, context) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
-
         const negated = isNegated(reader, helper);
-
         const res = reader.readOption(gamemodes, {
-            quote: false
+            quote: false,
+            unquoted: StringReader.charAllowedInUnquotedString
         });
         if (!helper.merge(res)) {
             if (res.data) {
                 helper.addErrors(
-                    argerr.gamemode.invalid.create(
+                    errors.gamemode.invalid.create(
                         start,
                         reader.cursor,
                         res.data
@@ -493,32 +492,29 @@ export const options: { [K in Option]: OptionParser } = {
                 return helper.succeed();
             } else {
                 return helper.fail(
-                    argerr.gamemode.expected.create(start, reader.cursor)
+                    errors.gamemode.expected.create(start, reader.cursor)
                 );
             }
         }
         const neglist = negated
             ? gamemodes.filter(v => v !== res.data)
             : [res.data];
-
         if (context.gamemode && stringArrayEqual(neglist, context.gamemode)) {
-            helper.addErrors(argerr.noInfo.create(start, reader.cursor));
+            helper.addErrors(errors.noInfo.create(start, reader.cursor));
             return helper.succeed();
         }
-
         const intTypes: string[] = context.gamemode
             ? context.gamemode.filter(v => neglist.indexOf(v) !== -1)
             : neglist;
-
         if (intTypes.length === 0) {
             helper.addErrors(
-                argerr.badIntersection.create(start, reader.cursor, "gamemode")
+                errors.impossible.create(start, reader.cursor, "gamemode")
             );
+            context.gamemode = [];
             return helper.succeed();
         } else {
-            return helper.succeed({
-                gamemode: intTypes
-            } as EntityContext);
+            context.gamemode = intTypes;
+            return helper.succeed();
         }
     },
     level: rangeOptParser(false, 0, undefined, "level"),
@@ -527,30 +523,29 @@ export const options: { [K in Option]: OptionParser } = {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const negated = isNegated(reader, helper);
-
         const restag = reader.readString();
         if (!helper.merge(restag)) {
             return helper.fail();
         }
         const name = restag.data;
-        if (
-            context.name &&
-            context.name.indexOf(`${negated ? "!" : ""}${name}`) !== -1
-        ) {
+        const fullname = `${negated ? "!" : ""}${name}`;
+        if (context.name && context.name.has(fullname)) {
             helper.addErrors(
-                argerr.noInfo.create(start, reader.cursor, "name")
+                errors.noInfo.create(start, reader.cursor, "name")
             );
             return helper.succeed();
         }
-        return helper.succeed({
-            name: [...(context.name || []), `${negated ? "!" : ""}${name}`]
-        });
+        const newNames = context.name || new Set();
+        newNames.add(fullname);
+        context.name = newNames;
+        return helper.succeed();
     },
     nbt: (reader, info, context) => {
         const helper = new ReturnHelper();
         isNegated(reader, helper);
         const res = validateParse(reader, info, {
-            ids: context.type,
+            ids: context.type &&
+                context.type.set && [...context.type.set.values()],
             kind: "entity"
         });
         if (!helper.merge(res)) {
@@ -570,13 +565,12 @@ export const options: { [K in Option]: OptionParser } = {
         }
         if (context.scores) {
             helper.addErrors(
-                argerr.duplicate.create(argStart, reader.cursor, "scores")
+                errors.duplicate.create(argStart, reader.cursor, "scores")
             );
             return helper.succeed();
         } else {
-            return helper.succeed({
-                scores: obj.data
-            } as EntityContext);
+            context.scores = obj.data;
+            return helper.succeed();
         }
     },
     sort: (reader, _, context, argStart) => {
@@ -594,167 +588,222 @@ export const options: { [K in Option]: OptionParser } = {
                 return helper.fail();
             } else {
                 helper.addErrors(
-                    argerr.expectSort.create(start, reader.cursor, res.data)
+                    errors.invalidSort.create(start, reader.cursor, res.data)
                 );
             }
         }
         if (context.sort) {
             helper.addErrors(
-                argerr.duplicate.create(argStart, reader.cursor, "scores")
+                errors.duplicate.create(argStart, reader.cursor, "scores")
             );
             return helper.succeed();
         }
-        return helper.succeed({
-            sort: res.data as string
-        } as EntityContext);
+        context.sort = res.data;
+        return helper.succeed();
     },
     tag: (reader, _, context) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const negated = isNegated(reader, helper);
-
         const tag = reader.readUnquotedString();
-
-        if (context.tag) {
-            if (context.tag.indexOf(`${negated ? "!" : ""}${tag}`) !== -1) {
-                helper.addErrors(
-                    argerr.noInfo.create(start, reader.cursor, "tag")
-                );
-                return helper.succeed();
+        const result: TagInfo = context.tag || {
+            set: new Set(),
+            unset: new Set()
+        };
+        if (tag === "") {
+            if (result.all !== undefined) {
+                if (result.all === negated) {
+                    helper.addErrors(
+                        errors.noInfo.create(start, reader.cursor, "tag")
+                    );
+                } else {
+                    helper.addErrors(
+                        errors.impossible.create(start, reader.cursor, "tag")
+                    );
+                }
+            } else {
+                result.all = negated;
             }
-            if (context.tag.indexOf(`${negated ? "" : "!"}${tag}`) !== -1) {
-                helper.addErrors(
-                    argerr.badIntersection.create(start, reader.cursor, "tag")
-                );
-                return helper.succeed();
+            if (result.unset.size > 0) {
+                if (!negated) {
+                    helper.addErrors(
+                        errors.duplicate.create(start, reader.cursor, "type")
+                    );
+                }
             }
-            if (
-                tag === "" &&
-                negated &&
-                !context.tag.some(v => v.startsWith("!"))
-            ) {
-                helper.addErrors(
-                    argerr.badIntersection.create(start, reader.cursor, "tag")
-                );
-                return helper.succeed();
+            if (result.set.size > 0) {
+                if (negated) {
+                    helper.addErrors(
+                        errors.duplicate.create(start, reader.cursor, "type")
+                    );
+                } else {
+                    helper.addErrors(
+                        errors.impossible.create(start, reader.cursor, "type")
+                    );
+                }
+            }
+        } else {
+            if (result.set.has(tag)) {
+                if (negated) {
+                    helper.addErrors(
+                        errors.impossible.create(start, reader.cursor, "tag")
+                    );
+                } else {
+                    helper.addErrors(
+                        errors.noInfo.create(start, reader.cursor, "tag")
+                    );
+                }
+            }
+            if (result.unset.has(tag)) {
+                if (negated) {
+                    helper.addErrors(
+                        errors.noInfo.create(start, reader.cursor, "tag")
+                    );
+                } else {
+                    helper.addErrors(
+                        errors.impossible.create(start, reader.cursor, "tag")
+                    );
+                }
+            }
+            if (result.all === false) {
+                if (negated) {
+                    helper.addErrors(
+                        errors.noInfo.create(start, reader.cursor, "tag")
+                    );
+                } else {
+                    helper.addErrors(
+                        errors.impossible.create(start, reader.cursor, "tag")
+                    );
+                }
+            }
+            if (negated) {
+                result.unset.add(tag);
+            } else {
+                result.set.add(tag);
             }
         }
-
-        return helper.succeed({
-            tag:
-                tag === ""
-                    ? []
-                    : [...(context.tag || []), `${negated ? "!" : ""}${tag}`]
-        });
+        context.tag = result;
+        return helper.succeed();
     },
     team: (reader, info, context) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const negated = isNegated(reader, helper);
-
-        if (info.data.localData && info.data.localData.nbt.scoreboard) {
-            const teamnames = info.data.localData.nbt.scoreboard.data.Teams.map(
-                v => v.Name
-            );
-            const res = reader.readOption([...teamnames, ""], {
-                quote: false,
-                unquoted: StringReader.charAllowedInUnquotedString
-            });
-            if (!helper.merge(res)) {
-                if (res.data) {
-                    return helper.succeed();
-                } else {
-                    return helper.fail();
-                }
-            }
-
-            const teams = negated
-                ? teamnames.filter(v => v !== res.data)
-                : res.data === ""
-                    ? []
-                    : [res.data];
-
-            if (
-                context.team &&
-                context.team.every(v => teams.indexOf(v) !== -1)
-            ) {
-                helper.addErrors(
-                    argerr.noInfo.create(start, reader.cursor, "team")
-                );
-                return helper.succeed();
-            }
-
-            const intTypes: string[] = context.team
-                ? context.team.filter(v => teams.indexOf(v) !== -1)
-                : teams;
-
-            if (intTypes.length === 0) {
-                helper.addErrors(
-                    argerr.badIntersection.create(start, reader.cursor, "team")
-                );
+        const teamnames =
+            (info.data.localData &&
+                info.data.localData.nbt.scoreboard &&
+                info.data.localData.nbt.scoreboard.data.Teams.map(
+                    v => v.Name
+                )) ||
+            [];
+        const res = reader.readOption(teamnames, {
+            quote: false,
+            unquoted: StringReader.charAllowedInUnquotedString
+        });
+        if (!helper.merge(res)) {
+            if (res.data === undefined) {
                 return helper.succeed();
             } else {
-                return helper.succeed({
-                    team: intTypes
-                } as EntityContext);
+                return helper.fail();
             }
-        } else {
-            const team = reader.readUnquotedString();
-            return helper.succeed(negated ? undefined : { team: [team] });
         }
+        const teamInfo = context.team || { unset: new Set() };
+        if (res.data === "") {
+            if (teamInfo.all !== undefined) {
+                if (teamInfo.all === !negated) {
+                    helper.addErrors(
+                        errors.noInfo.create(start, reader.cursor, "team")
+                    );
+                } else {
+                    helper.addErrors(
+                        errors.impossible.create(start, reader.cursor, "team")
+                    );
+                }
+            }
+            teamInfo.all = !negated;
+        } else {
+            if (negated) {
+                if (
+                    teamInfo.unset.has(res.data) ||
+                    teamInfo.all === false ||
+                    teamInfo.set !== undefined
+                ) {
+                    helper.addErrors(
+                        errors.noInfo.create(start, reader.cursor, "team")
+                    );
+                }
+                teamInfo.unset.add(res.data);
+            } else {
+                if (
+                    teamInfo.set !== undefined ||
+                    teamInfo.unset.has(res.data) ||
+                    teamInfo.all === false
+                ) {
+                    helper.addErrors(
+                        errors.impossible.create(start, reader.cursor, "team")
+                    );
+                }
+                teamInfo.set = res.data;
+            }
+        }
+        context.team = teamInfo;
+        return helper.succeed();
     },
     type: (reader, info, context) => {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const negated = isNegated(reader, helper);
-
-        const ltype = parseNamespaceOrTag(reader, info, "entity_tags");
-        if (!helper.merge(ltype)) {
+        const parsedType = parseNamespaceOrTag(reader, info, "entity_tags");
+        if (!helper.merge(parsedType)) {
+            if (parsedType.data) {
+                helper.addErrors(
+                    errors.unknown_tag.create(
+                        start,
+                        reader.cursor,
+                        stringifyNamespace(parsedType.data)
+                    )
+                );
+                return helper.succeed();
+            }
             return helper.fail();
         }
-
-        const literalType = ltype.data.resolved || [ltype.data.parsed];
-
-        const types = nsEntity.filter(
-            v => negated === literalType.some(f => namespacesEqual(f, v))
-        );
-
-        if (
-            context.type &&
-            context.type.every(v =>
-                types.some(f => namespacesEqual(f, convertToNamespace(v)))
-            )
-        ) {
-            helper.addErrors(
-                argerr.duplicate.create(start, reader.cursor, "type")
-            );
-            return helper.succeed();
-        }
-
-        const intTypes: string[] = [];
-
-        if (context.type) {
-            for (const type of context.type) {
-                if (types.some(v => v === convertToNamespace(type))) {
-                    intTypes.push(type);
-                }
+        const parsedTypes = parsedType.data.resolved || [
+            parsedType.data.parsed
+        ];
+        const typeInfo = context.type || { set: new Set(), unset: new Set() };
+        const { set, unset } = typeInfo;
+        const stringifiedTypes = parsedTypes.map(stringifyNamespace);
+        if (!negated) {
+            if (stringifiedTypes.every(set.has.bind(set))) {
+                helper.addErrors(
+                    errors.noInfo.create(start, reader.cursor, "type")
+                );
+            }
+            if (stringifiedTypes.every(unset.has.bind(unset))) {
+                helper.addErrors(
+                    errors.impossible.create(start, reader.cursor, "type")
+                );
+            }
+            for (const name of stringifiedTypes) {
+                set.add(name);
             }
         } else {
-            types.forEach(v =>
-                intTypes.push(`${v.namespace || "minecraft"}:${v.path}`)
-            );
+            if (stringifiedTypes.every(set.has.bind(set))) {
+                helper.addErrors(
+                    errors.impossible.create(start, reader.cursor, "type")
+                );
+            }
+            if (stringifiedTypes.every(unset.has.bind(unset))) {
+                helper.addErrors(
+                    errors.noInfo.create(start, reader.cursor, "type")
+                );
+            }
+            for (const name of stringifiedTypes) {
+                unset.add(name);
+            }
         }
-
-        if (intTypes.length === 0) {
-            helper.addErrors(
-                argerr.badIntersection.create(start, reader.cursor, "type")
-            );
-            return helper.succeed();
-        } else {
-            return helper.succeed({
-                type: intTypes
-            } as EntityContext);
-        }
+        context.type = { ...typeInfo, set, unset };
+        return helper.succeed();
     },
     x: numOptParser(true, -3e7, 3e7 - 1, "x"),
     x_rotation: rangeOptParser(true, undefined, undefined, "x_rotation"),
@@ -762,16 +811,13 @@ export const options: { [K in Option]: OptionParser } = {
     y_rotation: rangeOptParser(true, undefined, undefined, "y_rotation"),
     z: numOptParser(true, -3e7, 3e7 - 1, "z")
 };
-
 export class EntityBase implements Parser {
     private readonly fakePlayer: boolean;
     private readonly selector: boolean;
-
     public constructor(fakePlayer: boolean, selector: boolean) {
         this.fakePlayer = fakePlayer;
         this.selector = selector;
     }
-
     public parse(
         reader: StringReader,
         info: ParserInfo
@@ -785,59 +831,43 @@ export class EntityBase implements Parser {
             })
         ) {
             const context: EntityContext = {};
-            const exp = reader.expectOption("p", "a", "r", "s", "e");
+            const selectors = {
+                a: { type: ["minecraft:player"] },
+                e: {},
+                p: { limit: 1, type: ["minecraft:player"] },
+                r: { limit: 1, type: ["minecraft:player"] },
+                s: { limit: 1, type: (info.context.executor || {}).ids }
+            };
+            const exp = reader.expectOption(...typed_keys(selectors));
             if (!helper.merge(exp)) {
+                // TODO, possibly better error message here
                 return helper.fail();
             }
-            switch (exp.data) {
-                case "p":
-                    context.limit = 1;
-                    context.type = ["minecraft:player"];
-                    break;
-                case "a":
-                    context.type = ["minecraft:player"];
-                    break;
-                case "r":
-                    context.limit = 1;
-                    context.type = ["minecraft:player"];
-                    break;
-                case "s":
-                    context.limit = 1;
-                    context.type = (info.context.executor || {}).ids;
-                    break;
-                case "e":
-                    break;
-                default:
-                    throw new TypeError();
-            }
+            Object.assign(context, selectors[exp.data]);
             if (
                 helper.merge(reader.expect("["), {
                     errors: false
                 })
             ) {
-                if (!reader.canRead()) {
-                    helper.addSuggestion(reader.cursor, "]");
-                    return helper.fail(
-                        argerr.noArg.create(start, reader.cursor)
-                    );
-                }
-                if (
-                    !helper.merge(reader.expect("]"), {
-                        errors: false
-                    })
-                ) {
-                    let next = "";
-                    while (next !== "]") {
+                const closeBracket = reader.expect("]");
+                if (!helper.merge(closeBracket, { errors: false })) {
+                    if (!reader.canRead()) {
+                        return helper.fail(
+                            errors.noArg.create(start, reader.cursor)
+                        );
+                    }
+                    while (true) {
                         const argStart = reader.cursor;
-                        const arg = reader.expectOption(...typed_keys(options));
+                        const arg = reader.expectOption(
+                            ...typed_keys(argParsers)
+                        );
                         if (!helper.merge(arg)) {
                             return helper.fail();
                         }
                         if (!helper.merge(reader.expect("="))) {
                             return helper.fail();
                         }
-                        const opt = options[arg.data as Option];
-
+                        const opt = argParsers[arg.data];
                         const conc = opt(reader, info, context, argStart);
                         if (!helper.merge(conc)) {
                             return helper.fail();
@@ -845,11 +875,20 @@ export class EntityBase implements Parser {
                         if (conc.data) {
                             Object.assign(context, conc.data);
                         }
-                        const nextc = reader.expectOption(",", "]");
-                        if (!helper.merge(nextc)) {
+                        if (
+                            helper.merge(reader.expect("]"), {
+                                errors: false
+                            })
+                        ) {
+                            break;
+                        } else if (
+                            helper.merge(reader.expect(","), { errors: false })
+                        ) {
+                            continue;
+                        } else {
+                            // TODO: a custom error for this case?
                             return helper.fail();
                         }
-                        next = nextc.data;
                     }
                 }
             }
@@ -858,9 +897,9 @@ export class EntityBase implements Parser {
                 info.node_properties as NodeProp
             );
             if (conterr) {
-                return helper.fail(conterr.create(start, reader.cursor));
+                helper.addErrors(conterr.create(start, reader.cursor));
             }
-            return helper.succeed();
+            return helper.succeed(getContextChange(context, info.path));
         } else if (uuidregex.test(reader.getRemaining().substr(0, 36))) {
             helper.addErrors(
                 uuidwarn.create(reader.cursor, reader.cursor + 36)
@@ -868,40 +907,82 @@ export class EntityBase implements Parser {
             reader.cursor += 36;
             const conterr = getContextError(
                 {
-                    ...info.context,
                     limit: 1
                 },
                 info.node_properties as NodeProp
             );
             if (conterr) {
-                return helper.fail(
+                helper.addErrors(
                     conterr.create(reader.cursor - 36, reader.cursor)
                 );
             }
             return helper.succeed();
         } else if (this.fakePlayer) {
-            if (info.data.localData && info.data.localData.nbt.scoreboard) {
-                for (const score of info.data.localData.nbt.scoreboard.data
-                    .PlayerScores) {
-                    if (score.Name.startsWith(reader.getRemaining())) {
-                        helper.addSuggestion(reader.cursor, score.Name);
-                    }
-                }
+            const result = reader.readOption(
+                (
+                    (info.data.localData &&
+                        info.data.localData.nbt.scoreboard &&
+                        info.data.localData.nbt.scoreboard.data.PlayerScores) ||
+                    []
+                ).map(score => score.Name),
+                { quote: false, unquoted: NONWHITESPACE }
+            );
+            const typeSet = new Set<string>();
+            typeSet.add("minecraft:player");
+            const context: EntityContext = {
+                type: { set: typeSet, unset: new Set() }
+            };
+            const contextErr = getContextError(
+                context,
+                info.node_properties as NodeProp
+            );
+            if (contextErr) {
+                helper.addErrors(contextErr.create(start, reader.cursor));
             }
-            reader.readWhileRegexp(/[^\s]/);
-            return helper.succeed();
+            if (helper.merge(result) || result.data) {
+                return helper.succeed<ContextChange>(
+                    getContextChange(context, info.path)
+                );
+            } else {
+                // #unreachable!()
+                return helper.fail();
+            }
+        } else {
+            const result = reader.readUnquotedString();
+            if (result === "") {
+                return helper.fail();
+            }
+            const typeSet = new Set<string>();
+            typeSet.add("minecraft:player");
+            const context: EntityContext = {
+                type: { set: typeSet, unset: new Set() }
+            };
+            const contextErr = getContextError(
+                context,
+                info.node_properties as NodeProp
+            );
+            if (contextErr) {
+                helper.addErrors(contextErr.create(start, reader.cursor));
+            }
+            return helper.succeed<ContextChange>(
+                getContextChange(context, info.path)
+            );
         }
-        const name = reader.readUnquotedString();
-        if (name === "") {
-            return helper.fail();
-        }
-        return helper.succeed({
-            entity: "minecraft:player",
-            isSingle: true
-        } as ContextChange);
     }
 }
-
+function getContextChange(
+    context: EntityContext,
+    path: string[]
+): ContextChange {
+    const result: EntityInfo = {
+        ids: context.type && context.type.set && [...context.type.set.values()]
+    };
+    if (stringArrayEqual(path, ["execute", "as", "entity"])) {
+        return { executor: result };
+    } else {
+        return { otherEntity: result };
+    }
+}
 export const entity = new EntityBase(false, true);
 export const scoreHolder = new EntityBase(true, true);
 export const gameProfile = new EntityBase(false, false);

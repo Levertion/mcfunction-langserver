@@ -7,7 +7,6 @@ import {
     SLASHREPLACEREGEX,
     TAG_START
 } from "../consts";
-import { entities, fluids } from "../data/lists/statics";
 import {
     Advancement,
     DataResource,
@@ -18,10 +17,10 @@ import {
     Tag,
     WorldInfo
 } from "../data/types";
+import { namespacedEntities, namespacedFluids } from "../misc-functions";
 import { ReturnSuccess } from "../types";
 import { getMatching, getResourcesSplit } from "./group-resources";
 import { convertToNamespace, stringifyNamespace } from "./namespace";
-import { stringArrayToNamespaces } from "./parsing/namespace";
 import { readJSON, readJSONRaw } from "./promisified-fs";
 import { ReturnHelper } from "./return-helper";
 import { typed_keys } from "./third_party/typed-keys";
@@ -118,10 +117,8 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 "entity_tags",
                 getResourcesSplit("entity_tags", globalData, packsInfo),
                 s =>
-                    getMatching(
-                        stringArrayToNamespaces(entities),
-                        convertToNamespace(s)
-                    ).length > 0
+                    getMatching(namespacedEntities, convertToNamespace(s))
+                        .length > 0
             ),
         path: ["tags", "entity_types"]
     },
@@ -134,10 +131,8 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 "fluid_tags",
                 getResourcesSplit("fluid_tags", globalData, packsInfo),
                 s =>
-                    getMatching(
-                        stringArrayToNamespaces(fluids),
-                        convertToNamespace(s)
-                    ).length > 0
+                    getMatching(namespacedFluids, convertToNamespace(s))
+                        .length > 0
             ),
         path: ["tags", "fluids"]
     },

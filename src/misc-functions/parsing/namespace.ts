@@ -7,6 +7,7 @@ import {
 } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
+import { entities, fluids } from "../../data/lists/statics";
 import { NamespacedName } from "../../data/types";
 import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
 import { isNamespaceDefault, namesEqual } from "../namespace";
@@ -24,6 +25,9 @@ export function stringArrayToNamespaces(strings: string[]): NamespacedName[] {
     // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
     return strings.map(v => convertToNamespace(v));
 }
+// This should be in lists/statics, but that creates a dependency loop
+export const namespacedEntities = stringArrayToNamespaces(entities);
+export const namespacedFluids = stringArrayToNamespaces(fluids);
 
 export function readNamespaceText(reader: StringReader): string {
     const namespaceChars = /^[0-9a-z_:/\.-]$/;
