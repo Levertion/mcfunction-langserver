@@ -35,6 +35,20 @@ describe("entity parser", () => {
                 succeeds: true
             });
         });
+        it("should parse a valid UUID with less numbers", () => {
+            tester("ec-0-0-0-1", {
+                errors: [
+                    {
+                        code: "argument.entity.uuid",
+                        range: {
+                            end: 10,
+                            start: 0
+                        }
+                    }
+                ],
+                succeeds: true
+            });
+        });
     });
     describe("fake player name", () => {
         const parser = new EntityBase(true, false);
@@ -85,7 +99,7 @@ describe("entity parser", () => {
                 ]
             });
         });
-        it("should not fail if there is no scoreboard data available", () => {
+        it("should succeed if there is no scoreboard data", () => {
             nodatatester("Foobar", {
                 succeeds: true
             });
@@ -455,12 +469,12 @@ describe("entity parser", () => {
                     });
                 });
                 it("should add errors if there is tags but there cannot be any tags", () => {
-                    tester("@r[tag=foo,tag=!]", {
+                    tester("@r[tag=foo,tag=]", {
                         errors: [
                             {
-                                code: "argument.entity.option.duplicate",
+                                code: "argument.entity.option.nointersect",
                                 range: {
-                                    end: 16,
+                                    end: 15,
                                     start: 15
                                 }
                             }
@@ -468,7 +482,7 @@ describe("entity parser", () => {
                         succeeds: true,
                         suggestions: [
                             {
-                                start: 16,
+                                start: 15,
                                 text: "]"
                             }
                         ]

@@ -5082,7 +5082,7 @@ const nbt_1 = require("./nbt/nbt");
 const range_1 = require("./range"); // tslint:disable:cyclomatic-complexity
 
 
-const uuidregex = /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/;
+const uuidregex = /^[a-fA-F0-9]{1,8}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,12}$/;
 /*
 Should be disabled if not wanted
 https://github.com/Levertion/mcfunction-langserver/issues/89
@@ -5791,9 +5791,8 @@ class EntityBase {
       }
 
       return helper.succeed(getContextChange(context, info.path));
-    } else if (uuidregex.test(reader.getRemaining().substr(0, 36))) {
-      helper.addErrors(uuidwarn.create(reader.cursor, reader.cursor + 36));
-      reader.cursor += 36;
+    } else if (uuidregex.test(reader.readWhileRegexp(/[0-9a-fA-F\-]/))) {
+      helper.addErrors(uuidwarn.create(start, reader.cursor));
       const conterr = getContextError({
         limit: 1
       }, info.node_properties);
@@ -5803,53 +5802,57 @@ class EntityBase {
       }
 
       return helper.succeed();
-    } else if (this.fakePlayer) {
-      const result = reader.readOption((info.data.localData && info.data.localData.nbt.scoreboard && info.data.localData.nbt.scoreboard.data.PlayerScores || []).map(score => score.Name), {
-        quote: false,
-        unquoted: consts_1.NONWHITESPACE
-      });
-      const typeSet = new Set();
-      typeSet.add("minecraft:player");
-      const context = {
-        type: {
-          set: typeSet,
-          unset: new Set()
-        }
-      };
-      const contextErr = getContextError(context, info.node_properties);
-
-      if (contextErr) {
-        helper.addErrors(contextErr.create(start, reader.cursor));
-      }
-
-      if (helper.merge(result) || result.data) {
-        return helper.succeed(getContextChange(context, info.path));
-      } else {
-        // #unreachable!()
-        return helper.fail();
-      }
     } else {
-      const result = reader.readUnquotedString();
+      reader.cursor = start;
 
-      if (result === "") {
-        return helper.fail();
-      }
+      if (this.fakePlayer) {
+        const result = reader.readOption((info.data.localData && info.data.localData.nbt.scoreboard && info.data.localData.nbt.scoreboard.data.PlayerScores || []).map(score => score.Name), {
+          quote: false,
+          unquoted: consts_1.NONWHITESPACE
+        });
+        const typeSet = new Set();
+        typeSet.add("minecraft:player");
+        const context = {
+          type: {
+            set: typeSet,
+            unset: new Set()
+          }
+        };
+        const contextErr = getContextError(context, info.node_properties);
 
-      const typeSet = new Set();
-      typeSet.add("minecraft:player");
-      const context = {
-        type: {
-          set: typeSet,
-          unset: new Set()
+        if (contextErr) {
+          helper.addErrors(contextErr.create(start, reader.cursor));
         }
-      };
-      const contextErr = getContextError(context, info.node_properties);
 
-      if (contextErr) {
-        helper.addErrors(contextErr.create(start, reader.cursor));
+        if (helper.merge(result) || result.data) {
+          return helper.succeed(getContextChange(context, info.path));
+        } else {
+          // #unreachable!()
+          return helper.fail();
+        }
+      } else {
+        const result = reader.readUnquotedString();
+
+        if (result === "") {
+          return helper.fail();
+        }
+
+        const typeSet = new Set();
+        typeSet.add("minecraft:player");
+        const context = {
+          type: {
+            set: typeSet,
+            unset: new Set()
+          }
+        };
+        const contextErr = getContextError(context, info.node_properties);
+
+        if (contextErr) {
+          helper.addErrors(contextErr.create(start, reader.cursor));
+        }
+
+        return helper.succeed(getContextChange(context, info.path));
       }
-
-      return helper.succeed(getContextChange(context, info.path));
     }
   }
 
