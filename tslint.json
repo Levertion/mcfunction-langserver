@@ -18,7 +18,8 @@
         "no-void-expression": [true, "ignore-arrow-function-shorthand"],
         "file-name-casing": [true, "kebab-case"],
         "no-submodule-imports": false,
-        "helper-return": true
+        "helper-return": true,
+        "max-file-line-count": false
     },
     "linterOptions": {
         "exclude": ["lintrules/**"]

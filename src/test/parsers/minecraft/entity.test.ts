@@ -232,16 +232,34 @@ describe("entity parser", () => {
                             }
                         }
                     ],
+                    start: 3,
                     succeeds: false,
                     suggestions: [
                         {
                             start: 2,
                             text: "["
                         },
-                        {
-                            start: 3,
-                            text: "]"
-                        }
+                        "]",
+                        "advancements",
+                        "distance",
+                        "dx",
+                        "dy",
+                        "dz",
+                        "gamemode",
+                        "level",
+                        "limit",
+                        "name",
+                        "nbt",
+                        "scores",
+                        "sort",
+                        "tag",
+                        "team",
+                        "type",
+                        "x",
+                        "x_rotation",
+                        "y",
+                        "y_rotation",
+                        "z"
                     ]
                 });
             });
