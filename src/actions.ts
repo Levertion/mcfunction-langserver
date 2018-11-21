@@ -220,8 +220,8 @@ function buildSignatureHelpForChildren(
                         result.push(
                             [
                                 parameterInfo,
-                                ...next.map(
-                                    v => (node.executable ? `[${v}]` : v)
+                                ...next.map(v =>
+                                    node.executable ? `[${v}]` : v
                                 )
                             ].join(" ")
                         );
@@ -254,8 +254,8 @@ function buildParameterInfoForNode(
     return node.type === "literal"
         ? name
         : node.type === "argument"
-            ? `<${name}: ${node.parser}>`
-            : undefined;
+        ? `<${name}: ${node.parser}>`
+        : undefined;
 }
 
 // Arbritrary number used to calculate the max length of the line
