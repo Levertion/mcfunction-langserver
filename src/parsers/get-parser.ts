@@ -6,12 +6,14 @@ import { literalParser } from "./literal";
 import * as blockParsers from "./minecraft/block";
 import { jsonParser } from "./minecraft/component";
 import * as coordParsers from "./minecraft/coordinates";
+import * as entityParser from "./minecraft/entity";
 import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
 import { nbtPathParser } from "./minecraft/nbt-path";
 import { nbtParser } from "./minecraft/nbt/nbt";
+import { floatRange, intRange } from "./minecraft/range";
 import { functionParser, resourceParser } from "./minecraft/resources";
 import {
     criteriaParser,
@@ -37,9 +39,13 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:column_pos": coordParsers.columnPos,
     "minecraft:component": jsonParser,
     "minecraft:dimension": namespaceParsers.dimensionParser,
+    "minecraft:entity": entityParser.entity,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
     "minecraft:entity_summon": namespaceParsers.summonParser,
+    "minecraft:float_range": floatRange,
     "minecraft:function": functionParser,
+    "minecraft:game_profile": entityParser.gameProfile,
+    "minecraft:int_range": intRange,
     "minecraft:item_enchantment": namespaceParsers.enchantmentParser,
     "minecraft:item_predicate": itemParsers.predicate,
     "minecraft:item_slot": listParsers.itemSlotParser,
@@ -58,6 +64,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:particle": namespaceParsers.particleParser,
     "minecraft:resource_location": resourceParser,
     "minecraft:rotation": coordParsers.rotation,
+    "minecraft:score_holder": entityParser.scoreHolder,
     "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
     "minecraft:swizzle": swizzleParer,
     "minecraft:team": teamParser,

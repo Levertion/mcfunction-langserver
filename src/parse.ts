@@ -20,7 +20,7 @@ import {
 import { getParser } from "./parsers/get-parser";
 import {
     CommandContext,
-    CommmandData,
+    CommandData,
     FunctionInfo,
     ParseNode,
     ReturnedInfo,
@@ -53,7 +53,7 @@ export function parseCommand(
         return undefined;
     }
     const reader = new StringReader(text);
-    const data: CommmandData = { globalData, localData };
+    const data: CommandData = { globalData, localData };
     const startingcontext: CommandContext = {};
     const recurse = parsechildren(
         reader,
@@ -73,7 +73,7 @@ function parsechildren(
     reader: StringReader,
     node: CommandNode,
     path: CommandNodePath,
-    data: CommmandData,
+    data: CommandData,
     context: CommandContext
 ): ReturnedInfo<ParseNode[]> {
     const parent = getNextNode(node, path, data.globalData.commands);
@@ -184,7 +184,7 @@ function parseAgainstNode(
     reader: StringReader,
     node: CommandNode,
     path: CommandNodePath,
-    data: CommmandData,
+    data: CommandData,
     context: CommandContext
 ): ReturnedInfo<NodeParseSuccess> {
     const parser = getParser(node);

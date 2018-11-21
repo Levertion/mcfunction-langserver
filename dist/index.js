@@ -207,33 +207,12 @@ exports.SLASHREGEX = /\//g;
 exports.SLASHREPLACEREGEX = /\\/g;
 exports.MCMETAFILE = "pack.mcmeta"; // Blocks
 
-exports.TAG_START = "#";
-},{}],"Td8d":[function(require,module,exports) {
-"use strict";
+exports.TAG_START = "#"; // Misc
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.COLORS = ["black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue", "green", "aqua", "red", "light_purple", "yellow", "white", "reset"];
-},{}],"e3ir":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const colors_1 = require("../../colors");
-
-exports.anchors = ["feet", "eyes"];
-exports.operations = ["+=", "-=", "*=", "/=", "%=", "=", ">", "<", "><"];
-exports.colors = colors_1.COLORS;
-exports.effects = ["minecraft:speed", "minecraft:slowness", "minecraft:haste", "minecraft:mining_fatigue", "minecraft:strength", "minecraft:instant_health", "minecraft:instant_damage", "minecraft:jump_boost", "minecraft:nausea", "minecraft:regeneration", "minecraft:resistance", "minecraft:fire_resistance", "minecraft:water_breathing", "minecraft:invisibility", "minecraft:blindness", "minecraft:night_vision", "minecraft:hunger", "minecraft:weakness", "minecraft:poison", "minecraft:wither", "minecraft:health_boost", "minecraft:absorption", "minecraft:saturation", "minecraft:glowing", "minecraft:levitation", "minecraft:luck", "minecraft:unluck", "minecraft:slow_falling", "minecraft:conduit_power", "minecraft:dolphins_grace"];
-exports.enchantments = ["minecraft:protection", "minecraft:fire_protection", "minecraft:feather_falling", "minecraft:blast_protection", "minecraft:projectile_protection", "minecraft:respiration", "minecraft:aqua_affinity", "minecraft:thorns", "minecraft:depth_strider", "minecraft:frost_walker", "minecraft:binding_curse", "minecraft:sharpness", "minecraft:smite", "minecraft:bane_of_arthropods", "minecraft:knockback", "minecraft:fire_aspect", "minecraft:looting", "minecraft:sweeping", "minecraft:efficiency", "minecraft:silk_touch", "minecraft:unbreaking", "minecraft:fortune", "minecraft:power", "minecraft:punch", "minecraft:flame", "minecraft:infinity", "minecraft:luck_of_the_sea", "minecraft:lure", "minecraft:loyalty", "minecraft:impaling", "minecraft:riptide", "minecraft:channeling", "minecraft:mending", "minecraft:vanishing_curse"];
-exports.particles = ["minecraft:ambient_entity_effect", "minecraft:angry_villager", "minecraft:barrier", "minecraft:block", "minecraft:bubble", "minecraft:cloud", "minecraft:crit", "minecraft:damage_indicator", "minecraft:dragon_breath", "minecraft:dripping_lava", "minecraft:dripping_water", "minecraft:dust", "minecraft:effect", "minecraft:elder_guardian", "minecraft:enchanted_hit", "minecraft:enchant", "minecraft:end_rod", "minecraft:entity_effect", "minecraft:explosion_emitter", "minecraft:explosion", "minecraft:falling_dust", "minecraft:firework", "minecraft:fishing", "minecraft:flame", "minecraft:happy_villager", "minecraft:heart", "minecraft:instant_effect", "minecraft:item", "minecraft:item_slime", "minecraft:item_snowball", "minecraft:large_smoke", "minecraft:lava", "minecraft:mycelium", "minecraft:note", "minecraft:poof", "minecraft:portal", "minecraft:rain", "minecraft:smoke", "minecraft:spit", "minecraft:squid_ink", "minecraft:sweep_attack", "minecraft:totem_of_undying", "minecraft:underwater", "minecraft:splash", "minecraft:witch", "minecraft:bubble_pop", "minecraft:current_down", "minecraft:bubble_column_up", "minecraft:nautilus"];
-exports.entities = ["area_effect_cloud", "armor_stand", "arrow", "bat", "blaze", "boat", "cave_spider", "chicken", "cod", "cow", "creeper", "donkey", "dolphin", "dragon_fireball", "drowned", "elder_guardian", "end_crystal", "ender_dragon", "enderman", "endermite", "evoker_fangs", "evoker", "experience_orb", "eye_of_ender", "falling_block", "firework_rocket", "ghast", "giant", "guardian", "horse", "husk", "illusioner", "item", "item_frame", "fireball", "leash_knot", "llama", "llama_spit", "magma_cube", "minecart", "chest_minecart", "command_block_minecart", "furnace_minecart", "hopper_minecart", "spawner_minecart", "tnt_minecart", "mule", "mooshroom", "ocelot", "painting", "parrot", "pig", "pufferfish", "zombie_pigman", "polar_bear", "tnt", "rabbit", "salmon", "sheep", "shulker", "shulker_bullet", "silverfish", "skeleton", "skeleton_horse", "slime", "small_fireball", "snow_golem", "snowball", "spectral_arrow", "spider", "squid", "stray", "tropical_fish", "turtle", "egg", "ender_pearl", "experience_bottle", "potion", "vex", "villager", "iron_golem", "vindicator", "witch", "wither", "wither_skeleton", "wither_skull", "wolf", "zombie", "zombie_horse", "zombie_villager", "phantom", "lightning_bolt", "trident"];
-exports.fluids = ["minecraft:water", "minecraft:lava"];
-exports.dimensions = ["overworld", "the_nether", "the_end"];
-},{"../../colors":"Td8d"}],"CWtC":[function(require,module,exports) {
+exports.JAVAMAXINT = 2147483647;
+exports.JAVAMININT = -2147483648;
+exports.NONWHITESPACE = /\S/;
+},{}],"CWtC":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -349,7 +328,45 @@ function getMatching(resources, value) {
 }
 
 exports.getMatching = getMatching;
-},{"./namespace":"CWtC"}],"aP4V":[function(require,module,exports) {
+},{"./namespace":"CWtC"}],"cNAA":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function createExtensionFileError(filePath, expected, actual) {
+  return {
+    filePath,
+    group: "extension",
+    kind: "FileError",
+    message: `File has incorrect extension: Expected ${expected}, got ${actual}.`
+  };
+}
+
+exports.createExtensionFileError = createExtensionFileError;
+
+function createJSONFileError(filePath, error) {
+  return {
+    filePath,
+    group: "json",
+    kind: "FileError",
+    message: `JSON parsing failed: '${error}'`
+  };
+}
+
+exports.createJSONFileError = createJSONFileError;
+
+function createFileClear(filePath, group) {
+  return {
+    kind: "ClearError",
+    filePath,
+    group
+  };
+}
+
+exports.createFileClear = createFileClear;
+},{}],"aP4V":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -411,185 +428,7 @@ function fillBlankError(err, start, end) {
 }
 
 exports.fillBlankError = fillBlankError;
-},{"../misc-functions":"KBGm"}],"AgEN":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const __1 = require("..");
-
-const errors_1 = require("../../brigadier/errors");
-
-const namespace_1 = require("../namespace");
-
-const NAMESPACEEXCEPTIONS = {
-  invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "Invalid character '%s' in location %s")
-};
-const disallowedPath = /[^0-9a-z_/\.-]/g;
-
-function stringArrayToNamespaces(strings) {
-  // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
-  return strings.map(v => __1.convertToNamespace(v));
-}
-
-exports.stringArrayToNamespaces = stringArrayToNamespaces;
-
-function readNamespaceText(reader) {
-  const namespaceChars = /^[0-9a-z_:/\.-]$/;
-  return reader.readWhileRegexp(namespaceChars);
-}
-
-exports.readNamespaceText = readNamespaceText;
-/**
- * Does `base`(eg minecraft:stone) start with `test` (e.g. sto) [Y]
- */
-
-function namespaceStart(base, test) {
-  if (test.namespace === undefined) {
-    return namespace_1.isNamespaceDefault(base) && base.path.startsWith(test.path) || !!base.namespace && base.namespace.startsWith(test.path);
-  } else {
-    return namespace_1.namesEqual(base, test) && base.path.startsWith(test.path);
-  }
-}
-
-exports.namespaceStart = namespaceStart;
-
-function namespaceSuggestions(options, value, start) {
-  const result = [];
-
-  for (const option of options) {
-    if (namespaceStart(option, value)) {
-      result.push({
-        text: __1.stringifyNamespace(option),
-        start
-      });
-    }
-  }
-
-  return result;
-}
-
-exports.namespaceSuggestions = namespaceSuggestions;
-
-function namespaceSuggestionString(options, value, start) {
-  return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
-}
-
-exports.namespaceSuggestionString = namespaceSuggestionString;
-
-function parseNamespace(reader) {
-  const helper = new __1.ReturnHelper();
-  const start = reader.cursor;
-  const text = readNamespaceText(reader);
-
-  const namespace = __1.convertToNamespace(text);
-
-  let next;
-  let failed = false; // Give an error for each invalid character
-
-  do {
-    next = disallowedPath.exec(namespace.path);
-
-    if (next) {
-      // Relies on the fact that convertToNamespace splits on the first
-      const i = text.indexOf(":") + 1 + next.index + start;
-      failed = true;
-      helper.addErrors(NAMESPACEEXCEPTIONS.invalid_id.create(i, i + 1, next[0], text));
-    }
-  } while (next);
-
-  if (failed) {
-    return helper.fail();
-  } else {
-    return helper.succeed(namespace);
-  }
-}
-
-exports.parseNamespace = parseNamespace;
-
-function parseNamespaceOption(reader, options, completionKind) {
-  const helper = new __1.ReturnHelper();
-  const start = reader.cursor;
-  const namespace = parseNamespace(reader);
-
-  if (helper.merge(namespace)) {
-    const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind);
-    helper.merge(results);
-
-    if (results.data.length > 0) {
-      return helper.succeed({
-        literal: namespace.data,
-        values: results.data
-      });
-    } else {
-      return helper.failWithData(namespace.data);
-    }
-  } else {
-    return helper.failWithData(undefined);
-  }
-}
-
-exports.parseNamespaceOption = parseNamespaceOption;
-
-function processParsedNamespaceOption(namespace, options, suggest, start, completionKind) {
-  const results = [];
-  const helper = new __1.ReturnHelper();
-
-  for (const val of options) {
-    if (__1.namespacesEqual(val, namespace)) {
-      results.push(val);
-    }
-
-    if (suggest && namespaceStart(val, namespace)) {
-      helper.addSuggestion(start, __1.stringifyNamespace(val), completionKind);
-    }
-  }
-
-  return helper.succeed(results);
-}
-
-exports.processParsedNamespaceOption = processParsedNamespaceOption;
-},{"..":"KBGm","../../brigadier/errors":"aP4V","../namespace":"CWtC"}],"cNAA":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-function createExtensionFileError(filePath, expected, actual) {
-  return {
-    filePath,
-    group: "extension",
-    kind: "FileError",
-    message: `File has incorrect extension: Expected ${expected}, got ${actual}.`
-  };
-}
-
-exports.createExtensionFileError = createExtensionFileError;
-
-function createJSONFileError(filePath, error) {
-  return {
-    filePath,
-    group: "json",
-    kind: "FileError",
-    message: `JSON parsing failed: '${error}'`
-  };
-}
-
-exports.createJSONFileError = createJSONFileError;
-
-function createFileClear(filePath, group) {
-  return {
-    kind: "ClearError",
-    filePath,
-    group
-  };
-}
-
-exports.createFileClear = createFileClear;
-},{}],"UL96":[function(require,module,exports) {
+},{"../misc-functions":"KBGm"}],"UL96":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -938,13 +777,11 @@ const defaultPath = tslib_1.__importStar(require("path"));
 
 const consts_1 = require("../consts");
 
-const statics_1 = require("../data/lists/statics");
+const misc_functions_1 = require("../misc-functions");
 
 const group_resources_1 = require("./group-resources");
 
 const namespace_1 = require("./namespace");
-
-const namespace_2 = require("./parsing/namespace");
 
 const promisified_fs_1 = require("./promisified-fs");
 
@@ -993,6 +830,18 @@ exports.parseDataPath = parseDataPath;
 exports.resourceTypes = {
   advancements: {
     extension: ".json",
+    mapFunction: async (v, packroot) => {
+      const helper = new return_helper_1.ReturnHelper();
+
+      try {
+        const advancement = await promisified_fs_1.readJSONRaw(getPath(v, packroot, "advancements"));
+        return helper.succeed(Object.assign({}, v, {
+          data: Object.keys(advancement.criteria)
+        }));
+      } catch (e) {
+        return helper.succeed(v);
+      }
+    },
     path: ["advancements"]
   },
   block_tags: {
@@ -1002,12 +851,12 @@ exports.resourceTypes = {
   },
   entity_tags: {
     extension: ".json",
-    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "entity_tags", group_resources_1.getResourcesSplit("entity_tags", globalData, packsInfo), s => group_resources_1.getMatching(namespace_2.stringArrayToNamespaces(statics_1.entities), namespace_1.convertToNamespace(s)).length > 0),
+    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "entity_tags", group_resources_1.getResourcesSplit("entity_tags", globalData, packsInfo), s => group_resources_1.getMatching(misc_functions_1.namespacedEntities, namespace_1.convertToNamespace(s)).length > 0),
     path: ["tags", "entity_types"]
   },
   fluid_tags: {
     extension: ".json",
-    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "fluid_tags", group_resources_1.getResourcesSplit("fluid_tags", globalData, packsInfo), s => group_resources_1.getMatching(namespace_2.stringArrayToNamespaces(statics_1.fluids), namespace_1.convertToNamespace(s)).length > 0),
+    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "fluid_tags", group_resources_1.getResourcesSplit("fluid_tags", globalData, packsInfo), s => group_resources_1.getMatching(misc_functions_1.namespacedFluids, namespace_1.convertToNamespace(s)).length > 0),
     path: ["tags", "fluids"]
   },
   function_tags: {
@@ -1142,7 +991,7 @@ async function readTag(resource, packRoot, type, options, isKnown) {
 
   return helper.succeed(resource);
 }
-},{"../consts":"xb+0","../data/lists/statics":"e3ir","./group-resources":"23cw","./namespace":"CWtC","./parsing/namespace":"AgEN","./promisified-fs":"tSk9","./return-helper":"p3gl","./third_party/typed-keys":"kca+"}],"4xli":[function(require,module,exports) {
+},{"../consts":"xb+0","../misc-functions":"KBGm","./group-resources":"23cw","./namespace":"CWtC","./promisified-fs":"tSk9","./return-helper":"p3gl","./third_party/typed-keys":"kca+"}],"4xli":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1437,7 +1286,177 @@ function setup_logging(connection) {
 }
 
 exports.setup_logging = setup_logging;
-},{}],"lcVC":[function(require,module,exports) {
+},{}],"Td8d":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.COLORS = ["black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue", "green", "aqua", "red", "light_purple", "yellow", "white", "reset"];
+},{}],"e3ir":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const colors_1 = require("../../colors");
+
+exports.anchors = ["feet", "eyes"];
+exports.operations = ["+=", "-=", "*=", "/=", "%=", "=", ">", "<", "><"];
+exports.colors = colors_1.COLORS;
+exports.effects = ["minecraft:speed", "minecraft:slowness", "minecraft:haste", "minecraft:mining_fatigue", "minecraft:strength", "minecraft:instant_health", "minecraft:instant_damage", "minecraft:jump_boost", "minecraft:nausea", "minecraft:regeneration", "minecraft:resistance", "minecraft:fire_resistance", "minecraft:water_breathing", "minecraft:invisibility", "minecraft:blindness", "minecraft:night_vision", "minecraft:hunger", "minecraft:weakness", "minecraft:poison", "minecraft:wither", "minecraft:health_boost", "minecraft:absorption", "minecraft:saturation", "minecraft:glowing", "minecraft:levitation", "minecraft:luck", "minecraft:unluck", "minecraft:slow_falling", "minecraft:conduit_power", "minecraft:dolphins_grace"];
+exports.enchantments = ["minecraft:protection", "minecraft:fire_protection", "minecraft:feather_falling", "minecraft:blast_protection", "minecraft:projectile_protection", "minecraft:respiration", "minecraft:aqua_affinity", "minecraft:thorns", "minecraft:depth_strider", "minecraft:frost_walker", "minecraft:binding_curse", "minecraft:sharpness", "minecraft:smite", "minecraft:bane_of_arthropods", "minecraft:knockback", "minecraft:fire_aspect", "minecraft:looting", "minecraft:sweeping", "minecraft:efficiency", "minecraft:silk_touch", "minecraft:unbreaking", "minecraft:fortune", "minecraft:power", "minecraft:punch", "minecraft:flame", "minecraft:infinity", "minecraft:luck_of_the_sea", "minecraft:lure", "minecraft:loyalty", "minecraft:impaling", "minecraft:riptide", "minecraft:channeling", "minecraft:mending", "minecraft:vanishing_curse"];
+exports.particles = ["minecraft:ambient_entity_effect", "minecraft:angry_villager", "minecraft:barrier", "minecraft:block", "minecraft:bubble", "minecraft:cloud", "minecraft:crit", "minecraft:damage_indicator", "minecraft:dragon_breath", "minecraft:dripping_lava", "minecraft:dripping_water", "minecraft:dust", "minecraft:effect", "minecraft:elder_guardian", "minecraft:enchanted_hit", "minecraft:enchant", "minecraft:end_rod", "minecraft:entity_effect", "minecraft:explosion_emitter", "minecraft:explosion", "minecraft:falling_dust", "minecraft:firework", "minecraft:fishing", "minecraft:flame", "minecraft:happy_villager", "minecraft:heart", "minecraft:instant_effect", "minecraft:item", "minecraft:item_slime", "minecraft:item_snowball", "minecraft:large_smoke", "minecraft:lava", "minecraft:mycelium", "minecraft:note", "minecraft:poof", "minecraft:portal", "minecraft:rain", "minecraft:smoke", "minecraft:spit", "minecraft:squid_ink", "minecraft:sweep_attack", "minecraft:totem_of_undying", "minecraft:underwater", "minecraft:splash", "minecraft:witch", "minecraft:bubble_pop", "minecraft:current_down", "minecraft:bubble_column_up", "minecraft:nautilus"];
+exports.entities = ["area_effect_cloud", "armor_stand", "arrow", "bat", "blaze", "boat", "cave_spider", "chicken", "cod", "cow", "creeper", "donkey", "dolphin", "dragon_fireball", "drowned", "elder_guardian", "end_crystal", "ender_dragon", "enderman", "endermite", "evoker_fangs", "evoker", "experience_orb", "eye_of_ender", "falling_block", "firework_rocket", "ghast", "giant", "guardian", "horse", "husk", "illusioner", "item", "item_frame", "fireball", "leash_knot", "llama", "llama_spit", "magma_cube", "minecart", "chest_minecart", "command_block_minecart", "furnace_minecart", "hopper_minecart", "spawner_minecart", "tnt_minecart", "mule", "mooshroom", "ocelot", "painting", "parrot", "pig", "pufferfish", "zombie_pigman", "polar_bear", "tnt", "rabbit", "salmon", "sheep", "shulker", "shulker_bullet", "silverfish", "skeleton", "skeleton_horse", "slime", "small_fireball", "snow_golem", "snowball", "spectral_arrow", "spider", "squid", "stray", "tropical_fish", "turtle", "egg", "ender_pearl", "experience_bottle", "potion", "vex", "villager", "iron_golem", "vindicator", "witch", "wither", "wither_skeleton", "wither_skull", "wolf", "zombie", "zombie_horse", "zombie_villager", "phantom", "lightning_bolt", "trident"];
+exports.fluids = ["minecraft:water", "minecraft:lava"];
+exports.dimensions = ["overworld", "the_nether", "the_end"];
+},{"../../colors":"Td8d"}],"AgEN":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const __1 = require("..");
+
+const errors_1 = require("../../brigadier/errors");
+
+const statics_1 = require("../../data/lists/statics");
+
+const namespace_1 = require("../namespace");
+
+const NAMESPACEEXCEPTIONS = {
+  invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "Invalid character '%s' in location %s")
+};
+const disallowedPath = /[^0-9a-z_/\.-]/g;
+
+function stringArrayToNamespaces(strings) {
+  // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
+  return strings.map(v => __1.convertToNamespace(v));
+}
+
+exports.stringArrayToNamespaces = stringArrayToNamespaces; // This should be in lists/statics, but that creates a dependency loop
+
+exports.namespacedEntities = stringArrayToNamespaces(statics_1.entities);
+exports.namespacedFluids = stringArrayToNamespaces(statics_1.fluids);
+
+function readNamespaceText(reader) {
+  const namespaceChars = /^[0-9a-z_:/\.-]$/;
+  return reader.readWhileRegexp(namespaceChars);
+}
+
+exports.readNamespaceText = readNamespaceText;
+/**
+ * Does `base`(eg minecraft:stone) start with `test` (e.g. sto) [Y]
+ */
+
+function namespaceStart(base, test) {
+  if (test.namespace === undefined) {
+    return namespace_1.isNamespaceDefault(base) && base.path.startsWith(test.path) || !!base.namespace && base.namespace.startsWith(test.path);
+  } else {
+    return namespace_1.namesEqual(base, test) && base.path.startsWith(test.path);
+  }
+}
+
+exports.namespaceStart = namespaceStart;
+
+function namespaceSuggestions(options, value, start) {
+  const result = [];
+
+  for (const option of options) {
+    if (namespaceStart(option, value)) {
+      result.push({
+        text: __1.stringifyNamespace(option),
+        start
+      });
+    }
+  }
+
+  return result;
+}
+
+exports.namespaceSuggestions = namespaceSuggestions;
+
+function namespaceSuggestionString(options, value, start) {
+  return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
+}
+
+exports.namespaceSuggestionString = namespaceSuggestionString;
+
+function parseNamespace(reader) {
+  const helper = new __1.ReturnHelper();
+  const start = reader.cursor;
+  const text = readNamespaceText(reader);
+
+  const namespace = __1.convertToNamespace(text);
+
+  let next;
+  let failed = false; // Give an error for each invalid character
+
+  do {
+    next = disallowedPath.exec(namespace.path);
+
+    if (next) {
+      // Relies on the fact that convertToNamespace splits on the first
+      const i = text.indexOf(":") + 1 + next.index + start;
+      failed = true;
+      helper.addErrors(NAMESPACEEXCEPTIONS.invalid_id.create(i, i + 1, next[0], text));
+    }
+  } while (next);
+
+  if (failed) {
+    return helper.fail();
+  } else {
+    return helper.succeed(namespace);
+  }
+}
+
+exports.parseNamespace = parseNamespace;
+
+function parseNamespaceOption(reader, options, completionKind) {
+  const helper = new __1.ReturnHelper();
+  const start = reader.cursor;
+  const namespace = parseNamespace(reader);
+
+  if (helper.merge(namespace)) {
+    const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind);
+    helper.merge(results);
+
+    if (results.data.length > 0) {
+      return helper.succeed({
+        literal: namespace.data,
+        values: results.data
+      });
+    } else {
+      return helper.failWithData(namespace.data);
+    }
+  } else {
+    return helper.failWithData(undefined);
+  }
+}
+
+exports.parseNamespaceOption = parseNamespaceOption;
+
+function processParsedNamespaceOption(namespace, options, suggest, start, completionKind) {
+  const results = [];
+  const helper = new __1.ReturnHelper();
+
+  for (const val of options) {
+    if (__1.namespacesEqual(val, namespace)) {
+      results.push(val);
+    }
+
+    if (suggest && namespaceStart(val, namespace)) {
+      helper.addSuggestion(start, __1.stringifyNamespace(val), completionKind);
+    }
+  }
+
+  return helper.succeed(results);
+}
+
+exports.processParsedNamespaceOption = processParsedNamespaceOption;
+},{"..":"KBGm","../../brigadier/errors":"aP4V","../../data/lists/statics":"e3ir","../namespace":"CWtC"}],"lcVC":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1679,9 +1698,9 @@ class StringReader {
 
     for (const s of options) {
       if (helper.merge(this.expect(s), {
-        suggestions: true
+        errors: false
       })) {
-        if (!out || out.length < s.length) {
+        if (!out || s.length > out.length) {
           out = s;
         }
 
@@ -1690,7 +1709,7 @@ class StringReader {
     }
 
     if (!out) {
-      return helper.fail(EXCEPTIONS.EXPECTED_STRING_FROM.create(start, start + Math.max(...options.map(v => v.length))));
+      return helper.fail(EXCEPTIONS.EXPECTED_STRING_FROM.create(start, Math.min(this.getTotalLength(), start + Math.max(...options.map(v => v.length)))));
     }
 
     this.cursor += out.length;
@@ -1971,7 +1990,7 @@ class StringReader {
       if (info.unquoted) {
         return misc_functions_1.getReturned(this.readWhileRegexp(info.unquoted));
       } else {
-        return misc_functions_1.getReturned(undefined);
+        throw new Error("Quoting kind which doesn't support quoting or any characters");
       }
     } // tslint:enable:helper-return
 
@@ -2024,6 +2043,8 @@ exports.quoteIfNeeded = quoteIfNeeded;
 function escapeQuotes(value) {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
+
+exports.READER_EXCEPTIONS = EXCEPTIONS;
 },{"../misc-functions":"KBGm","../misc-functions/third_party/typed-keys":"kca+","./errors":"aP4V"}],"Q/Gg":[function(require,module,exports) {
 "use strict";
 
@@ -2080,10 +2101,10 @@ Object.defineProperty(exports, "__esModule", {
 
 const errors_1 = require("../../brigadier/errors");
 
+const consts_1 = require("../../consts");
+
 const misc_functions_1 = require("../../misc-functions");
 
-const JAVAMAXINT = 2147483647;
-const JAVAMININT = -2147483648;
 const INTEGEREXCEPTIONS = {
   TOOBIG: new errors_1.CommandErrorBuilder("argument.integer.big", "Integer must not be more than %s, found %s"),
   TOOSMALL: new errors_1.CommandErrorBuilder("argument.integer.low", "Integer must not be less than %s, found %s")
@@ -2101,8 +2122,8 @@ exports.intParser = {
     const maxVal = properties.node_properties.max;
     const minVal = properties.node_properties.min; // See https://stackoverflow.com/a/12957445
 
-    const max = Math.min(typeof maxVal === "number" ? maxVal : JAVAMAXINT, JAVAMAXINT);
-    const min = Math.max(typeof minVal === "number" ? minVal : JAVAMININT, JAVAMININT);
+    const max = Math.min(typeof maxVal === "number" ? maxVal : consts_1.JAVAMAXINT, consts_1.JAVAMAXINT);
+    const min = Math.max(typeof minVal === "number" ? minVal : consts_1.JAVAMININT, consts_1.JAVAMININT);
 
     if (result.data > max) {
       helper.addErrors(INTEGEREXCEPTIONS.TOOBIG.create(start, reader.cursor, max.toString(), result.data.toString()));
@@ -2115,7 +2136,7 @@ exports.intParser = {
     return helper.succeed();
   }
 };
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"2AVt":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../consts":"xb+0","../../misc-functions":"KBGm"}],"2AVt":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -4872,7 +4893,993 @@ exports.columnPos = new CoordParser({
   float: false,
   local: false
 });
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"LoiV":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"1Kfp":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const vscode_languageserver_1 = require("vscode-languageserver");
+
+const errors_1 = require("../../brigadier/errors");
+
+const string_reader_1 = require("../../brigadier/string-reader");
+
+const misc_functions_1 = require("../../misc-functions");
+
+const swapped = new errors_1.CommandErrorBuilder("argument.range.swapped", "Min cannot be bigger than max");
+const equalEnds = new errors_1.CommandErrorBuilder("argument.range.equal", "Min and max are eqaul and can be replaced by '%s'", vscode_languageserver_1.DiagnosticSeverity.Hint);
+const digregex = /\d/;
+
+function readIntLimited(reader) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
+  const neg = reader.peek() === "-";
+
+  if (neg) {
+    reader.skip();
+  }
+
+  const num = reader.readWhileRegexp(digregex);
+
+  if (num.length === 0) {
+    if (neg) {
+      return helper.fail(string_reader_1.READER_EXCEPTIONS.INVALID_INT.create(start, reader.cursor));
+    } else {
+      return helper.fail(string_reader_1.READER_EXCEPTIONS.EXPECTED_INT.create(start, reader.cursor));
+    }
+  }
+
+  return helper.succeed(parseInt(`${neg ? "-" : ""}${num}`, 10));
+}
+
+function readFloatLimited(reader) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
+  const neg = reader.peek() === "-";
+
+  if (neg) {
+    reader.skip();
+  }
+
+  let hasDecPoint = false;
+  const num = reader.readWhileFunction(v => {
+    if (v === ".") {
+      if (hasDecPoint) {
+        return false;
+      } else {
+        hasDecPoint = true;
+        return true;
+      }
+    } else if (/\d/.test(v)) {
+      return true;
+    }
+
+    return false;
+  });
+
+  if (num.length === 0) {
+    if (neg) {
+      return helper.fail(string_reader_1.READER_EXCEPTIONS.INVALID_FLOAT.create(start, reader.cursor));
+    } else {
+      return helper.fail(string_reader_1.READER_EXCEPTIONS.EXPECTED_FLOAT.create(start, reader.cursor));
+    }
+  }
+
+  return helper.succeed(parseFloat(`${neg ? "-" : ""}${num}`));
+}
+
+function parseRange(reader, float = false) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
+
+  if (helper.merge(reader.expect(".."), {
+    errors: false
+  })) {
+    const max = float ? readFloatLimited(reader) : readIntLimited(reader);
+
+    if (!helper.merge(max)) {
+      return helper.fail();
+    }
+
+    return helper.succeed({
+      max: max.data
+    });
+  } else {
+    const min = float ? readFloatLimited(reader) : readIntLimited(reader);
+
+    if (!helper.merge(min)) {
+      return helper.fail();
+    }
+
+    if (!helper.merge(reader.expect(".."), {
+      errors: false
+    })) {
+      return helper.succeed({
+        max: min.data,
+        min: min.data
+      });
+    } else if (string_reader_1.StringReader.charAllowedNumber.test(reader.peek())) {
+      const max = float ? readFloatLimited(reader) : readIntLimited(reader);
+
+      if (!helper.merge(max)) {
+        return helper.fail();
+      }
+
+      if (max.data < min.data) {
+        helper.addErrors(swapped.create(start, reader.cursor));
+        helper.addActions({
+          data: `${max.data}..${min.data}`,
+          high: reader.cursor,
+          low: start,
+          type: "format"
+        });
+        return helper.succeed({
+          max: min.data,
+          min: max.data
+        });
+      }
+
+      if (max.data === min.data) {
+        helper.addErrors(equalEnds.create(start, reader.cursor, min.data.toString()));
+        helper.addActions({
+          data: `${min.data}`,
+          high: reader.cursor,
+          low: start,
+          type: "format"
+        });
+      }
+
+      return helper.succeed({
+        max: max.data,
+        min: min.data
+      });
+    } else {
+      return helper.succeed({
+        min: min.data
+      });
+    }
+  }
+}
+
+exports.parseRange = parseRange;
+exports.floatRange = {
+  parse: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper(info);
+    const res = parseRange(reader, true);
+    return helper.merge(res) ? helper.succeed() : helper.fail();
+  }
+};
+exports.intRange = {
+  parse: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper(info);
+    const res = parseRange(reader, false);
+    return helper.merge(res) ? helper.succeed() : helper.fail();
+  }
+};
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../misc-functions":"KBGm"}],"1kly":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const vscode_languageserver_1 = require("vscode-languageserver");
+
+const errors_1 = require("../../brigadier/errors");
+
+const string_reader_1 = require("../../brigadier/string-reader");
+
+const consts_1 = require("../../consts");
+
+const misc_functions_1 = require("../../misc-functions");
+
+const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
+
+const nbt_1 = require("./nbt/nbt");
+
+const range_1 = require("./range"); // tslint:disable:cyclomatic-complexity
+
+
+const uuidregex = /^[a-fA-F0-9]{1,8}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,12}$/;
+/*
+Should be disabled if not wanted
+https://github.com/Levertion/mcfunction-langserver/issues/89
+*/
+
+const uuidwarn = new errors_1.CommandErrorBuilder("argument.entity.uuid", "Selecting an entity based on its UUID may cause instability [This warning can be disabled in the settings (Although not at the moment)]", vscode_languageserver_1.DiagnosticSeverity.Warning);
+const contexterr = {
+  oneEntity: new errors_1.CommandErrorBuilder("argument.entity.toomany", "Only one entity is allowed, but the provided selector allows more than one"),
+  onePlayer: new errors_1.CommandErrorBuilder("argument.player.toomany", "Only one player is allowed, but the provided selector allows more than one"),
+  onlyPlayer: new errors_1.CommandErrorBuilder("argument.player.entities", "Only players may be affected by this command, but the provided selector includes entities")
+};
+const errors = {
+  duplicate: new errors_1.CommandErrorBuilder("argument.entity.option.duplicate", "Duplicate argument '%s'"),
+  gamemode: {
+    expected: new errors_1.CommandErrorBuilder("argument.entity.option.gamemode.expected", "Expected gamemode"),
+    invalid: new errors_1.CommandErrorBuilder("argument.entity.option.gamemode.invalid", "Invalid gamemode '%s'")
+  },
+  impossible: new errors_1.CommandErrorBuilder("argument.entity.option.nointersect", "Argument '%s' cannot match any entity"),
+  intOpt: {
+    aboveMax: new errors_1.CommandErrorBuilder("argument.entity.option.number.abovemax", "Argument '%s' is greater than %s"),
+    belowMin: new errors_1.CommandErrorBuilder("argument.entity.option.number.belowmin", "Argument '%s' is less than %s")
+  },
+  invalidSort: new errors_1.CommandErrorBuilder("argument.entity.option.sort.invalid", "Invalid sort type '%s'"),
+  noArg: new errors_1.CommandErrorBuilder("argument.entity.option.noopt", "Expected ']'"),
+  noInfo: new errors_1.CommandErrorBuilder("argument.entity.option.noinfo", "Argument '%s' is redundant"),
+  unknown_tag: new errors_1.CommandErrorBuilder("arguments.entity.tag.unknown", "Unknown entity tag '%s'")
+};
+
+function getContextError(context, prop) {
+  if (prop.type === "player" && context.type && context.type.set && context.type.set.size === 1 && context.type.set.has("minecraft:player")) {
+    return contexterr.onlyPlayer;
+  }
+
+  if (prop.amount === "single" && context.limit !== 1) {
+    return prop.type === "player" ? contexterr.onePlayer : contexterr.oneEntity;
+  }
+
+  return undefined;
+} // tslint:disable-next-line:no-unnecessary-callback-wrapper it gives an error if it isn't wrapped
+
+
+const gamemodes = ["survival", "creative", "adventure", "spectator"];
+
+function isNegated(reader, helper) {
+  return helper.merge(reader.expect("!"), {
+    errors: false
+  });
+}
+
+exports.numOptParser = (float, min, max, key) => (reader, _, context, argStart) => {
+  const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
+  const res = float ? reader.readFloat() : reader.readInt();
+
+  if (!helper.merge(res)) {
+    return helper.fail();
+  }
+
+  const num = res.data;
+
+  if (max && num > max) {
+    helper.addErrors(errors.intOpt.aboveMax.create(start, reader.cursor, key, max.toString()));
+    return helper.succeed();
+  }
+
+  if (min && num < min) {
+    helper.addErrors(errors.intOpt.belowMin.create(start, reader.cursor, key, min.toString()));
+    return helper.succeed();
+  } // The entity context already has a value
+
+
+  if (!!context[key]) {
+    helper.addErrors(errors.duplicate.create(argStart, reader.cursor, key));
+    return helper.succeed();
+  }
+
+  context[key] = num;
+  return helper.succeed();
+};
+
+exports.rangeOptParser = (float, min, max, key) => (reader, _, context, argStart) => {
+  const helper = new misc_functions_1.ReturnHelper();
+  const start = reader.cursor;
+  const res = range_1.parseRange(reader, float);
+
+  if (!helper.merge(res)) {
+    return helper.fail();
+  }
+
+  const range = res.data;
+
+  if (range.max) {
+    if (max && range.max > max) {
+      helper.addErrors(errors.intOpt.aboveMax.create(start, reader.cursor, key, max.toString()));
+      return helper.succeed();
+    }
+
+    if (min && range.max < min) {
+      helper.addErrors(errors.intOpt.belowMin.create(start, reader.cursor, key, min.toString()));
+      return helper.succeed();
+    }
+  }
+
+  if (range.min) {
+    if (max && range.min > max) {
+      helper.addErrors(errors.intOpt.aboveMax.create(start, reader.cursor, key, max.toString()));
+      return helper.succeed();
+    }
+
+    if (min && range.min < min) {
+      helper.addErrors(errors.intOpt.belowMin.create(start, reader.cursor, key, min.toString()));
+      return helper.succeed();
+    }
+  }
+
+  if (!!context[key]) {
+    helper.addErrors(errors.duplicate.create(argStart, reader.cursor, key));
+    return helper.succeed();
+  }
+
+  context[key] = range;
+  return helper.succeed();
+};
+
+function parseScores(reader, scoreboard) {
+  const helper = new misc_functions_1.ReturnHelper();
+
+  if (!helper.merge(reader.expect("{"))) {
+    return helper.fail();
+  }
+
+  const objnames = scoreboard ? scoreboard.data.Objectives.map(v => v.Name) : [];
+  const out = {};
+
+  if (!helper.merge(reader.expect("}"), {
+    errors: false
+  })) {
+    while (true) {
+      const res = scoreboard ? reader.readOption(objnames, {
+        quote: false,
+        unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+      }) : misc_functions_1.getReturned(reader.readUnquotedString());
+      const data = res.data;
+
+      if (!helper.merge(res) && data === undefined) {
+        return helper.fail();
+      }
+
+      const range = range_1.parseRange(reader);
+
+      if (!helper.merge(range)) {
+        return helper.fail();
+      }
+
+      out[data] = range.data;
+
+      if (helper.merge(reader.expect(","), {
+        errors: false
+      })) {
+        continue;
+      } else if (helper.merge(reader.expect("}"), {
+        errors: false
+      })) {
+        break;
+      } else {
+        const error = reader.expectOption(",", "}"); // Get the error for expected option
+
+        return helper.mergeChain(error, {
+          suggestions: false
+        }).fail();
+      }
+    }
+  }
+
+  return helper.succeed(out);
+}
+
+exports.parseScores = parseScores;
+
+function parseAdvancements(reader, info) {
+  const advancements = misc_functions_1.getResourcesofType(info.data, "advancements");
+  const helper = new misc_functions_1.ReturnHelper();
+
+  if (!helper.merge(reader.expect("{"))) {
+    return helper.fail();
+  }
+
+  const out = {};
+
+  while (true) {
+    let advname;
+    const criteriaOptions = [];
+    const res = misc_functions_1.parseNamespaceOption(reader, advancements);
+
+    if (!helper.merge(res)) {
+      if (!res.data) {
+        return helper.fail();
+      } else {
+        advname = misc_functions_1.stringifyNamespace(res.data);
+      }
+    } else {
+      advname = misc_functions_1.stringifyNamespace(res.data.literal);
+      res.data.values.map(v => v.data).filter(v => !!v).forEach(v => criteriaOptions.push(...v));
+    }
+
+    if (!helper.merge(reader.expect("="))) {
+      return helper.fail();
+    }
+
+    if (helper.merge(reader.expect("{"), {
+      errors: false
+    })) {
+      const criteria = {};
+
+      while (true) {
+        const criterion = reader.readOption(criteriaOptions, {
+          quote: false,
+          unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+        });
+
+        if (!helper.merge(criterion)) {
+          if (!criterion.data) {
+            return helper.fail();
+          }
+        }
+
+        if (!helper.merge(reader.expect("="))) {
+          return helper.fail();
+        }
+
+        const critval = reader.readBoolean();
+
+        if (!helper.merge(critval)) {
+          return helper.fail();
+        }
+
+        criteria[criterion.data] = critval.data;
+
+        if (helper.merge(reader.expect(","), {
+          errors: false
+        })) {
+          continue;
+        } else if (helper.merge(reader.expect("}"), {
+          errors: false
+        })) {
+          break;
+        } else {
+          const error = reader.expectOption(",", "}"); // Get the error for expected option
+
+          return helper.mergeChain(error, {
+            suggestions: false
+          }).fail();
+        }
+      }
+
+      out[advname] = criteria;
+    } else {
+      const bool = reader.readBoolean();
+
+      if (!helper.merge(bool)) {
+        return helper.fail();
+      }
+
+      out[advname] = bool.data;
+    }
+
+    if (helper.merge(reader.expect(","), {
+      errors: false
+    })) {
+      continue;
+    } else if (helper.merge(reader.expect("}"), {
+      errors: false
+    })) {
+      break;
+    } else {
+      const error = reader.expectOption(",", "}"); // Get the error for expected option
+
+      return helper.mergeChain(error, {
+        suggestions: false
+      }).fail();
+    }
+  }
+
+  return helper.succeed(out);
+}
+
+exports.parseAdvancements = parseAdvancements;
+exports.argParsers = {
+  advancements: (reader, info, context, argStart) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const res = parseAdvancements(reader, info);
+
+    if (!helper.merge(res)) {
+      return helper.fail();
+    }
+
+    if (context.advancements) {
+      helper.addErrors(errors.duplicate.create(argStart, reader.cursor, "advancements"));
+      Object.assign(context.advancements, res.data);
+    } else {
+      context.advancements = res.data;
+    }
+
+    return helper.succeed();
+  },
+  distance: exports.rangeOptParser(true, 0, 3e7, "distance"),
+  dx: exports.numOptParser(true, undefined, undefined, "dx"),
+  dy: exports.numOptParser(true, undefined, undefined, "dy"),
+  dz: exports.numOptParser(true, undefined, undefined, "dz"),
+  gamemode: (reader, _, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
+    const negated = isNegated(reader, helper);
+    const res = reader.readOption(gamemodes, {
+      quote: false,
+      unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+    });
+
+    if (!helper.merge(res)) {
+      if (res.data) {
+        helper.addErrors(errors.gamemode.invalid.create(start, reader.cursor, res.data));
+        return helper.succeed();
+      } else {
+        return helper.fail(errors.gamemode.expected.create(start, reader.cursor));
+      }
+    }
+
+    const neglist = negated ? gamemodes.filter(v => v !== res.data) : [res.data];
+
+    if (context.gamemode && misc_functions_1.stringArrayEqual(neglist, context.gamemode)) {
+      helper.addErrors(errors.noInfo.create(start, reader.cursor));
+      return helper.succeed();
+    }
+
+    const intTypes = context.gamemode ? context.gamemode.filter(v => neglist.indexOf(v) !== -1) : neglist;
+
+    if (intTypes.length === 0) {
+      helper.addErrors(errors.impossible.create(start, reader.cursor, "gamemode"));
+      context.gamemode = [];
+      return helper.succeed();
+    } else {
+      context.gamemode = intTypes;
+      return helper.succeed();
+    }
+  },
+  level: exports.rangeOptParser(false, 0, undefined, "level"),
+  limit: exports.numOptParser(false, 1, undefined, "limit"),
+  name: (reader, _, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
+    const negated = isNegated(reader, helper);
+    const restag = reader.readString();
+
+    if (!helper.merge(restag)) {
+      return helper.fail();
+    }
+
+    const name = restag.data;
+    const fullname = `${negated ? "!" : ""}${name}`;
+
+    if (context.name && context.name.has(fullname)) {
+      helper.addErrors(errors.noInfo.create(start, reader.cursor, "name"));
+      return helper.succeed();
+    }
+
+    const newNames = context.name || new Set();
+    newNames.add(fullname);
+    context.name = newNames;
+    return helper.succeed();
+  },
+  nbt: (reader, info, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    isNegated(reader, helper);
+    const res = nbt_1.validateParse(reader, info, {
+      ids: context.type && context.type.set && [...context.type.set.values()],
+      kind: "entity"
+    });
+
+    if (!helper.merge(res)) {
+      return helper.fail();
+    } else {
+      return helper.succeed();
+    }
+  },
+  scores: (reader, info, context, argStart) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const obj = parseScores(reader, info.data.localData ? info.data.localData.nbt.scoreboard : undefined);
+
+    if (!helper.merge(obj)) {
+      return helper.fail();
+    }
+
+    if (context.scores) {
+      helper.addErrors(errors.duplicate.create(argStart, reader.cursor, "scores"));
+      return helper.succeed();
+    } else {
+      context.scores = obj.data;
+      return helper.succeed();
+    }
+  },
+  sort: (reader, _, context, argStart) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
+    const res = reader.readOption(["arbitrary", "furthest", "nearest", "random"], {
+      quote: false,
+      unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+    });
+
+    if (!helper.merge(res)) {
+      if (!res.data) {
+        return helper.fail();
+      } else {
+        helper.addErrors(errors.invalidSort.create(start, reader.cursor, res.data));
+      }
+    }
+
+    if (context.sort) {
+      helper.addErrors(errors.duplicate.create(argStart, reader.cursor, "scores"));
+      return helper.succeed();
+    }
+
+    context.sort = res.data;
+    return helper.succeed();
+  },
+  tag: (reader, _, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
+    const negated = isNegated(reader, helper);
+    const tag = reader.readUnquotedString();
+    const result = context.tag || {
+      set: new Set(),
+      unset: new Set()
+    };
+
+    if (tag === "") {
+      if (result.all !== undefined) {
+        if (result.all === negated) {
+          helper.addErrors(errors.noInfo.create(start, reader.cursor, "tag"));
+        } else {
+          helper.addErrors(errors.impossible.create(start, reader.cursor, "tag"));
+        }
+      } else {
+        result.all = negated;
+      }
+
+      if (result.unset.size > 0) {
+        if (!negated) {
+          helper.addErrors(errors.duplicate.create(start, reader.cursor, "type"));
+        }
+      }
+
+      if (result.set.size > 0) {
+        if (negated) {
+          helper.addErrors(errors.duplicate.create(start, reader.cursor, "type"));
+        } else {
+          helper.addErrors(errors.impossible.create(start, reader.cursor, "type"));
+        }
+      }
+    } else {
+      if (result.set.has(tag)) {
+        if (negated) {
+          helper.addErrors(errors.impossible.create(start, reader.cursor, "tag"));
+        } else {
+          helper.addErrors(errors.noInfo.create(start, reader.cursor, "tag"));
+        }
+      }
+
+      if (result.unset.has(tag)) {
+        if (negated) {
+          helper.addErrors(errors.noInfo.create(start, reader.cursor, "tag"));
+        } else {
+          helper.addErrors(errors.impossible.create(start, reader.cursor, "tag"));
+        }
+      }
+
+      if (result.all === false) {
+        if (negated) {
+          helper.addErrors(errors.noInfo.create(start, reader.cursor, "tag"));
+        } else {
+          helper.addErrors(errors.impossible.create(start, reader.cursor, "tag"));
+        }
+      }
+
+      if (negated) {
+        result.unset.add(tag);
+      } else {
+        result.set.add(tag);
+      }
+    }
+
+    context.tag = result;
+    return helper.succeed();
+  },
+  team: (reader, info, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
+    const negated = isNegated(reader, helper);
+    const teamnames = info.data.localData && info.data.localData.nbt.scoreboard && info.data.localData.nbt.scoreboard.data.Teams.map(v => v.Name) || [];
+    const res = reader.readOption(teamnames, {
+      quote: false,
+      unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+    });
+
+    if (!helper.merge(res)) {
+      if (res.data === undefined) {
+        return helper.succeed();
+      } else {
+        return helper.fail();
+      }
+    }
+
+    const teamInfo = context.team || {
+      unset: new Set()
+    };
+
+    if (res.data === "") {
+      if (teamInfo.all !== undefined) {
+        if (teamInfo.all === !negated) {
+          helper.addErrors(errors.noInfo.create(start, reader.cursor, "team"));
+        } else {
+          helper.addErrors(errors.impossible.create(start, reader.cursor, "team"));
+        }
+      }
+
+      teamInfo.all = !negated;
+    } else {
+      if (negated) {
+        if (teamInfo.unset.has(res.data) || teamInfo.all === false || teamInfo.set !== undefined) {
+          helper.addErrors(errors.noInfo.create(start, reader.cursor, "team"));
+        }
+
+        teamInfo.unset.add(res.data);
+      } else {
+        if (teamInfo.set !== undefined || teamInfo.unset.has(res.data) || teamInfo.all === false) {
+          helper.addErrors(errors.impossible.create(start, reader.cursor, "team"));
+        }
+
+        teamInfo.set = res.data;
+      }
+    }
+
+    context.team = teamInfo;
+    return helper.succeed();
+  },
+  type: (reader, info, context) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
+    const negated = isNegated(reader, helper);
+    const parsedType = misc_functions_1.parseNamespaceOrTag(reader, info, "entity_tags");
+
+    if (!helper.merge(parsedType)) {
+      if (parsedType.data) {
+        helper.addErrors(errors.unknown_tag.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsedType.data)));
+        return helper.succeed();
+      }
+
+      return helper.fail();
+    }
+
+    const parsedTypes = parsedType.data.resolved || [parsedType.data.parsed];
+    const typeInfo = context.type || {
+      set: new Set(),
+      unset: new Set()
+    };
+    const {
+      set,
+      unset
+    } = typeInfo;
+    const stringifiedTypes = parsedTypes.map(misc_functions_1.stringifyNamespace);
+
+    if (!negated) {
+      if (stringifiedTypes.every(set.has.bind(set))) {
+        helper.addErrors(errors.noInfo.create(start, reader.cursor, "type"));
+      }
+
+      if (stringifiedTypes.every(unset.has.bind(unset))) {
+        helper.addErrors(errors.impossible.create(start, reader.cursor, "type"));
+      }
+
+      for (const name of stringifiedTypes) {
+        set.add(name);
+      }
+    } else {
+      if (stringifiedTypes.every(set.has.bind(set))) {
+        helper.addErrors(errors.impossible.create(start, reader.cursor, "type"));
+      }
+
+      if (stringifiedTypes.every(unset.has.bind(unset))) {
+        helper.addErrors(errors.noInfo.create(start, reader.cursor, "type"));
+      }
+
+      for (const name of stringifiedTypes) {
+        unset.add(name);
+      }
+    }
+
+    context.type = Object.assign({}, typeInfo, {
+      set,
+      unset
+    });
+    return helper.succeed();
+  },
+  x: exports.numOptParser(true, -3e7, 3e7 - 1, "x"),
+  x_rotation: exports.rangeOptParser(true, undefined, undefined, "x_rotation"),
+  y: exports.numOptParser(true, 0, 255, "y"),
+  y_rotation: exports.rangeOptParser(true, undefined, undefined, "y_rotation"),
+  z: exports.numOptParser(true, -3e7, 3e7 - 1, "z")
+};
+
+class EntityBase {
+  constructor(fakePlayer, selector) {
+    this.fakePlayer = fakePlayer;
+    this.selector = selector;
+  }
+
+  parse(reader, info) {
+    const helper = new misc_functions_1.ReturnHelper(info);
+    const start = reader.cursor;
+
+    if (this.selector && helper.merge(reader.expect("@"), {
+      errors: false
+    })) {
+      const context = {};
+      const selectors = {
+        a: {
+          type: ["minecraft:player"]
+        },
+        e: {},
+        p: {
+          limit: 1,
+          type: ["minecraft:player"]
+        },
+        r: {
+          limit: 1,
+          type: ["minecraft:player"]
+        },
+        s: {
+          limit: 1,
+          type: (info.context.executor || {}).ids
+        }
+      };
+      const exp = reader.expectOption(...typed_keys_1.typed_keys(selectors));
+
+      if (!helper.merge(exp)) {
+        // TODO, possibly better error message here
+        return helper.fail();
+      }
+
+      Object.assign(context, selectors[exp.data]);
+
+      if (helper.merge(reader.expect("["), {
+        errors: false
+      })) {
+        const closeBracket = reader.expect("]");
+
+        if (!helper.merge(closeBracket, {
+          errors: false
+        })) {
+          if (!reader.canRead()) {
+            return helper.fail(errors.noArg.create(start, reader.cursor));
+          }
+
+          while (true) {
+            const argStart = reader.cursor;
+            const arg = reader.expectOption(...typed_keys_1.typed_keys(exports.argParsers));
+
+            if (!helper.merge(arg)) {
+              return helper.fail();
+            }
+
+            if (!helper.merge(reader.expect("="))) {
+              return helper.fail();
+            }
+
+            const opt = exports.argParsers[arg.data];
+            const conc = opt(reader, info, context, argStart);
+
+            if (!helper.merge(conc)) {
+              return helper.fail();
+            }
+
+            if (conc.data) {
+              Object.assign(context, conc.data);
+            }
+
+            if (helper.merge(reader.expect("]"), {
+              errors: false
+            })) {
+              break;
+            } else if (helper.merge(reader.expect(","), {
+              errors: false
+            })) {
+              continue;
+            } else {
+              // TODO: a custom error for this case?
+              return helper.fail();
+            }
+          }
+        }
+      }
+
+      const conterr = getContextError(context, info.node_properties);
+
+      if (conterr) {
+        helper.addErrors(conterr.create(start, reader.cursor));
+      }
+
+      return helper.succeed(getContextChange(context, info.path));
+    } else if (uuidregex.test(reader.readWhileRegexp(/[0-9a-fA-F\-]/))) {
+      helper.addErrors(uuidwarn.create(start, reader.cursor));
+      const conterr = getContextError({
+        limit: 1
+      }, info.node_properties);
+
+      if (conterr) {
+        helper.addErrors(conterr.create(reader.cursor - 36, reader.cursor));
+      }
+
+      return helper.succeed();
+    } else {
+      reader.cursor = start;
+
+      if (this.fakePlayer) {
+        const result = reader.readOption((info.data.localData && info.data.localData.nbt.scoreboard && info.data.localData.nbt.scoreboard.data.PlayerScores || []).map(score => score.Name), {
+          quote: false,
+          unquoted: consts_1.NONWHITESPACE
+        });
+        const typeSet = new Set();
+        typeSet.add("minecraft:player");
+        const context = {
+          type: {
+            set: typeSet,
+            unset: new Set()
+          }
+        };
+        const contextErr = getContextError(context, info.node_properties);
+
+        if (contextErr) {
+          helper.addErrors(contextErr.create(start, reader.cursor));
+        }
+
+        if (helper.merge(result) || result.data) {
+          return helper.succeed(getContextChange(context, info.path));
+        } else {
+          // #unreachable!()
+          return helper.fail();
+        }
+      } else {
+        const result = reader.readUnquotedString();
+
+        if (result === "") {
+          return helper.fail();
+        }
+
+        const typeSet = new Set();
+        typeSet.add("minecraft:player");
+        const context = {
+          type: {
+            set: typeSet,
+            unset: new Set()
+          }
+        };
+        const contextErr = getContextError(context, info.node_properties);
+
+        if (contextErr) {
+          helper.addErrors(contextErr.create(start, reader.cursor));
+        }
+
+        return helper.succeed(getContextChange(context, info.path));
+      }
+    }
+  }
+
+}
+
+exports.EntityBase = EntityBase;
+
+function getContextChange(context, path) {
+  const result = {
+    ids: context.type && context.type.set && [...context.type.set.values()]
+  };
+
+  if (misc_functions_1.stringArrayEqual(path, ["execute", "as", "entity"])) {
+    return {
+      executor: result
+    };
+  } else {
+    return {
+      otherEntity: result
+    };
+  }
+}
+
+exports.entity = new EntityBase(false, true);
+exports.scoreHolder = new EntityBase(true, true);
+exports.gameProfile = new EntityBase(false, false);
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../consts":"xb+0","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5496,6 +6503,8 @@ const string_reader_1 = require("../../brigadier/string-reader");
 
 const colors_1 = require("../../colors");
 
+const consts_1 = require("../../consts");
+
 const criteria_1 = require("../../data/lists/criteria");
 
 const statics_1 = require("../../data/lists/statics");
@@ -5634,14 +6643,13 @@ ${JSON.stringify(team, undefined, 4)}
   }
 };
 const UNKNOWN_CRITERIA = new errors_1.CommandErrorBuilder("argument.criteria.invalid", "Unknown criteria '%s'");
-const NONWHITESPACE = /\S/;
 exports.criteriaParser = {
   parse: (reader, info) => {
     const start = reader.cursor;
     const helper = new misc_functions_1.ReturnHelper(info);
     const optionResult = reader.readOption([...criteria_1.verbatimCriteria, ...criteria_1.blockCriteria, ...criteria_1.colorCriteria, ...criteria_1.entityCriteria, ...criteria_1.itemCriteria], {
       quote: false,
-      unquoted: NONWHITESPACE
+      unquoted: consts_1.NONWHITESPACE
     }, vscode_languageserver_1.CompletionItemKind.EnumMember);
     const text = optionResult.data;
 
@@ -5662,7 +6670,7 @@ exports.criteriaParser = {
         reader.cursor = start + choice.length;
         const result = reader.readOption(colors_1.COLORS, {
           quote: false,
-          unquoted: NONWHITESPACE
+          unquoted: consts_1.NONWHITESPACE
         }, vscode_languageserver_1.CompletionItemKind.Color);
 
         if (helper.merge(result)) {
@@ -5676,7 +6684,7 @@ exports.criteriaParser = {
         reader.cursor = start + choice.length;
         const result = reader.readOption(statics_1.entities.map(mapFunction), {
           quote: false,
-          unquoted: NONWHITESPACE
+          unquoted: consts_1.NONWHITESPACE
         }, vscode_languageserver_1.CompletionItemKind.Reference);
 
         if (helper.merge(result)) {
@@ -5690,7 +6698,7 @@ exports.criteriaParser = {
         reader.cursor = start + choice.length;
         const result = reader.readOption(Object.keys(info.data.globalData.blocks).map(mapFunction), {
           quote: false,
-          unquoted: NONWHITESPACE
+          unquoted: consts_1.NONWHITESPACE
         }, vscode_languageserver_1.CompletionItemKind.Constant);
 
         if (helper.merge(result)) {
@@ -5704,7 +6712,7 @@ exports.criteriaParser = {
         reader.cursor = start + choice.length;
         const result = reader.readOption(info.data.globalData.items.map(mapFunction), {
           quote: false,
-          unquoted: NONWHITESPACE
+          unquoted: consts_1.NONWHITESPACE
         }, vscode_languageserver_1.CompletionItemKind.Keyword);
 
         if (helper.merge(result)) {
@@ -5721,7 +6729,7 @@ exports.criteriaParser = {
 function mapFunction(value) {
   return misc_functions_1.stringifyNamespace(misc_functions_1.convertToNamespace(value)).replace(":", ".");
 }
-},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../data/lists/criteria":"heCz","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"0R/b":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../consts":"xb+0","../../data/lists/criteria":"heCz","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"0R/b":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5844,6 +6852,8 @@ const component_1 = require("./minecraft/component");
 
 const coordParsers = tslib_1.__importStar(require("./minecraft/coordinates"));
 
+const entityParser = tslib_1.__importStar(require("./minecraft/entity"));
+
 const itemParsers = tslib_1.__importStar(require("./minecraft/item"));
 
 const listParsers = tslib_1.__importStar(require("./minecraft/lists"));
@@ -5855,6 +6865,8 @@ const namespaceParsers = tslib_1.__importStar(require("./minecraft/namespace-lis
 const nbt_path_1 = require("./minecraft/nbt-path");
 
 const nbt_1 = require("./minecraft/nbt/nbt");
+
+const range_1 = require("./minecraft/range");
 
 const resources_1 = require("./minecraft/resources");
 
@@ -5881,9 +6893,13 @@ const implementedParsers = {
   "minecraft:column_pos": coordParsers.columnPos,
   "minecraft:component": component_1.jsonParser,
   "minecraft:dimension": namespaceParsers.dimensionParser,
+  "minecraft:entity": entityParser.entity,
   "minecraft:entity_anchor": listParsers.entityAnchorParser,
   "minecraft:entity_summon": namespaceParsers.summonParser,
+  "minecraft:float_range": range_1.floatRange,
   "minecraft:function": resources_1.functionParser,
+  "minecraft:game_profile": entityParser.gameProfile,
+  "minecraft:int_range": range_1.intRange,
   "minecraft:item_enchantment": namespaceParsers.enchantmentParser,
   "minecraft:item_predicate": itemParsers.predicate,
   "minecraft:item_slot": listParsers.itemSlotParser,
@@ -5902,6 +6918,7 @@ const implementedParsers = {
   "minecraft:particle": namespaceParsers.particleParser,
   "minecraft:resource_location": resources_1.resourceParser,
   "minecraft:rotation": coordParsers.rotation,
+  "minecraft:score_holder": entityParser.scoreHolder,
   "minecraft:scoreboard_slot": listParsers.scoreBoardSlotParser,
   "minecraft:swizzle": swizzle_1.swizzleParer,
   "minecraft:team": scoreboard_1.teamParser,
@@ -5947,7 +6964,7 @@ function getArgParser(id) {
 Please consider reporting this at https://github.com/Levertion/mcfunction-language-server/issues`);
   return undefined;
 }
-},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/nbt-path":"wccY","./minecraft/nbt/nbt":"JpDU","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/swizzle":"0R/b","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
+},{"./brigadier":"GcLj","./literal":"38DR","./minecraft/block":"wRSu","./minecraft/component":"3ZZw","./minecraft/coordinates":"5Pa8","./minecraft/entity":"1kly","./minecraft/item":"LoiV","./minecraft/lists":"kr6k","./minecraft/message":"VDDC","./minecraft/namespace-list":"suMb","./minecraft/nbt-path":"wccY","./minecraft/nbt/nbt":"JpDU","./minecraft/range":"1Kfp","./minecraft/resources":"ELUu","./minecraft/scoreboard":"tZ+1","./minecraft/swizzle":"0R/b","./minecraft/time":"Av8O"}],"aDYY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

@@ -110,17 +110,17 @@ export class StringReader {
         return helper.succeed();
     }
 
-    public expectOption(...options: string[]): ReturnedInfo<string> {
+    public expectOption<T extends string>(...options: T[]): ReturnedInfo<T> {
         const helper = new ReturnHelper();
         const start = this.cursor;
         let out: string | undefined;
         for (const s of options) {
             if (
                 helper.merge(this.expect(s), {
-                    suggestions: true
+                    errors: false
                 })
             ) {
-                if (!out || out.length < s.length) {
+                if (!out || s.length > out.length) {
                     out = s;
                 }
                 this.cursor = start;
@@ -130,12 +130,15 @@ export class StringReader {
             return helper.fail(
                 EXCEPTIONS.EXPECTED_STRING_FROM.create(
                     start,
-                    start + Math.max(...options.map(v => v.length))
+                    Math.min(
+                        this.getTotalLength(),
+                        start + Math.max(...options.map(v => v.length))
+                    )
                 )
             );
         }
         this.cursor += out.length;
-        return helper.succeed(out);
+        return helper.succeed(out as T);
     }
 
     public getRead(): string {
@@ -435,7 +438,9 @@ export class StringReader {
             if (info.unquoted) {
                 return getReturned(this.readWhileRegexp(info.unquoted));
             } else {
-                return getReturned<string>(undefined);
+                throw new Error(
+                    "Quoting kind which doesn't support quoting or any characters"
+                );
             }
         }
         // tslint:enable:helper-return
@@ -473,3 +478,5 @@ export function quoteIfNeeded(
 function escapeQuotes(value: string): string {
     return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
+
+export const READER_EXCEPTIONS = EXCEPTIONS;

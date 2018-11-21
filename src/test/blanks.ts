@@ -2,7 +2,7 @@ import { Range } from "vscode-languageserver";
 
 import { GlobalData } from "../data/types";
 import { PackLocationSegments } from "../misc-functions";
-import { CommmandData, LineRange } from "../types";
+import { CommandData, LineRange } from "../types";
 import { ReturnAssertionInfo, TestParserInfo } from "./assertions";
 
 /**
@@ -21,7 +21,7 @@ export const succeeds: ReturnAssertionInfo = { succeeds: true };
 export const emptyRange = (): LineRange => ({ start: 0, end: 0 });
 export const blankproperties: TestParserInfo = {
     context: {},
-    data: {} as CommmandData,
+    data: {} as CommandData,
     node_properties: {},
     path: ["test"]
 };

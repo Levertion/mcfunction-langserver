@@ -1,8 +1,8 @@
 import { getResourcesofType } from "../../misc-functions/group-resources";
-import { CommmandData } from "../../types";
+import { CommandData } from "../../types";
 import { assertNamespaces, convertToResource } from "../assertions";
 
-const dummyData: CommmandData = {
+const dummyData: CommandData = {
     globalData: {
         resources: {
             advancements: [

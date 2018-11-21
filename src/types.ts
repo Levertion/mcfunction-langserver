@@ -45,7 +45,7 @@ export interface ParserInfo {
      * The immutable context
      */
     context: CommandContext;
-    data: CommmandData;
+    data: CommandData;
     node_properties: Dictionary<any>;
     path: CommandNodePath; // Will be > 0
     /**
@@ -54,7 +54,7 @@ export interface ParserInfo {
     suggesting: boolean;
 }
 
-export interface CommmandData {
+export interface CommandData {
     globalData: GlobalData;
     /**
      * Data from datapacks
@@ -106,7 +106,7 @@ export interface EntityInfo {
     /**
      * The possible entity types of this entity
      */
-    ids?: string | string[];
+    ids?: string[];
 }
 
 export interface Parser {
