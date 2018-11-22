@@ -225,10 +225,10 @@ describe("entity parser", () => {
                 tester("@e[", {
                     errors: [
                         {
-                            code: "argument.entity.option.noopt",
+                            code: "argument.entity.argument.unknown",
                             range: {
                                 end: 3,
-                                start: 0
+                                start: 3
                             }
                         }
                     ],

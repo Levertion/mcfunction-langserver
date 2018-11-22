@@ -1646,7 +1646,7 @@ const EXCEPTIONS = {
   EXPECTED_FLOAT: new errors_1.CommandErrorBuilder("parsing.float.expected", "Expected float"),
   EXPECTED_INT: new errors_1.CommandErrorBuilder("parsing.int.expected", "Expected integer"),
   EXPECTED_START_OF_QUOTE: new errors_1.CommandErrorBuilder("parsing.quote.expected.start", "Expected quote to start a string"),
-  EXPECTED_STRING_FROM: new errors_1.CommandErrorBuilder("parsing.expected.option", "Expected string from %s, got '%s'"),
+  EXPECTED_STRING_FROM: new errors_1.CommandErrorBuilder("parsing.expected.option", "Expected string from [%s], got '%s'"),
   EXPECTED_SYMBOL: new errors_1.CommandErrorBuilder("parsing.expected", "Expected '%s'"),
   INVALID_BOOL: new errors_1.CommandErrorBuilder("parsing.bool.invalid", "Invalid bool, expected true or false but found '%s'"),
   INVALID_ESCAPE: new errors_1.CommandErrorBuilder("parsing.quote.escape", "Invalid escape sequence '\\%s' in quoted string)"),
@@ -1709,7 +1709,7 @@ class StringReader {
     }
 
     if (!out) {
-      return helper.fail(EXCEPTIONS.EXPECTED_STRING_FROM.create(start, Math.min(this.getTotalLength(), start + Math.max(...options.map(v => v.length)))));
+      return helper.fail(EXCEPTIONS.EXPECTED_STRING_FROM.create(start, Math.min(this.getTotalLength(), start + Math.max(...options.map(v => v.length))), options.join(), this.getRemaining()));
     }
 
     this.cursor += out.length;
@@ -5104,8 +5104,8 @@ const errors = {
     belowMin: new errors_1.CommandErrorBuilder("argument.entity.option.number.belowmin", "Argument '%s' is less than %s")
   },
   invalidSort: new errors_1.CommandErrorBuilder("argument.entity.option.sort.invalid", "Invalid sort type '%s'"),
-  noArg: new errors_1.CommandErrorBuilder("argument.entity.option.noopt", "Expected ']'"),
   noInfo: new errors_1.CommandErrorBuilder("argument.entity.option.noinfo", "Argument '%s' is redundant"),
+  unknownArg: new errors_1.CommandErrorBuilder("argument.entity.argument.unknown", "Unknown argument type '%s'"),
   unknown_tag: new errors_1.CommandErrorBuilder("arguments.entity.tag.unknown", "Unknown entity tag '%s'")
 };
 
@@ -5758,15 +5758,15 @@ class EntityBase {
         })) {
           while (true) {
             const argStart = reader.cursor;
-            const arg = reader.expectOption(...typed_keys_1.typed_keys(exports.argParsers));
+            const arg = reader.readOption(typed_keys_1.typed_keys(exports.argParsers), {
+              quote: false,
+              unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+            });
 
             if (!helper.merge(arg, {
               errors: false
             })) {
-              if (!reader.canRead()) {
-                helper.addErrors(errors.noArg.create(start, reader.cursor));
-              }
-
+              helper.addErrors(errors.unknownArg.create(argStart, reader.cursor));
               return helper.fail();
             }
 
