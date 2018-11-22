@@ -94,6 +94,52 @@ describe("parseDataPath() (Misc)", () => {
             undefined
         );
     });
+    it("should parse a path with a capitalised 'datapacks' folder (posix)", () => {
+        assert.deepStrictEqual(
+            parseDataPath("/home/DataPacks/pack/folder/file.ext", path.posix),
+            {
+                pack: "pack",
+                packsFolder: "/home/DataPacks/",
+                rest: "folder/file.ext"
+            }
+        );
+    });
+    it("should parse a path with a valid datapack (win32)", () => {
+        assert.deepStrictEqual(
+            parseDataPath(
+                "C:\\Users\\username\\DataPacks\\pack\\folder\\file.ext",
+                path.win32
+            ),
+            {
+                pack: "pack",
+                packsFolder: "C:\\Users\\username\\DataPacks\\",
+                rest: "folder\\file.ext"
+            }
+        );
+    });
+    it("should parse a path with a valid data folder (posix)", () => {
+        assert.deepStrictEqual(
+            parseDataPath("/home/notpacks/pack/data/file.ext", path.posix),
+            {
+                pack: "pack",
+                packsFolder: "/home/notpacks/",
+                rest: "data/file.ext"
+            }
+        );
+    });
+    it("should parse a path with a valid datapack (win32)", () => {
+        assert.deepStrictEqual(
+            parseDataPath(
+                "C:\\Users\\username\\notpacks\\pack\\data\\file.ext",
+                path.win32
+            ),
+            {
+                pack: "pack",
+                packsFolder: "C:\\Users\\username\\notpacks\\",
+                rest: "data\\file.ext"
+            }
+        );
+    });
 });
 
 describe("getKindAndNamespace() (Misc)", () => {
@@ -261,6 +307,18 @@ describe("getPath() (Misc)", () => {
     it("should give a correct path (win32)", () => {
         testGetPath(
             "C:\\Users\\username\\datapacks\\pack\\data\\namespace\\functions\\path.mcfunction",
+            path.win32
+        );
+    });
+    it("should give a correct path for an incorrectly named datapacks folder (posix)", () => {
+        testGetPath(
+            "/home/parentofdata/pack/data/namespace/functions/path.mcfunction",
+            path.posix
+        );
+    });
+    it("should give a correct path for an incorrectly named datapacks folder (win32)", () => {
+        testGetPath(
+            "C:\\Users\\username\\parentofdata\\pack\\data\\namespace\\functions\\path.mcfunction",
             path.win32
         );
     });

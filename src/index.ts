@@ -71,7 +71,8 @@ connection.onInitialize(() => {
     return {
         capabilities: {
             completionProvider: {
-                resolveProvider: false
+                resolveProvider: false,
+                triggerCharacters: [" "]
             },
             definitionProvider: true,
             hoverProvider: true,

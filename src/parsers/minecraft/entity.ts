@@ -945,6 +945,7 @@ export class EntityBase implements Parser {
                     { quote: false, unquoted: NONWHITESPACE }
                 );
                 const context: EntityContext = {
+                    limit: 1,
                     type: { set: playerSet, unset: new Set() }
                 };
                 const contextErr = getContextError(
@@ -968,6 +969,7 @@ export class EntityBase implements Parser {
                     return helper.fail();
                 }
                 const context: EntityContext = {
+                    limit: 1,
                     type: { set: playerSet, unset: new Set() }
                 };
                 const contextErr = getContextError(

@@ -48,7 +48,9 @@ export function parseDataPath(
 ): PackLocationSegments | undefined {
     const parsed = path.parse(path.normalize(fileLocation));
     const dirs = parsed.dir.split(path.sep);
-    const packsFolderIndex = dirs.indexOf("datapacks");
+    const packsFolderIndex = dirs.findIndex(
+        v => v.toLowerCase() === "datapacks"
+    );
     if (packsFolderIndex !== -1) {
         const remainder = dirs.slice(packsFolderIndex + 1);
         if (remainder.length >= 1) {
@@ -61,6 +63,28 @@ export function parseDataPath(
             packsFolder = path.format({ dir: packsFolder });
             const rest = path.join(...remainder.slice(1), parsed.base);
             return { packsFolder, pack: remainder[0], rest };
+        }
+    } else {
+        const dataFolderIndex = dirs.findIndex(
+            v => v.toLowerCase() === DATAFOLDER
+        );
+        // There is at least a datapacks (or whatever) folder, and the datapack folder itself, which have indices 0 and 1 respectively (or 1 and 2 etc.)
+        if (dataFolderIndex > 1) {
+            const remainder = dirs.slice(dataFolderIndex - 1); // The datapack's folder name onwards
+            if (remainder.length >= 1) {
+                // Always true?
+                let packsFolder = path.join(
+                    ...dirs.slice(0, dataFolderIndex - 1)
+                );
+                // Ugly hack because path.join ignores a leading empty dir, leading to the result of
+                // `/home/datapacks` going to `home/datapacks`
+                if (path.sep === "/" && !path.isAbsolute(packsFolder)) {
+                    packsFolder = path.sep + packsFolder;
+                }
+                packsFolder = path.format({ dir: packsFolder });
+                const rest = path.join(...remainder.slice(1), parsed.base);
+                return { packsFolder, pack: remainder[0], rest };
+            }
         }
     }
     return undefined;
