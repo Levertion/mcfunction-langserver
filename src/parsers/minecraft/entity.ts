@@ -157,13 +157,13 @@ const errors = {
         "argument.entity.option.sort.invalid",
         "Invalid sort type '%s'"
     ),
-    noArg: new CommandErrorBuilder(
-        "argument.entity.option.noopt",
-        "Expected ']'"
-    ),
     noInfo: new CommandErrorBuilder(
         "argument.entity.option.noinfo",
         "Argument '%s' is redundant"
+    ),
+    unknownArg: new CommandErrorBuilder(
+        "argument.entity.argument.unknown",
+        "Unknown argument type '%s'"
     ),
     unknown_tag: new CommandErrorBuilder(
         "arguments.entity.tag.unknown",
@@ -868,15 +868,17 @@ export class EntityBase implements Parser {
                 if (!helper.merge(closeBracket, { errors: false })) {
                     while (true) {
                         const argStart = reader.cursor;
-                        const arg = reader.expectOption(
-                            ...typed_keys(argParsers)
-                        );
+                        const arg = reader.readOption(typed_keys(argParsers), {
+                            quote: false,
+                            unquoted: StringReader.charAllowedInUnquotedString
+                        });
                         if (!helper.merge(arg, { errors: false })) {
-                            if (!reader.canRead()) {
-                                helper.addErrors(
-                                    errors.noArg.create(start, reader.cursor)
-                                );
-                            }
+                            helper.addErrors(
+                                errors.unknownArg.create(
+                                    argStart,
+                                    reader.cursor
+                                )
+                            );
                             return helper.fail();
                         }
                         if (!helper.merge(reader.expect("="))) {

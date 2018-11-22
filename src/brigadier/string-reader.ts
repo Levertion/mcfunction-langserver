@@ -27,7 +27,7 @@ const EXCEPTIONS = {
     ),
     EXPECTED_STRING_FROM: new CommandErrorBuilder(
         "parsing.expected.option",
-        "Expected string from %s, got '%s'"
+        "Expected string from [%s], got '%s'"
     ),
     EXPECTED_SYMBOL: new CommandErrorBuilder(
         "parsing.expected",
@@ -132,7 +132,9 @@ export class StringReader {
                     Math.min(
                         this.getTotalLength(),
                         start + Math.max(...options.map(v => v.length))
-                    )
+                    ),
+                    options.join(),
+                    this.getRemaining()
                 )
             );
         }
