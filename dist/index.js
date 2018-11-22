@@ -5298,7 +5298,7 @@ function parseAdvancements(reader, info) {
       while (true) {
         const criterion = reader.readOption(criteriaOptions, {
           quote: false,
-          unquoted: misc_functions_1.namespaceChars
+          unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
         });
 
         if (!helper.merge(criterion)) {
