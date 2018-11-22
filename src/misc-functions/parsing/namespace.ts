@@ -20,6 +20,7 @@ const NAMESPACEEXCEPTIONS = {
 };
 
 const disallowedPath = /[^0-9a-z_/\.-]/g;
+export const namespaceChars = /^[0-9a-z_:/\.-]$/;
 
 export function stringArrayToNamespaces(strings: string[]): NamespacedName[] {
     // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
@@ -30,7 +31,6 @@ export const namespacedEntities = stringArrayToNamespaces(entities);
 export const namespacedFluids = stringArrayToNamespaces(fluids);
 
 export function readNamespaceText(reader: StringReader): string {
-    const namespaceChars = /^[0-9a-z_:/\.-]$/;
     return reader.readWhileRegexp(namespaceChars);
 }
 

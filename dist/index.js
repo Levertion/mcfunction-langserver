@@ -1330,6 +1330,7 @@ const NAMESPACEEXCEPTIONS = {
   invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "Invalid character '%s' in location %s")
 };
 const disallowedPath = /[^0-9a-z_/\.-]/g;
+exports.namespaceChars = /^[0-9a-z_:/\.-]$/;
 
 function stringArrayToNamespaces(strings) {
   // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
@@ -1342,8 +1343,7 @@ exports.namespacedEntities = stringArrayToNamespaces(statics_1.entities);
 exports.namespacedFluids = stringArrayToNamespaces(statics_1.fluids);
 
 function readNamespaceText(reader) {
-  const namespaceChars = /^[0-9a-z_:/\.-]$/;
-  return reader.readWhileRegexp(namespaceChars);
+  return reader.readWhileRegexp(exports.namespaceChars);
 }
 
 exports.readNamespaceText = readNamespaceText;
@@ -1684,7 +1684,7 @@ class StringReader {
     const sub = this.string.substr(this.cursor, str.length);
 
     if (sub !== str) {
-      return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL.create(this.cursor, Math.min(this.string.length, this.cursor + str.length), sub, str));
+      return helper.fail(EXCEPTIONS.EXPECTED_SYMBOL.create(this.cursor, Math.min(this.string.length, this.cursor + str.length), str));
     }
 
     this.cursor += str.length;
@@ -5083,10 +5083,8 @@ const range_1 = require("./range"); // tslint:disable:cyclomatic-complexity
 
 
 const uuidregex = /^[a-fA-F0-9]{1,8}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,12}$/;
-/*
-Should be disabled if not wanted
-https://github.com/Levertion/mcfunction-langserver/issues/89
-*/
+/* Should be disabled if not wanted
+https://github.com/Levertion/mcfunction-langserver/issues/89 */
 
 const uuidwarn = new errors_1.CommandErrorBuilder("argument.entity.uuid", "Selecting an entity based on its UUID may cause instability [This warning can be disabled in the settings (Although not at the moment)]", vscode_languageserver_1.DiagnosticSeverity.Warning);
 const contexterr = {
@@ -5656,6 +5654,8 @@ exports.argParsers = {
     if (!negated) {
       if (stringifiedTypes.every(set.has.bind(set))) {
         helper.addErrors(errors.noInfo.create(start, reader.cursor, "type"));
+      } else if (set.size > 0 && !stringifiedTypes.some(set.has.bind(set))) {
+        helper.addErrors(errors.impossible.create(start, reader.cursor, "type"));
       }
 
       if (stringifiedTypes.every(unset.has.bind(unset))) {
@@ -5701,6 +5701,9 @@ class EntityBase {
   parse(reader, info) {
     const helper = new misc_functions_1.ReturnHelper(info);
     const start = reader.cursor;
+    const playerSet = new Set();
+    const blankSet = new Set();
+    playerSet.add("minecraft:player");
 
     if (this.selector && helper.merge(reader.expect("@"), {
       errors: false
@@ -5708,20 +5711,32 @@ class EntityBase {
       const context = {};
       const selectors = {
         a: {
-          type: ["minecraft:player"]
+          type: {
+            set: playerSet,
+            unset: blankSet
+          }
         },
         e: {},
         p: {
           limit: 1,
-          type: ["minecraft:player"]
+          type: {
+            set: playerSet,
+            unset: blankSet
+          }
         },
         r: {
           limit: 1,
-          type: ["minecraft:player"]
+          type: {
+            set: playerSet,
+            unset: blankSet
+          }
         },
         s: {
           limit: 1,
-          type: (info.context.executor || {}).ids
+          type: {
+            set: new Set((info.context.executor || {}).ids),
+            unset: blankSet
+          }
         }
       };
       const exp = reader.expectOption(...typed_keys_1.typed_keys(selectors));
@@ -5741,15 +5756,17 @@ class EntityBase {
         if (!helper.merge(closeBracket, {
           errors: false
         })) {
-          if (!reader.canRead()) {
-            return helper.fail(errors.noArg.create(start, reader.cursor));
-          }
-
           while (true) {
             const argStart = reader.cursor;
             const arg = reader.expectOption(...typed_keys_1.typed_keys(exports.argParsers));
 
-            if (!helper.merge(arg)) {
+            if (!helper.merge(arg, {
+              errors: false
+            })) {
+              if (!reader.canRead()) {
+                helper.addErrors(errors.noArg.create(start, reader.cursor));
+              }
+
               return helper.fail();
             }
 
@@ -5810,11 +5827,9 @@ class EntityBase {
           quote: false,
           unquoted: consts_1.NONWHITESPACE
         });
-        const typeSet = new Set();
-        typeSet.add("minecraft:player");
         const context = {
           type: {
-            set: typeSet,
+            set: playerSet,
             unset: new Set()
           }
         };
@@ -5837,11 +5852,9 @@ class EntityBase {
           return helper.fail();
         }
 
-        const typeSet = new Set();
-        typeSet.add("minecraft:player");
         const context = {
           type: {
-            set: typeSet,
+            set: playerSet,
             unset: new Set()
           }
         };

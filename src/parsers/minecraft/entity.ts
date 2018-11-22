@@ -25,10 +25,8 @@ import { validateParse } from "./nbt/nbt";
 import { MCRange, parseRange } from "./range";
 // tslint:disable:cyclomatic-complexity
 const uuidregex = /^[a-fA-F0-9]{1,8}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,4}-[a-fA-F0-9]{1,12}$/;
-/*
-Should be disabled if not wanted
-https://github.com/Levertion/mcfunction-langserver/issues/89
-*/
+/* Should be disabled if not wanted
+https://github.com/Levertion/mcfunction-langserver/issues/89 */
 const uuidwarn = new CommandErrorBuilder(
     "argument.entity.uuid",
     "Selecting an entity based on its UUID may cause instability [This warning can be disabled in the settings (Although not at the moment)]",
@@ -67,7 +65,6 @@ interface TypeInfo {
     set: Set<string>;
     unset: Set<string>;
 }
-
 interface EntityContextInner extends EntityContextType {
     advancements: Dictionary<AdvancementOption>;
     distance: MCRange;
@@ -778,6 +775,13 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
                 helper.addErrors(
                     errors.noInfo.create(start, reader.cursor, "type")
                 );
+            } else if (
+                set.size > 0 &&
+                !stringifiedTypes.some(set.has.bind(set))
+            ) {
+                helper.addErrors(
+                    errors.impossible.create(start, reader.cursor, "type")
+                );
             }
             if (stringifiedTypes.every(unset.has.bind(unset))) {
                 helper.addErrors(
@@ -824,6 +828,9 @@ export class EntityBase implements Parser {
     ): ReturnedInfo<ContextChange> {
         const helper = new ReturnHelper(info);
         const start = reader.cursor;
+        const playerSet = new Set<string>();
+        const blankSet = new Set<string>();
+        playerSet.add("minecraft:player");
         if (
             this.selector &&
             helper.merge(reader.expect("@"), {
@@ -831,12 +838,20 @@ export class EntityBase implements Parser {
             })
         ) {
             const context: EntityContext = {};
-            const selectors = {
-                a: { type: ["minecraft:player"] },
+            const selectors: {
+                [key in "p" | "a" | "r" | "s" | "e"]: EntityContext
+            } = {
+                a: { type: { set: playerSet, unset: blankSet } },
                 e: {},
-                p: { limit: 1, type: ["minecraft:player"] },
-                r: { limit: 1, type: ["minecraft:player"] },
-                s: { limit: 1, type: (info.context.executor || {}).ids }
+                p: { limit: 1, type: { set: playerSet, unset: blankSet } },
+                r: { limit: 1, type: { set: playerSet, unset: blankSet } },
+                s: {
+                    limit: 1,
+                    type: {
+                        set: new Set((info.context.executor || {}).ids),
+                        unset: blankSet
+                    }
+                }
             };
             const exp = reader.expectOption(...typed_keys(selectors));
             if (!helper.merge(exp)) {
@@ -851,17 +866,17 @@ export class EntityBase implements Parser {
             ) {
                 const closeBracket = reader.expect("]");
                 if (!helper.merge(closeBracket, { errors: false })) {
-                    if (!reader.canRead()) {
-                        return helper.fail(
-                            errors.noArg.create(start, reader.cursor)
-                        );
-                    }
                     while (true) {
                         const argStart = reader.cursor;
                         const arg = reader.expectOption(
                             ...typed_keys(argParsers)
                         );
-                        if (!helper.merge(arg)) {
+                        if (!helper.merge(arg, { errors: false })) {
+                            if (!reader.canRead()) {
+                                helper.addErrors(
+                                    errors.noArg.create(start, reader.cursor)
+                                );
+                            }
                             return helper.fail();
                         }
                         if (!helper.merge(reader.expect("="))) {
@@ -927,10 +942,8 @@ export class EntityBase implements Parser {
                     ).map(score => score.Name),
                     { quote: false, unquoted: NONWHITESPACE }
                 );
-                const typeSet = new Set<string>();
-                typeSet.add("minecraft:player");
                 const context: EntityContext = {
-                    type: { set: typeSet, unset: new Set() }
+                    type: { set: playerSet, unset: new Set() }
                 };
                 const contextErr = getContextError(
                     context,
@@ -952,10 +965,8 @@ export class EntityBase implements Parser {
                 if (result === "") {
                     return helper.fail();
                 }
-                const typeSet = new Set<string>();
-                typeSet.add("minecraft:player");
                 const context: EntityContext = {
-                    type: { set: typeSet, unset: new Set() }
+                    type: { set: playerSet, unset: new Set() }
                 };
                 const contextErr = getContextError(
                     context,
