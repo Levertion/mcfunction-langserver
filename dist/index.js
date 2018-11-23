@@ -5778,6 +5778,7 @@ exports.argParsers = {
 
     if (!parsedType.data.resolved) {
       const postProcess = misc_functions_1.processParsedNamespaceOption(parsedType.data.parsed, misc_functions_1.namespacedEntities, info.suggesting && !reader.canRead(), start, vscode_languageserver_1.CompletionItemKind.Event);
+      helper.merge(postProcess);
 
       if (postProcess.data.length === 0) {
         helper.addErrors(namespace_list_1.summonError.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsedType.data.parsed)));

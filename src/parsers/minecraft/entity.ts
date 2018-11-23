@@ -775,6 +775,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
                 start,
                 CompletionItemKind.Event
             );
+            helper.merge(postProcess);
             if (postProcess.data.length === 0) {
                 helper.addErrors(
                     summonError.create(
