@@ -8643,6 +8643,7 @@ function parsechildren(reader, node, path, data, context) {
     const start = reader.cursor;
     let successCount = 0;
     let min = reader.getTotalLength();
+    const originalErrorCount = helper.getShared().errors.length;
 
     for (const childKey of Object.keys(children)) {
       const child = children[childKey];
@@ -8698,7 +8699,7 @@ function parsechildren(reader, node, path, data, context) {
       reader.cursor = start;
     }
 
-    if (successCount === 0) {
+    if (successCount === 0 && helper.getShared().errors.length === originalErrorCount) {
       return helper.fail(parseExceptions.NoSuccesses.create(reader.cursor, reader.getTotalLength(), reader.getRemaining()));
     }
 
