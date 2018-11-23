@@ -67,7 +67,7 @@ export class NamespaceListParser implements Parser {
     }
 }
 
-const summonError = new CommandErrorBuilder(
+export const summonError = new CommandErrorBuilder(
     "entity.notFound",
     "Unknown entity: %s"
 );

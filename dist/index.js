@@ -4919,7 +4919,63 @@ exports.columnPos = new CoordParser({
   float: false,
   local: false
 });
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"1Kfp":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"suMb":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const errors_1 = require("../../brigadier/errors");
+
+const statics_1 = require("../../data/lists/statics");
+
+const misc_functions_1 = require("../../misc-functions");
+
+class NamespaceListParser {
+  constructor(options, errorBuilder, context) {
+    this.options = options;
+    this.error = errorBuilder;
+    this.resultFunction = context;
+  }
+
+  parse(reader, info) {
+    const helper = new misc_functions_1.ReturnHelper(info);
+    const start = reader.cursor;
+    const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces(this.options));
+
+    if (helper.merge(result)) {
+      if (this.resultFunction) {
+        this.resultFunction(info.context, result.data.values);
+        return helper.succeed();
+      } else {
+        return helper.succeed();
+      }
+    } else {
+      if (result.data) {
+        return helper.addErrors(this.error.create(start, reader.cursor, misc_functions_1.stringifyNamespace(result.data))).succeed();
+      } else {
+        return helper.fail();
+      }
+    }
+  }
+
+}
+
+exports.NamespaceListParser = NamespaceListParser;
+exports.summonError = new errors_1.CommandErrorBuilder("entity.notFound", "Unknown entity: %s");
+exports.summonParser = new NamespaceListParser(statics_1.entities, exports.summonError, (context, ids) => context.otherEntity = {
+  ids: ids.map(misc_functions_1.stringifyNamespace)
+});
+const enchantmentError = new errors_1.CommandErrorBuilder("enchantment.unknown", "Unknown enchantment: %s");
+exports.enchantmentParser = new NamespaceListParser(statics_1.enchantments, enchantmentError);
+const mobEffectError = new errors_1.CommandErrorBuilder("effect.effectNotFound", "Unknown effect: %s");
+exports.mobEffectParser = new NamespaceListParser(statics_1.effects, mobEffectError);
+const particleError = new errors_1.CommandErrorBuilder("particle.notFound", "Unknown particle: %s");
+exports.particleParser = new NamespaceListParser(statics_1.particles, particleError);
+const dimensionError = new errors_1.CommandErrorBuilder("argument.dimension.invalid", "Unknown dimension: '%s'");
+exports.dimensionParser = new NamespaceListParser(statics_1.dimensions, dimensionError);
+},{"../../brigadier/errors":"aP4V","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm"}],"1Kfp":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5102,6 +5158,8 @@ const consts_1 = require("../../consts");
 const misc_functions_1 = require("../../misc-functions");
 
 const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
+
+const namespace_list_1 = require("./namespace-list");
 
 const nbt_1 = require("./nbt/nbt");
 
@@ -5666,6 +5724,14 @@ exports.argParsers = {
       return helper.fail();
     }
 
+    if (!parsedType.data.resolved) {
+      const postProcess = misc_functions_1.processParsedNamespaceOption(parsedType.data.parsed, misc_functions_1.namespacedEntities, info.suggesting && !reader.canRead(), start, vscode_languageserver_1.CompletionItemKind.Event);
+
+      if (postProcess.data.length === 0) {
+        helper.addErrors(namespace_list_1.summonError.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsedType.data.parsed)));
+      }
+    }
+
     const parsedTypes = parsedType.data.resolved || [parsedType.data.parsed];
     const typeInfo = context.type || {
       set: new Set(),
@@ -5920,7 +5986,7 @@ function getContextChange(context, path) {
 exports.entity = new EntityBase(false, true);
 exports.scoreHolder = new EntityBase(true, true);
 exports.gameProfile = new EntityBase(false, false);
-},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../consts":"xb+0","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../consts":"xb+0","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+","./namespace-list":"suMb","./nbt/nbt":"JpDU","./range":"1Kfp"}],"LoiV":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -6141,63 +6207,7 @@ exports.messageParser = {
     return new misc_functions_1.ReturnHelper().succeed();
   }
 };
-},{"../../misc-functions":"KBGm"}],"suMb":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const errors_1 = require("../../brigadier/errors");
-
-const statics_1 = require("../../data/lists/statics");
-
-const misc_functions_1 = require("../../misc-functions");
-
-class NamespaceListParser {
-  constructor(options, errorBuilder, context) {
-    this.options = options;
-    this.error = errorBuilder;
-    this.resultFunction = context;
-  }
-
-  parse(reader, info) {
-    const helper = new misc_functions_1.ReturnHelper(info);
-    const start = reader.cursor;
-    const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces(this.options));
-
-    if (helper.merge(result)) {
-      if (this.resultFunction) {
-        this.resultFunction(info.context, result.data.values);
-        return helper.succeed();
-      } else {
-        return helper.succeed();
-      }
-    } else {
-      if (result.data) {
-        return helper.addErrors(this.error.create(start, reader.cursor, misc_functions_1.stringifyNamespace(result.data))).succeed();
-      } else {
-        return helper.fail();
-      }
-    }
-  }
-
-}
-
-exports.NamespaceListParser = NamespaceListParser;
-const summonError = new errors_1.CommandErrorBuilder("entity.notFound", "Unknown entity: %s");
-exports.summonParser = new NamespaceListParser(statics_1.entities, summonError, (context, ids) => context.otherEntity = {
-  ids: ids.map(misc_functions_1.stringifyNamespace)
-});
-const enchantmentError = new errors_1.CommandErrorBuilder("enchantment.unknown", "Unknown enchantment: %s");
-exports.enchantmentParser = new NamespaceListParser(statics_1.enchantments, enchantmentError);
-const mobEffectError = new errors_1.CommandErrorBuilder("effect.effectNotFound", "Unknown effect: %s");
-exports.mobEffectParser = new NamespaceListParser(statics_1.effects, mobEffectError);
-const particleError = new errors_1.CommandErrorBuilder("particle.notFound", "Unknown particle: %s");
-exports.particleParser = new NamespaceListParser(statics_1.particles, particleError);
-const dimensionError = new errors_1.CommandErrorBuilder("argument.dimension.invalid", "Unknown dimension: '%s'");
-exports.dimensionParser = new NamespaceListParser(statics_1.dimensions, dimensionError);
-},{"../../brigadier/errors":"aP4V","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm"}],"wccY":[function(require,module,exports) {
+},{"../../misc-functions":"KBGm"}],"wccY":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

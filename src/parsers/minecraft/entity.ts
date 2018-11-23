@@ -1,4 +1,4 @@
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { CompletionItemKind, DiagnosticSeverity } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NONWHITESPACE } from "../../consts";
@@ -7,8 +7,10 @@ import { DataResource } from "../../data/types";
 import {
     getResourcesofType,
     getReturned,
+    namespacedEntities,
     parseNamespaceOption,
     parseNamespaceOrTag,
+    processParsedNamespaceOption,
     ReturnHelper,
     stringArrayEqual,
     stringifyNamespace
@@ -21,6 +23,7 @@ import {
     ParserInfo,
     ReturnedInfo
 } from "../../types";
+import { summonError } from "./namespace-list";
 import { validateParse } from "./nbt/nbt";
 import { MCRange, parseRange } from "./range";
 // tslint:disable:cyclomatic-complexity
@@ -763,6 +766,24 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
                 return helper.succeed();
             }
             return helper.fail();
+        }
+        if (!parsedType.data.resolved) {
+            const postProcess = processParsedNamespaceOption(
+                parsedType.data.parsed,
+                namespacedEntities,
+                info.suggesting && !reader.canRead(),
+                start,
+                CompletionItemKind.Event
+            );
+            if (postProcess.data.length === 0) {
+                helper.addErrors(
+                    summonError.create(
+                        start,
+                        reader.cursor,
+                        stringifyNamespace(parsedType.data.parsed)
+                    )
+                );
+            }
         }
         const parsedTypes = parsedType.data.resolved || [
             parsedType.data.parsed
