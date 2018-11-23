@@ -150,17 +150,17 @@ function parsechildren(
             }
             reader.cursor = start;
         }
-        if (
-            successCount === 0 &&
-            helper.getShared().errors.length === originalErrorCount
-        ) {
-            return helper.fail(
-                parseExceptions.NoSuccesses.create(
-                    reader.cursor,
-                    reader.getTotalLength(),
-                    reader.getRemaining()
-                )
-            );
+        if (successCount === 0) {
+            if (helper.getShared().errors.length === originalErrorCount) {
+                helper.addErrors(
+                    parseExceptions.NoSuccesses.create(
+                        reader.cursor,
+                        reader.getTotalLength(),
+                        reader.getRemaining()
+                    )
+                );
+            }
+            return helper.fail();
         }
         if (successCount > 1) {
             helper.addErrors(parseExceptions.Ambiguity.create(start, min));
