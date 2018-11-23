@@ -1,4 +1,5 @@
 export * from "./bool";
-export * from "./string";
-export * from "./integer";
+export * from "./double";
 export * from "./float";
+export * from "./integer";
+export * from "./string";

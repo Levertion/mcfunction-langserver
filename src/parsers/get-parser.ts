@@ -29,6 +29,7 @@ import { timeParser } from "./minecraft/time";
  */
 const implementedParsers: { [id: string]: Parser } = {
     "brigadier:bool": brigadierParsers.boolParser,
+    "brigadier:double": brigadierParsers.doubleParser,
     "brigadier:float": brigadierParsers.floatParser,
     "brigadier:integer": brigadierParsers.intParser,
     "brigadier:string": brigadierParsers.stringParser,

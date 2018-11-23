@@ -2086,39 +2086,7 @@ exports.boolParser = {
   kind: main_1.CompletionItemKind.Keyword,
   parse: (reader, props) => misc_functions_1.prepareForParser(reader.readBoolean(), props)
 };
-},{"../../misc-functions":"KBGm"}],"oM/0":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const misc_functions_1 = require("../../misc-functions");
-
-exports.stringParser = {
-  parse: (reader, properties) => {
-    const helper = new misc_functions_1.ReturnHelper(properties);
-
-    switch (properties.node_properties.type) {
-      case "greedy":
-        reader.cursor = reader.string.length;
-        return helper.succeed();
-
-      case "word":
-        reader.readUnquotedString();
-        return helper.succeed();
-
-      default:
-        if (helper.merge(reader.readString())) {
-          return helper.succeed();
-        } else {
-          return helper.fail();
-        }
-
-    }
-  }
-};
-},{"../../misc-functions":"KBGm"}],"IAMg":[function(require,module,exports) {
+},{"../../misc-functions":"KBGm"}],"npD7":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2127,19 +2095,22 @@ Object.defineProperty(exports, "__esModule", {
 
 const errors_1 = require("../../brigadier/errors");
 
-const consts_1 = require("../../consts");
+const misc_functions_1 = require("../../misc-functions"); // tslint:disable:binary-expression-operand-order
+// Approx
 
-const misc_functions_1 = require("../../misc-functions");
 
-const INTEGEREXCEPTIONS = {
-  TOOBIG: new errors_1.CommandErrorBuilder("argument.integer.big", "Integer must not be more than %s, found %s"),
-  TOOSMALL: new errors_1.CommandErrorBuilder("argument.integer.low", "Integer must not be less than %s, found %s")
+const JAVAMINDOUBLE = -1.8 * 10 ** 308;
+const JAVAMAXDOUBLE = 1.8 * 10 ** 308; // tslint:enable:binary-expression-operand-order
+
+const DOUBLEEXCEPTIONS = {
+  TOOBIG: new errors_1.CommandErrorBuilder("argument.double.big", "Float must not be more than %s, found %s"),
+  TOOSMALL: new errors_1.CommandErrorBuilder("argument.double.low", "Float must not be less than %s, found %s")
 };
-exports.intParser = {
+exports.doubleParser = {
   parse: (reader, properties) => {
     const helper = new misc_functions_1.ReturnHelper(properties);
     const start = reader.cursor;
-    const result = reader.readInt();
+    const result = reader.readFloat();
 
     if (!helper.merge(result)) {
       return helper.fail();
@@ -2148,21 +2119,21 @@ exports.intParser = {
     const maxVal = properties.node_properties.max;
     const minVal = properties.node_properties.min; // See https://stackoverflow.com/a/12957445
 
-    const max = Math.min(typeof maxVal === "number" ? maxVal : consts_1.JAVAMAXINT, consts_1.JAVAMAXINT);
-    const min = Math.max(typeof minVal === "number" ? minVal : consts_1.JAVAMININT, consts_1.JAVAMININT);
+    const max = Math.min(typeof maxVal === "number" ? maxVal : JAVAMAXDOUBLE, JAVAMAXDOUBLE);
+    const min = Math.max(typeof minVal === "number" ? minVal : JAVAMINDOUBLE, JAVAMINDOUBLE);
 
     if (result.data > max) {
-      helper.addErrors(INTEGEREXCEPTIONS.TOOBIG.create(start, reader.cursor, max.toString(), result.data.toString()));
+      helper.addErrors(DOUBLEEXCEPTIONS.TOOBIG.create(start, reader.cursor, max.toString(), result.data.toString()));
     }
 
     if (result.data < min) {
-      helper.addErrors(INTEGEREXCEPTIONS.TOOSMALL.create(start, reader.cursor, min.toString(), result.data.toString()));
+      helper.addErrors(DOUBLEEXCEPTIONS.TOOSMALL.create(start, reader.cursor, min.toString(), result.data.toString()));
     }
 
     return helper.succeed();
   }
 };
-},{"../../brigadier/errors":"aP4V","../../consts":"xb+0","../../misc-functions":"KBGm"}],"2AVt":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"2AVt":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2209,7 +2180,83 @@ exports.floatParser = {
     return helper.succeed();
   }
 };
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"GcLj":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"IAMg":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const errors_1 = require("../../brigadier/errors");
+
+const consts_1 = require("../../consts");
+
+const misc_functions_1 = require("../../misc-functions");
+
+const INTEGEREXCEPTIONS = {
+  TOOBIG: new errors_1.CommandErrorBuilder("argument.integer.big", "Integer must not be more than %s, found %s"),
+  TOOSMALL: new errors_1.CommandErrorBuilder("argument.integer.low", "Integer must not be less than %s, found %s")
+};
+exports.intParser = {
+  parse: (reader, properties) => {
+    const helper = new misc_functions_1.ReturnHelper(properties);
+    const start = reader.cursor;
+    const result = reader.readInt();
+
+    if (!helper.merge(result)) {
+      return helper.fail();
+    }
+
+    const maxVal = properties.node_properties.max;
+    const minVal = properties.node_properties.min; // See https://stackoverflow.com/a/12957445
+
+    const max = Math.min(typeof maxVal === "number" ? maxVal : consts_1.JAVAMAXINT, consts_1.JAVAMAXINT);
+    const min = Math.max(typeof minVal === "number" ? minVal : consts_1.JAVAMININT, consts_1.JAVAMININT);
+
+    if (result.data > max) {
+      helper.addErrors(INTEGEREXCEPTIONS.TOOBIG.create(start, reader.cursor, max.toString(), result.data.toString()));
+    }
+
+    if (result.data < min) {
+      helper.addErrors(INTEGEREXCEPTIONS.TOOSMALL.create(start, reader.cursor, min.toString(), result.data.toString()));
+    }
+
+    return helper.succeed();
+  }
+};
+},{"../../brigadier/errors":"aP4V","../../consts":"xb+0","../../misc-functions":"KBGm"}],"oM/0":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const misc_functions_1 = require("../../misc-functions");
+
+exports.stringParser = {
+  parse: (reader, properties) => {
+    const helper = new misc_functions_1.ReturnHelper(properties);
+
+    switch (properties.node_properties.type) {
+      case "greedy":
+        reader.cursor = reader.string.length;
+        return helper.succeed();
+
+      case "word":
+        reader.readUnquotedString();
+        return helper.succeed();
+
+      default:
+        if (helper.merge(reader.readString())) {
+          return helper.succeed();
+        } else {
+          return helper.fail();
+        }
+
+    }
+  }
+};
+},{"../../misc-functions":"KBGm"}],"GcLj":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2220,12 +2267,14 @@ const tslib_1 = require("tslib");
 
 tslib_1.__exportStar(require("./bool"), exports);
 
-tslib_1.__exportStar(require("./string"), exports);
+tslib_1.__exportStar(require("./double"), exports);
+
+tslib_1.__exportStar(require("./float"), exports);
 
 tslib_1.__exportStar(require("./integer"), exports);
 
-tslib_1.__exportStar(require("./float"), exports);
-},{"./bool":"Q/Gg","./string":"oM/0","./integer":"IAMg","./float":"2AVt"}],"38DR":[function(require,module,exports) {
+tslib_1.__exportStar(require("./string"), exports);
+},{"./bool":"Q/Gg","./double":"npD7","./float":"2AVt","./integer":"IAMg","./string":"oM/0"}],"38DR":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -6937,6 +6986,7 @@ const time_1 = require("./minecraft/time");
 
 const implementedParsers = {
   "brigadier:bool": brigadierParsers.boolParser,
+  "brigadier:double": brigadierParsers.doubleParser,
   "brigadier:float": brigadierParsers.floatParser,
   "brigadier:integer": brigadierParsers.intParser,
   "brigadier:string": brigadierParsers.stringParser,
