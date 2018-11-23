@@ -2171,10 +2171,13 @@ Object.defineProperty(exports, "__esModule", {
 
 const errors_1 = require("../../brigadier/errors");
 
-const misc_functions_1 = require("../../misc-functions");
+const misc_functions_1 = require("../../misc-functions"); // tslint:disable:binary-expression-operand-order
+// Approx
 
-const JAVAMINFLOAT = -2139095039;
-const JAVAMAXFLOAT = 2139095039;
+
+const JAVAMINFLOAT = -3.4 * 10 ** 38;
+const JAVAMAXFLOAT = 3.4 * 10 ** 38; // tslint:enable:binary-expression-operand-order
+
 const FLOATEXCEPTIONS = {
   TOOBIG: new errors_1.CommandErrorBuilder("argument.float.big", "Float must not be more than %s, found %s"),
   TOOSMALL: new errors_1.CommandErrorBuilder("argument.float.low", "Float must not be less than %s, found %s")
