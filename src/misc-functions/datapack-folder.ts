@@ -320,19 +320,29 @@ async function readTag(
                     const duplicates = new Set<string>();
                     const unknowns = new Set<string>();
                     for (const v of tag.data.values) {
-                        const valueNamespace = convertToNamespace(v);
-                        const value = stringifyNamespace(valueNamespace);
-                        if (seen.has(value)) {
-                            duplicates.add(value);
-                        }
-                        seen.add(value);
-                        if (value.startsWith(TAG_START)) {
-                            const result = getMatching(options, valueNamespace);
+                        if (v.startsWith(TAG_START)) {
+                            const tagText = v.slice(1);
+                            const tagNamespace = convertToNamespace(tagText);
+                            const tagName = stringifyNamespace(tagNamespace);
+                            const tagString = `#${tagName}`;
+                            const result = getMatching(options, tagNamespace);
                             if (result.length === 0) {
+                                unknowns.add(tagString);
+                            }
+                            if (seen.has(tagString)) {
+                                duplicates.add(tagString);
+                            }
+                            seen.add(tagString);
+                        } else {
+                            const valueNamespace = convertToNamespace(v);
+                            const value = stringifyNamespace(valueNamespace);
+                            if (seen.has(value)) {
+                                duplicates.add(value);
+                            }
+                            seen.add(value);
+                            if (!isKnown(value)) {
                                 unknowns.add(value);
                             }
-                        } else if (!isKnown(value)) {
-                            unknowns.add(value);
                         }
                     }
                     helper.addFileErrorIfFalse(
