@@ -96,14 +96,17 @@ function parsechildren(
                 context
             );
             if (helper.merge(result)) {
+                const childdata = result.data;
+                const newContext = childdata.newContext
+                    ? childdata.newContext
+                    : context;
                 const newNode: ParseNode = {
                     context,
-                    final: true,
+                    final: newContext,
                     high: reader.cursor,
                     low: start,
                     path: childpath
                 };
-                const childdata = result.data;
                 function checkRead(): boolean {
                     if (reader.canRead()) {
                         return true;
@@ -125,9 +128,6 @@ function parsechildren(
                         successCount++;
                         reader.skip();
                         if (checkRead()) {
-                            const newContext = childdata.newContext
-                                ? childdata.newContext
-                                : context;
                             const recurse = parsechildren(
                                 reader,
                                 childdata.node,
@@ -138,7 +138,7 @@ function parsechildren(
                             if (helper.merge(recurse)) {
                                 min = Math.min(min, reader.cursor);
                                 nodes.push(...recurse.data);
-                                newNode.final = false;
+                                newNode.final = undefined;
                             }
                         }
                         nodes.push(newNode);

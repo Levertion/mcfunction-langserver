@@ -58,7 +58,7 @@ describe("ComputeCompletions()", () => {
                             nodes: [
                                 {
                                     context: {},
-                                    final: true,
+                                    final: {},
                                     high: 15,
                                     low: 5,
                                     path: ["nochildren"]
@@ -127,7 +127,7 @@ describe("ComputeCompletions()", () => {
                             nodes: [
                                 {
                                     context: {},
-                                    final: true,
+                                    final: {},
                                     high: 11,
                                     low: 0,
                                     path: ["children"]

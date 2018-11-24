@@ -128,7 +128,7 @@ export interface Parser {
 //#region ParsingData
 export interface ParseNode extends Interval {
     context: CommandContext;
-    final: boolean;
+    final?: CommandContext;
     path: CommandNodePath;
 }
 

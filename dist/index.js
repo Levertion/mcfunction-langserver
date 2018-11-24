@@ -7157,7 +7157,8 @@ function computeCompletions(linenum, character, document, data) {
   const completions = [];
 
   for (const finalNode of finals) {
-    completions.push(...getCompletionsFromNode(linenum, finalNode.high + 1, character, line.text, finalNode.path, commandData, finalNode.context));
+    completions.push(...getCompletionsFromNode(linenum, finalNode.high + 1, character, line.text, finalNode.path, commandData, // N.B. finalNode.final is defined by defition of getAllNodes
+    finalNode.final));
   }
 
   for (const insideNode of internals) {
@@ -7177,7 +7178,7 @@ function getAllNodes(nodes, character) {
 
   for (const node of nodes) {
     if (node.high < character) {
-      if (node.final) {
+      if (node.final !== undefined) {
         finals.push(node);
       }
     } else {
@@ -8760,14 +8761,15 @@ function parsechildren(reader, node, path, data, context) {
       const result = parseAgainstNode(reader, child, childpath, data, context);
 
       if (helper.merge(result)) {
+        const childdata = result.data;
+        const newContext = childdata.newContext ? childdata.newContext : context;
         const newNode = {
           context,
-          final: true,
+          final: newContext,
           high: reader.cursor,
           low: start,
           path: childpath
         };
-        const childdata = result.data;
 
         function checkRead() {
           if (reader.canRead()) {
@@ -8787,13 +8789,12 @@ function parsechildren(reader, node, path, data, context) {
             reader.skip();
 
             if (checkRead()) {
-              const newContext = childdata.newContext ? childdata.newContext : context;
               const recurse = parsechildren(reader, childdata.node, childpath, data, newContext);
 
               if (helper.merge(recurse)) {
                 min = Math.min(min, reader.cursor);
                 nodes.push(...recurse.data);
-                newNode.final = false;
+                newNode.final = undefined;
               }
             }
 
