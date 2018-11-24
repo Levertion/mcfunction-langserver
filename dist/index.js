@@ -5391,6 +5391,10 @@ function parseScores(reader, scoreboard) {
         return helper.fail();
       }
 
+      if (!helper.merge(reader.expect("="))) {
+        return helper.fail();
+      }
+
       const range = range_1.parseRange(reader);
 
       if (!helper.merge(range)) {

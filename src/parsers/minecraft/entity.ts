@@ -349,6 +349,9 @@ export function parseScores(
             if (!helper.merge(res) && data === undefined) {
                 return helper.fail();
             }
+            if (!helper.merge(reader.expect("="))) {
+                return helper.fail();
+            }
             const range = parseRange(reader);
             if (!helper.merge(range)) {
                 return helper.fail();
