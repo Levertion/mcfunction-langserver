@@ -6420,7 +6420,7 @@ exports.nbtPathParser = {
               return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
             }
 
-            if (current) {
+            if (current && !(doc_walker_util_1.isCompoundInfo(current) && walker.allowsUnknowns(current))) {
               helper.addErrors(exceptions.INCORRECT_SEGMENT.create(start, reader.cursor, res.data));
             }
           } else {

@@ -427,7 +427,13 @@ export const nbtPathParser: Parser = {
                                 )
                             );
                         }
-                        if (current) {
+                        if (
+                            current &&
+                            !(
+                                isCompoundInfo(current) &&
+                                walker.allowsUnknowns(current)
+                            )
+                        ) {
                             helper.addErrors(
                                 exceptions.INCORRECT_SEGMENT.create(
                                     start,
