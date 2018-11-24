@@ -36,7 +36,7 @@
         "proseWrap": "always"
     },
     "dependencies": {
-        "js-combinatorics": "^0.5.3",
+        "js-combinatorics": "^0.5.4",
         "long": "^4.0.0",
         "mc-nbt-paths": "git+https://github.com/MrYurihi/mc-nbt-paths.git",
         "minecraft-json-schemas": "git+https://github.com/Levertion/minecraft-json-schemas.git",

@@ -3055,7 +3055,7 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
           if (child) {
             helper.merge(part.value.validate(child, walker));
             helper.addActions(getKeyHover(part.keyRange, child.node));
-          } else {
+          } else if (!walker.allowsUnknowns(info)) {
             const error = Object.assign({}, UNKNOWN.create(part.keyRange.start, part.keyRange.end, part.key), {
               path: [...this.path, part.key]
             });
@@ -3771,6 +3771,32 @@ function walkUnwrap(node) {
 class NBTWalker {
   constructor(docs) {
     this.docs = docs;
+  }
+
+  allowsUnknowns(info) {
+    const {
+      node
+    } = info;
+
+    if (node.additionalChildren !== undefined) {
+      return node.additionalChildren;
+    }
+
+    if (node.child_ref) {
+      for (const ref of node.child_ref) {
+        const refInfo = walkUnwrap(this.resolveRef(ref, info.path));
+
+        if (doc_walker_util_1.isCompoundInfo(refInfo)) {
+          const result = this.allowsUnknowns(refInfo);
+
+          if (result !== undefined) {
+            return result;
+          }
+        }
+      }
+    }
+
+    return undefined;
   }
 
   followNodePath(info, reader, parsed, useReferences) {
