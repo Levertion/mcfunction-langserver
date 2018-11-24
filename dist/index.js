@@ -6232,6 +6232,8 @@ const string_reader_1 = require("../../brigadier/string-reader");
 
 const colors_1 = require("../../colors");
 
+const consts_1 = require("../../consts");
+
 const item_slot_1 = require("../../data/lists/item-slot");
 
 const scoreboard_slot_1 = require("../../data/lists/scoreboard-slot");
@@ -6241,9 +6243,10 @@ const statics_1 = require("../../data/lists/statics");
 const misc_functions_1 = require("../../misc-functions");
 
 class ListParser {
-  constructor(options, err) {
+  constructor(options, err, regex = string_reader_1.StringReader.charAllowedInUnquotedString) {
     this.options = options;
     this.error = err;
+    this.regex = regex;
   }
 
   parse(reader, info) {
@@ -6251,7 +6254,7 @@ class ListParser {
     const helper = new misc_functions_1.ReturnHelper(info);
     const optResult = reader.readOption(this.options, {
       quote: false,
-      unquoted: string_reader_1.StringReader.charAllowedInUnquotedString
+      unquoted: this.regex
     }, vscode_languageserver_1.CompletionItemKind.EnumMember);
 
     if (helper.merge(optResult)) {
@@ -6271,10 +6274,10 @@ exports.entityAnchorParser = new ListParser(statics_1.anchors, entityAnchorError
 const slotError = new errors_1.CommandErrorBuilder("slot.unknown", "Unknown slot '%s'");
 exports.itemSlotParser = new ListParser(item_slot_1.itemSlots, slotError);
 const operationError = new errors_1.CommandErrorBuilder("arguments.operation.invalid", "Invalid operation");
-exports.operationParser = new ListParser(statics_1.operations, operationError);
+exports.operationParser = new ListParser(statics_1.operations, operationError, consts_1.NONWHITESPACE);
 const scoreboardSlotError = new errors_1.CommandErrorBuilder("argument.scoreboardDisplaySlot.invalid", "Unknown display slot '%s'");
 exports.scoreBoardSlotParser = new ListParser(scoreboard_slot_1.scoreboardSlots, scoreboardSlotError);
-},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../data/lists/item-slot":"TytA","../../data/lists/scoreboard-slot":"TZ8Y","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm"}],"VDDC":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../consts":"xb+0","../../data/lists/item-slot":"TytA","../../data/lists/scoreboard-slot":"TZ8Y","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm"}],"VDDC":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
