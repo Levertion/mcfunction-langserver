@@ -6063,19 +6063,31 @@ class EntityBase {
 exports.EntityBase = EntityBase;
 
 function getContextChange(context, path) {
-  const result = {
-    ids: context.type && context.type.set && [...context.type.set.values()]
-  };
+  if (context.type) {
+    const result = [];
 
-  if (misc_functions_1.stringArrayEqual(path, ["execute", "as", "entity"])) {
-    return {
-      executor: result
-    };
-  } else {
-    return {
-      otherEntity: result
-    };
+    for (const item of context.type.set.values()) {
+      if (!context.type.unset.has(item)) {
+        result.push(item);
+      }
+    }
+
+    if (misc_functions_1.stringArrayEqual(path, ["execute", "as", "entity"])) {
+      return {
+        executor: {
+          ids: result
+        }
+      };
+    } else {
+      return {
+        otherEntity: {
+          ids: result
+        }
+      };
+    }
   }
+
+  return undefined;
 }
 
 exports.entity = new EntityBase(false, true);
@@ -6316,9 +6328,7 @@ const errors_1 = require("../../brigadier/errors");
 
 const misc_functions_1 = require("../../misc-functions");
 
-const nbt_1 = require("./nbt/nbt");
-
-const doc_walker_util_1 = require("./nbt/util/doc-walker-util");
+const tag_parser_1 = require("./nbt/tag-parser");
 
 const nbt_util_1 = require("./nbt/util/nbt-util");
 
@@ -6338,8 +6348,11 @@ const exceptions = {
 function entityDataPath(path) {
   return {
     data: c => ({
-      resultType: c.nbt_path && c.nbt_path.node.type,
-      start: ["entity"].concat(c.otherEntity && c.otherEntity.ids || "none")
+      contextInfo: {
+        ids: c.otherEntity && c.otherEntity.ids || "none",
+        kind: "entity"
+      },
+      resultType: c.nbt_path
     }),
     path
   };
@@ -6353,82 +6366,106 @@ const unvalidatedPaths = [[//#region /data
 //#region /execute
 ["execute", "if", "data", "block"], ["execute", "store", "result", "block"], ["execute", "store", "success", "block"], ["execute", "unless", "data", "block"] //#endregion /execute
 ]];
+var SuggestionKind;
+
+(function (SuggestionKind) {
+  SuggestionKind[SuggestionKind["BOTH"] = 0] = "BOTH";
+  SuggestionKind[SuggestionKind["KEYONLY"] = 1] = "KEYONLY";
+})(SuggestionKind || (SuggestionKind = {}));
+
 exports.nbtPathParser = {
   // tslint:disable-next-line:cyclomatic-complexity
   parse: (reader, info) => {
     const helper = new misc_functions_1.ReturnHelper();
     const out = [];
-    const walker = new walker_1.NBTWalker(info.data.globalData.nbt_docs);
     let first = true;
     const pathFunc = misc_functions_1.startPaths(pathInfo, info.path);
     const context = pathFunc && pathFunc(info.context);
-    let current = context && (Array.isArray(context.start) ? walker.getInitialNode(context.start) : context.start);
 
     while (true) {
       // Whitespace
       const start = reader.cursor;
 
       if (reader.peek() === ARROPEN) {
+        const range = {
+          start,
+          end: 0
+        };
         reader.skip();
 
         if (reader.peek() === nbt_util_1.COMPOUND_START) {
-          const val = nbt_1.parseThenValidate(reader, walker, current);
+          const val = tag_parser_1.parseAnyNBTTag(reader, []);
 
           if (helper.merge(val)) {
-            out.push(0);
+            out.push({
+              range,
+              value: val.data.tag
+            });
           } else {
+            if (val.data) {
+              out.push({
+                range,
+                value: val.data.tag
+              });
+            }
+
+            range.end = reader.cursor;
+            helper.merge(validatePath(info, out, context, undefined));
             return helper.fail();
           }
         } else {
           const int = reader.readInt();
+          range.end = reader.cursor;
 
           if (helper.merge(int)) {
-            out.push(int.data);
+            out.push({
+              range,
+              value: int.data
+            });
           } else {
+            range.end = reader.cursor;
+            helper.merge(validatePath(info, out, context, undefined));
             return helper.fail();
           }
         }
 
         if (!helper.merge(reader.expect(ARRCLOSE))) {
+          range.end = reader.cursor;
+          helper.merge(validatePath(info, out, context, undefined));
           return helper.fail();
         }
 
-        if (current) {
-          if (doc_walker_util_1.isListInfo(current)) {
-            current = walker.getItem(current);
-          } else {
-            helper.addErrors(exceptions.UNEXPECTED_ARRAY.create(start, reader.cursor));
-            current = undefined;
-          }
-        }
+        range.end = reader.cursor;
       } else if (!first && reader.peek() === DOT || first) {
         if (!first) {
           reader.skip();
         }
 
-        const children = current && doc_walker_util_1.isCompoundInfo(current) ? walker.getChildren(current) : {};
-        const res = reader.readOption(Object.keys(children), {
-          quote: true,
-          unquoted: /^[0-9A-Za-z_\-+]$/
-        });
+        const range = {
+          start: reader.cursor,
+          end: 0
+        };
+        const res = reader.readString(/^[0-9A-Za-z_\-+]$/);
 
         if (helper.merge(res)) {
-          current = children[res.data];
+          out.push({
+            range,
+            value: res.data
+          });
         } else {
           if (res.data !== undefined) {
-            if (res.data.length === 0) {
-              return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
-            }
-
-            if (current && !(doc_walker_util_1.isCompoundInfo(current) && walker.allowsUnknowns(current))) {
-              helper.addErrors(exceptions.INCORRECT_SEGMENT.create(start, reader.cursor, res.data));
-            }
-          } else {
-            return helper.fail();
+            range.end = reader.cursor;
+            out.push({
+              range,
+              value: res.data
+            });
           }
 
-          current = undefined;
+          helper.merge(validatePath(info, out, context, res.data !== undefined ? SuggestionKind.KEYONLY : undefined));
+          return helper.fail();
         }
+
+        range.end = reader.cursor;
       } else {
         return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
       }
@@ -6436,34 +6473,42 @@ exports.nbtPathParser = {
       first = false;
 
       if (!reader.canRead()) {
-        if (!first && (!current || doc_walker_util_1.isCompoundInfo(current))) {
-          helper.addSuggestion(reader.cursor, ".");
-        }
-
-        if (!current || doc_walker_util_1.isListInfo(current)) {
-          helper.addSuggestion(reader.cursor, "[");
-        }
-
-        return helper.succeed({
-          nbt_path: current
+        const type = validatePath(info, out, context, SuggestionKind.BOTH);
+        return helper.mergeChain(type).succeed({
+          nbt_path: type.data
         });
       }
 
       if (/\s/.test(reader.peek())) {
-        if (current && context && context.resultType && doc_walker_util_1.isTypedInfo(current)) {
-          if (current.node.type !== context.resultType) {
-            helper.addErrors(exceptions.WRONG_TYPE.create(start, reader.cursor, context.resultType, current.node.type));
-          }
+        const type = validatePath(info, out, context, undefined);
+
+        if (context && type.data && context.resultType !== type.data) {
+          helper.addErrors(exceptions.WRONG_TYPE.create(start, reader.cursor, context.resultType, type.data));
         }
 
-        return helper.succeed({
-          nbt_path: current
+        return helper.mergeChain(type).succeed({
+          nbt_path: type.data
         });
       }
     }
   }
 };
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/nbt":"JpDU","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
+
+function validatePath(info, // @ts-ignore Unused - TODO
+path, context, // @ts-ignore Unused - TODO
+suggest) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const walker = new walker_1.NBTWalker(info.data.globalData.nbt_docs);
+
+  if (context) {
+    if (context.contextInfo) {// TODO
+    }
+  }
+
+  walker.getInitialNode([]);
+  return helper.succeed();
+}
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/tag-parser":"4pIN","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

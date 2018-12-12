@@ -11,7 +11,7 @@ import { BlankCommandError, CommandError } from "./brigadier/errors";
 import { StringReader } from "./brigadier/string-reader";
 import { CommandNodePath, GlobalData, LocalData } from "./data/types";
 import { PackLocationSegments } from "./misc-functions";
-import { NodeInfo } from "./parsers/minecraft/nbt/util/doc-walker-util";
+import { TypedNode } from "./parsers/minecraft/nbt/util/doc-walker-util";
 
 //#region Document
 export interface FunctionInfo {
@@ -95,7 +95,7 @@ export interface CommandContext {
     /**
      * The result from an nbt path
      */
-    nbt_path?: NodeInfo;
+    nbt_path?: TypedNode["type"];
     /**
      * A different entity which is important during parsing
      */
@@ -222,6 +222,11 @@ export type CE = CommandError;
 export interface LineRange {
     end: number;
     start: number;
+}
+
+export interface Ranged<T> {
+    range: LineRange;
+    value: T;
 }
 
 //#endregion

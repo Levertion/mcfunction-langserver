@@ -16,13 +16,7 @@ import {
     stringifyNamespace
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import {
-    ContextChange,
-    EntityInfo,
-    Parser,
-    ParserInfo,
-    ReturnedInfo
-} from "../../types";
+import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
 import { summonError } from "./namespace-list";
 import { validateParse } from "./nbt/nbt";
 import { MCRange, parseRange } from "./range";
@@ -1014,15 +1008,21 @@ export class EntityBase implements Parser {
 function getContextChange(
     context: EntityContext,
     path: string[]
-): ContextChange {
-    const result: EntityInfo = {
-        ids: context.type && context.type.set && [...context.type.set.values()]
-    };
-    if (stringArrayEqual(path, ["execute", "as", "entity"])) {
-        return { executor: result };
-    } else {
-        return { otherEntity: result };
+): ContextChange | undefined {
+    if (context.type) {
+        const result: string[] = [];
+        for (const item of context.type.set.values()) {
+            if (!context.type.unset.has(item)) {
+                result.push(item);
+            }
+        }
+        if (stringArrayEqual(path, ["execute", "as", "entity"])) {
+            return { executor: { ids: result } };
+        } else {
+            return { otherEntity: { ids: result } };
+        }
     }
+    return undefined;
 }
 export const entity = new EntityBase(false, true);
 export const scoreHolder = new EntityBase(true, true);
