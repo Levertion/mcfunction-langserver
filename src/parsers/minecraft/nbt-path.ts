@@ -4,18 +4,17 @@ import { ContextPath, ReturnHelper, startPaths } from "../../misc-functions";
 import {
     CommandContext,
     ContextChange,
+    LineRange,
     Parser,
     ParserInfo,
-    ReturnedInfo
+    Ranged,
+    ReturnedInfo,
+    ReturnSuccess
 } from "../../types";
-import { parseThenValidate } from "./nbt/nbt";
-import {
-    isCompoundInfo,
-    isListInfo,
-    isTypedInfo,
-    NodeInfo,
-    TypedNode
-} from "./nbt/util/doc-walker-util";
+import { NBTIDInfo } from "./nbt/nbt";
+import { parseAnyNBTTag } from "./nbt/tag-parser";
+import { NBTTag } from "./nbt/tag/nbt-tag";
+import { TypedNode } from "./nbt/util/doc-walker-util";
 import { COMPOUND_START } from "./nbt/util/nbt-util";
 import { NBTWalker } from "./nbt/walker";
 
@@ -51,18 +50,19 @@ function entityDataPath(
 ): ContextPath<(context: CommandContext) => PathResult> {
     return {
         data: c => ({
-            resultType: c.nbt_path && (c.nbt_path.node as TypedNode).type,
-            start: ["entity"].concat(
-                (c.otherEntity && c.otherEntity.ids) || "none"
-            )
+            contextInfo: {
+                ids: (c.otherEntity && c.otherEntity.ids) || "none",
+                kind: "entity"
+            },
+            resultType: c.nbt_path
         }),
         path
     };
 }
 
 interface PathResult {
+    contextInfo: NBTIDInfo;
     resultType?: TypedNode["type"];
-    start: string[];
 }
 
 const pathInfo: Array<ContextPath<(context: CommandContext) => PathResult>> = [
@@ -348,6 +348,13 @@ const unvalidatedPaths = [
         //#endregion /execute
     ]
 ];
+enum SuggestionKind {
+    BOTH,
+    KEYONLY
+}
+// These number and nbt ranges include the open and close []
+// The string ranges do not include the .
+type PathParseResult = Array<Ranged<string | number | NBTTag>>;
 
 export const nbtPathParser: Parser = {
     // tslint:disable-next-line:cyclomatic-complexity
@@ -356,91 +363,75 @@ export const nbtPathParser: Parser = {
         info: ParserInfo
     ): ReturnedInfo<ContextChange | undefined> => {
         const helper = new ReturnHelper();
-        const out: Array<string | number> = [];
-        const walker = new NBTWalker(info.data.globalData.nbt_docs);
+        const out: PathParseResult = [];
         let first = true;
         const pathFunc = startPaths(pathInfo, info.path);
         const context = pathFunc && pathFunc(info.context);
-        let current: NodeInfo | undefined =
-            context &&
-            (Array.isArray(context.start)
-                ? walker.getInitialNode(context.start)
-                : context.start);
         while (true) {
             // Whitespace
             const start = reader.cursor;
             if (reader.peek() === ARROPEN) {
+                const range: LineRange = { start, end: 0 };
                 reader.skip();
                 if (reader.peek() === COMPOUND_START) {
-                    const val = parseThenValidate(reader, walker, current);
+                    const val = parseAnyNBTTag(reader, []);
                     if (helper.merge(val)) {
-                        out.push(0);
+                        out.push({ range, value: val.data.tag });
                     } else {
+                        if (val.data) {
+                            out.push({ range, value: val.data.tag });
+                        }
+                        range.end = reader.cursor;
+                        helper.merge(
+                            validatePath(info, out, context, undefined)
+                        );
                         return helper.fail();
                     }
                 } else {
                     const int = reader.readInt();
+                    range.end = reader.cursor;
                     if (helper.merge(int)) {
-                        out.push(int.data);
+                        out.push({ range, value: int.data });
                     } else {
+                        range.end = reader.cursor;
+                        helper.merge(
+                            validatePath(info, out, context, undefined)
+                        );
                         return helper.fail();
                     }
                 }
                 if (!helper.merge(reader.expect(ARRCLOSE))) {
+                    range.end = reader.cursor;
+                    helper.merge(validatePath(info, out, context, undefined));
                     return helper.fail();
                 }
-                if (current) {
-                    if (isListInfo(current)) {
-                        current = walker.getItem(current);
-                    } else {
-                        helper.addErrors(
-                            exceptions.UNEXPECTED_ARRAY.create(
-                                start,
-                                reader.cursor
-                            )
-                        );
-                        current = undefined;
-                    }
-                }
+                range.end = reader.cursor;
             } else if ((!first && reader.peek() === DOT) || first) {
                 if (!first) {
                     reader.skip();
                 }
-                const children =
-                    current && isCompoundInfo(current)
-                        ? walker.getChildren(current)
-                        : {};
-                const res = reader.readOption(Object.keys(children), {
-                    quote: true,
-                    unquoted: /^[0-9A-Za-z_\-+]$/
-                });
+                const range: LineRange = { start: reader.cursor, end: 0 };
+                const res = reader.readString(/^[0-9A-Za-z_\-+]$/);
                 if (helper.merge(res)) {
-                    current = children[res.data];
+                    out.push({ range, value: res.data });
                 } else {
                     if (res.data !== undefined) {
-                        if (res.data.length === 0) {
-                            return helper.fail(
-                                exceptions.BAD_CHAR.create(
-                                    reader.cursor - 1,
-                                    reader.cursor,
-                                    reader.peek()
-                                )
-                            );
-                        }
-                        if (current) {
-                            helper.addErrors(
-                                exceptions.INCORRECT_SEGMENT.create(
-                                    start,
-                                    reader.cursor,
-                                    res.data
-                                )
-                            );
-                        }
-                    } else {
-                        return helper.fail();
+                        range.end = reader.cursor;
+                        out.push({ range, value: res.data });
                     }
-                    current = undefined;
+                    helper.merge(
+                        validatePath(
+                            info,
+                            out,
+                            context,
+                            res.data !== undefined
+                                ? SuggestionKind.KEYONLY
+                                : undefined
+                        )
+                    );
+                    return helper.fail();
                 }
+                range.end = reader.cursor;
             } else {
                 return helper.fail(
                     exceptions.BAD_CHAR.create(
@@ -452,34 +443,47 @@ export const nbtPathParser: Parser = {
             }
             first = false;
             if (!reader.canRead()) {
-                if (!first && (!current || isCompoundInfo(current))) {
-                    helper.addSuggestion(reader.cursor, ".");
-                }
-                if (!current || isListInfo(current)) {
-                    helper.addSuggestion(reader.cursor, "[");
-                }
-                return helper.succeed({ nbt_path: current });
+                const type = validatePath(
+                    info,
+                    out,
+                    context,
+                    SuggestionKind.BOTH
+                );
+                return helper.mergeChain(type).succeed({ nbt_path: type.data });
             }
             if (/\s/.test(reader.peek())) {
-                if (
-                    current &&
-                    context &&
-                    context.resultType &&
-                    isTypedInfo(current)
-                ) {
-                    if (current.node.type !== context.resultType) {
-                        helper.addErrors(
-                            exceptions.WRONG_TYPE.create(
-                                start,
-                                reader.cursor,
-                                context.resultType,
-                                current.node.type
-                            )
-                        );
-                    }
+                const type = validatePath(info, out, context, undefined);
+                if (context && type.data && context.resultType !== type.data) {
+                    helper.addErrors(
+                        exceptions.WRONG_TYPE.create(
+                            start,
+                            reader.cursor,
+                            context.resultType as TypedNode["type"],
+                            type.data
+                        )
+                    );
                 }
-                return helper.succeed<ContextChange>({ nbt_path: current });
+                return helper.mergeChain(type).succeed({ nbt_path: type.data });
             }
         }
     }
 };
+
+function validatePath(
+    info: ParserInfo,
+    // @ts-ignore Unused - TODO
+    path: PathParseResult,
+    context: PathResult | undefined,
+    // @ts-ignore Unused - TODO
+    suggest: SuggestionKind | undefined
+): ReturnSuccess<TypedNode["type"] | undefined> {
+    const helper = new ReturnHelper();
+    const walker = new NBTWalker(info.data.globalData.nbt_docs);
+    if (context) {
+        if (context.contextInfo) {
+            // TODO
+        }
+    }
+    walker.getInitialNode([]);
+    return helper.succeed();
+}

@@ -4,22 +4,22 @@ import { Parser } from "../../types";
 
 // tslint:disable:binary-expression-operand-order
 // Approx
-const JAVAMINFLOAT = -3.4 * 10 ** 38;
-const JAVAMAXFLOAT = 3.4 * 10 ** 38;
+const JAVAMINDOUBLE = -1.8 * 10 ** 308;
+const JAVAMAXDOUBLE = 1.8 * 10 ** 308;
 // tslint:enable:binary-expression-operand-order
 
-const FLOATEXCEPTIONS = {
+const DOUBLEEXCEPTIONS = {
     TOOBIG: new CommandErrorBuilder(
-        "argument.float.big",
+        "argument.double.big",
         "Float must not be more than %s, found %s"
     ),
     TOOSMALL: new CommandErrorBuilder(
-        "argument.float.low",
+        "argument.double.low",
         "Float must not be less than %s, found %s"
     )
 };
 
-export const floatParser: Parser = {
+export const doubleParser: Parser = {
     parse: (reader, properties) => {
         const helper = new ReturnHelper(properties);
         const start = reader.cursor;
@@ -31,16 +31,16 @@ export const floatParser: Parser = {
         const minVal = properties.node_properties.min;
         // See https://stackoverflow.com/a/12957445
         const max = Math.min(
-            typeof maxVal === "number" ? maxVal : JAVAMAXFLOAT,
-            JAVAMAXFLOAT
+            typeof maxVal === "number" ? maxVal : JAVAMAXDOUBLE,
+            JAVAMAXDOUBLE
         );
         const min = Math.max(
-            typeof minVal === "number" ? minVal : JAVAMINFLOAT,
-            JAVAMINFLOAT
+            typeof minVal === "number" ? minVal : JAVAMINDOUBLE,
+            JAVAMINDOUBLE
         );
         if (result.data > max) {
             helper.addErrors(
-                FLOATEXCEPTIONS.TOOBIG.create(
+                DOUBLEEXCEPTIONS.TOOBIG.create(
                     start,
                     reader.cursor,
                     max.toString(),
@@ -50,7 +50,7 @@ export const floatParser: Parser = {
         }
         if (result.data < min) {
             helper.addErrors(
-                FLOATEXCEPTIONS.TOOSMALL.create(
+                DOUBLEEXCEPTIONS.TOOSMALL.create(
                     start,
                     reader.cursor,
                     min.toString(),

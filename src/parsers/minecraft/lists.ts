@@ -2,6 +2,7 @@ import { CompletionItemKind } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { COLORS } from "../../colors";
+import { NONWHITESPACE } from "../../consts";
 import { itemSlots } from "../../data/lists/item-slot";
 import { scoreboardSlots } from "../../data/lists/scoreboard-slot";
 import { anchors, operations } from "../../data/lists/statics";
@@ -11,10 +12,16 @@ import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 export class ListParser implements Parser {
     private readonly error: CommandErrorBuilder;
     private readonly options: string[];
+    private readonly regex: RegExp;
 
-    public constructor(options: string[], err: CommandErrorBuilder) {
+    public constructor(
+        options: string[],
+        err: CommandErrorBuilder,
+        regex: RegExp = StringReader.charAllowedInUnquotedString
+    ) {
         this.options = options;
         this.error = err;
+        this.regex = regex;
     }
 
     public parse(
@@ -27,7 +34,7 @@ export class ListParser implements Parser {
             this.options,
             {
                 quote: false,
-                unquoted: StringReader.charAllowedInUnquotedString
+                unquoted: this.regex
             },
             CompletionItemKind.EnumMember
         );
@@ -60,7 +67,11 @@ const operationError = new CommandErrorBuilder(
     "arguments.operation.invalid",
     "Invalid operation"
 );
-export const operationParser = new ListParser(operations, operationError);
+export const operationParser = new ListParser(
+    operations,
+    operationError,
+    NONWHITESPACE
+);
 
 const scoreboardSlotError = new CommandErrorBuilder(
     "argument.scoreboardDisplaySlot.invalid",

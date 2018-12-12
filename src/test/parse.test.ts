@@ -81,7 +81,7 @@ describe("parseCommand()", () => {
             assertParse(
                 result,
                 [],
-                [{ context: {}, final: true, low: 0, high: 3, path: ["test1"] }]
+                [{ context: {}, final: {}, low: 0, high: 3, path: ["test1"] }]
             );
         });
 
@@ -95,7 +95,7 @@ describe("parseCommand()", () => {
                         range: { start: 0, end: 5 }
                     }
                 ],
-                [{ low: 0, high: 5, path: ["test2"], context: {}, final: true }]
+                [{ low: 0, high: 5, path: ["test2"], context: {}, final: {} }]
             );
         });
 
@@ -158,14 +158,14 @@ describe("parseCommand()", () => {
                 [
                     {
                         context: {},
-                        final: false,
+                        final: undefined, // Limitation of assert api
                         high: 3,
                         low: 0,
                         path: ["test1"]
                     },
                     {
                         context: {},
-                        final: true,
+                        final: {},
                         high: 7,
                         low: 4,
                         path: ["test1", "testchild1"]
@@ -187,7 +187,7 @@ describe("parseCommand()", () => {
                 [
                     {
                         context: {},
-                        final: true,
+                        final: {},
                         high: 3,
                         low: 0,
                         path: ["test1"]

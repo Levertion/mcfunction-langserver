@@ -60,7 +60,8 @@ export function computeCompletions(
                 line.text,
                 finalNode.path,
                 commandData,
-                finalNode.context
+                // N.B. finalNode.final is defined by defition of getAllNodes
+                finalNode.final as CommandContext
             )
         );
     }
@@ -90,7 +91,7 @@ export function getAllNodes(
     const internals: ParseNode[] = [];
     for (const node of nodes) {
         if (node.high < character) {
-            if (node.final) {
+            if (node.final !== undefined) {
                 finals.push(node);
             }
         } else {

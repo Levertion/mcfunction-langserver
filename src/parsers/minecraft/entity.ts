@@ -1,4 +1,4 @@
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { CompletionItemKind, DiagnosticSeverity } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NONWHITESPACE } from "../../consts";
@@ -7,20 +7,17 @@ import { DataResource } from "../../data/types";
 import {
     getResourcesofType,
     getReturned,
+    namespacedEntities,
     parseNamespaceOption,
     parseNamespaceOrTag,
+    processParsedNamespaceOption,
     ReturnHelper,
     stringArrayEqual,
     stringifyNamespace
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import {
-    ContextChange,
-    EntityInfo,
-    Parser,
-    ParserInfo,
-    ReturnedInfo
-} from "../../types";
+import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
+import { summonError } from "./namespace-list";
 import { validateParse } from "./nbt/nbt";
 import { MCRange, parseRange } from "./range";
 // tslint:disable:cyclomatic-complexity
@@ -344,6 +341,9 @@ export function parseScores(
                 : getReturned(reader.readUnquotedString());
             const data = res.data;
             if (!helper.merge(res) && data === undefined) {
+                return helper.fail();
+            }
+            if (!helper.merge(reader.expect("="))) {
                 return helper.fail();
             }
             const range = parseRange(reader);
@@ -764,6 +764,25 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
             }
             return helper.fail();
         }
+        if (!parsedType.data.resolved) {
+            const postProcess = processParsedNamespaceOption(
+                parsedType.data.parsed,
+                namespacedEntities,
+                info.suggesting && !reader.canRead(),
+                start,
+                CompletionItemKind.Event
+            );
+            helper.merge(postProcess);
+            if (postProcess.data.length === 0) {
+                helper.addErrors(
+                    summonError.create(
+                        start,
+                        reader.cursor,
+                        stringifyNamespace(parsedType.data.parsed)
+                    )
+                );
+            }
+        }
         const parsedTypes = parsedType.data.resolved || [
             parsedType.data.parsed
         ];
@@ -945,6 +964,7 @@ export class EntityBase implements Parser {
                     { quote: false, unquoted: NONWHITESPACE }
                 );
                 const context: EntityContext = {
+                    limit: 1,
                     type: { set: playerSet, unset: new Set() }
                 };
                 const contextErr = getContextError(
@@ -968,6 +988,7 @@ export class EntityBase implements Parser {
                     return helper.fail();
                 }
                 const context: EntityContext = {
+                    limit: 1,
                     type: { set: playerSet, unset: new Set() }
                 };
                 const contextErr = getContextError(
@@ -987,15 +1008,21 @@ export class EntityBase implements Parser {
 function getContextChange(
     context: EntityContext,
     path: string[]
-): ContextChange {
-    const result: EntityInfo = {
-        ids: context.type && context.type.set && [...context.type.set.values()]
-    };
-    if (stringArrayEqual(path, ["execute", "as", "entity"])) {
-        return { executor: result };
-    } else {
-        return { otherEntity: result };
+): ContextChange | undefined {
+    if (context.type) {
+        const result: string[] = [];
+        for (const item of context.type.set.values()) {
+            if (!context.type.unset.has(item)) {
+                result.push(item);
+            }
+        }
+        if (stringArrayEqual(path, ["execute", "as", "entity"])) {
+            return { executor: { ids: result } };
+        } else {
+            return { otherEntity: { ids: result } };
+        }
     }
+    return undefined;
 }
 export const entity = new EntityBase(false, true);
 export const scoreHolder = new EntityBase(true, true);

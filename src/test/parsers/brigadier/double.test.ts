@@ -1,29 +1,29 @@
 import * as assert from "assert";
-import { floatParser } from "../../../parsers/brigadier";
+import { doubleParser } from "../../../parsers/brigadier/double";
 import { testParser } from "../../assertions";
 import { blankproperties } from "../../blanks";
 
-const floatTester = testParser(floatParser);
-describe("Float Argument Parser", () => {
-    function validFloatTests(
+const doubleTester = testParser(doubleParser);
+describe("Double Argument Parser", () => {
+    function validDoubleTests(
         s: string,
         expectedNum: number,
         numEnd: number
     ): void {
         it("should succeed with no constraints", () => {
-            const result = floatTester(blankproperties)(s, {
+            const result = doubleTester(blankproperties)(s, {
                 succeeds: true
             });
             assert.strictEqual(result[1].cursor, numEnd);
         });
         it("should reject a number less than the minimum", () => {
-            const result = floatTester({
+            const result = doubleTester({
                 ...blankproperties,
                 node_properties: { min: expectedNum + 1 }
             })(s, {
                 errors: [
                     {
-                        code: "argument.float.low",
+                        code: "argument.double.low",
                         range: { start: 0, end: numEnd }
                     }
                 ],
@@ -32,7 +32,7 @@ describe("Float Argument Parser", () => {
             assert.strictEqual(result[1].cursor, numEnd);
         });
         it("should reject a number more than the maximum", () => {
-            const result = floatTester({
+            const result = doubleTester({
                 ...blankproperties,
                 node_properties: {
                     max: expectedNum - 1
@@ -40,7 +40,7 @@ describe("Float Argument Parser", () => {
             })(s, {
                 errors: [
                     {
-                        code: "argument.float.big",
+                        code: "argument.double.big",
                         range: {
                             end: numEnd,
                             start: 0
@@ -53,43 +53,15 @@ describe("Float Argument Parser", () => {
         });
     }
     describe("valid integer", () => {
-        validFloatTests("1234", 1234, 4);
+        validDoubleTests("1234", 1234, 4);
     });
     describe("valid integer with space", () => {
-        validFloatTests("1234 ", 1234, 4);
+        validDoubleTests("1234 ", 1234, 4);
     });
     describe("valid float with `.`", () => {
-        validFloatTests("1234.5678", 1234.5678, 9);
+        validDoubleTests("1234.5678", 1234.5678, 9);
     });
     describe("valid float with `.` and space", () => {
-        validFloatTests("1234.5678 ", 1234.5678, 9);
-    });
-    it("should fail when the number is bigger than the java maximum float", () => {
-        floatTester(blankproperties)(
-            "1000000000000000000000000000000000000000000000000000000000000",
-            {
-                errors: [
-                    {
-                        code: "argument.float.big",
-                        range: { start: 0, end: 61 }
-                    }
-                ],
-                succeeds: true
-            }
-        );
-    });
-    it("should fail when the number is less than the java minimum float", () => {
-        floatTester(blankproperties)(
-            "-1000000000000000000000000000000000000000000000000000000000000",
-            {
-                errors: [
-                    {
-                        code: "argument.float.low",
-                        range: { start: 0, end: 62 }
-                    }
-                ],
-                succeeds: true
-            }
-        );
+        validDoubleTests("1234.5678 ", 1234.5678, 9);
     });
 });

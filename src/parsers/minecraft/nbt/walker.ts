@@ -45,6 +45,25 @@ export class NBTWalker {
         this.docs = docs;
     }
 
+    public allowsUnknowns(info: NodeInfo<CompoundNode>): boolean | undefined {
+        const { node } = info;
+        if (node.additionalChildren !== undefined) {
+            return node.additionalChildren;
+        }
+        if (node.child_ref) {
+            for (const ref of node.child_ref) {
+                const refInfo = walkUnwrap(this.resolveRef(ref, info.path));
+                if (isCompoundInfo(refInfo)) {
+                    const result = this.allowsUnknowns(refInfo);
+                    if (result !== undefined) {
+                        return result;
+                    }
+                }
+            }
+        }
+        return undefined;
+    }
+
     public followNodePath(
         info: NodeInfo | undefined,
         reader: ArrayReader,

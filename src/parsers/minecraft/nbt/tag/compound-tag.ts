@@ -132,7 +132,7 @@ export class NBTTagCompound extends NBTTag {
                         helper.addActions(
                             getKeyHover(part.keyRange, child.node)
                         );
-                    } else {
+                    } else if (!walker.allowsUnknowns(info)) {
                         const error: UnknownsError = {
                             ...UNKNOWN.create(
                                 part.keyRange.start,
