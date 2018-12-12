@@ -107,9 +107,9 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
         mapFunction: async (v, packroot) => {
             const helper = new ReturnHelper();
             try {
-                const advancement = (await readJSONRaw(
+                const advancement: Advancement = (await readJSONRaw(
                     getPath(v, packroot, "advancements")
-                )) as Advancement;
+                )) as any;
                 return helper.succeed({
                     ...v,
                     data: Object.keys(advancement.criteria)
