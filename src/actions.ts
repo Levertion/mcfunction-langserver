@@ -9,7 +9,7 @@ import {
     SymbolKind
 } from "vscode-languageserver";
 
-import Uri from "vscode-uri";
+import URI from "vscode-uri";
 import { getAllNodes } from "./completions";
 import { COMMENT_START } from "./consts";
 import { DataManager } from "./data/manager";
@@ -116,7 +116,7 @@ export function definitionProvider(
         const start: Position = { line: 0, character: 0 };
         return actions.map<Location>(a => ({
             range: { start, end: start },
-            uri: Uri.file(a.data as any).toString()
+            uri: URI.file(a.data as any).toString()
         }));
     }
     return [];
@@ -356,7 +356,7 @@ export function getWorkspaceSymbols(
                                     kind: symbolKindForResource(type),
                                     location: {
                                         range: blankRange,
-                                        uri: Uri.file(buildPath(
+                                        uri: URI.file(buildPath(
                                             item,
                                             world,
                                             type

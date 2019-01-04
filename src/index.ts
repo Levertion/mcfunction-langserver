@@ -14,7 +14,7 @@ import {
     TextDocumentPositionParams,
     TextDocumentSyncKind
 } from "vscode-languageserver/lib/main";
-import Uri from "vscode-uri";
+import URI from "vscode-uri";
 
 import {
     definitionProvider,
@@ -190,7 +190,7 @@ function loadData(uri: string): void {
 
 connection.onDidOpenTextDocument(params => {
     const uri = params.textDocument.uri;
-    const uriClass = Uri.parse(uri);
+    const uriClass = URI.parse(uri);
     const parsethis = () => {
         // Sanity check
         if (started && documents.has(uri)) {
