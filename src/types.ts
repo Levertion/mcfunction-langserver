@@ -149,6 +149,7 @@ export interface JSONDocInfo {
 
 export type SubAction =
     // See https://github.com/Microsoft/language-server-protocol/issues/518.
+    // tslint:disable-next-line:deprecation - TODO: this needs a PR to fix
     | SubActionBase<"hover", MarkedString>
     | SubActionBase<"format", string>
     | SubActionBase<"source", string>

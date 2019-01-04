@@ -20,6 +20,7 @@ export const jsonParser: Parser = {
             version: 0
         };
         const service = info.data.globalData.jsonService;
+        // tslint:disable-next-line:no-inferred-empty-object-type
         const json = service.parseJSONDocument(text);
         service.doValidation(text, json).then(diagnostics => {
             /* Because we use SynchronousPromise this is called before the next statement runs*/

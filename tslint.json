@@ -19,7 +19,9 @@
         "file-name-casing": [true, "kebab-case"],
         "no-submodule-imports": false,
         "helper-return": true,
-        "max-file-line-count": false
+        "max-file-line-count": false,
+        "ban-ts-ignore": false,
+        "increment-decrement": false
     },
     "linterOptions": {
         "exclude": ["lintrules/**"]
