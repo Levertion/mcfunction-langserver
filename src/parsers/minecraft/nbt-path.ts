@@ -354,7 +354,7 @@ enum SuggestionKind {
 }
 // These number and nbt ranges include the open and close []
 // The string ranges do not include the .
-type PathParseResult = Array<Ranged<string | number | NBTTag>>;
+type NbtPath = Array<Ranged<string | number | NBTTag>>;
 
 export const nbtPathParser: Parser = {
     // tslint:disable-next-line:cyclomatic-complexity
@@ -363,7 +363,7 @@ export const nbtPathParser: Parser = {
         info: ParserInfo
     ): ReturnedInfo<ContextChange | undefined> => {
         const helper = new ReturnHelper();
-        const out: PathParseResult = [];
+        const out: NbtPath = [];
         let first = true;
         const pathFunc = startPaths(pathInfo, info.path);
         const context = pathFunc && pathFunc(info.context);
@@ -469,10 +469,63 @@ export const nbtPathParser: Parser = {
     }
 };
 
+function parseNBTPath(reader: StringReader): ReturnedInfo<NbtPath> {
+    const helper = new ReturnHelper();
+    const result: NbtPath = [];
+    const first = true;
+    while (true) {
+        const segmentStart = reader.cursor;
+        if (reader.peek() === ARROPEN) {
+            const range: LineRange = { start: segmentStart, end: 0 };
+            // Nbt in path
+            if (reader.peek() === COMPOUND_START) {
+                const val = parseAnyNBTTag(reader, []);
+                if (helper.merge(val)) {
+                    result.push({ range, value: val.data.tag });
+                } else {
+                    if (val.data) {
+                        result.push({ range, value: val.data.tag });
+                    }
+                    range.end = reader.cursor;
+                    return helper.fail();
+                }
+            }
+        } else if ((!first && reader.peek() === DOT) || first) {
+            if (!first) {
+                // Skip the dot
+                reader.skip();
+            }
+            // Exclude the . from the range
+            const range: LineRange = { start: segmentStart, end: 0 };
+            const res = reader.readString(/^[0-9A-Za-z_\-+]$/);
+            if (helper.merge(res)) {
+                result.push({ range, value: res.data });
+            } else {
+                if (res.data !== undefined) {
+                    range.end = reader.cursor;
+                    result.push({ range, value: res.data });
+                }
+                return helper.fail();
+            }
+            range.end = reader.cursor;
+        } else {
+            return helper.fail(
+                exceptions.BAD_CHAR.create(
+                    reader.cursor - 1,
+                    reader.cursor,
+                    reader.peek()
+                )
+            );
+        }
+
+        return helper.succeed(result);
+    }
+}
+
 function validatePath(
     info: ParserInfo,
     // @ts-ignore Unused - TODO
-    path: PathParseResult,
+    path: NbtPath,
     context: PathResult | undefined,
     // @ts-ignore Unused - TODO
     suggest: SuggestionKind | undefined
