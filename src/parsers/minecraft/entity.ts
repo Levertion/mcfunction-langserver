@@ -8,12 +8,12 @@ import {
     convertToNamespace,
     getResourcesofType,
     getReturned,
-    namespacedEntities,
     parseNamespaceOption,
     parseNamespaceOrTag,
     processParsedNamespaceOption,
     ReturnHelper,
     stringArrayEqual,
+    stringArrayToNamespaces,
     stringifyNamespace
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
@@ -768,7 +768,9 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
         if (!parsedType.data.resolved) {
             const postProcess = processParsedNamespaceOption(
                 parsedType.data.parsed,
-                namespacedEntities,
+                stringArrayToNamespaces([
+                    ...info.data.globalData.registries["minecraft:entity_type"]
+                ]),
                 info.suggesting && !reader.canRead(),
                 start,
                 CompletionItemKind.Event

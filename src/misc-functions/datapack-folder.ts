@@ -17,10 +17,10 @@ import {
     Tag,
     WorldInfo
 } from "../data/types";
-import { namespacedEntities, namespacedFluids } from "../misc-functions";
 import { ReturnSuccess } from "../types";
 import { getMatching, getResourcesSplit } from "./group-resources";
 import { convertToNamespace, stringifyNamespace } from "./namespace";
+import { stringArrayToNamespaces } from "./parsing/namespace";
 import { readJSON, readJSONRaw } from "./promisified-fs";
 import { ReturnHelper } from "./return-helper";
 import { typed_keys } from "./third_party/typed-keys";
@@ -141,8 +141,13 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 "entity_tags",
                 getResourcesSplit("entity_tags", globalData, packsInfo),
                 s =>
-                    getMatching(namespacedEntities, convertToNamespace(s))
-                        .length > 0
+                    getMatching(
+                        // TODO: This is horrifically inefficient
+                        stringArrayToNamespaces([
+                            ...globalData.registries["minecraft:entity_type"]
+                        ]),
+                        convertToNamespace(s)
+                    ).length > 0
             ),
         path: ["tags", "entity_types"]
     },
@@ -155,8 +160,12 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 "fluid_tags",
                 getResourcesSplit("fluid_tags", globalData, packsInfo),
                 s =>
-                    getMatching(namespacedFluids, convertToNamespace(s))
-                        .length > 0
+                    getMatching(
+                        stringArrayToNamespaces([
+                            ...globalData.registries["minecraft:entity_type"]
+                        ]),
+                        convertToNamespace(s)
+                    ).length > 0
             ),
         path: ["tags", "fluids"]
     },

@@ -3,11 +3,24 @@ import { NamespaceListParser } from "../../../parsers/minecraft/namespace-list";
 import { testParser } from "../../assertions";
 
 const parser = new NamespaceListParser(
-    ["minecraft:test", "minecraft:test2", "minecraft:other", "something:hello"],
+    "minecraft:biome",
     new CommandErrorBuilder("namespace.test.unknown", "Unkown")
 );
 
-const tester = testParser(parser)();
+const tester = testParser(parser)({
+    data: {
+        globalData: {
+            registries: {
+                "minecraft:biome": [
+                    "minecraft:test",
+                    "minecraft:test2",
+                    "minecraft:other",
+                    "something:hello"
+                ]
+            }
+        }
+    }
+} as any);
 
 describe("NamespaceListParser", () => {
     it("should allow a known namespace", () => {

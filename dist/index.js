@@ -332,45 +332,7 @@ function getMatching(resources, value) {
 }
 
 exports.getMatching = getMatching;
-},{"./namespace":"CWtC"}],"cNAA":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-function createExtensionFileError(filePath, expected, actual) {
-  return {
-    filePath,
-    group: "extension",
-    kind: "FileError",
-    message: `File has incorrect extension: Expected ${expected}, got ${actual}.`
-  };
-}
-
-exports.createExtensionFileError = createExtensionFileError;
-
-function createJSONFileError(filePath, error) {
-  return {
-    filePath,
-    group: "json",
-    kind: "FileError",
-    message: `JSON parsing failed: '${error}'`
-  };
-}
-
-exports.createJSONFileError = createJSONFileError;
-
-function createFileClear(filePath, group) {
-  return {
-    kind: "ClearError",
-    filePath,
-    group
-  };
-}
-
-exports.createFileClear = createFileClear;
-},{}],"aP4V":[function(require,module,exports) {
+},{"./namespace":"CWtC"}],"aP4V":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -432,7 +394,200 @@ function fillBlankError(err, start, end) {
 }
 
 exports.fillBlankError = fillBlankError;
-},{"../misc-functions":"KBGm"}],"UL96":[function(require,module,exports) {
+},{"../misc-functions":"KBGm"}],"AgEN":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const __1 = require("..");
+
+const errors_1 = require("../../brigadier/errors");
+
+const consts_1 = require("../../consts");
+
+const namespace_1 = require("../namespace");
+
+const NAMESPACEEXCEPTIONS = {
+  invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "The seperator '%s' should not be repeated in the ID '%s'")
+};
+exports.namespaceChars = /^[0-9a-z_:/\.-]$/;
+const allowedInSections = /^[0-9a-z_/\.-]$/;
+
+function stringArrayToNamespaces(strings) {
+  // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
+  return strings.map(v => __1.convertToNamespace(v));
+}
+
+exports.stringArrayToNamespaces = stringArrayToNamespaces;
+
+function readNamespaceText(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
+  let found = false;
+  return reader.readWhileFunction(c => {
+    if (c === seperator) {
+      if (found && stopAfterFirst) {
+        return false;
+      }
+
+      found = true;
+      return true;
+    }
+
+    return allowedInSections.test(c);
+  });
+}
+
+exports.readNamespaceText = readNamespaceText;
+/**
+ * Does `base`(eg minecraft:stone) start with `test` (e.g. sto) [Y]
+ */
+
+function namespaceStart(base, test) {
+  if (test.namespace === undefined) {
+    return namespace_1.isNamespaceDefault(base) && base.path.startsWith(test.path) || !!base.namespace && base.namespace.startsWith(test.path);
+  } else {
+    return namespace_1.namesEqual(base, test) && base.path.startsWith(test.path);
+  }
+}
+
+exports.namespaceStart = namespaceStart;
+
+function namespaceSuggestions(options, value, start) {
+  const result = [];
+
+  for (const option of options) {
+    if (namespaceStart(option, value)) {
+      result.push({
+        text: __1.stringifyNamespace(option),
+        start
+      });
+    }
+  }
+
+  return result;
+}
+
+exports.namespaceSuggestions = namespaceSuggestions;
+
+function namespaceSuggestionString(options, value, start) {
+  return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
+}
+
+exports.namespaceSuggestionString = namespaceSuggestionString;
+
+function parseNamespace(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
+  const helper = new __1.ReturnHelper();
+  const start = reader.cursor;
+  const text = readNamespaceText(reader, seperator, stopAfterFirst);
+
+  const namespace = __1.convertToNamespace(text, seperator);
+
+  let next = 0;
+  let failed = false; // Give an error for each invalid character
+
+  while (true) {
+    next = namespace.path.indexOf(seperator, next + 1);
+
+    if (next !== -1) {
+      const i = text.indexOf(seperator) + 1 + next + start;
+      failed = true;
+      helper.addErrors(NAMESPACEEXCEPTIONS.invalid_id.create(i, i + seperator.length, seperator, text));
+    } else {
+      break;
+    }
+  }
+
+  if (failed) {
+    return helper.fail();
+  } else {
+    return helper.succeed(namespace);
+  }
+}
+
+exports.parseNamespace = parseNamespace;
+
+function parseNamespaceOption(reader, options, completionKind, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
+  const helper = new __1.ReturnHelper();
+  const start = reader.cursor;
+  const namespace = parseNamespace(reader, seperator, stopAfterFirst);
+
+  if (helper.merge(namespace)) {
+    const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind, seperator);
+    helper.merge(results);
+
+    if (results.data.length > 0) {
+      return helper.succeed({
+        literal: namespace.data,
+        values: results.data
+      });
+    } else {
+      return helper.failWithData(namespace.data);
+    }
+  } else {
+    return helper.failWithData(undefined);
+  }
+}
+
+exports.parseNamespaceOption = parseNamespaceOption;
+
+function processParsedNamespaceOption(namespace, options, suggest, start, completionKind, seperator = consts_1.NAMESPACE) {
+  const results = [];
+  const helper = new __1.ReturnHelper();
+
+  for (const val of options) {
+    if (__1.namespacesEqual(val, namespace)) {
+      results.push(val);
+    }
+
+    if (suggest && namespaceStart(val, namespace)) {
+      helper.addSuggestion(start, __1.stringifyNamespace(val, seperator), completionKind);
+    }
+  }
+
+  return helper.succeed(results);
+}
+
+exports.processParsedNamespaceOption = processParsedNamespaceOption;
+},{"..":"KBGm","../../brigadier/errors":"aP4V","../../consts":"xb+0","../namespace":"CWtC"}],"cNAA":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function createExtensionFileError(filePath, expected, actual) {
+  return {
+    filePath,
+    group: "extension",
+    kind: "FileError",
+    message: `File has incorrect extension: Expected ${expected}, got ${actual}.`
+  };
+}
+
+exports.createExtensionFileError = createExtensionFileError;
+
+function createJSONFileError(filePath, error) {
+  return {
+    filePath,
+    group: "json",
+    kind: "FileError",
+    message: `JSON parsing failed: '${error}'`
+  };
+}
+
+exports.createJSONFileError = createJSONFileError;
+
+function createFileClear(filePath, group) {
+  return {
+    kind: "ClearError",
+    filePath,
+    group
+  };
+}
+
+exports.createFileClear = createFileClear;
+},{}],"UL96":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -781,11 +936,11 @@ const defaultPath = tslib_1.__importStar(require("path"));
 
 const consts_1 = require("../consts");
 
-const misc_functions_1 = require("../misc-functions");
-
 const group_resources_1 = require("./group-resources");
 
 const namespace_1 = require("./namespace");
+
+const namespace_2 = require("./parsing/namespace");
 
 const promisified_fs_1 = require("./promisified-fs");
 
@@ -881,12 +1036,13 @@ exports.resourceTypes = {
   },
   entity_tags: {
     extension: ".json",
-    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "entity_tags", group_resources_1.getResourcesSplit("entity_tags", globalData, packsInfo), s => group_resources_1.getMatching(misc_functions_1.namespacedEntities, namespace_1.convertToNamespace(s)).length > 0),
+    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "entity_tags", group_resources_1.getResourcesSplit("entity_tags", globalData, packsInfo), s => group_resources_1.getMatching( // TODO: This is horrifically inefficient
+    namespace_2.stringArrayToNamespaces([...globalData.registries["minecraft:entity_type"]]), namespace_1.convertToNamespace(s)).length > 0),
     path: ["tags", "entity_types"]
   },
   fluid_tags: {
     extension: ".json",
-    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "fluid_tags", group_resources_1.getResourcesSplit("fluid_tags", globalData, packsInfo), s => group_resources_1.getMatching(misc_functions_1.namespacedFluids, namespace_1.convertToNamespace(s)).length > 0),
+    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "fluid_tags", group_resources_1.getResourcesSplit("fluid_tags", globalData, packsInfo), s => group_resources_1.getMatching(namespace_2.stringArrayToNamespaces([...globalData.registries["minecraft:entity_type"]]), namespace_1.convertToNamespace(s)).length > 0),
     path: ["tags", "fluids"]
   },
   function_tags: {
@@ -1033,7 +1189,7 @@ async function readTag(resource, packRoot, type, options, isKnown) {
 
   return helper.succeed(resource);
 }
-},{"../consts":"xb+0","../misc-functions":"KBGm","./group-resources":"23cw","./namespace":"CWtC","./promisified-fs":"tSk9","./return-helper":"p3gl","./third_party/typed-keys":"kca+"}],"4xli":[function(require,module,exports) {
+},{"../consts":"xb+0","./group-resources":"23cw","./namespace":"CWtC","./parsing/namespace":"AgEN","./promisified-fs":"tSk9","./return-helper":"p3gl","./third_party/typed-keys":"kca+"}],"4xli":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1347,192 +1503,7 @@ function setup_logging(connection) {
 }
 
 exports.setup_logging = setup_logging;
-},{}],"Td8d":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.COLORS = ["black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue", "green", "aqua", "red", "light_purple", "yellow", "white", "reset"];
-},{}],"e3ir":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const colors_1 = require("../../colors");
-
-exports.anchors = ["feet", "eyes"];
-exports.operations = ["+=", "-=", "*=", "/=", "%=", "=", ">", "<", "><"];
-exports.colors = colors_1.COLORS;
-exports.effects = ["minecraft:speed", "minecraft:slowness", "minecraft:haste", "minecraft:mining_fatigue", "minecraft:strength", "minecraft:instant_health", "minecraft:instant_damage", "minecraft:jump_boost", "minecraft:nausea", "minecraft:regeneration", "minecraft:resistance", "minecraft:fire_resistance", "minecraft:water_breathing", "minecraft:invisibility", "minecraft:blindness", "minecraft:night_vision", "minecraft:hunger", "minecraft:weakness", "minecraft:poison", "minecraft:wither", "minecraft:health_boost", "minecraft:absorption", "minecraft:saturation", "minecraft:glowing", "minecraft:levitation", "minecraft:luck", "minecraft:unluck", "minecraft:slow_falling", "minecraft:conduit_power", "minecraft:dolphins_grace"];
-exports.enchantments = ["minecraft:protection", "minecraft:fire_protection", "minecraft:feather_falling", "minecraft:blast_protection", "minecraft:projectile_protection", "minecraft:respiration", "minecraft:aqua_affinity", "minecraft:thorns", "minecraft:depth_strider", "minecraft:frost_walker", "minecraft:binding_curse", "minecraft:sharpness", "minecraft:smite", "minecraft:bane_of_arthropods", "minecraft:knockback", "minecraft:fire_aspect", "minecraft:looting", "minecraft:sweeping", "minecraft:efficiency", "minecraft:silk_touch", "minecraft:unbreaking", "minecraft:fortune", "minecraft:power", "minecraft:punch", "minecraft:flame", "minecraft:infinity", "minecraft:luck_of_the_sea", "minecraft:lure", "minecraft:loyalty", "minecraft:impaling", "minecraft:riptide", "minecraft:channeling", "minecraft:mending", "minecraft:vanishing_curse"];
-exports.particles = ["minecraft:ambient_entity_effect", "minecraft:angry_villager", "minecraft:barrier", "minecraft:block", "minecraft:bubble", "minecraft:cloud", "minecraft:crit", "minecraft:damage_indicator", "minecraft:dragon_breath", "minecraft:dripping_lava", "minecraft:dripping_water", "minecraft:dust", "minecraft:effect", "minecraft:elder_guardian", "minecraft:enchanted_hit", "minecraft:enchant", "minecraft:end_rod", "minecraft:entity_effect", "minecraft:explosion_emitter", "minecraft:explosion", "minecraft:falling_dust", "minecraft:firework", "minecraft:fishing", "minecraft:flame", "minecraft:happy_villager", "minecraft:heart", "minecraft:instant_effect", "minecraft:item", "minecraft:item_slime", "minecraft:item_snowball", "minecraft:large_smoke", "minecraft:lava", "minecraft:mycelium", "minecraft:note", "minecraft:poof", "minecraft:portal", "minecraft:rain", "minecraft:smoke", "minecraft:spit", "minecraft:squid_ink", "minecraft:sweep_attack", "minecraft:totem_of_undying", "minecraft:underwater", "minecraft:splash", "minecraft:witch", "minecraft:bubble_pop", "minecraft:current_down", "minecraft:bubble_column_up", "minecraft:nautilus"];
-exports.entities = ["area_effect_cloud", "armor_stand", "arrow", "bat", "blaze", "boat", "cave_spider", "chicken", "cod", "cow", "creeper", "donkey", "dolphin", "dragon_fireball", "drowned", "elder_guardian", "end_crystal", "ender_dragon", "enderman", "endermite", "evoker_fangs", "evoker", "experience_orb", "eye_of_ender", "falling_block", "firework_rocket", "ghast", "giant", "guardian", "horse", "husk", "illusioner", "item", "item_frame", "fireball", "leash_knot", "llama", "llama_spit", "magma_cube", "minecart", "chest_minecart", "command_block_minecart", "furnace_minecart", "hopper_minecart", "spawner_minecart", "tnt_minecart", "mule", "mooshroom", "ocelot", "painting", "parrot", "pig", "pufferfish", "zombie_pigman", "polar_bear", "tnt", "rabbit", "salmon", "sheep", "shulker", "shulker_bullet", "silverfish", "skeleton", "skeleton_horse", "slime", "small_fireball", "snow_golem", "snowball", "spectral_arrow", "spider", "squid", "stray", "tropical_fish", "turtle", "egg", "ender_pearl", "experience_bottle", "potion", "vex", "villager", "iron_golem", "vindicator", "witch", "wither", "wither_skeleton", "wither_skull", "wolf", "zombie", "zombie_horse", "zombie_villager", "phantom", "lightning_bolt", "trident"];
-exports.fluids = ["minecraft:water", "minecraft:lava"];
-exports.dimensions = ["overworld", "the_nether", "the_end"];
-},{"../../colors":"Td8d"}],"AgEN":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const __1 = require("..");
-
-const errors_1 = require("../../brigadier/errors");
-
-const consts_1 = require("../../consts");
-
-const statics_1 = require("../../data/lists/statics");
-
-const namespace_1 = require("../namespace");
-
-const NAMESPACEEXCEPTIONS = {
-  invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "The seperator '%s' should not be repeated in the ID '%s'")
-};
-exports.namespaceChars = /^[0-9a-z_:/\.-]$/;
-const allowedInSections = /^[0-9a-z_/\.-]$/;
-
-function stringArrayToNamespaces(strings) {
-  // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
-  return strings.map(v => __1.convertToNamespace(v));
-}
-
-exports.stringArrayToNamespaces = stringArrayToNamespaces; // This should be in lists/statics, but that creates a dependency loop
-
-exports.namespacedEntities = stringArrayToNamespaces(statics_1.entities);
-exports.namespacedFluids = stringArrayToNamespaces(statics_1.fluids);
-
-function readNamespaceText(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
-  let found = false;
-  return reader.readWhileFunction(c => {
-    if (c === seperator) {
-      if (found && stopAfterFirst) {
-        return false;
-      }
-
-      found = true;
-      return true;
-    }
-
-    return allowedInSections.test(c);
-  });
-}
-
-exports.readNamespaceText = readNamespaceText;
-/**
- * Does `base`(eg minecraft:stone) start with `test` (e.g. sto) [Y]
- */
-
-function namespaceStart(base, test) {
-  if (test.namespace === undefined) {
-    return namespace_1.isNamespaceDefault(base) && base.path.startsWith(test.path) || !!base.namespace && base.namespace.startsWith(test.path);
-  } else {
-    return namespace_1.namesEqual(base, test) && base.path.startsWith(test.path);
-  }
-}
-
-exports.namespaceStart = namespaceStart;
-
-function namespaceSuggestions(options, value, start) {
-  const result = [];
-
-  for (const option of options) {
-    if (namespaceStart(option, value)) {
-      result.push({
-        text: __1.stringifyNamespace(option),
-        start
-      });
-    }
-  }
-
-  return result;
-}
-
-exports.namespaceSuggestions = namespaceSuggestions;
-
-function namespaceSuggestionString(options, value, start) {
-  return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
-}
-
-exports.namespaceSuggestionString = namespaceSuggestionString;
-
-function parseNamespace(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
-  const helper = new __1.ReturnHelper();
-  const start = reader.cursor;
-  const text = readNamespaceText(reader, seperator, stopAfterFirst);
-
-  const namespace = __1.convertToNamespace(text, seperator);
-
-  let next = 0;
-  let failed = false; // Give an error for each invalid character
-
-  while (true) {
-    next = namespace.path.indexOf(seperator, next + 1);
-
-    if (next !== -1) {
-      const i = text.indexOf(seperator) + 1 + next + start;
-      failed = true;
-      helper.addErrors(NAMESPACEEXCEPTIONS.invalid_id.create(i, i + seperator.length, seperator, text));
-    } else {
-      break;
-    }
-  }
-
-  if (failed) {
-    return helper.fail();
-  } else {
-    return helper.succeed(namespace);
-  }
-}
-
-exports.parseNamespace = parseNamespace;
-
-function parseNamespaceOption(reader, options, completionKind, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
-  const helper = new __1.ReturnHelper();
-  const start = reader.cursor;
-  const namespace = parseNamespace(reader, seperator, stopAfterFirst);
-
-  if (helper.merge(namespace)) {
-    const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind, seperator);
-    helper.merge(results);
-
-    if (results.data.length > 0) {
-      return helper.succeed({
-        literal: namespace.data,
-        values: results.data
-      });
-    } else {
-      return helper.failWithData(namespace.data);
-    }
-  } else {
-    return helper.failWithData(undefined);
-  }
-}
-
-exports.parseNamespaceOption = parseNamespaceOption;
-
-function processParsedNamespaceOption(namespace, options, suggest, start, completionKind, seperator = consts_1.NAMESPACE) {
-  const results = [];
-  const helper = new __1.ReturnHelper();
-
-  for (const val of options) {
-    if (__1.namespacesEqual(val, namespace)) {
-      results.push(val);
-    }
-
-    if (suggest && namespaceStart(val, namespace)) {
-      helper.addSuggestion(start, __1.stringifyNamespace(val, seperator), completionKind);
-    }
-  }
-
-  return helper.succeed(results);
-}
-
-exports.processParsedNamespaceOption = processParsedNamespaceOption;
-},{"..":"KBGm","../../brigadier/errors":"aP4V","../../consts":"xb+0","../../data/lists/statics":"e3ir","../namespace":"CWtC"}],"lcVC":[function(require,module,exports) {
+},{}],"lcVC":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5095,13 +5066,11 @@ Object.defineProperty(exports, "__esModule", {
 
 const errors_1 = require("../../brigadier/errors");
 
-const statics_1 = require("../../data/lists/statics");
-
 const misc_functions_1 = require("../../misc-functions");
 
 class NamespaceListParser {
-  constructor(options, errorBuilder, context) {
-    this.options = options;
+  constructor(registryType, errorBuilder, context) {
+    this.registryType = registryType;
     this.error = errorBuilder;
     this.resultFunction = context;
   }
@@ -5109,7 +5078,7 @@ class NamespaceListParser {
   parse(reader, info) {
     const helper = new misc_functions_1.ReturnHelper(info);
     const start = reader.cursor;
-    const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces(this.options));
+    const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries[this.registryType]]));
 
     if (helper.merge(result)) {
       if (this.resultFunction) {
@@ -5131,18 +5100,18 @@ class NamespaceListParser {
 
 exports.NamespaceListParser = NamespaceListParser;
 exports.summonError = new errors_1.CommandErrorBuilder("entity.notFound", "Unknown entity: %s");
-exports.summonParser = new NamespaceListParser(statics_1.entities, exports.summonError, (context, ids) => context.otherEntity = {
+exports.summonParser = new NamespaceListParser("minecraft:entity_type", exports.summonError, (context, ids) => context.otherEntity = {
   ids
 });
 const enchantmentError = new errors_1.CommandErrorBuilder("enchantment.unknown", "Unknown enchantment: %s");
-exports.enchantmentParser = new NamespaceListParser(statics_1.enchantments, enchantmentError);
+exports.enchantmentParser = new NamespaceListParser("minecraft:enchantment", enchantmentError);
 const mobEffectError = new errors_1.CommandErrorBuilder("effect.effectNotFound", "Unknown effect: %s");
-exports.mobEffectParser = new NamespaceListParser(statics_1.effects, mobEffectError);
+exports.mobEffectParser = new NamespaceListParser("minecraft:mob_effect", mobEffectError);
 const particleError = new errors_1.CommandErrorBuilder("particle.notFound", "Unknown particle: %s");
-exports.particleParser = new NamespaceListParser(statics_1.particles, particleError);
+exports.particleParser = new NamespaceListParser("minecraft:particle_type", particleError);
 const dimensionError = new errors_1.CommandErrorBuilder("argument.dimension.invalid", "Unknown dimension: '%s'");
-exports.dimensionParser = new NamespaceListParser(statics_1.dimensions, dimensionError);
-},{"../../brigadier/errors":"aP4V","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm"}],"1Kfp":[function(require,module,exports) {
+exports.dimensionParser = new NamespaceListParser("minecraft:dimension_type", dimensionError);
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"1Kfp":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -5896,7 +5865,7 @@ exports.argParsers = {
     }
 
     if (!parsedType.data.resolved) {
-      const postProcess = misc_functions_1.processParsedNamespaceOption(parsedType.data.parsed, misc_functions_1.namespacedEntities, info.suggesting && !reader.canRead(), start, vscode_languageserver_1.CompletionItemKind.Event);
+      const postProcess = misc_functions_1.processParsedNamespaceOption(parsedType.data.parsed, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:entity_type"]]), info.suggesting && !reader.canRead(), start, vscode_languageserver_1.CompletionItemKind.Event);
       helper.merge(postProcess);
 
       if (postProcess.data.length === 0) {
@@ -6258,7 +6227,14 @@ class ItemParser {
 exports.ItemParser = ItemParser;
 exports.stack = new ItemParser(false);
 exports.predicate = new ItemParser(true);
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/nbt":"JpDU"}],"TytA":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/nbt":"JpDU"}],"Td8d":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.COLORS = ["black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold", "gray", "dark_gray", "blue", "green", "aqua", "red", "light_purple", "yellow", "white", "reset"];
+},{}],"TytA":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -6320,6 +6296,18 @@ function createSlots() {
 
   return slots;
 }
+},{"../../colors":"Td8d"}],"e3ir":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const colors_1 = require("../../colors");
+
+exports.anchors = ["feet", "eyes"];
+exports.operations = ["+=", "-=", "*=", "/=", "%=", "=", ">", "<", "><"];
+exports.colors = colors_1.COLORS;
 },{"../../colors":"Td8d"}],"kr6k":[function(require,module,exports) {
 "use strict";
 
