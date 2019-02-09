@@ -7,6 +7,9 @@ import {
 import { testParser } from "../../assertions";
 
 const global: GlobalData = {
+    meta_info: {
+        version: "3"
+    },
     registries: {
         "minecraft:item": new Set([
             "test:item_one",
@@ -17,9 +20,6 @@ const global: GlobalData = {
             "minecraft:apple",
             "minecraft:coal"
         ])
-    },
-    meta_info: {
-        version: "3"
     },
     resources: {
         item_tags: [
