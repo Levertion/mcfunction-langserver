@@ -1405,9 +1405,15 @@ exports.stringArrayToNamespaces = stringArrayToNamespaces; // This should be in 
 exports.namespacedEntities = stringArrayToNamespaces(statics_1.entities);
 exports.namespacedFluids = stringArrayToNamespaces(statics_1.fluids);
 
-function readNamespaceText(reader, seperator = consts_1.NAMESPACE) {
+function readNamespaceText(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
+  let found = false;
   return reader.readWhileFunction(c => {
     if (c === seperator) {
+      if (found && stopAfterFirst) {
+        return false;
+      }
+
+      found = true;
       return true;
     }
 
@@ -1453,10 +1459,10 @@ function namespaceSuggestionString(options, value, start) {
 
 exports.namespaceSuggestionString = namespaceSuggestionString;
 
-function parseNamespace(reader, seperator = consts_1.NAMESPACE) {
+function parseNamespace(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
   const helper = new __1.ReturnHelper();
   const start = reader.cursor;
-  const text = readNamespaceText(reader, seperator);
+  const text = readNamespaceText(reader, seperator, stopAfterFirst);
 
   const namespace = __1.convertToNamespace(text, seperator);
 
@@ -1484,13 +1490,13 @@ function parseNamespace(reader, seperator = consts_1.NAMESPACE) {
 
 exports.parseNamespace = parseNamespace;
 
-function parseNamespaceOption(reader, options, completionKind, seperator = consts_1.NAMESPACE) {
+function parseNamespaceOption(reader, options, completionKind, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
   const helper = new __1.ReturnHelper();
   const start = reader.cursor;
-  const namespace = parseNamespace(reader, seperator);
+  const namespace = parseNamespace(reader, seperator, stopAfterFirst);
 
   if (helper.merge(namespace)) {
-    const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind);
+    const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind, seperator);
     helper.merge(results);
 
     if (results.data.length > 0) {
@@ -6756,9 +6762,9 @@ const misc_functions_1 = require("../../misc-functions");
 
 exports.verbatimCriteria = new Set(["air", "armor", "deathCount", "dummy", "food", "health", "level", "playerKillCount", "totalKillCount", "trigger", "xp"]);
 exports.colorCriteria = ["teamkill.", "killedByTeam."];
-exports.itemCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft.broken", "minecraft.crafted", "minecraft.dropped", "minecraft.picked_up", "minecraft.used"]);
-exports.blockCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft.mined"]);
-exports.entityCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft.killed_by", "minecraft.killed"]);
+exports.itemCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft:broken", "minecraft:crafted", "minecraft:dropped", "minecraft:picked_up", "minecraft:used"]);
+exports.blockCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft:mined"]);
+exports.entityCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft:killed_by", "minecraft:killed"]);
 },{"../../misc-functions":"KBGm"}],"tZ+1":[function(require,module,exports) {
 "use strict";
 
@@ -6912,7 +6918,7 @@ ${JSON.stringify(team, undefined, 4)}
   }
 };
 const UNKNOWN_CRITERIA = new errors_1.CommandErrorBuilder("argument.criteria.invalid", "Unknown criteria '%s'");
-const customPrefix = misc_functions_1.convertToNamespace("minecraft.custom");
+const customPrefix = misc_functions_1.convertToNamespace("minecraft:custom");
 exports.criteriaParser = {
   parse: (reader, info) => {
     // tslint:disable:no-shadowed-variable
@@ -6924,14 +6930,14 @@ exports.criteriaParser = {
     }, vscode_languageserver_1.CompletionItemKind.EnumMember);
     const text = optionResult.data;
 
+    if (!text) {
+      return helper.fail(); // `unreachable!()`
+    }
+
     if (helper.merge(optionResult)) {
       if (criteria_1.verbatimCriteria.has(optionResult.data)) {
         return helper.succeed();
       }
-    }
-
-    if (!text) {
-      return helper.fail(); // `unreachable!()`
     }
 
     for (const choice of criteria_1.colorCriteria) {
@@ -6949,14 +6955,23 @@ exports.criteriaParser = {
     }
 
     const namespaceCriteria = [...criteria_1.blockCriteria, ...criteria_1.entityCriteria, ...criteria_1.itemCriteria, customPrefix];
-    const res = misc_functions_1.parseNamespaceOption(reader, namespaceCriteria, vscode_languageserver_1.CompletionItemKind.Module, ".");
+    reader.cursor = start;
+    const res = misc_functions_1.parseNamespaceOption(reader, namespaceCriteria, vscode_languageserver_1.CompletionItemKind.Module, ".", true);
 
     if (!helper.merge(res)) {
+      reader.readUntilRegexp(/\s/);
+      helper.addErrors(UNKNOWN_CRITERIA.create(start, reader.cursor, text));
       return helper.fail();
     }
 
     const data = res.data;
-    reader.skip();
+
+    if (reader.read() !== ":") {
+      reader.readUntilRegexp(/\s/);
+      helper.addErrors(UNKNOWN_CRITERIA.create(start, reader.cursor, text));
+      return helper.succeed();
+    }
+
     const postStart = reader.cursor;
 
     for (const choice of criteria_1.entityCriteria) {

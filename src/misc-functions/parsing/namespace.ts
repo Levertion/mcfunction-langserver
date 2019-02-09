@@ -34,10 +34,16 @@ export const namespacedFluids = stringArrayToNamespaces(fluids);
 
 export function readNamespaceText(
     reader: StringReader,
-    seperator: string = NAMESPACE
+    seperator: string = NAMESPACE,
+    stopAfterFirst: boolean = false
 ): string {
+    let found = false;
     return reader.readWhileFunction(c => {
         if (c === seperator) {
+            if (found && stopAfterFirst) {
+                return false;
+            }
+            found = true;
             return true;
         }
         return allowedInSections.test(c);
@@ -85,11 +91,12 @@ export function namespaceSuggestionString(
 
 export function parseNamespace(
     reader: StringReader,
-    seperator: string = NAMESPACE
+    seperator: string = NAMESPACE,
+    stopAfterFirst: boolean = false
 ): ReturnedInfo<NamespacedName> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
-    const text = readNamespaceText(reader, seperator);
+    const text = readNamespaceText(reader, seperator, stopAfterFirst);
     const namespace = convertToNamespace(text, seperator);
     let next = 0;
     let failed = false;
@@ -127,18 +134,20 @@ export function parseNamespaceOption<T extends NamespacedName>(
     reader: StringReader,
     options: T[],
     completionKind?: CompletionItemKind,
-    seperator: string = NAMESPACE
+    seperator: string = NAMESPACE,
+    stopAfterFirst: boolean = false
 ): ReturnedInfo<OptionResult<T>, CE, NamespacedName | undefined> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
-    const namespace = parseNamespace(reader, seperator);
+    const namespace = parseNamespace(reader, seperator, stopAfterFirst);
     if (helper.merge(namespace)) {
         const results = processParsedNamespaceOption(
             namespace.data,
             options,
             !reader.canRead(),
             start,
-            completionKind
+            completionKind,
+            seperator
         );
         helper.merge(results);
         if (results.data.length > 0) {

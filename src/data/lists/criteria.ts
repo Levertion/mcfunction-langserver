@@ -17,16 +17,16 @@ export const verbatimCriteria = new Set([
 export const colorCriteria = ["teamkill.", "killedByTeam."];
 
 export const itemCriteria = stringArrayToNamespaces([
-    "minecraft.broken",
-    "minecraft.crafted",
-    "minecraft.dropped",
-    "minecraft.picked_up",
-    "minecraft.used"
+    "minecraft:broken",
+    "minecraft:crafted",
+    "minecraft:dropped",
+    "minecraft:picked_up",
+    "minecraft:used"
 ]);
 
-export const blockCriteria = stringArrayToNamespaces(["minecraft.mined"]);
+export const blockCriteria = stringArrayToNamespaces(["minecraft:mined"]);
 
 export const entityCriteria = stringArrayToNamespaces([
-    "minecraft.killed_by",
-    "minecraft.killed"
+    "minecraft:killed_by",
+    "minecraft:killed"
 ]);

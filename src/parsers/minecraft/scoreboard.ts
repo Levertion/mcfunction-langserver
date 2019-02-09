@@ -174,7 +174,7 @@ const UNKNOWN_CRITERIA = new CommandErrorBuilder(
     "Unknown criteria '%s'"
 );
 
-const customPrefix = convertToNamespace("minecraft.custom");
+const customPrefix = convertToNamespace("minecraft:custom");
 export const criteriaParser: Parser = {
     parse: (reader, info) => {
         // tslint:disable:no-shadowed-variable
@@ -189,13 +189,13 @@ export const criteriaParser: Parser = {
             CompletionItemKind.EnumMember
         );
         const text = optionResult.data;
+        if (!text) {
+            return helper.fail(); // `unreachable!()`
+        }
         if (helper.merge(optionResult)) {
             if (verbatimCriteria.has(optionResult.data)) {
                 return helper.succeed();
             }
-        }
-        if (!text) {
-            return helper.fail(); // `unreachable!()`
         }
 
         for (const choice of colorCriteria) {
@@ -221,17 +221,29 @@ export const criteriaParser: Parser = {
             ...itemCriteria,
             customPrefix
         ];
+        reader.cursor = start;
         const res = parseNamespaceOption(
             reader,
             namespaceCriteria,
             CompletionItemKind.Module,
-            "."
+            ".",
+            true
         );
         if (!helper.merge(res)) {
+            reader.readUntilRegexp(/\s/);
+            helper.addErrors(
+                UNKNOWN_CRITERIA.create(start, reader.cursor, text)
+            );
             return helper.fail();
         }
         const data = res.data;
-        reader.skip();
+        if (reader.read() !== ":") {
+            reader.readUntilRegexp(/\s/);
+            helper.addErrors(
+                UNKNOWN_CRITERIA.create(start, reader.cursor, text)
+            );
+            return helper.succeed();
+        }
         const postStart = reader.cursor;
         for (const choice of entityCriteria) {
             reader.cursor = postStart;
