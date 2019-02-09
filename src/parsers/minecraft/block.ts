@@ -153,7 +153,10 @@ export function parseBlockArgument(
             }
             if (reader.peek() === "{") {
                 const nbt = validateParse(reader, info, {
-                    ids: (parsedResult.resolved || []).map(stringifyNamespace),
+                    // tslint:disable-next-line:no-unnecessary-callback-wrapper
+                    ids: (parsedResult.resolved || []).map(v =>
+                        stringifyNamespace(v)
+                    ),
                     kind: "block"
                 });
                 if (!helper.merge(nbt)) {

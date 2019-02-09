@@ -22,14 +22,21 @@ export function isNamespaceDefault(name: NamespacedName): boolean {
     return name.namespace === undefined || name.namespace === DEFAULT_NAMESPACE;
 }
 
-export function stringifyNamespace(namespace: NamespacedName): string {
+export function stringifyNamespace(
+    namespace: NamespacedName,
+    seperator: string = NAMESPACE
+): string {
     return (
         (namespace.namespace ? namespace.namespace : DEFAULT_NAMESPACE) +
-        NAMESPACE +
+        seperator +
         namespace.path
     );
 }
 
+/**
+ * Convert a string into a `NamespacedName`. This should only be called directly on strings which are known to be valid
+ * The behaviour on invalid strings is to leave the second seperator in the path
+ */
 export function convertToNamespace(
     input: string,
     splitChar: string = NAMESPACE
@@ -41,7 +48,7 @@ export function convertToNamespace(
             input.length
         );
         // Path contents should not have a : in the contents, however this is to be checked higher up.
-        // This simplifies using the parsed result when parsing options
+        // This simplifies using the parsed result when parsing known statics
 
         // Related: https://bugs.mojang.com/browse/MC-91245 (Fixed)
         if (index >= 1) {

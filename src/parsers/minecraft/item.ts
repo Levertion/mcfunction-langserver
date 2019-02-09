@@ -62,14 +62,22 @@ export class ItemParser implements Parser {
                 if (properties.suggesting && !reader.canRead()) {
                     helper.addSuggestions(
                         ...namespaceSuggestionString(
-                            properties.data.globalData.items,
+                            [
+                                ...properties.data.globalData.registries[
+                                    "minecraft:item"
+                                ]
+                            ],
                             parsed.data.parsed,
                             start
                         )
                     );
                 }
                 const name = stringifyNamespace(parsed.data.parsed);
-                if (properties.data.globalData.items.indexOf(name) < 0) {
+                if (
+                    !properties.data.globalData.registries[
+                        "minecraft:item"
+                    ].has(name)
+                ) {
                     helper.addErrors(
                         UNKNOWNITEM.create(start, reader.cursor, name)
                     );

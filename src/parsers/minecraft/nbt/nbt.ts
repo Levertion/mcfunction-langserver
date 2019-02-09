@@ -1,6 +1,6 @@
 import { CommandError } from "../../../brigadier/errors";
 import { StringReader } from "../../../brigadier/string-reader";
-import { ReturnHelper } from "../../../misc-functions";
+import { ReturnHelper, stringifyNamespace } from "../../../misc-functions";
 import { ContextPath, startPaths } from "../../../misc-functions/context";
 import {
     CommandContext,
@@ -39,7 +39,12 @@ const paths: Array<ContextPath<CtxPathFunc>> = [
     },
     {
         data: args => ({
-            ids: (args.otherEntity && args.otherEntity.ids) || [],
+            ids:
+                (args.otherEntity &&
+                    args.otherEntity.ids &&
+                    // tslint:disable-next-line:no-unnecessary-callback-wrapper
+                    args.otherEntity.ids.map(v => stringifyNamespace(v))) ||
+                [],
             kind: "entity"
         }),
         path: ["summon", "entity"]

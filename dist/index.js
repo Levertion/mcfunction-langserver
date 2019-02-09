@@ -239,18 +239,22 @@ function isNamespaceDefault(name) {
 
 exports.isNamespaceDefault = isNamespaceDefault;
 
-function stringifyNamespace(namespace) {
-  return (namespace.namespace ? namespace.namespace : consts_1.DEFAULT_NAMESPACE) + consts_1.NAMESPACE + namespace.path;
+function stringifyNamespace(namespace, seperator = consts_1.NAMESPACE) {
+  return (namespace.namespace ? namespace.namespace : consts_1.DEFAULT_NAMESPACE) + seperator + namespace.path;
 }
 
 exports.stringifyNamespace = stringifyNamespace;
+/**
+ * Convert a string into a `NamespacedName`. This should only be called directly on strings which are known to be valid
+ * The behaviour on invalid strings is to leave the second seperator in the path
+ */
 
 function convertToNamespace(input, splitChar = consts_1.NAMESPACE) {
   const index = input.indexOf(splitChar);
 
   if (index >= 0) {
     const pathContents = input.substring(index + splitChar.length, input.length); // Path contents should not have a : in the contents, however this is to be checked higher up.
-    // This simplifies using the parsed result when parsing options
+    // This simplifies using the parsed result when parsing known statics
     // Related: https://bugs.mojang.com/browse/MC-91245 (Fixed)
 
     if (index >= 1) {
@@ -899,7 +903,7 @@ exports.resourceTypes = {
   },
   item_tags: {
     extension: ".json",
-    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "item_tags", group_resources_1.getResourcesSplit("item_tags", globalData, packsInfo), s => globalData.items.indexOf(s) !== -1),
+    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "item_tags", group_resources_1.getResourcesSplit("item_tags", globalData, packsInfo), s => globalData.registries["minecraft:item"].has(s)),
     path: ["tags", "items"]
   },
   loot_tables: {
@@ -1186,34 +1190,53 @@ exports.cacheFolder = process.env.MCFUNCTION_CACHE_DIR;
 const cacheFileNames = {
   blocks: "blocks.json",
   commands: "commands.json",
-  items: "items.json",
   meta_info: "meta_info.json",
   resources: "resources.json"
 };
+const registriesCacheFile = "registries.json";
 
 async function readCache() {
   const data = {};
   const keys = typed_keys_1.typed_keys(cacheFileNames);
-  await Promise.all(keys.map(async key => {
-    data[key] = await promisified_fs_1.readJSONRaw(path.join(exports.cacheFolder, cacheFileNames[key]));
-  }));
+  await Promise.all([...keys.map(async key => {
+    const cacheDir = cacheFileNames[key];
+    data[key] = await promisified_fs_1.readJSONRaw(path.join(exports.cacheFolder, cacheDir));
+  }), readRegistries(data)]);
   return data;
 }
 
 exports.readCache = readCache;
 
+async function readRegistries(data) {
+  const read = await promisified_fs_1.readJSONRaw(path.join(exports.cacheFolder, registriesCacheFile));
+  data.registries = {};
+
+  for (const key of typed_keys_1.typed_keys(read)) {
+    data.registries[key] = new Set(read[key]);
+  }
+}
+
 async function cacheData(data) {
   try {
     await promisified_fs_1.mkdirAsync(exports.cacheFolder, "777");
-  } catch (_) {// Don't use the error, which is normally thrown if the folder doesn't exist
+  } catch (_) {// Don't use the error, which is normally thrown if the folder already exists
   }
 
   const keys = typed_keys_1.typed_keys(cacheFileNames);
-  await Promise.all(keys.map(async key => promisified_fs_1.writeJSON(path.join(exports.cacheFolder, cacheFileNames[key]), data[key])));
-  return;
+  await Promise.all([...keys.map(async key => promisified_fs_1.writeJSON(path.join(exports.cacheFolder, cacheFileNames[key]), data[key])), cacheRegistry(data.registries)]);
 }
 
 exports.cacheData = cacheData;
+
+async function cacheRegistry(registries) {
+  const toWrite = {};
+
+  for (const key of typed_keys_1.typed_keys(registries)) {
+    toWrite[key] = [...registries[key]];
+  }
+
+  await promisified_fs_1.writeJSON(path.join(exports.cacheFolder, registriesCacheFile), toWrite);
+}
 
 async function storeSecurity(security) {
   await promisified_fs_1.saveFileAsync(path.join(exports.cacheFolder, "security.json"), JSON.stringify(security));
@@ -1360,15 +1383,17 @@ const __1 = require("..");
 
 const errors_1 = require("../../brigadier/errors");
 
+const consts_1 = require("../../consts");
+
 const statics_1 = require("../../data/lists/statics");
 
 const namespace_1 = require("../namespace");
 
 const NAMESPACEEXCEPTIONS = {
-  invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "Invalid character '%s' in location %s")
+  invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "The seperator '%s' should not be repeated in the ID '%s'")
 };
-const disallowedPath = /[^0-9a-z_/\.-]/g;
 exports.namespaceChars = /^[0-9a-z_:/\.-]$/;
+const allowedInSections = /^[0-9a-z_/\.-]$/;
 
 function stringArrayToNamespaces(strings) {
   // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
@@ -1380,8 +1405,14 @@ exports.stringArrayToNamespaces = stringArrayToNamespaces; // This should be in 
 exports.namespacedEntities = stringArrayToNamespaces(statics_1.entities);
 exports.namespacedFluids = stringArrayToNamespaces(statics_1.fluids);
 
-function readNamespaceText(reader) {
-  return reader.readWhileRegexp(exports.namespaceChars);
+function readNamespaceText(reader, seperator = consts_1.NAMESPACE) {
+  return reader.readWhileFunction(c => {
+    if (c === seperator) {
+      return true;
+    }
+
+    return allowedInSections.test(c);
+  });
 }
 
 exports.readNamespaceText = readNamespaceText;
@@ -1422,26 +1453,27 @@ function namespaceSuggestionString(options, value, start) {
 
 exports.namespaceSuggestionString = namespaceSuggestionString;
 
-function parseNamespace(reader) {
+function parseNamespace(reader, seperator = consts_1.NAMESPACE) {
   const helper = new __1.ReturnHelper();
   const start = reader.cursor;
-  const text = readNamespaceText(reader);
+  const text = readNamespaceText(reader, seperator);
 
-  const namespace = __1.convertToNamespace(text);
+  const namespace = __1.convertToNamespace(text, seperator);
 
-  let next;
+  let next = 0;
   let failed = false; // Give an error for each invalid character
 
-  do {
-    next = disallowedPath.exec(namespace.path);
+  while (true) {
+    next = namespace.path.indexOf(seperator, next + 1);
 
-    if (next) {
-      // Relies on the fact that convertToNamespace splits on the first
-      const i = text.indexOf(":") + 1 + next.index + start;
+    if (next !== -1) {
+      const i = text.indexOf(seperator) + 1 + next + start;
       failed = true;
-      helper.addErrors(NAMESPACEEXCEPTIONS.invalid_id.create(i, i + 1, next[0], text));
+      helper.addErrors(NAMESPACEEXCEPTIONS.invalid_id.create(i, i + seperator.length, seperator, text));
+    } else {
+      break;
     }
-  } while (next);
+  }
 
   if (failed) {
     return helper.fail();
@@ -1452,10 +1484,10 @@ function parseNamespace(reader) {
 
 exports.parseNamespace = parseNamespace;
 
-function parseNamespaceOption(reader, options, completionKind) {
+function parseNamespaceOption(reader, options, completionKind, seperator = consts_1.NAMESPACE) {
   const helper = new __1.ReturnHelper();
   const start = reader.cursor;
-  const namespace = parseNamespace(reader);
+  const namespace = parseNamespace(reader, seperator);
 
   if (helper.merge(namespace)) {
     const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind);
@@ -1476,7 +1508,7 @@ function parseNamespaceOption(reader, options, completionKind) {
 
 exports.parseNamespaceOption = parseNamespaceOption;
 
-function processParsedNamespaceOption(namespace, options, suggest, start, completionKind) {
+function processParsedNamespaceOption(namespace, options, suggest, start, completionKind, seperator = consts_1.NAMESPACE) {
   const results = [];
   const helper = new __1.ReturnHelper();
 
@@ -1486,7 +1518,7 @@ function processParsedNamespaceOption(namespace, options, suggest, start, comple
     }
 
     if (suggest && namespaceStart(val, namespace)) {
-      helper.addSuggestion(start, __1.stringifyNamespace(val), completionKind);
+      helper.addSuggestion(start, __1.stringifyNamespace(val, seperator), completionKind);
     }
   }
 
@@ -1494,7 +1526,7 @@ function processParsedNamespaceOption(namespace, options, suggest, start, comple
 }
 
 exports.processParsedNamespaceOption = processParsedNamespaceOption;
-},{"..":"KBGm","../../brigadier/errors":"aP4V","../../data/lists/statics":"e3ir","../namespace":"CWtC"}],"lcVC":[function(require,module,exports) {
+},{"..":"KBGm","../../brigadier/errors":"aP4V","../../consts":"xb+0","../../data/lists/statics":"e3ir","../namespace":"CWtC"}],"lcVC":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -2354,17 +2386,53 @@ exports.blankproperties = {
   node_properties: {},
   path: ["test"]
 };
+const set = new Set();
 exports.emptyGlobal = {
   blocks: {},
   commands: {
     type: "root"
   },
-  items: [],
   jsonService: undefined,
   meta_info: {
     version: ""
   },
   nbt_docs: new Map(),
+  registries: {
+    // tslint:disable:object-literal-sort-keys - very little value
+    "minecraft:block": set,
+    "minecraft:fluid": set,
+    "minecraft:sound_event": set,
+    "minecraft:mob_effect": set,
+    "minecraft:enchantment": set,
+    "minecraft:entity_type": set,
+    "minecraft:item": set,
+    "minecraft:potion": set,
+    "minecraft:carver": set,
+    "minecraft:surface_builder": set,
+    "minecraft:feature": set,
+    "minecraft:decorator": set,
+    "minecraft:biome": set,
+    "minecraft:particle_type": set,
+    "minecraft:biome_source_type": set,
+    "minecraft:block_entity_type": set,
+    "minecraft:chunk_generator_type": set,
+    "minecraft:dimension_type": set,
+    "minecraft:motive": set,
+    "minecraft:custom_stat": set,
+    "minecraft:chunk_status": set,
+    "minecraft:structure_feature": set,
+    "minecraft:structure_piece": set,
+    "minecraft:rule_test": set,
+    "minecraft:structure_processor": set,
+    "minecraft:structure_pool_element": set,
+    "minecraft:menu": set,
+    "minecraft:recipe_type": set,
+    "minecraft:recipe_serializer": set,
+    "minecraft:stat_type": set,
+    "minecraft:villager_type": set,
+    "minecraft:villager_profession": set // tslint:enable:object-literal-sort-keys
+
+  },
   resources: {}
 };
 exports.blankRange = {
@@ -4374,7 +4442,8 @@ const paths = [{
   path: ["data", "merge", "block"]
 }, {
   data: args => ({
-    ids: args.otherEntity && args.otherEntity.ids || [],
+    ids: args.otherEntity && args.otherEntity.ids && // tslint:disable-next-line:no-unnecessary-callback-wrapper
+    args.otherEntity.ids.map(v => misc_functions_1.stringifyNamespace(v)) || [],
     kind: "entity"
   }),
   path: ["summon", "entity"] // TODO - handle nbt_tag in /data modify
@@ -4587,7 +4656,8 @@ function parseBlockArgument(reader, info, tags) {
 
       if (reader.peek() === "{") {
         const nbt = nbt_1.validateParse(reader, info, {
-          ids: (parsedResult.resolved || []).map(misc_functions_1.stringifyNamespace),
+          // tslint:disable-next-line:no-unnecessary-callback-wrapper
+          ids: (parsedResult.resolved || []).map(v => misc_functions_1.stringifyNamespace(v)),
           kind: "block"
         });
 
@@ -5056,7 +5126,7 @@ class NamespaceListParser {
 exports.NamespaceListParser = NamespaceListParser;
 exports.summonError = new errors_1.CommandErrorBuilder("entity.notFound", "Unknown entity: %s");
 exports.summonParser = new NamespaceListParser(statics_1.entities, exports.summonError, (context, ids) => context.otherEntity = {
-  ids: ids.map(misc_functions_1.stringifyNamespace)
+  ids
 });
 const enchantmentError = new errors_1.CommandErrorBuilder("enchantment.unknown", "Unknown enchantment: %s");
 exports.enchantmentParser = new NamespaceListParser(statics_1.enchantments, enchantmentError);
@@ -5836,8 +5906,9 @@ exports.argParsers = {
     const {
       set,
       unset
-    } = typeInfo;
-    const stringifiedTypes = parsedTypes.map(misc_functions_1.stringifyNamespace);
+    } = typeInfo; // tslint:disable-next-line:no-unnecessary-callback-wrapper
+
+    const stringifiedTypes = parsedTypes.map(v => misc_functions_1.stringifyNamespace(v));
 
     if (!negated) {
       if (stringifiedTypes.every(set.has.bind(set))) {
@@ -5922,7 +5993,8 @@ class EntityBase {
         s: {
           limit: 1,
           type: {
-            set: new Set((info.context.executor || {}).ids),
+            set: new Set( // tslint:disable-next-line:no-unnecessary-callback-wrapper
+            ((info.context.executor || {}).ids || []).map(v => misc_functions_1.stringifyNamespace(v))),
             unset: blankSet
           }
         }
@@ -6069,7 +6141,7 @@ function getContextChange(context, path) {
 
     for (const item of context.type.set.values()) {
       if (!context.type.unset.has(item)) {
-        result.push(item);
+        result.push(misc_functions_1.convertToNamespace(item));
       }
     }
 
@@ -6133,12 +6205,12 @@ class ItemParser {
         });
       } else {
         if (properties.suggesting && !reader.canRead()) {
-          helper.addSuggestions(...misc_functions_1.namespaceSuggestionString(properties.data.globalData.items, parsed.data.parsed, start));
+          helper.addSuggestions(...misc_functions_1.namespaceSuggestionString([...properties.data.globalData.registries["minecraft:item"]], parsed.data.parsed, start));
         }
 
         const name = misc_functions_1.stringifyNamespace(parsed.data.parsed);
 
-        if (properties.data.globalData.items.indexOf(name) < 0) {
+        if (!properties.data.globalData.registries["minecraft:item"].has(name)) {
           helper.addErrors(UNKNOWNITEM.create(start, reader.cursor, name));
         }
 
@@ -6350,7 +6422,8 @@ function entityDataPath(path) {
   return {
     data: c => ({
       contextInfo: {
-        ids: c.otherEntity && c.otherEntity.ids || "none",
+        ids: c.otherEntity && c.otherEntity.ids && // tslint:disable-next-line:no-unnecessary-callback-wrapper
+        c.otherEntity.ids.map(v => misc_functions_1.stringifyNamespace(v)) || "none",
         kind: "entity"
       },
       resultType: c.nbt_path
@@ -6678,12 +6751,15 @@ exports.resourceParser = {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.verbatimCriteria = ["air", "armor", "deathCount", "dummy", "food", "health", "level", "playerKillCount", "totalKillCount", "trigger", "xp", "minecraft.custom:minecraft.animals_bred", "minecraft.custom:minecraft.aviate_one_cm", "minecraft.custom:minecraft.boat_one_cm", "minecraft.custom:minecraft.clean_armor", "minecraft.custom:minecraft.clean_banner", "minecraft.custom:minecraft.clean_shulker_box", "minecraft.custom:minecraft.climb_one_cm", "minecraft.custom:minecraft.crouch_one_cm", "minecraft.custom:minecraft.damage_absorbed", "minecraft.custom:minecraft.damage_blocked_by_shield", "minecraft.custom:minecraft.damage_dealt", "minecraft.custom:minecraft.damage_dealt_absorbed", "minecraft.custom:minecraft.damage_dealt_resisted", "minecraft.custom:minecraft.damage_resisted", "minecraft.custom:minecraft.damage_taken", "minecraft.custom:minecraft.deaths", "minecraft.custom:minecraft.drop", "minecraft.custom:minecraft.eat_cake_slice", "minecraft.custom:minecraft.enchant_item", "minecraft.custom:minecraft.fall_one_cm", "minecraft.custom:minecraft.fill_cauldron", "minecraft.custom:minecraft.fish_caught", "minecraft.custom:minecraft.fly_one_cm", "minecraft.custom:minecraft.horse_one_cm", "minecraft.custom:minecraft.inspect_dispenser", "minecraft.custom:minecraft.inspect_dropper", "minecraft.custom:minecraft.inspect_hopper", "minecraft.custom:minecraft.interact_with_beacon", "minecraft.custom:minecraft.interact_with_brewingstand", "minecraft.custom:minecraft.interact_with_crafting_table", "minecraft.custom:minecraft.interact_with_furnace", "minecraft.custom:minecraft.jump", "minecraft.custom:minecraft.leave_game", "minecraft.custom:minecraft.minecart_one_cm", "minecraft.custom:minecraft.mob_kills", "minecraft.custom:minecraft.open_chest", "minecraft.custom:minecraft.open_enderchest", "minecraft.custom:minecraft.open_shulker_box", "minecraft.custom:minecraft.pig_one_cm", "minecraft.custom:minecraft.play_noteblock", "minecraft.custom:minecraft.play_one_minute", "minecraft.custom:minecraft.play_record", "minecraft.custom:minecraft.player_kills", "minecraft.custom:minecraft.pot_flower", "minecraft.custom:minecraft.sleep_in_bed", "minecraft.custom:minecraft.sneak_time", "minecraft.custom:minecraft.sprint_one_cm", "minecraft.custom:minecraft.swim_one_cm", "minecraft.custom:minecraft.talked_to_villager", "minecraft.custom:minecraft.time_since_death", "minecraft.custom:minecraft.time_since_rest", "minecraft.custom:minecraft.traded_with_villager", "minecraft.custom:minecraft.trigger_trapped_chest", "minecraft.custom:minecraft.tune_noteblock", "minecraft.custom:minecraft.use_cauldron", "minecraft.custom:minecraft.walk_on_water_one_cm", "minecraft.custom:minecraft.walk_one_cm", "minecraft.custom:minecraft.walk_under_water_one_cm"];
+
+const misc_functions_1 = require("../../misc-functions");
+
+exports.verbatimCriteria = new Set(["air", "armor", "deathCount", "dummy", "food", "health", "level", "playerKillCount", "totalKillCount", "trigger", "xp"]);
 exports.colorCriteria = ["teamkill.", "killedByTeam."];
-exports.itemCriteria = ["minecraft.broken:", "minecraft.crafted:", "minecraft.dropped:", "minecraft.picked_up:", "minecraft.used:"];
-exports.blockCriteria = ["minecraft.mined:"];
-exports.entityCriteria = ["minecraft.killed_by:", "minecraft.killed:"];
-},{}],"tZ+1":[function(require,module,exports) {
+exports.itemCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft.broken", "minecraft.crafted", "minecraft.dropped", "minecraft.picked_up", "minecraft.used"]);
+exports.blockCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft.mined"]);
+exports.entityCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft.killed_by", "minecraft.killed"]);
+},{"../../misc-functions":"KBGm"}],"tZ+1":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -6701,8 +6777,6 @@ const colors_1 = require("../../colors");
 const consts_1 = require("../../consts");
 
 const criteria_1 = require("../../data/lists/criteria");
-
-const statics_1 = require("../../data/lists/statics");
 
 const misc_functions_1 = require("../../misc-functions");
 
@@ -6838,18 +6912,20 @@ ${JSON.stringify(team, undefined, 4)}
   }
 };
 const UNKNOWN_CRITERIA = new errors_1.CommandErrorBuilder("argument.criteria.invalid", "Unknown criteria '%s'");
+const customPrefix = misc_functions_1.convertToNamespace("minecraft.custom");
 exports.criteriaParser = {
   parse: (reader, info) => {
+    // tslint:disable:no-shadowed-variable
     const start = reader.cursor;
     const helper = new misc_functions_1.ReturnHelper(info);
-    const optionResult = reader.readOption([...criteria_1.verbatimCriteria, ...criteria_1.blockCriteria, ...criteria_1.colorCriteria, ...criteria_1.entityCriteria, ...criteria_1.itemCriteria], {
+    const optionResult = reader.readOption([...criteria_1.verbatimCriteria, ...criteria_1.colorCriteria], {
       quote: false,
       unquoted: consts_1.NONWHITESPACE
     }, vscode_languageserver_1.CompletionItemKind.EnumMember);
     const text = optionResult.data;
 
     if (helper.merge(optionResult)) {
-      if (criteria_1.verbatimCriteria.indexOf(optionResult.data) !== -1) {
+      if (criteria_1.verbatimCriteria.has(optionResult.data)) {
         return helper.succeed();
       }
     }
@@ -6857,8 +6933,6 @@ exports.criteriaParser = {
     if (!text) {
       return helper.fail(); // `unreachable!()`
     }
-
-    const end = reader.cursor;
 
     for (const choice of criteria_1.colorCriteria) {
       if (text.startsWith(choice)) {
@@ -6874,13 +6948,22 @@ exports.criteriaParser = {
       }
     }
 
+    const namespaceCriteria = [...criteria_1.blockCriteria, ...criteria_1.entityCriteria, ...criteria_1.itemCriteria, customPrefix];
+    const res = misc_functions_1.parseNamespaceOption(reader, namespaceCriteria, vscode_languageserver_1.CompletionItemKind.Module, ".");
+
+    if (!helper.merge(res)) {
+      return helper.fail();
+    }
+
+    const data = res.data;
+    reader.skip();
+    const postStart = reader.cursor;
+
     for (const choice of criteria_1.entityCriteria) {
-      if (text.startsWith(choice)) {
-        reader.cursor = start + choice.length;
-        const result = reader.readOption(statics_1.entities.map(mapFunction), {
-          quote: false,
-          unquoted: consts_1.NONWHITESPACE
-        }, vscode_languageserver_1.CompletionItemKind.Reference);
+      reader.cursor = postStart;
+
+      if (misc_functions_1.namespacesEqual(data.literal, choice)) {
+        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:entity_type"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -6889,12 +6972,10 @@ exports.criteriaParser = {
     }
 
     for (const choice of criteria_1.blockCriteria) {
-      if (text.startsWith(choice)) {
-        reader.cursor = start + choice.length;
-        const result = reader.readOption(Object.keys(info.data.globalData.blocks).map(mapFunction), {
-          quote: false,
-          unquoted: consts_1.NONWHITESPACE
-        }, vscode_languageserver_1.CompletionItemKind.Constant);
+      reader.cursor = postStart;
+
+      if (misc_functions_1.namespacesEqual(data.literal, choice)) {
+        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:block"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -6903,12 +6984,10 @@ exports.criteriaParser = {
     }
 
     for (const choice of criteria_1.itemCriteria) {
-      if (text.startsWith(choice)) {
-        reader.cursor = start + choice.length;
-        const result = reader.readOption(info.data.globalData.items.map(mapFunction), {
-          quote: false,
-          unquoted: consts_1.NONWHITESPACE
-        }, vscode_languageserver_1.CompletionItemKind.Keyword);
+      reader.cursor = postStart;
+
+      if (misc_functions_1.namespacesEqual(data.literal, choice)) {
+        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:entity_type"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -6916,15 +6995,20 @@ exports.criteriaParser = {
       }
     }
 
-    helper.addErrors(UNKNOWN_CRITERIA.create(start, end, text));
-    return helper.succeed();
+    if (misc_functions_1.namespacesEqual(data.literal, customPrefix)) {
+      const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:custom_stat"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
+
+      if (helper.merge(result)) {
+        return helper.succeed();
+      }
+    }
+
+    reader.readUntilRegexp(/\s/);
+    helper.addErrors(UNKNOWN_CRITERIA.create(start, reader.cursor, text));
+    return helper.succeed(); // tslint:enable:no-shadowed-variable
   }
 };
-
-function mapFunction(value) {
-  return misc_functions_1.stringifyNamespace(misc_functions_1.convertToNamespace(value)).replace(":", ".");
-}
-},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../consts":"xb+0","../../data/lists/criteria":"heCz","../../data/lists/statics":"e3ir","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"0R/b":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../colors":"Td8d","../../consts":"xb+0","../../data/lists/criteria":"heCz","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+"}],"0R/b":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -8135,6 +8219,8 @@ const consts_1 = require("../../consts");
 
 const misc_functions_1 = require("../../misc-functions");
 
+const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
+
 const datapack_resources_1 = require("../datapack-resources");
 
 const mapfunctions_1 = require("./mapfunctions");
@@ -8148,7 +8234,7 @@ async function collectData(version, dataDir) {
       version
     }
   };
-  const cleanups = await Promise.all([getBlocks(dataDir), getItems(dataDir), getCommands(dataDir), getResources(dataDir)]);
+  const cleanups = await Promise.all([getBlocks(dataDir), getRegistries(dataDir), getCommands(dataDir), getResources(dataDir)]);
 
   for (const dataType of cleanups) {
     result[dataType[0]] = dataType[1];
@@ -8162,48 +8248,62 @@ async function collectData(version, dataDir) {
 
 exports.collectData = collectData; //#region Resources
 
+async function getRegistries(dataDir) {
+  const registries = JSON.parse((await readFileAsync(path.join(dataDir, "reports", "registries.json"))).toString());
+  const result = {};
+
+  for (const key of typed_keys_1.typed_keys(registries)) {
+    const registry = registries[key];
+
+    if (registry.entries) {
+      const set = new Set();
+
+      for (const entry of Object.keys(registry.entries)) {
+        set.add(entry);
+      }
+
+      result[key] = set;
+    }
+  }
+
+  return ["registries", result];
+}
+
 async function getResources(dataDir) {
-  const namespacePath = path.join(dataDir, consts_1.DATAFOLDER);
-  const resources = await datapack_resources_1.getNamespaceResources("minecraft", namespacePath, undefined);
+  const dataFolder = path.join(dataDir, consts_1.DATAFOLDER);
+  const resources = await datapack_resources_1.getNamespaceResources("minecraft", dataFolder, undefined);
   return ["resources", resources.data];
 } //#endregion
-//#region Items
 
-
-async function getItems(dataDir) {
-  const itemsData = JSON.parse((await readFileAsync(path.join(dataDir, "reports", "items.json"))).toString());
-  return ["items", Object.keys(itemsData)];
-}
 
 async function getCommands(dataDir) {
   const tree = JSON.parse((await readFileAsync(path.join(dataDir, "reports", "commands.json"))).toString());
   return ["commands", tree];
-} //#endregion
-//#region Blocks
+} //#region Blocks
 
 
 async function getBlocks(dataDir) {
-  const blocksData = JSON.parse((await readFileAsync(path.join(dataDir, "reports", "blocks.json"))).toString());
-  return ["blocks", cleanBlocks(blocksData)];
-}
+  function cleanBlocks(blocks) {
+    const result = {};
 
-function cleanBlocks(blocks) {
-  const result = {};
+    for (const blockName in blocks) {
+      if (blocks.hasOwnProperty(blockName)) {
+        const blockInfo = blocks[blockName];
+        result[blockName] = {};
 
-  for (const blockName in blocks) {
-    if (blocks.hasOwnProperty(blockName)) {
-      const blockInfo = blocks[blockName];
-      result[blockName] = {};
-
-      if (!!blockInfo.properties) {
-        Object.assign(result[blockName], blockInfo.properties);
+        if (!!blockInfo.properties) {
+          Object.assign(result[blockName], blockInfo.properties);
+        }
       }
     }
+
+    return result;
   }
 
-  return result;
+  const blocksData = JSON.parse((await readFileAsync(path.join(dataDir, "reports", "blocks.json"))).toString());
+  return ["blocks", cleanBlocks(blocksData)];
 } //#endregion
-},{"../../consts":"xb+0","../../misc-functions":"KBGm","../datapack-resources":"SO8f","./mapfunctions":"hLCE"}],"S/g2":[function(require,module,exports) {
+},{"../../consts":"xb+0","../../misc-functions":"KBGm","../../misc-functions/third_party/typed-keys":"kca+","../datapack-resources":"SO8f","./mapfunctions":"hLCE"}],"S/g2":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

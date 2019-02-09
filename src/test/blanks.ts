@@ -26,13 +26,49 @@ export const blankproperties: TestParserInfo = {
     path: ["test"]
 };
 
+const set = new Set();
 export const emptyGlobal: GlobalData = {
     blocks: {},
     commands: { type: "root" },
-    items: [],
     jsonService: undefined as any,
     meta_info: { version: "" },
     nbt_docs: new Map(),
+    registries: {
+        // tslint:disable:object-literal-sort-keys - very little value
+        "minecraft:block": set,
+        "minecraft:fluid": set,
+        "minecraft:sound_event": set,
+        "minecraft:mob_effect": set,
+        "minecraft:enchantment": set,
+        "minecraft:entity_type": set,
+        "minecraft:item": set,
+        "minecraft:potion": set,
+        "minecraft:carver": set,
+        "minecraft:surface_builder": set,
+        "minecraft:feature": set,
+        "minecraft:decorator": set,
+        "minecraft:biome": set,
+        "minecraft:particle_type": set,
+        "minecraft:biome_source_type": set,
+        "minecraft:block_entity_type": set,
+        "minecraft:chunk_generator_type": set,
+        "minecraft:dimension_type": set,
+        "minecraft:motive": set,
+        "minecraft:custom_stat": set,
+        "minecraft:chunk_status": set,
+        "minecraft:structure_feature": set,
+        "minecraft:structure_piece": set,
+        "minecraft:rule_test": set,
+        "minecraft:structure_processor": set,
+        "minecraft:structure_pool_element": set,
+        "minecraft:menu": set,
+        "minecraft:recipe_type": set,
+        "minecraft:recipe_serializer": set,
+        "minecraft:stat_type": set,
+        "minecraft:villager_type": set,
+        "minecraft:villager_profession": set
+        // tslint:enable:object-literal-sort-keys
+    },
     resources: {}
 };
 

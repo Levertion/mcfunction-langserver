@@ -187,7 +187,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 packroot,
                 "item_tags",
                 getResourcesSplit("item_tags", globalData, packsInfo),
-                s => globalData.items.indexOf(s) !== -1
+                s => globalData.registries["minecraft:item"].has(s)
             ),
         path: ["tags", "items"]
     },

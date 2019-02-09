@@ -16,17 +16,53 @@ export type NBTDocs = Map<string, NBTNode | ValueList>;
 export interface GlobalData {
     blocks: BlocksPropertyInfo;
     commands: CommandTree;
-    items: string[];
     jsonService: LanguageService;
     meta_info: { version: string };
     nbt_docs: NBTDocs;
+    registries: RegistriesData;
     resources: Resources;
 }
 
 export type Cacheable = Pick<
     GlobalData,
-    "commands" | "blocks" | "items" | "meta_info" | "resources"
+    "commands" | "blocks" | "registries" | "meta_info" | "resources"
 >;
+
+export type RegistryNames =
+    | "minecraft:sound_event"
+    | "minecraft:fluid"
+    | "minecraft:mob_effect"
+    | "minecraft:block"
+    | "minecraft:enchantment"
+    | "minecraft:entity_type"
+    | "minecraft:item"
+    | "minecraft:potion"
+    | "minecraft:carver"
+    | "minecraft:surface_builder"
+    | "minecraft:feature"
+    | "minecraft:decorator"
+    | "minecraft:biome"
+    | "minecraft:particle_type"
+    | "minecraft:biome_source_type"
+    | "minecraft:block_entity_type"
+    | "minecraft:chunk_generator_type"
+    | "minecraft:dimension_type"
+    | "minecraft:motive"
+    | "minecraft:custom_stat"
+    | "minecraft:chunk_status"
+    | "minecraft:structure_feature"
+    | "minecraft:structure_piece"
+    | "minecraft:rule_test"
+    | "minecraft:structure_processor"
+    | "minecraft:structure_pool_element"
+    | "minecraft:menu"
+    | "minecraft:recipe_type"
+    | "minecraft:recipe_serializer"
+    | "minecraft:stat_type"
+    | "minecraft:villager_type"
+    | "minecraft:villager_profession";
+
+export type RegistriesData = Record<RegistryNames, Set<string>>;
 
 export interface WorldNBT {
     level?: Level;
