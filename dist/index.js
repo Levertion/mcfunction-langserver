@@ -6594,7 +6594,7 @@ const exceptions = {
   nobossbar: new errors_1.CommandErrorBuilder("commands.bossbar.unknown", "No bossbar exists with the ID '%s'"),
   recipe_notfound: new errors_1.CommandErrorBuilder("recipe.notFound", "Unkown recipe: %s"),
   unknown_function: new errors_1.CommandErrorBuilder("arguments.function.unknown", "Unknown function '%s'"),
-  unknown_resource: new errors_1.CommandErrorBuilder("argument.id.unknown", "Unknown resource '%s'"),
+  unknown_loot: new errors_1.CommandErrorBuilder("argument.loot_table.unknown", "Unkown loot table '%s'"),
   unknown_tag: new errors_1.CommandErrorBuilder("arguments.function.tag.unknown", "Unknown function tag '#%s'")
 };
 exports.functionParser = {
@@ -6710,6 +6710,12 @@ const resourceKinds = [{
     issue: exceptions.advancement_notfound
   },
   path: ["recipe"]
+}, {
+  data: {
+    issue: exceptions.unknown_loot,
+    resource: "loot_tables"
+  },
+  path: ["loot"]
 }];
 exports.resourceParser = {
   parse: (reader, info) => {
