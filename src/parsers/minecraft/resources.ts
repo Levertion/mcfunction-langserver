@@ -35,9 +35,9 @@ const exceptions = {
         "arguments.function.unknown",
         "Unknown function '%s'"
     ),
-    unknown_resource: new CommandErrorBuilder(
-        "argument.id.unknown",
-        "Unknown resource '%s'"
+    unknown_loot: new CommandErrorBuilder(
+        "argument.loot_table.unknown",
+        "Unkown loot table '%s'"
     ),
     unknown_tag: new CommandErrorBuilder(
         "arguments.function.tag.unknown",
@@ -186,6 +186,13 @@ const resourceKinds: Array<
     {
         data: { resource: "recipes", issue: exceptions.advancement_notfound },
         path: ["recipe"]
+    },
+    {
+        data: {
+            issue: exceptions.unknown_loot,
+            resource: "loot_tables"
+        },
+        path: ["loot"]
     }
 ];
 
