@@ -49,10 +49,11 @@ export function parseCommand(
     globalData: GlobalData,
     localData: LocalData | undefined
 ): StoredParseResult | void {
-    if (text.length === 0 || text.startsWith(COMMENT_START)) {
+    const reader = new StringReader(text);
+    reader.skipWhitespace();
+    if (!reader.canRead() || reader.peek() === COMMENT_START) {
         return undefined;
     }
-    const reader = new StringReader(text);
     const data: CommandData = { globalData, localData };
     const startingcontext: CommandContext = {};
     const recurse = parsechildren(

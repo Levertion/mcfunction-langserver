@@ -56,6 +56,18 @@ describe("parseCommand()", () => {
                 undefined
             );
         });
+        it("should return nothing when the string is only whitespace", () => {
+            assert.strictEqual(
+                parseCommand("     ", fakeGlobal, undefined),
+                undefined
+            );
+        });
+        it("should return nothing when the string is whitespace followed by a comment", () => {
+            assert.strictEqual(
+                parseCommand("     #this is a comment", fakeGlobal, undefined),
+                undefined
+            );
+        });
     });
     describe("single argument tests", () => {
         const singleArgData: GlobalData = {
@@ -82,6 +94,14 @@ describe("parseCommand()", () => {
                 result,
                 [],
                 [{ context: {}, final: {}, low: 0, high: 3, path: ["test1"] }]
+            );
+        });
+        it("should parse an executable, valid, command as such prefixed by whitespace", () => {
+            const result = parseCommand("   hel", singleArgData, undefined);
+            assertParse(
+                result,
+                [],
+                [{ context: {}, final: {}, low: 3, high: 6, path: ["test1"] }]
             );
         });
 

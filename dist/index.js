@@ -8866,11 +8866,13 @@ const parseExceptions = {
 };
 
 function parseCommand(text, globalData, localData) {
-  if (text.length === 0 || text.startsWith(consts_1.COMMENT_START)) {
+  const reader = new string_reader_1.StringReader(text);
+  reader.skipWhitespace();
+
+  if (!reader.canRead() || reader.peek() === consts_1.COMMENT_START) {
     return undefined;
   }
 
-  const reader = new string_reader_1.StringReader(text);
   const data = {
     globalData,
     localData
