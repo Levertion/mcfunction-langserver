@@ -206,7 +206,10 @@ describe("entity parser", () => {
                                     type: "root"
                                 }
                             ]
-                        ])
+                        ]),
+                        registries: {
+                            "minecraft:entity_type": new Set(["minecraft:cow"])
+                        }
                     }
                 } as CommandData
             });

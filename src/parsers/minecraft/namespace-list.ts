@@ -1,13 +1,6 @@
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import {
-    dimensions,
-    effects,
-    enchantments,
-    entities,
-    particles
-} from "../../data/lists/statics";
-import { NamespacedName } from "../../data/types";
+import { NamespacedName, RegistryNames } from "../../data/types";
 import {
     parseNamespaceOption,
     ReturnHelper,
@@ -18,17 +11,17 @@ import { CommandContext, Parser, ParserInfo, ReturnedInfo } from "../../types";
 
 export class NamespaceListParser implements Parser {
     private readonly error: CommandErrorBuilder;
-    private readonly options: string[];
+    private readonly registryType: RegistryNames;
     private readonly resultFunction?: (
         context: CommandContext,
         result: NamespacedName[]
     ) => void;
     public constructor(
-        options: string[],
+        registryType: RegistryNames,
         errorBuilder: CommandErrorBuilder,
         context?: NamespaceListParser["resultFunction"]
     ) {
-        this.options = options;
+        this.registryType = registryType;
         this.error = errorBuilder;
         this.resultFunction = context;
     }
@@ -40,7 +33,9 @@ export class NamespaceListParser implements Parser {
         const start = reader.cursor;
         const result = parseNamespaceOption(
             reader,
-            stringArrayToNamespaces(this.options)
+            stringArrayToNamespaces([
+                ...info.data.globalData.registries[this.registryType]
+            ])
         );
         if (helper.merge(result)) {
             if (this.resultFunction) {
@@ -72,7 +67,7 @@ export const summonError = new CommandErrorBuilder(
     "Unknown entity: %s"
 );
 export const summonParser = new NamespaceListParser(
-    entities,
+    "minecraft:entity_type",
     summonError,
     (context, ids) => (context.otherEntity = { ids })
 );
@@ -82,7 +77,7 @@ const enchantmentError = new CommandErrorBuilder(
     "Unknown enchantment: %s"
 );
 export const enchantmentParser = new NamespaceListParser(
-    enchantments,
+    "minecraft:enchantment",
     enchantmentError
 );
 
@@ -90,13 +85,19 @@ const mobEffectError = new CommandErrorBuilder(
     "effect.effectNotFound",
     "Unknown effect: %s"
 );
-export const mobEffectParser = new NamespaceListParser(effects, mobEffectError);
+export const mobEffectParser = new NamespaceListParser(
+    "minecraft:mob_effect",
+    mobEffectError
+);
 
 const particleError = new CommandErrorBuilder(
     "particle.notFound",
     "Unknown particle: %s"
 );
-export const particleParser = new NamespaceListParser(particles, particleError);
+export const particleParser = new NamespaceListParser(
+    "minecraft:particle_type",
+    particleError
+);
 
 const dimensionError = new CommandErrorBuilder(
     "argument.dimension.invalid",
@@ -104,6 +105,6 @@ const dimensionError = new CommandErrorBuilder(
 );
 
 export const dimensionParser = new NamespaceListParser(
-    dimensions,
+    "minecraft:dimension_type",
     dimensionError
 );
