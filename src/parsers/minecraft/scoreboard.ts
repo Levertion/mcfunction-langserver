@@ -11,12 +11,13 @@ import {
     itemCriteria,
     verbatimCriteria
 } from "../../data/lists/criteria";
-import { entities } from "../../data/lists/statics";
 import { DisplaySlots } from "../../data/nbt/nbt-types";
 import {
     convertToNamespace,
+    namespacesEqual,
+    parseNamespaceOption,
     ReturnHelper,
-    stringifyNamespace
+    stringArrayToNamespaces
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
 import { Parser } from "../../types";
@@ -173,18 +174,14 @@ const UNKNOWN_CRITERIA = new CommandErrorBuilder(
     "Unknown criteria '%s'"
 );
 
+const customPrefix = convertToNamespace("minecraft:custom");
 export const criteriaParser: Parser = {
     parse: (reader, info) => {
+        // tslint:disable:no-shadowed-variable
         const start = reader.cursor;
         const helper = new ReturnHelper(info);
         const optionResult = reader.readOption(
-            [
-                ...verbatimCriteria,
-                ...blockCriteria,
-                ...colorCriteria,
-                ...entityCriteria,
-                ...itemCriteria
-            ],
+            [...verbatimCriteria, ...colorCriteria],
             {
                 quote: false,
                 unquoted: NONWHITESPACE
@@ -192,18 +189,19 @@ export const criteriaParser: Parser = {
             CompletionItemKind.EnumMember
         );
         const text = optionResult.data;
-        if (helper.merge(optionResult)) {
-            if (verbatimCriteria.indexOf(optionResult.data) !== -1) {
-                return helper.succeed();
-            }
-        }
         if (!text) {
             return helper.fail(); // `unreachable!()`
         }
-        const end = reader.cursor;
+        if (helper.merge(optionResult)) {
+            if (verbatimCriteria.has(optionResult.data)) {
+                return helper.succeed();
+            }
+        }
+
         for (const choice of colorCriteria) {
             if (text.startsWith(choice)) {
                 reader.cursor = start + choice.length;
+
                 const result = reader.readOption(
                     COLORS,
                     {
@@ -217,16 +215,48 @@ export const criteriaParser: Parser = {
                 }
             }
         }
+        const namespaceCriteria = [
+            ...blockCriteria,
+            ...entityCriteria,
+            ...itemCriteria,
+            customPrefix
+        ];
+        reader.cursor = start;
+        const res = parseNamespaceOption(
+            reader,
+            namespaceCriteria,
+            CompletionItemKind.Module,
+            ".",
+            true
+        );
+        if (!helper.merge(res)) {
+            reader.readUntilRegexp(/\s/);
+            helper.addErrors(
+                UNKNOWN_CRITERIA.create(start, reader.cursor, text)
+            );
+            return helper.fail();
+        }
+        const data = res.data;
+        if (reader.read() !== ":") {
+            reader.readUntilRegexp(/\s/);
+            helper.addErrors(
+                UNKNOWN_CRITERIA.create(start, reader.cursor, text)
+            );
+            return helper.succeed();
+        }
+        const postStart = reader.cursor;
         for (const choice of entityCriteria) {
-            if (text.startsWith(choice)) {
-                reader.cursor = start + choice.length;
-                const result = reader.readOption(
-                    entities.map(mapFunction),
-                    {
-                        quote: false,
-                        unquoted: NONWHITESPACE
-                    },
-                    CompletionItemKind.Reference
+            reader.cursor = postStart;
+            if (namespacesEqual(data.literal, choice)) {
+                const result = parseNamespaceOption(
+                    reader,
+                    stringArrayToNamespaces([
+                        ...info.data.globalData.registries[
+                            "minecraft:entity_type"
+                        ]
+                    ]),
+                    CompletionItemKind.Reference,
+                    "."
                 );
                 if (helper.merge(result)) {
                     return helper.succeed();
@@ -234,15 +264,15 @@ export const criteriaParser: Parser = {
             }
         }
         for (const choice of blockCriteria) {
-            if (text.startsWith(choice)) {
-                reader.cursor = start + choice.length;
-                const result = reader.readOption(
-                    Object.keys(info.data.globalData.blocks).map(mapFunction),
-                    {
-                        quote: false,
-                        unquoted: NONWHITESPACE
-                    },
-                    CompletionItemKind.Constant
+            reader.cursor = postStart;
+            if (namespacesEqual(data.literal, choice)) {
+                const result = parseNamespaceOption(
+                    reader,
+                    stringArrayToNamespaces([
+                        ...info.data.globalData.registries["minecraft:block"]
+                    ]),
+                    CompletionItemKind.Reference,
+                    "."
                 );
                 if (helper.merge(result)) {
                     return helper.succeed();
@@ -250,26 +280,39 @@ export const criteriaParser: Parser = {
             }
         }
         for (const choice of itemCriteria) {
-            if (text.startsWith(choice)) {
-                reader.cursor = start + choice.length;
-                const result = reader.readOption(
-                    info.data.globalData.items.map(mapFunction),
-                    {
-                        quote: false,
-                        unquoted: NONWHITESPACE
-                    },
-                    CompletionItemKind.Keyword
+            reader.cursor = postStart;
+            if (namespacesEqual(data.literal, choice)) {
+                const result = parseNamespaceOption(
+                    reader,
+                    stringArrayToNamespaces([
+                        ...info.data.globalData.registries[
+                            "minecraft:entity_type"
+                        ]
+                    ]),
+                    CompletionItemKind.Reference,
+                    "."
                 );
                 if (helper.merge(result)) {
                     return helper.succeed();
                 }
             }
         }
-        helper.addErrors(UNKNOWN_CRITERIA.create(start, end, text));
+        if (namespacesEqual(data.literal, customPrefix)) {
+            const result = parseNamespaceOption(
+                reader,
+                stringArrayToNamespaces([
+                    ...info.data.globalData.registries["minecraft:custom_stat"]
+                ]),
+                CompletionItemKind.Reference,
+                "."
+            );
+            if (helper.merge(result)) {
+                return helper.succeed();
+            }
+        }
+        reader.readUntilRegexp(/\s/);
+        helper.addErrors(UNKNOWN_CRITERIA.create(start, reader.cursor, text));
         return helper.succeed();
+        // tslint:enable:no-shadowed-variable
     }
 };
-
-function mapFunction(value: string): string {
-    return stringifyNamespace(convertToNamespace(value)).replace(":", ".");
-}

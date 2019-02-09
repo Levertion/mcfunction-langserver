@@ -1,7 +1,11 @@
 language: node_js
 branches:
     only:
-        - "/.*/" # All branches
+        # This is where pull requests from "bors r+" are built.
+        - staging
+        # This is where pull requests from "bors try" are built.
+        - trying
+        - master
 sudo: false
 node_js:
     - stable

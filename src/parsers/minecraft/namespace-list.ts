@@ -74,8 +74,7 @@ export const summonError = new CommandErrorBuilder(
 export const summonParser = new NamespaceListParser(
     entities,
     summonError,
-    (context, ids) =>
-        (context.otherEntity = { ids: ids.map(stringifyNamespace) })
+    (context, ids) => (context.otherEntity = { ids })
 );
 
 const enchantmentError = new CommandErrorBuilder(

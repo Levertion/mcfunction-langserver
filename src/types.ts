@@ -9,7 +9,12 @@ import {
 } from "vscode-languageserver/lib/main";
 import { BlankCommandError, CommandError } from "./brigadier/errors";
 import { StringReader } from "./brigadier/string-reader";
-import { CommandNodePath, GlobalData, LocalData } from "./data/types";
+import {
+    CommandNodePath,
+    GlobalData,
+    LocalData,
+    NamespacedName
+} from "./data/types";
 import { PackLocationSegments } from "./misc-functions";
 import { TypedNode } from "./parsers/minecraft/nbt/util/doc-walker-util";
 
@@ -106,7 +111,7 @@ export interface EntityInfo {
     /**
      * The possible entity types of this entity
      */
-    ids?: string[];
+    ids?: NamespacedName[];
 }
 
 export interface Parser {

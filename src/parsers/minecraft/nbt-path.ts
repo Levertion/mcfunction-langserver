@@ -1,6 +1,11 @@
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { ContextPath, ReturnHelper, startPaths } from "../../misc-functions";
+import {
+    ContextPath,
+    ReturnHelper,
+    startPaths,
+    stringifyNamespace
+} from "../../misc-functions";
 import {
     CommandContext,
     ContextChange,
@@ -51,7 +56,12 @@ function entityDataPath(
     return {
         data: c => ({
             contextInfo: {
-                ids: (c.otherEntity && c.otherEntity.ids) || "none",
+                ids:
+                    (c.otherEntity &&
+                        c.otherEntity.ids &&
+                        // tslint:disable-next-line:no-unnecessary-callback-wrapper
+                        c.otherEntity.ids.map(v => stringifyNamespace(v))) ||
+                    "none",
                 kind: "entity"
             },
             resultType: c.nbt_path

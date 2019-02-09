@@ -23,8 +23,8 @@ const testData: Cacheable = {
         },
         type: "root"
     },
-    items: ["minecraft:not_chocolate"],
     meta_info: { version: "1.13" },
+    registries: { "minecraft:items": new Set(["test", "test2"]) },
     resources: {}
 } as any;
 describe("Cache Management", () => {
@@ -38,8 +38,8 @@ describe("Cache Management", () => {
                 [
                     "commands.json",
                     "blocks.json",
-                    "items.json",
                     "meta_info.json",
+                    "registries.json",
                     "resources.json"
                 ].sort()
             );

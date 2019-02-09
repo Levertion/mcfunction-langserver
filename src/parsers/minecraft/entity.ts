@@ -3,8 +3,9 @@ import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NONWHITESPACE } from "../../consts";
 import { Scoreboard } from "../../data/nbt/nbt-types";
-import { DataResource } from "../../data/types";
+import { DataResource, NamespacedName } from "../../data/types";
 import {
+    convertToNamespace,
     getResourcesofType,
     getReturned,
     namespacedEntities,
@@ -788,7 +789,8 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
         ];
         const typeInfo = context.type || { set: new Set(), unset: new Set() };
         const { set, unset } = typeInfo;
-        const stringifiedTypes = parsedTypes.map(stringifyNamespace);
+        // tslint:disable-next-line:no-unnecessary-callback-wrapper
+        const stringifiedTypes = parsedTypes.map(v => stringifyNamespace(v));
         if (!negated) {
             if (stringifiedTypes.every(set.has.bind(set))) {
                 helper.addErrors(
@@ -867,7 +869,12 @@ export class EntityBase implements Parser {
                 s: {
                     limit: 1,
                     type: {
-                        set: new Set((info.context.executor || {}).ids),
+                        set: new Set(
+                            // tslint:disable-next-line:no-unnecessary-callback-wrapper
+                            ((info.context.executor || {}).ids || []).map(v =>
+                                stringifyNamespace(v)
+                            )
+                        ),
                         unset: blankSet
                     }
                 }
@@ -1010,10 +1017,10 @@ function getContextChange(
     path: string[]
 ): ContextChange | undefined {
     if (context.type) {
-        const result: string[] = [];
+        const result: NamespacedName[] = [];
         for (const item of context.type.set.values()) {
             if (!context.type.unset.has(item)) {
-                result.push(item);
+                result.push(convertToNamespace(item));
             }
         }
         if (stringArrayEqual(path, ["execute", "as", "entity"])) {
