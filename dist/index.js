@@ -7183,7 +7183,6 @@ const implementedParsers = {
   "minecraft:entity": entityParser.entity,
   "minecraft:entity_anchor": listParsers.entityAnchorParser,
   "minecraft:entity_summon": namespaceParsers.summonParser,
-  "minecraft:float_range": range_1.floatRange,
   "minecraft:function": resources_1.functionParser,
   "minecraft:game_profile": entityParser.gameProfile,
   "minecraft:int_range": range_1.intRange,
@@ -7193,9 +7192,6 @@ const implementedParsers = {
   "minecraft:item_stack": itemParsers.stack,
   "minecraft:message": message_1.messageParser,
   "minecraft:mob_effect": namespaceParsers.mobEffectParser,
-  "minecraft:nbt": nbt_1.nbtParser,
-  // TODO: determine if nbt-path is ever used
-  "minecraft:nbt-path": nbt_path_1.nbtPathParser,
   "minecraft:nbt_compound_tag": nbt_1.nbtParser,
   "minecraft:nbt_path": nbt_path_1.nbtPathParser,
   "minecraft:nbt_tag": nbt_1.nbtParser,

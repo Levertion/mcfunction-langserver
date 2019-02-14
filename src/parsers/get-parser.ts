@@ -13,7 +13,7 @@ import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
 import { nbtPathParser } from "./minecraft/nbt-path";
 import { nbtParser } from "./minecraft/nbt/nbt";
-import { floatRange, intRange } from "./minecraft/range";
+import { intRange } from "./minecraft/range";
 import { functionParser, resourceParser } from "./minecraft/resources";
 import {
     criteriaParser,
@@ -43,7 +43,6 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:entity": entityParser.entity,
     "minecraft:entity_anchor": listParsers.entityAnchorParser,
     "minecraft:entity_summon": namespaceParsers.summonParser,
-    "minecraft:float_range": floatRange,
     "minecraft:function": functionParser,
     "minecraft:game_profile": entityParser.gameProfile,
     "minecraft:int_range": intRange,
@@ -53,9 +52,6 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:item_stack": itemParsers.stack,
     "minecraft:message": messageParser,
     "minecraft:mob_effect": namespaceParsers.mobEffectParser,
-    "minecraft:nbt": nbtParser,
-    // TODO: determine if nbt-path is ever used
-    "minecraft:nbt-path": nbtPathParser,
     "minecraft:nbt_compound_tag": nbtParser,
     "minecraft:nbt_path": nbtPathParser,
     "minecraft:nbt_tag": nbtParser,
