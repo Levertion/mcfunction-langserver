@@ -3707,7 +3707,7 @@ const typed_list_tag_1 = require("./tag/typed-list-tag");
 
 const nbt_util_1 = require("./util/nbt-util");
 
-const parsers = [path => new number_1.NBTTagNumber(path), path => new typed_list_tag_1.NBTTagTypedList(path), path => new compound_tag_1.NBTTagCompound(path), path => new list_tag_1.NBTTagList(path), path => new string_tag_1.NBTTagString(path)];
+const parsers = [number_1.NBTTagNumber, typed_list_tag_1.NBTTagTypedList, compound_tag_1.NBTTagCompound, list_tag_1.NBTTagList, string_tag_1.NBTTagString];
 
 function parseAnyNBTTag(reader, path) {
   let info;
@@ -3715,9 +3715,9 @@ function parseAnyNBTTag(reader, path) {
   const helper = new misc_functions_1.ReturnHelper();
   const start = reader.cursor;
 
-  for (const parserFunc of parsers) {
+  for (const parserContructor of parsers) {
     reader.cursor = start;
-    const tag = parserFunc(path);
+    const tag = new parserContructor(path);
     const out = tag.parse(reader);
 
     if (out.data === nbt_util_1.Correctness.CERTAIN || out.data > (info && info.correctness || nbt_util_1.Correctness.NO)) {
@@ -6425,140 +6425,23 @@ function entityDataPath(path) {
 }
 
 const pathInfo = [entityDataPath(["execute", "if", "data", "entity"]), entityDataPath(["execute", "store", "result", "entity"]), entityDataPath(["execute", "store", "success", "entity"]), entityDataPath(["execute", "unless", "data", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath"]), entityDataPath(["data", "remove", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "insert", "before", "index", "from", "entity"]), entityDataPath(["data", "get", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "set", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "prepend", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "merge", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "insert", "before", "index", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "set", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "prepend", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "merge", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "append", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "insert", "after", "index", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "insert", "after", "index", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "append", "from", "entity"])]; // We do not currently support blocks with autocomplete/validation
-// @ts-ignore It is unused - it is just here to record what we currently do not use
 
-const unvalidatedPaths = [[//#region /data
+const unvalidatedPaths = [//#region /data
 ["data", "get", "block"], ["data", "modify", "block", "targetPos", "targetPath"], ["data", "modify", "block", "targetPos", "targetPath", "append", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "insert", "after", "index", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "insert", "before", "index", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "merge", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "prepend", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "set", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "append", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "insert", "after", "index", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "insert", "before", "index", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "merge", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "prepend", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "set", "from", "block"], ["data", "remove", "block"], //#endregion /data
 //#region /execute
 ["execute", "if", "data", "block"], ["execute", "store", "result", "block"], ["execute", "store", "success", "block"], ["execute", "unless", "data", "block"] //#endregion /execute
-]];
+].map(v => {
+  return {
+    path: v,
+    data: {}
+  };
+});
 var SuggestionKind;
 
 (function (SuggestionKind) {
   SuggestionKind[SuggestionKind["BOTH"] = 0] = "BOTH";
   SuggestionKind[SuggestionKind["KEYONLY"] = 1] = "KEYONLY";
 })(SuggestionKind || (SuggestionKind = {}));
-
-exports.nbtPathParser = {
-  // tslint:disable-next-line:cyclomatic-complexity
-  parse: (reader, info) => {
-    const helper = new misc_functions_1.ReturnHelper();
-    const out = [];
-    let first = true;
-    const pathFunc = misc_functions_1.startPaths(pathInfo, info.path);
-    const context = pathFunc && pathFunc(info.context);
-
-    while (true) {
-      // Whitespace
-      const start = reader.cursor;
-
-      if (reader.peek() === ARROPEN) {
-        const range = {
-          start,
-          end: 0
-        };
-        reader.skip();
-
-        if (reader.peek() === nbt_util_1.COMPOUND_START) {
-          const val = tag_parser_1.parseAnyNBTTag(reader, []);
-
-          if (helper.merge(val)) {
-            out.push({
-              range,
-              value: val.data.tag
-            });
-          } else {
-            if (val.data) {
-              out.push({
-                range,
-                value: val.data.tag
-              });
-            }
-
-            range.end = reader.cursor;
-            helper.merge(validatePath(info, out, context, undefined));
-            return helper.fail();
-          }
-        } else {
-          const int = reader.readInt();
-          range.end = reader.cursor;
-
-          if (helper.merge(int)) {
-            out.push({
-              range,
-              value: int.data
-            });
-          } else {
-            range.end = reader.cursor;
-            helper.merge(validatePath(info, out, context, undefined));
-            return helper.fail();
-          }
-        }
-
-        if (!helper.merge(reader.expect(ARRCLOSE))) {
-          range.end = reader.cursor;
-          helper.merge(validatePath(info, out, context, undefined));
-          return helper.fail();
-        }
-
-        range.end = reader.cursor;
-      } else if (!first && reader.peek() === DOT || first) {
-        if (!first) {
-          reader.skip();
-        }
-
-        const range = {
-          start: reader.cursor,
-          end: 0
-        };
-        const res = reader.readString(/^[0-9A-Za-z_\-+]$/);
-
-        if (helper.merge(res)) {
-          out.push({
-            range,
-            value: res.data
-          });
-        } else {
-          if (res.data !== undefined) {
-            range.end = reader.cursor;
-            out.push({
-              range,
-              value: res.data
-            });
-          }
-
-          helper.merge(validatePath(info, out, context, res.data !== undefined ? SuggestionKind.KEYONLY : undefined));
-          return helper.fail();
-        }
-
-        range.end = reader.cursor;
-      } else {
-        return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
-      }
-
-      first = false;
-
-      if (!reader.canRead()) {
-        const type = validatePath(info, out, context, SuggestionKind.BOTH);
-        return helper.mergeChain(type).succeed({
-          nbt_path: type.data
-        });
-      }
-
-      if (/\s/.test(reader.peek())) {
-        const type = validatePath(info, out, context, undefined);
-
-        if (context && type.data && context.resultType !== type.data) {
-          helper.addErrors(exceptions.WRONG_TYPE.create(start, reader.cursor, context.resultType, type.data));
-        }
-
-        return helper.mergeChain(type).succeed({
-          nbt_path: type.data
-        });
-      }
-    }
-  }
-};
 
 function validatePath(info, // @ts-ignore Unused - TODO
 path, context, // @ts-ignore Unused - TODO
@@ -6573,6 +6456,144 @@ suggest) {
 
   walker.getInitialNode([]);
   return helper.succeed();
+}
+
+const pathParser = {
+  parse: (reader, info) => {
+    const helper = new misc_functions_1.ReturnHelper();
+    const start = reader.cursor;
+    const path = parsePath(reader);
+    helper.merge(path);
+    const contextFunction = misc_functions_1.startPaths(pathInfo, info.path);
+    const context = contextFunction && contextFunction(info.context);
+
+    if (context) {
+      const walker = new walker_1.NBTWalker(info.data.globalData.nbt_docs);
+
+      if (Array.isArray(context.contextInfo.ids)) {
+        for (const id of context.contextInfo.ids) {
+          const node = walker.getInitialNode([context.contextInfo.kind, id]);
+        }
+      } else {
+        const node = walker.getInitialNode([context.contextInfo.kind, context.contextInfo.ids || "none"]);
+      }
+    } else {
+      const unvalidatedInfo = misc_functions_1.startPaths(unvalidatedPaths, info.path);
+
+      if (typeof unvalidatedInfo === "undefined") {
+        // TODO: Centralise this checking
+        mcLangLog(`Unexpected unsupported nbt path '${info.path}'. Please report this error at https://github.com/levertion/mcfunction-langserver/issues`);
+      }
+    }
+  }
+};
+
+function validatePath(path) {
+  const helper = new misc_functions_1.ReturnHelper();
+  return helper.succeed();
+}
+
+function parsePath(reader) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const result = [];
+  let first = true;
+
+  while (reader.canRead()) {
+    const start = reader.cursor;
+
+    if (reader.peek() === ARROPEN) {
+      const range = {
+        start,
+        end: 0
+      };
+      reader.skip();
+
+      if (reader.peek() === nbt_util_1.COMPOUND_START) {
+        const val = tag_parser_1.parseAnyNBTTag(reader, []);
+        range.end = reader.cursor;
+
+        if (helper.merge(val)) {
+          result.push({
+            range,
+            value: {
+              tag: val.data.tag
+            }
+          });
+        } else {
+          if (val.data) {
+            result.push({
+              range,
+              value: {
+                tag: val.data.tag
+              }
+            });
+          }
+
+          return helper.fail();
+        }
+      } else {
+        const int = reader.readInt();
+        range.end = reader.cursor;
+
+        if (helper.merge(int)) {
+          result.push({
+            range,
+            value: {
+              number: int.data
+            }
+          });
+        } else {
+          return helper.fail();
+        }
+      }
+
+      if (!helper.merge(reader.expect(ARRCLOSE))) {
+        range.end = reader.cursor;
+        return helper.fail();
+      }
+
+      range.end = reader.cursor;
+    } else if (!first && reader.peek() === DOT || first) {
+      if (!first) {
+        reader.skip();
+      }
+
+      const range = {
+        start: reader.cursor,
+        end: 0
+      };
+      const res = reader.readString(/^[0-9A-Za-z_\-+]$/);
+      range.end = reader.cursor;
+
+      if (helper.merge(res)) {
+        result.push({
+          range,
+          value: {
+            string: res.data,
+            finished: true
+          }
+        });
+      } else {
+        if (res.data !== undefined) {
+          result.push({
+            range,
+            value: {
+              string: res.data,
+              finished: false
+            }
+          });
+        }
+
+        return helper.fail();
+      }
+    } else {
+      return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
+    }
+
+    first = false;
+  }
+
+  return helper.succeed(result);
 }
 },{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/tag-parser":"4pIN","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
 "use strict";
