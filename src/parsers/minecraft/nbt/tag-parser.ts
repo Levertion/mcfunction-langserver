@@ -10,12 +10,12 @@ import { NBTTagString } from "./tag/string-tag";
 import { NBTTagTypedList } from "./tag/typed-list-tag";
 import { Correctness } from "./util/nbt-util";
 
-const parsers: Array<(path: string[]) => NBTTag> = [
-    path => new NBTTagNumber(path),
-    path => new NBTTagTypedList(path),
-    path => new NBTTagCompound(path),
-    path => new NBTTagList(path),
-    path => new NBTTagString(path)
+const parsers: Array<new (path: string[]) => NBTTag> = [
+    NBTTagNumber,
+    NBTTagTypedList,
+    NBTTagCompound,
+    NBTTagList,
+    NBTTagString
 ];
 
 export type AnyTagReturn = ReturnedInfo<NBTTag>;
@@ -32,9 +32,9 @@ export function parseAnyNBTTag(
     let last: ParseReturn | undefined;
     const helper = new ReturnHelper();
     const start = reader.cursor;
-    for (const parserFunc of parsers) {
+    for (const parserContructor of parsers) {
         reader.cursor = start;
-        const tag = parserFunc(path);
+        const tag = new parserContructor(path);
         const out = tag.parse(reader);
         if (
             out.data === Correctness.CERTAIN ||

@@ -6395,6 +6395,8 @@ const misc_functions_1 = require("../../misc-functions");
 
 const tag_parser_1 = require("./nbt/tag-parser");
 
+const doc_walker_util_1 = require("./nbt/util/doc-walker-util");
+
 const nbt_util_1 = require("./nbt/util/nbt-util");
 
 const walker_1 = require("./nbt/walker");
@@ -6406,7 +6408,7 @@ const exceptions = {
   BAD_CHAR: new errors_1.CommandErrorBuilder("argument.nbt_path.badchar", "Bad character '%s'"),
   INCORRECT_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Unknown segment '%s'"),
   START_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.array_start", "Cannot start an nbt path with an array reference"),
-  UNEXPECTED_ARRAY: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array"),
+  UNEXPECTED_INDEX: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array, expected type is '%s'"),
   WRONG_TYPE: new errors_1.CommandErrorBuilder("argument.nbt_path.type", "Expected node to have type %s, actual is %s")
 };
 
@@ -6436,29 +6438,8 @@ const unvalidatedPaths = [//#region /data
     data: {}
   };
 });
-var SuggestionKind;
-
-(function (SuggestionKind) {
-  SuggestionKind[SuggestionKind["BOTH"] = 0] = "BOTH";
-  SuggestionKind[SuggestionKind["KEYONLY"] = 1] = "KEYONLY";
-})(SuggestionKind || (SuggestionKind = {}));
-
-function validatePath(info, // @ts-ignore Unused - TODO
-path, context, // @ts-ignore Unused - TODO
-suggest) {
-  const helper = new misc_functions_1.ReturnHelper();
-  const walker = new walker_1.NBTWalker(info.data.globalData.nbt_docs);
-
-  if (context) {
-    if (context.contextInfo) {// TODO
-    }
-  }
-
-  walker.getInitialNode([]);
-  return helper.succeed();
-}
-
-const pathParser = {
+const typedArrayTypes = new Set(["byte_array", "int_array", "long_array"]);
+exports.pathParser = {
   parse: (reader, info) => {
     const helper = new misc_functions_1.ReturnHelper();
     const start = reader.cursor;
@@ -6485,13 +6466,69 @@ const pathParser = {
         mcLangLog(`Unexpected unsupported nbt path '${info.path}'. Please report this error at https://github.com/levertion/mcfunction-langserver/issues`);
       }
     }
+
+    return helper.succeed();
   }
 };
 
-function validatePath(path) {
+function validatePath(path, nbtPath, walker, cursor) {
   const helper = new misc_functions_1.ReturnHelper();
+  let node = walker.getInitialNode(nbtPath);
+
+  for (const segment of path) {
+    let {
+      value,
+      range
+    } = segment;
+    value;
+
+    switch (value.kind) {
+      case SegmentKind.INDEX:
+        if (node) {
+          if (doc_walker_util_1.isListInfo(node)) {
+            node = walker.getItem(node);
+          } else if (doc_walker_util_1.isTypedInfo(node) && typedArrayTypes.has(node.node.type)) {
+            node = undefined;
+          } else {
+            const toDisplay = doc_walker_util_1.isTypedInfo(node) ? node.node.type : "unknown";
+            helper.addErrors(exceptions.UNEXPECTED_INDEX.create(range.start, range.end, toDisplay));
+            node = undefined;
+          }
+        }
+
+        break;
+
+      case SegmentKind.NBT:
+        if (node) {
+          if (doc_walker_util_1.isListInfo(node)) {
+            const item = walker.getItem(node);
+          } else {
+            const toDisplay = doc_walker_util_1.isTypedInfo(node) ? node.node.type : "unknown";
+            helper.addErrors(exceptions.UNEXPECTED_INDEX.create(range.start, range.end, toDisplay));
+            node = undefined;
+          }
+        }
+
+        break;
+
+      case SegmentKind.STRING:
+        break;
+
+      default:
+        break;
+    }
+  }
+
   return helper.succeed();
 }
+
+var SegmentKind;
+
+(function (SegmentKind) {
+  SegmentKind[SegmentKind["NBT"] = 0] = "NBT";
+  SegmentKind[SegmentKind["INDEX"] = 1] = "INDEX";
+  SegmentKind[SegmentKind["STRING"] = 2] = "STRING";
+})(SegmentKind || (SegmentKind = {}));
 
 function parsePath(reader) {
   const helper = new misc_functions_1.ReturnHelper();
@@ -6516,7 +6553,8 @@ function parsePath(reader) {
           result.push({
             range,
             value: {
-              tag: val.data.tag
+              tag: val.data.tag,
+              kind: SegmentKind.NBT
             }
           });
         } else {
@@ -6524,7 +6562,8 @@ function parsePath(reader) {
             result.push({
               range,
               value: {
-                tag: val.data.tag
+                tag: val.data.tag,
+                kind: SegmentKind.NBT
               }
             });
           }
@@ -6539,7 +6578,8 @@ function parsePath(reader) {
           result.push({
             range,
             value: {
-              number: int.data
+              number: int.data,
+              kind: SegmentKind.INDEX
             }
           });
         } else {
@@ -6570,7 +6610,8 @@ function parsePath(reader) {
           range,
           value: {
             string: res.data,
-            finished: true
+            finished: true,
+            kind: SegmentKind.STRING
           }
         });
       } else {
@@ -6579,7 +6620,8 @@ function parsePath(reader) {
             range,
             value: {
               string: res.data,
-              finished: false
+              finished: false,
+              kind: SegmentKind.STRING
             }
           });
         }
@@ -6595,7 +6637,7 @@ function parsePath(reader) {
 
   return helper.succeed(result);
 }
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/tag-parser":"4pIN","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/tag-parser":"4pIN","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
