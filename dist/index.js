@@ -6493,12 +6493,21 @@ exports.pathParser = {
     return helper.fail();
   }
 };
-const unquotedNBTStringRegex = /^[0-9A-Za-z_\-+]$/;
+const unquotedNBTStringRegex = /^[0-9A-Za-z_\-+]$/; // tslint:disable-next-line:cyclomatic-complexity TODO: Fix or disable globally
 
 function validatePath(path, nbtPath, walker, // tslint:disable-next-line:variable-name underscore name as a temp measure
-_cursor) {
+cursor) {
   const helper = new misc_functions_1.ReturnHelper();
   let node = walker.getInitialNode(nbtPath);
+
+  if (path.length === 0) {
+    if (doc_walker_util_1.isCompoundInfo(node)) {
+      helper.addSuggestions(...Object.keys(walker.getChildren(node)).map(v => string_reader_1.completionForString(v, cursor, {
+        quote: true,
+        unquoted: unquotedNBTStringRegex
+      }, vscode_languageserver_1.CompletionItemKind.Field)));
+    }
+  }
 
   for (const segment of path) {
     const {
@@ -6541,7 +6550,7 @@ _cursor) {
           if (doc_walker_util_1.isCompoundInfo(node)) {
             const children = walker.getChildren(node);
 
-            if (range.end === _cursor) {
+            if (range.end === cursor) {
               helper.addSuggestions(...Object.keys(children).filter(opt => opt.startsWith(value.string)).map(v => string_reader_1.completionForString(v, range.start, {
                 quote: true,
                 unquoted: unquotedNBTStringRegex
@@ -6564,6 +6573,10 @@ _cursor) {
         break;
 
       default:
+    }
+
+    if (cursor === segment.range.end && node && (doc_walker_util_1.isListInfo(node) || doc_walker_util_1.isTypedInfo(node) && typedArrayTypes.has(node.node.type))) {
+      helper.addSuggestion(cursor, "[", vscode_languageserver_1.CompletionItemKind.Operator);
     }
   }
 
@@ -8629,7 +8642,7 @@ const textComponentSchema = "https://raw.githubusercontent.com/Levertion/minecra
 
 async function loadNonCached() {
   const schemas = {
-    [textComponentSchema]: JSON.stringify( // FIXME: prettier breaks require.resolve so we need to use plain require to get the correct path
+    [textComponentSchema]: JSON.stringify( // FIXME: parcel breaks require.resolve so we need to use plain require to get the correct path
     // tslint:disable-next-line:no-require-imports
     require("minecraft-json-schemas/java/shared/text_component"))
   };

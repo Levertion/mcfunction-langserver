@@ -439,15 +439,33 @@ export const pathParser: Parser = {
 };
 
 const unquotedNBTStringRegex = /^[0-9A-Za-z_\-+]$/;
+// tslint:disable-next-line:cyclomatic-complexity TODO: Fix or disable globally
 function validatePath(
     path: PathParseResult,
     nbtPath: string[],
     walker: NBTWalker,
     // tslint:disable-next-line:variable-name underscore name as a temp measure
-    _cursor: number
+    cursor: number
 ): ReturnSuccess<undefined> {
     const helper = new ReturnHelper();
     let node: NodeInfo | undefined = walker.getInitialNode(nbtPath);
+    if (path.length === 0) {
+        if (isCompoundInfo(node)) {
+            helper.addSuggestions(
+                ...Object.keys(walker.getChildren(node)).map<Suggestion>(v =>
+                    completionForString(
+                        v,
+                        cursor,
+                        {
+                            quote: true,
+                            unquoted: unquotedNBTStringRegex
+                        },
+                        CompletionItemKind.Field
+                    )
+                )
+            );
+        }
+    }
     for (const segment of path) {
         const { value, range } = segment;
         switch (value.kind) {
@@ -499,7 +517,7 @@ function validatePath(
                 if (node) {
                     if (isCompoundInfo(node)) {
                         const children = walker.getChildren(node);
-                        if (range.end === _cursor) {
+                        if (range.end === cursor) {
                             helper.addSuggestions(
                                 ...Object.keys(children)
                                     .filter(opt => opt.startsWith(value.string))
@@ -544,6 +562,14 @@ function validatePath(
                 }
                 break;
             default:
+        }
+        if (
+            cursor === segment.range.end &&
+            node &&
+            (isListInfo(node) ||
+                (isTypedInfo(node) && typedArrayTypes.has(node.node.type)))
+        ) {
+            helper.addSuggestion(cursor, "[", CompletionItemKind.Operator);
         }
     }
     return helper.succeed();

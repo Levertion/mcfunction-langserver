@@ -18,7 +18,7 @@ const textComponentSchema =
 export async function loadNonCached(): Promise<NonCacheable> {
     const schemas: { [key: string]: string } = {
         [textComponentSchema]: JSON.stringify(
-            // FIXME: prettier breaks require.resolve so we need to use plain require to get the correct path
+            // FIXME: parcel breaks require.resolve so we need to use plain require to get the correct path
             // tslint:disable-next-line:no-require-imports
             require("minecraft-json-schemas/java/shared/text_component")
         )
