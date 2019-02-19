@@ -6396,7 +6396,11 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+const vscode_languageserver_1 = require("vscode-languageserver");
+
 const errors_1 = require("../../brigadier/errors");
+
+const string_reader_1 = require("../../brigadier/string-reader");
 
 const misc_functions_1 = require("../../misc-functions");
 
@@ -6413,9 +6417,10 @@ const ARROPEN = "[";
 const ARRCLOSE = "]";
 const exceptions = {
   BAD_CHAR: new errors_1.CommandErrorBuilder("argument.nbt_path.badchar", "Bad character '%s'"),
-  INCORRECT_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Unknown segment '%s'"),
+  INCORRECT_PROPERTY: new errors_1.CommandErrorBuilder("argument.nbt_path.incorrect", "Unknown property '%s'"),
   START_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.array_start", "Cannot start an nbt path with an array reference"),
-  UNEXPECTED_INDEX: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array, expected type is '%s'"),
+  UNEXPECTED_INDEX: new errors_1.CommandErrorBuilder("argument.nbt_path.index", "Path segment should not be array, expected type is '%s'"),
+  UNEXPECTED_PROPERTY: new errors_1.CommandErrorBuilder("argument.nbt_path.property", "Node of type '%s' cannot have string properties, but one is here"),
   WRONG_TYPE: new errors_1.CommandErrorBuilder("argument.nbt_path.type", "Expected node to have type %s, actual is %s")
 };
 
@@ -6444,6 +6449,14 @@ const unvalidatedPaths = [//#region /data
   data: {}
 }));
 const typedArrayTypes = new Set(["byte_array", "int_array", "long_array"]);
+var SegmentKind;
+
+(function (SegmentKind) {
+  SegmentKind[SegmentKind["NBT"] = 0] = "NBT";
+  SegmentKind[SegmentKind["INDEX"] = 1] = "INDEX";
+  SegmentKind[SegmentKind["STRING"] = 2] = "STRING";
+})(SegmentKind || (SegmentKind = {}));
+
 exports.pathParser = {
   parse: (reader, info) => {
     const helper = new misc_functions_1.ReturnHelper();
@@ -6480,6 +6493,7 @@ exports.pathParser = {
     return helper.fail();
   }
 };
+const unquotedNBTStringRegex = /^[0-9A-Za-z_\-+]$/;
 
 function validatePath(path, nbtPath, walker, // tslint:disable-next-line:variable-name underscore name as a temp measure
 _cursor) {
@@ -6512,6 +6526,7 @@ _cursor) {
         if (node) {
           if (doc_walker_util_1.isListInfo(node)) {
             node = walker.getItem(node);
+            helper.merge(value.tag.validate(node, walker));
           } else {
             const toDisplay = doc_walker_util_1.isTypedInfo(node) ? node.node.type : "unknown";
             helper.addErrors(exceptions.UNEXPECTED_INDEX.create(range.start, range.end, toDisplay));
@@ -6522,6 +6537,30 @@ _cursor) {
         break;
 
       case SegmentKind.STRING:
+        if (node) {
+          if (doc_walker_util_1.isCompoundInfo(node)) {
+            const children = walker.getChildren(node);
+
+            if (range.end === _cursor) {
+              helper.addSuggestions(...Object.keys(children).filter(opt => opt.startsWith(value.string)).map(v => string_reader_1.completionForString(v, range.start, {
+                quote: true,
+                unquoted: unquotedNBTStringRegex
+              }, vscode_languageserver_1.CompletionItemKind.Field)));
+            }
+
+            if (children.hasOwnProperty(value.string)) {
+              node = children[value.string];
+            } else {
+              helper.addErrors(exceptions.INCORRECT_PROPERTY.create(range.start, range.end, value.string));
+              node = undefined;
+            }
+          } else {
+            const toDisplay = doc_walker_util_1.isTypedInfo(node) ? node.node.type : "unknown";
+            helper.addErrors(exceptions.UNEXPECTED_PROPERTY.create(range.start, range.end, toDisplay));
+            node = undefined;
+          }
+        }
+
         break;
 
       default:
@@ -6530,14 +6569,6 @@ _cursor) {
 
   return helper.succeed();
 }
-
-var SegmentKind;
-
-(function (SegmentKind) {
-  SegmentKind[SegmentKind["NBT"] = 0] = "NBT";
-  SegmentKind[SegmentKind["INDEX"] = 1] = "INDEX";
-  SegmentKind[SegmentKind["STRING"] = 2] = "STRING";
-})(SegmentKind || (SegmentKind = {}));
 
 function parsePath(reader) {
   const helper = new misc_functions_1.ReturnHelper();
@@ -6612,14 +6643,13 @@ function parsePath(reader) {
         end: 0
       };
       const res = reader.readString( // = StringReader.charAllowedInUnquotedString without '\.'
-      /^[0-9A-Za-z_\-+]$/);
+      unquotedNBTStringRegex);
       range.end = reader.cursor;
 
       if (helper.merge(res)) {
         result.push({
           range,
           value: {
-            finished: true,
             kind: SegmentKind.STRING,
             string: res.data
           }
@@ -6629,7 +6659,6 @@ function parsePath(reader) {
           result.push({
             range,
             value: {
-              finished: false,
               kind: SegmentKind.STRING,
               string: res.data
             }
@@ -6647,7 +6676,7 @@ function parsePath(reader) {
 
   return helper.succeed(result);
 }
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/tag-parser":"4pIN","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../misc-functions":"KBGm","./nbt/tag-parser":"4pIN","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {

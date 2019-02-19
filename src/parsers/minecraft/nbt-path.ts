@@ -1,5 +1,9 @@
+import { CompletionItemKind } from "vscode-languageserver";
 import { CommandErrorBuilder } from "../../brigadier/errors";
-import { StringReader } from "../../brigadier/string-reader";
+import {
+    completionForString,
+    StringReader
+} from "../../brigadier/string-reader";
 import {
     ContextPath,
     ReturnHelper,
@@ -12,21 +16,22 @@ import {
     Parser,
     Ranged,
     ReturnedInfo,
-    ReturnSuccess
+    ReturnSuccess,
+    Suggestion
 } from "../../types";
 
 import { NBTIDInfo } from "./nbt/nbt";
 import { parseAnyNBTTag } from "./nbt/tag-parser";
 import { NBTTag } from "./nbt/tag/nbt-tag";
 import {
-    TypedNode,
-    NodeInfo,
+    isCompoundInfo,
     isListInfo,
-    isTypedInfo
+    isTypedInfo,
+    NodeInfo,
+    TypedNode
 } from "./nbt/util/doc-walker-util";
 import { COMPOUND_START } from "./nbt/util/nbt-util";
 import { NBTWalker } from "./nbt/walker";
-import { NBTNode } from "mc-nbt-paths";
 
 const DOT = ".";
 const ARROPEN = "[";
@@ -37,17 +42,21 @@ const exceptions = {
         "argument.nbt_path.badchar",
         "Bad character '%s'"
     ),
-    INCORRECT_SEGMENT: new CommandErrorBuilder(
-        "argument.nbt_path.unknown",
-        "Unknown segment '%s'"
+    INCORRECT_PROPERTY: new CommandErrorBuilder(
+        "argument.nbt_path.incorrect",
+        "Unknown property '%s'"
     ),
     START_SEGMENT: new CommandErrorBuilder(
         "argument.nbt_path.array_start",
         "Cannot start an nbt path with an array reference"
     ),
     UNEXPECTED_INDEX: new CommandErrorBuilder(
-        "argument.nbt_path.unknown",
+        "argument.nbt_path.index",
         "Path segment should not be array, expected type is '%s'"
+    ),
+    UNEXPECTED_PROPERTY: new CommandErrorBuilder(
+        "argument.nbt_path.property",
+        "Node of type '%s' cannot have string properties, but one is here"
     ),
     WRONG_TYPE: new CommandErrorBuilder(
         "argument.nbt_path.type",
@@ -359,9 +368,7 @@ const unvalidatedPaths = [
     ["execute", "store", "success", "block"],
     ["execute", "unless", "data", "block"]
     //#endregion /execute
-].map<ContextPath<{}>>(v => {
-    return { path: v, data: {} };
-});
+].map<ContextPath<{}>>(v => ({ path: v, data: {} }));
 
 const typedArrayTypes = new Set<TypedNode["type"]>([
     "byte_array",
@@ -369,56 +376,80 @@ const typedArrayTypes = new Set<TypedNode["type"]>([
     "long_array"
 ]);
 
+// These number and nbt ranges include the open and close []
+// The string ranges do not include the .
+type PathParseResult = Array<Ranged<PathSegment>>;
+type PathSegment =
+    | { kind: SegmentKind.NBT; tag: NBTTag }
+    | { kind: SegmentKind.INDEX; number: number }
+    | { kind: SegmentKind.STRING; string: string };
+
+enum SegmentKind {
+    NBT,
+    INDEX,
+    STRING
+}
+
 export const pathParser: Parser = {
     parse: (reader, info) => {
         const helper = new ReturnHelper();
-        const start = reader.cursor;
         const path = parsePath(reader);
-        helper.merge(path);
-
-        const contextFunction = startPaths(pathInfo, info.path);
-        const context = contextFunction && contextFunction(info.context);
-        if (context) {
-            const walker = new NBTWalker(info.data.globalData.nbt_docs);
-            if (Array.isArray(context.contextInfo.ids)) {
-                for (const id of context.contextInfo.ids) {
-                    const node = walker.getInitialNode([
-                        context.contextInfo.kind,
-                        id
-                    ]);
+        if (helper.merge(path)) {
+            const contextFunction = startPaths(pathInfo, info.path);
+            const context = contextFunction && contextFunction(info.context);
+            if (context) {
+                const walker = new NBTWalker(info.data.globalData.nbt_docs);
+                if (Array.isArray(context.contextInfo.ids)) {
+                    for (const id of context.contextInfo.ids) {
+                        const result = validatePath(
+                            path.data,
+                            [context.contextInfo.kind, id],
+                            walker,
+                            reader.cursor
+                        );
+                        helper.merge(result);
+                    }
+                } else {
+                    const result = validatePath(
+                        path.data,
+                        [
+                            context.contextInfo.kind,
+                            context.contextInfo.ids || "none"
+                        ],
+                        walker,
+                        reader.cursor
+                    );
+                    helper.merge(result);
                 }
             } else {
-                const node = walker.getInitialNode([
-                    context.contextInfo.kind,
-                    context.contextInfo.ids || "none"
-                ]);
+                const unvalidatedInfo = startPaths(unvalidatedPaths, info.path);
+                if (typeof unvalidatedInfo === "undefined") {
+                    // TODO: Centralise this checking
+                    mcLangLog(
+                        `Unexpected unsupported nbt path '${
+                            info.path
+                        }'. Please report this error at https://github.com/levertion/mcfunction-langserver/issues`
+                    );
+                }
             }
-        } else {
-            const unvalidatedInfo = startPaths(unvalidatedPaths, info.path);
-            if (typeof unvalidatedInfo === "undefined") {
-                // TODO: Centralise this checking
-                mcLangLog(
-                    `Unexpected unsupported nbt path '${
-                        info.path
-                    }'. Please report this error at https://github.com/levertion/mcfunction-langserver/issues`
-                );
-            }
+            return helper.succeed();
         }
-        return helper.succeed();
+        return helper.fail();
     }
 };
 
+const unquotedNBTStringRegex = /^[0-9A-Za-z_\-+]$/;
 function validatePath(
     path: PathParseResult,
     nbtPath: string[],
     walker: NBTWalker,
-    cursor: number
+    // tslint:disable-next-line:variable-name underscore name as a temp measure
+    _cursor: number
 ): ReturnSuccess<undefined> {
     const helper = new ReturnHelper();
-    let node: NodeInfo<NBTNode> | undefined = walker.getInitialNode(nbtPath);
+    let node: NodeInfo | undefined = walker.getInitialNode(nbtPath);
     for (const segment of path) {
-        let { value, range } = segment;
-        value;
+        const { value, range } = segment;
         switch (value.kind) {
             case SegmentKind.INDEX:
                 if (node) {
@@ -447,7 +478,8 @@ function validatePath(
             case SegmentKind.NBT:
                 if (node) {
                     if (isListInfo(node)) {
-                        const item = walker.getItem(node);
+                        node = walker.getItem(node);
+                        helper.merge(value.tag.validate(node, walker));
                     } else {
                         const toDisplay = isTypedInfo(node)
                             ? node.node.type
@@ -464,26 +496,57 @@ function validatePath(
                 }
                 break;
             case SegmentKind.STRING:
+                if (node) {
+                    if (isCompoundInfo(node)) {
+                        const children = walker.getChildren(node);
+                        if (range.end === _cursor) {
+                            helper.addSuggestions(
+                                ...Object.keys(children)
+                                    .filter(opt => opt.startsWith(value.string))
+                                    .map<Suggestion>(v =>
+                                        completionForString(
+                                            v,
+                                            range.start,
+                                            {
+                                                quote: true,
+                                                unquoted: unquotedNBTStringRegex
+                                            },
+                                            CompletionItemKind.Field
+                                        )
+                                    )
+                            );
+                        }
+                        if (children.hasOwnProperty(value.string)) {
+                            node = children[value.string];
+                        } else {
+                            helper.addErrors(
+                                exceptions.INCORRECT_PROPERTY.create(
+                                    range.start,
+                                    range.end,
+                                    value.string
+                                )
+                            );
+                            node = undefined;
+                        }
+                    } else {
+                        const toDisplay = isTypedInfo(node)
+                            ? node.node.type
+                            : "unknown";
+                        helper.addErrors(
+                            exceptions.UNEXPECTED_PROPERTY.create(
+                                range.start,
+                                range.end,
+                                toDisplay
+                            )
+                        );
+                        node = undefined;
+                    }
+                }
                 break;
             default:
-                break;
         }
     }
     return helper.succeed();
-}
-
-// These number and nbt ranges include the open and close []
-// The string ranges do not include the .
-type PathParseResult = Array<Ranged<PathSegment>>;
-type PathSegment =
-    | { tag: NBTTag; kind: SegmentKind.NBT }
-    | { number: number; kind: SegmentKind.INDEX }
-    | { string: string; finished: boolean; kind: SegmentKind.STRING };
-
-enum SegmentKind {
-    NBT,
-    INDEX,
-    STRING
 }
 
 function parsePath(reader: StringReader): ReturnedInfo<PathParseResult> {
@@ -534,15 +597,17 @@ function parsePath(reader: StringReader): ReturnedInfo<PathParseResult> {
                 reader.skip();
             }
             const range: LineRange = { start: reader.cursor, end: 0 };
-            const res = reader.readString(/^[0-9A-Za-z_\-+]$/);
+            const res = reader.readString(
+                // = StringReader.charAllowedInUnquotedString without '\.'
+                unquotedNBTStringRegex
+            );
             range.end = reader.cursor;
             if (helper.merge(res)) {
                 result.push({
                     range,
                     value: {
-                        string: res.data,
-                        finished: true,
-                        kind: SegmentKind.STRING
+                        kind: SegmentKind.STRING,
+                        string: res.data
                     }
                 });
             } else {
@@ -550,9 +615,8 @@ function parsePath(reader: StringReader): ReturnedInfo<PathParseResult> {
                     result.push({
                         range,
                         value: {
-                            string: res.data,
-                            finished: false,
-                            kind: SegmentKind.STRING
+                            kind: SegmentKind.STRING,
+                            string: res.data
                         }
                     });
                 }

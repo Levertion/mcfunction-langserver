@@ -11,7 +11,7 @@ import * as itemParsers from "./minecraft/item";
 import * as listParsers from "./minecraft/lists";
 import { messageParser } from "./minecraft/message";
 import * as namespaceParsers from "./minecraft/namespace-list";
-import { nbtPathParser } from "./minecraft/nbt-path";
+import { pathParser } from "./minecraft/nbt-path";
 import { nbtParser } from "./minecraft/nbt/nbt";
 import { intRange } from "./minecraft/range";
 import { functionParser, resourceParser } from "./minecraft/resources";
@@ -53,7 +53,7 @@ const implementedParsers: { [id: string]: Parser } = {
     "minecraft:message": messageParser,
     "minecraft:mob_effect": namespaceParsers.mobEffectParser,
     "minecraft:nbt_compound_tag": nbtParser,
-    "minecraft:nbt_path": nbtPathParser,
+    "minecraft:nbt_path": pathParser,
     "minecraft:nbt_tag": nbtParser,
     "minecraft:objective": objectiveParser,
     "minecraft:objective_criteria": criteriaParser,
