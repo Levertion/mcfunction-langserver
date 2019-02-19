@@ -1,4 +1,4 @@
-import { QUOTE, StringReader } from "../../../../brigadier/string-reader";
+import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
 import { Correctness } from "../util/nbt-util";
 
@@ -19,7 +19,7 @@ export class NBTTagString extends NBTTag {
 
     protected readTag(reader: StringReader): ParseReturn {
         const helper = new ReturnHelper();
-        const quoted = reader.peek() === QUOTE;
+        const quoted = StringReader.isQuotedStringStart(reader.peek());
         const str = reader.readString();
         if (helper.merge(str)) {
             this.value = str.data;
