@@ -405,9 +405,25 @@ export const pathParser: Parser = {
                             path.data,
                             [context.contextInfo.kind, id],
                             walker,
-                            reader.cursor
+                            reader.cursor,
+                            info.context.nbt_path
                         );
                         helper.merge(result);
+                    }
+                    const errors = helper.getShared().errors;
+                    for (let i = 0; i < errors.length; i++) {
+                        const error = errors[i];
+                        const sliced = [...errors.slice(i).entries()];
+                        for (const [index, followingError] of sliced) {
+                            if (
+                                followingError.range.start ===
+                                    error.range.start &&
+                                followingError.range.end === error.range.end &&
+                                followingError.text === error.text
+                            ) {
+                                errors.splice(index, 1);
+                            }
+                        }
                     }
                 } else {
                     const result = validatePath(
@@ -417,7 +433,8 @@ export const pathParser: Parser = {
                             context.contextInfo.ids || "none"
                         ],
                         walker,
-                        reader.cursor
+                        reader.cursor,
+                        info.context.nbt_path
                     );
                     helper.merge(result);
                 }
@@ -445,7 +462,8 @@ function validatePath(
     nbtPath: string[],
     walker: NBTWalker,
     // tslint:disable-next-line:variable-name underscore name as a temp measure
-    cursor: number
+    cursor: number,
+    expectedType: TypedNode["type"] | undefined
 ): ReturnSuccess<undefined> {
     const helper = new ReturnHelper();
     let node: NodeInfo | undefined = walker.getInitialNode(nbtPath);
@@ -465,6 +483,7 @@ function validatePath(
                 )
             );
         }
+        return helper.succeed();
     }
     for (const segment of path) {
         const { value, range } = segment;
@@ -537,13 +556,15 @@ function validatePath(
                         if (children.hasOwnProperty(value.string)) {
                             node = children[value.string];
                         } else {
-                            helper.addErrors(
-                                exceptions.INCORRECT_PROPERTY.create(
-                                    range.start,
-                                    range.end,
-                                    value.string
-                                )
-                            );
+                            if (!node.node.additionalChildren) {
+                                helper.addErrors(
+                                    exceptions.INCORRECT_PROPERTY.create(
+                                        range.start,
+                                        range.end,
+                                        value.string
+                                    )
+                                );
+                            }
                             node = undefined;
                         }
                     } else {
@@ -571,6 +592,19 @@ function validatePath(
         ) {
             helper.addSuggestion(cursor, "[", CompletionItemKind.Operator);
         }
+    }
+    if (
+        node &&
+        expectedType &&
+        !(isTypedInfo(node) && node.node.type === expectedType)
+    ) {
+        helper.addErrors(
+            exceptions.WRONG_TYPE.create(
+                path[0].range.start,
+                path[path.length - 1].range.end,
+                expectedType
+            )
+        );
     }
     return helper.succeed();
 }

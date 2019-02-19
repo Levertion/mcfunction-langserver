@@ -6471,11 +6471,24 @@ exports.pathParser = {
 
         if (Array.isArray(context.contextInfo.ids)) {
           for (const id of context.contextInfo.ids) {
-            const result = validatePath(path.data, [context.contextInfo.kind, id], walker, reader.cursor);
+            const result = validatePath(path.data, [context.contextInfo.kind, id], walker, reader.cursor, info.context.nbt_path);
             helper.merge(result);
           }
+
+          const errors = helper.getShared().errors;
+
+          for (let i = 0; i < errors.length; i++) {
+            const error = errors[i];
+            const sliced = [...errors.slice(i).entries()];
+
+            for (const [index, followingError] of sliced) {
+              if (followingError.range.start === error.range.start && followingError.range.end === error.range.end && followingError.text === error.text) {
+                errors.splice(index, 1);
+              }
+            }
+          }
         } else {
-          const result = validatePath(path.data, [context.contextInfo.kind, context.contextInfo.ids || "none"], walker, reader.cursor);
+          const result = validatePath(path.data, [context.contextInfo.kind, context.contextInfo.ids || "none"], walker, reader.cursor, info.context.nbt_path);
           helper.merge(result);
         }
       } else {
@@ -6496,7 +6509,7 @@ exports.pathParser = {
 const unquotedNBTStringRegex = /^[0-9A-Za-z_\-+]$/; // tslint:disable-next-line:cyclomatic-complexity TODO: Fix or disable globally
 
 function validatePath(path, nbtPath, walker, // tslint:disable-next-line:variable-name underscore name as a temp measure
-cursor) {
+cursor, expectedType) {
   const helper = new misc_functions_1.ReturnHelper();
   let node = walker.getInitialNode(nbtPath);
 
@@ -6507,6 +6520,8 @@ cursor) {
         unquoted: unquotedNBTStringRegex
       }, vscode_languageserver_1.CompletionItemKind.Field)));
     }
+
+    return helper.succeed();
   }
 
   for (const segment of path) {
@@ -6560,7 +6575,10 @@ cursor) {
             if (children.hasOwnProperty(value.string)) {
               node = children[value.string];
             } else {
-              helper.addErrors(exceptions.INCORRECT_PROPERTY.create(range.start, range.end, value.string));
+              if (!node.node.additionalChildren) {
+                helper.addErrors(exceptions.INCORRECT_PROPERTY.create(range.start, range.end, value.string));
+              }
+
               node = undefined;
             }
           } else {
@@ -6578,6 +6596,10 @@ cursor) {
     if (cursor === segment.range.end && node && (doc_walker_util_1.isListInfo(node) || doc_walker_util_1.isTypedInfo(node) && typedArrayTypes.has(node.node.type))) {
       helper.addSuggestion(cursor, "[", vscode_languageserver_1.CompletionItemKind.Operator);
     }
+  }
+
+  if (node && expectedType && !(doc_walker_util_1.isTypedInfo(node) && node.node.type === expectedType)) {
+    helper.addErrors(exceptions.WRONG_TYPE.create(path[0].range.start, path[path.length - 1].range.end, expectedType));
   }
 
   return helper.succeed();
