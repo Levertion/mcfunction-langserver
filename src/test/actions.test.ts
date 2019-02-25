@@ -51,6 +51,6 @@ describe("signatureHelpProvider()", () => {
             (a, e) => a.label === e
         );
         delete result.signatures;
-        assert.deepEqual(result, expected);
+        assert.deepStrictEqual(result, expected);
     });
 });

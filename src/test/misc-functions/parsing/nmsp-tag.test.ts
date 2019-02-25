@@ -83,7 +83,7 @@ describe("parseNamespaceOrTag", () => {
                 succeeds: false
             })
         ) {
-            assert.equal(result.data, undefined);
+            assert.strictEqual(result.data, undefined);
         }
     });
     it("should give an error when there is a tag but tags are not supported", () => {
@@ -107,7 +107,7 @@ describe("parseNamespaceOrTag", () => {
                 succeeds: false
             })
         ) {
-            assert.equal(result.data, undefined);
+            assert.strictEqual(result.data, undefined);
         }
     });
     it("should fail when there is a tag which is unknown", () => {

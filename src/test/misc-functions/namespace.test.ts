@@ -51,27 +51,30 @@ describe("Namespace Functions (Misc)", () => {
                 namespace: "namespace",
                 path: "path"
             };
-            assert.deepEqual(convertToNamespace("namespace:path"), expected);
+            assert.deepStrictEqual(
+                convertToNamespace("namespace:path"),
+                expected
+            );
         });
         it("should have no namespace if there is no namespace", () => {
             const expected: NamespacedName = { path: "pathonly" };
-            assert.deepEqual(convertToNamespace("pathonly"), expected);
+            assert.deepStrictEqual(convertToNamespace("pathonly"), expected);
         });
         it("should have no namespace if the namespace is empty", () => {
             // This bug/feature(?): https://bugs.mojang.com/browse/MC-125100
             const expected: NamespacedName = { path: "pathonly" };
-            assert.deepEqual(convertToNamespace(":pathonly"), expected);
+            assert.deepStrictEqual(convertToNamespace(":pathonly"), expected);
         });
     });
     describe("stringifyNamespace()", () => {
         it("should convert a normal namespace", () => {
-            assert.equal(
+            assert.strictEqual(
                 stringifyNamespace({ path: "path", namespace: "namespace" }),
                 "namespace:path"
             );
         });
         it("should use the default namespace with a non-specified namespace", () => {
-            assert.equal(
+            assert.strictEqual(
                 stringifyNamespace({ path: "path" }),
                 "minecraft:path"
             );

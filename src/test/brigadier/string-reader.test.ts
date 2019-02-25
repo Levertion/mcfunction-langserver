@@ -528,7 +528,7 @@ describe("string-reader", () => {
                     suggestions: ["test"]
                 })
             ) {
-                assert.equal(result.data, "test");
+                assert.strictEqual(result.data, "test");
             }
         });
         it("should fail with an unknown value", () => {
@@ -539,7 +539,7 @@ describe("string-reader", () => {
                     succeeds: false
                 })
             ) {
-                assert.equal(result.data, "test");
+                assert.strictEqual(result.data, "test");
             }
         });
     });

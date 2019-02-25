@@ -3809,8 +3809,6 @@ Object.defineProperty(exports, "__esModule", {
 
 const assert_1 = require("assert");
 
-const util_1 = require("util");
-
 const doc_walker_func_1 = require("./doc-walker-func");
 
 const array_reader_1 = require("./util/array-reader");
@@ -3917,7 +3915,7 @@ class NBTWalker {
           const [nextPath] = doc_walker_util_1.parseRefPath(ref, info.path);
           const list = walkUnwrap(this.docs.get(nextPath));
 
-          if (list.find(v => util_1.isString(v) ? v === name : v.value === name)) {
+          if (list.find(v => typeof v === "string" ? v === name : v.value === name)) {
             return Object.assign({}, info, {
               node: info.node.children[key]
             });
