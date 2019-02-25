@@ -3,7 +3,6 @@ import { JSONDocument } from "vscode-json-languageservice";
 import {
     CompletionItemKind,
     InsertTextFormat,
-    MarkedString,
     MarkupContent,
     TextDocument
 } from "vscode-languageserver/lib/main";
@@ -155,7 +154,7 @@ export interface JSONDocInfo {
 export type SubAction =
     // See https://github.com/Microsoft/language-server-protocol/issues/518.
     // tslint:disable-next-line:deprecation - TODO: this needs a PR to fix
-    | SubActionBase<"hover", MarkedString>
+    | SubActionBase<"hover", string>
     | SubActionBase<"format", string>
     | SubActionBase<"source", string>
     | SubActionBase<"json", JSONDocInfo>;
