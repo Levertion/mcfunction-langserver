@@ -2,7 +2,6 @@ import * as Long from "long";
 
 import * as assert from "assert";
 
-import { isNumber } from "util";
 import { loadNBT } from "../../data/nbt/nbt-cache";
 import { LevelData } from "../../data/nbt/nbt-types";
 import { parse } from "../../data/nbt/parser";
@@ -80,7 +79,11 @@ describe("(binary) nbt parser tests", () => {
             const key = rkey as keyof BigTest;
             const val = nbt[key];
             const altval = bigtest[key];
-            if (isNumber(val) && isNumber(altval) && !Number.isInteger(val)) {
+            if (
+                typeof val === "number" &&
+                typeof altval === "number" &&
+                !Number.isInteger(val)
+            ) {
                 assert.strictEqual(altval.toPrecision(7), val.toPrecision(7));
             } else {
                 assert.deepStrictEqual(val, altval);

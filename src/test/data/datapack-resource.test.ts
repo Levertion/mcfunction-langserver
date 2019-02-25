@@ -54,7 +54,7 @@ function assertPacksInfo(
     location: string,
     packs: { [key: string]: Datapack }
 ): void {
-    assert.equal(result.location, location);
+    assert.strictEqual(result.location, location);
     for (const packName of Object.keys(packs)) {
         if (!result.packnamesmap.hasOwnProperty(packName)) {
             throw new assert.AssertionError({
@@ -64,7 +64,7 @@ function assertPacksInfo(
         const pack = packs[packName];
         const id = result.packnamesmap[packName];
         const actual = result.packs[id];
-        assert.equal(actual.id, id);
+        assert.strictEqual(actual.id, id);
         const keys = typed_keys(pack.data);
         assertMembers(keys, Object.keys(actual.data), (a, b) => a === b);
 

@@ -6,7 +6,6 @@ import {
     RootNode,
     ValueList
 } from "mc-nbt-paths";
-import { isString } from "util";
 import { NBTDocs } from "../../../data/types";
 import { runNodeFunction } from "./doc-walker-func";
 import { NBTTag } from "./tag/nbt-tag";
@@ -160,7 +159,9 @@ export class NBTWalker {
                     ) as ValueList);
                     if (
                         list.find(v =>
-                            isString(v) ? v === name : v.value === name
+                            typeof v === "string"
+                                ? v === name
+                                : v.value === name
                         )
                     ) {
                         return { ...info, node: info.node.children[key] };

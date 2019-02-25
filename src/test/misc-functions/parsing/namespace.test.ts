@@ -154,7 +154,7 @@ describe("Namespace Parsing Functions", () => {
                     succeeds: false
                 })
             ) {
-                assert.equal(result.data, undefined);
+                assert.strictEqual(result.data, undefined);
             }
         });
         it("should fail with multiple errors", () => {
@@ -175,14 +175,14 @@ describe("Namespace Parsing Functions", () => {
                     succeeds: false
                 })
             ) {
-                assert.deepEqual(result.data, undefined);
+                assert.deepStrictEqual(result.data, undefined);
             }
         });
         it("should succeed with a valid path", () => {
             const reader = new StringReader("mc:succeeds");
             const result = parseNamespace(reader);
             if (returnAssert(result, succeeds)) {
-                assert.deepEqual(result.data, {
+                assert.deepStrictEqual(result.data, {
                     namespace: "mc",
                     path: "succeeds"
                 });

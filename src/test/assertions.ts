@@ -1,4 +1,4 @@
-import { AssertionError, equal, notStrictEqual, strictEqual } from "assert";
+import { AssertionError, notStrictEqual, strictEqual } from "assert";
 import { CommandError } from "../brigadier/errors";
 import { StringReader } from "../brigadier/string-reader";
 import { NAMESPACE } from "../consts";
@@ -56,7 +56,7 @@ export const testParser = (parser: Parser) => (
             suggesting: false
         });
         returnAssert(result, { ...expected, suggestions: [] }); // There should be no suggestions when not suggesting
-        equal(reader.cursor, cursorPos);
+        strictEqual(reader.cursor, cursorPos);
         return [result, reader];
     }
 };
