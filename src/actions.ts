@@ -2,6 +2,7 @@ import { Interval, IntervalTree } from "node-interval-tree";
 import {
     Hover,
     Location,
+    MarkupContent,
     Position,
     SignatureHelp,
     SignatureInformation,
@@ -42,7 +43,7 @@ export function hoverProvider(
         intervals: T[],
         commandLine: CommandLine,
         line: number,
-        map: (intervals: T[]) => Hover["contents"]
+        map: (intervals: T[]) => MarkupContent
     ): Hover {
         const end: Position = {
             character: intervals.reduce((acc, v) => Math.max(acc, v.high), 0),
@@ -80,25 +81,34 @@ export function hoverProvider(
     }
     const hovers = getActionsOfKind(docLine, pos, "hover");
     if (hovers.length > 0) {
-        return computeIntervalHovers(hovers, docLine, pos.line, i =>
-            i.map(v => v.data as string)
-        );
+        return computeIntervalHovers(hovers, docLine, pos.line, i => ({
+            kind: "markdown",
+            value: i.map(v => v.data as string).join("\n\n---\n")
+        }));
     } else {
         const tree = getNodeTree(docLine);
         if (tree) {
             const matching = tree.search(pos.character, pos.character);
             if (matching.length > 0) {
-                return computeIntervalHovers(matching, docLine, pos.line, i =>
-                    i.map<string>(node => {
-                        const data = followPath(
-                            manager.globalData.commands,
-                            node.path
-                        ) as CommandNode;
-                        return `${
-                            data.type === "literal"
-                                ? "literal"
-                                : `\`${data.parser}\` parser`
-                        } on path '${node.path.join(", ")}'`;
+                return computeIntervalHovers(
+                    matching,
+                    docLine,
+                    pos.line,
+                    i => ({
+                        kind: "markdown",
+                        value: i
+                            .map<string>(node => {
+                                const data = followPath(
+                                    manager.globalData.commands,
+                                    node.path
+                                ) as CommandNode;
+                                return `${
+                                    data.type === "literal"
+                                        ? "literal"
+                                        : `\`${data.parser}\` parser`
+                                } on path '${node.path.join(", ")}'`;
+                            })
+                            .join("\n\n---\n")
                     })
                 );
             }

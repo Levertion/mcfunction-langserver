@@ -7487,7 +7487,10 @@ function hoverProvider(docLine, pos, _, manager) {
   const hovers = getActionsOfKind(docLine, pos, "hover");
 
   if (hovers.length > 0) {
-    return computeIntervalHovers(hovers, docLine, pos.line, i => i.map(v => v.data));
+    return computeIntervalHovers(hovers, docLine, pos.line, i => ({
+      kind: "markdown",
+      value: i.map(v => v.data).join("\n\n---\n")
+    }));
   } else {
     const tree = getNodeTree(docLine);
 
@@ -7495,9 +7498,12 @@ function hoverProvider(docLine, pos, _, manager) {
       const matching = tree.search(pos.character, pos.character);
 
       if (matching.length > 0) {
-        return computeIntervalHovers(matching, docLine, pos.line, i => i.map(node => {
-          const data = misc_functions_1.followPath(manager.globalData.commands, node.path);
-          return `${data.type === "literal" ? "literal" : `\`${data.parser}\` parser`} on path '${node.path.join(", ")}'`;
+        return computeIntervalHovers(matching, docLine, pos.line, i => ({
+          kind: "markdown",
+          value: i.map(node => {
+            const data = misc_functions_1.followPath(manager.globalData.commands, node.path);
+            return `${data.type === "literal" ? "literal" : `\`${data.parser}\` parser`} on path '${node.path.join(", ")}'`;
+          }).join("\n\n---\n")
         }));
       }
     }
