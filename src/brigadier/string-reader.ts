@@ -56,7 +56,6 @@ const EXCEPTIONS = {
 const QUOTE = '"';
 const SINGLE_QUOTE = "'";
 const ESCAPE = "\\";
-export type QuotingKind = "both" | "yes" | RegExp;
 
 export interface QuotingInfo {
     /**
