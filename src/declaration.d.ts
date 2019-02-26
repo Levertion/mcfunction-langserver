@@ -1,5 +1,6 @@
 // Create global variables
 
+// tslint:disable-next-line:no-namespace
 declare namespace NodeJS {
     interface Global {
         mcLangLog: typeof mcLangLog;
@@ -13,27 +14,22 @@ declare const mcLangSettings: McFunctionSettings;
 
 interface McFunctionSettings extends LocalMcFunctionSettings {
     /**
-     * Settings related to information tracking
-     */
-    trace: {
-        /**
-         * Whether or not to show output from internal logging messages.
-         */
-        internalLogging: boolean;
-    };
-    /**
-     * Settings related to translating the server errors.
-     */
-    translation: {
-        /**
-         * The code for the language to be used.
-         */
-        lang: string;
-    };
-    /**
      * Settings related to the collection of data.
      */
     data: {
+        /**
+         * Global Scoped Setting
+         *
+         * __Advanced Users Only__
+         *
+         * The path to a custom (server) jar to attempt to extract data from.
+         *
+         * This is recommended for when working with mods,
+         * or past Minecraft versions (AFTER 1.13 Snapshot 18w01a) only.
+         *
+         * Note that not all mod parsers will be always supported, and features may change between snapshots.
+         */
+        customJar: string;
         /**
          * Global Scoped Setting
          *
@@ -59,19 +55,6 @@ interface McFunctionSettings extends LocalMcFunctionSettings {
          *
          * __Advanced Users Only__
          *
-         * The path to a custom (server) jar to attempt to extract data from.
-         *
-         * This is recommended for when working with mods,
-         * or past Minecraft versions (AFTER 1.13 Snapshot 18w01a) only.
-         *
-         * Note that not all mod parsers will be always supported, and features may change between snapshots.
-         */
-        customJar: string;
-        /**
-         * Global Scoped Setting
-         *
-         * __Advanced Users Only__
-         *
          * An optional custom path to the java executable (`java`/`java.exe`).
          *
          * Should be left blank to use the default `java` in PATH.
@@ -88,6 +71,24 @@ interface McFunctionSettings extends LocalMcFunctionSettings {
      */
     parsers?: {
         [name: string]: import("./types").Parser;
+    };
+    /**
+     * Settings related to information tracking
+     */
+    trace: {
+        /**
+         * Whether or not to show output from internal logging messages.
+         */
+        internalLogging: boolean;
+    };
+    /**
+     * Settings related to translating the server errors.
+     */
+    translation: {
+        /**
+         * The code for the language to be used.
+         */
+        lang: string;
     };
 }
 
@@ -118,39 +119,13 @@ interface McLogger {
      * This is disabled or enabled
      * based on the "mcfunction.trace.internalLogging" setting
      */
-    internal: (message: string) => void;
+    internal(message: string): void;
 }
 /**
  * An internal logging type to allow proper typing information to be used for mcLangLog.
  */
 type InternalLog = (message: string) => void;
 
-type Dictionary<T> = { [key: string]: T };
-
-// Type definitions for util.promisify 1.0
-// Project: https://github.com/ljharb/util.promisify#readme
-// Definitions by: Adam Voss <https://github.com/adamvoss>
-// Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
-
-// Modified to exclude the redeclaration of util.promisify for this project
-declare module "util.promisify" {
-    export = promisify;
-
-    function promisify(
-        f: (...args: any[]) => void
-    ): (...args: any[]) => Promise<any>;
-
-    namespace promisify {
-        interface implementation {
-            (fn: (...args: any[]) => void): (...args: any[]) => Promise<any>;
-            custom: symbol;
-            customPromisifyArgs: symbol | undefined;
-        }
-
-        const custom: symbol;
-        const customPromisifyArgs: symbol;
-        function getPolyfill(): implementation;
-        const implementation: implementation;
-        function shim(): implementation;
-    }
+interface Dictionary<T> {
+    [key: string]: T;
 }

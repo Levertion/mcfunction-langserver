@@ -1,6 +1,5 @@
 import * as path from "path";
-import { shim } from "util.promisify";
-shim();
+
 const logger = (message: string) => {
     // tslint:disable-next-line:no-console
     console.log(message);

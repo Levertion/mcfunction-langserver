@@ -1,6 +1,5 @@
 import { EventEmitter } from "events";
 import { promisify } from "util";
-import { shim } from "util.promisify";
 import {
     CompletionList,
     createConnection,
