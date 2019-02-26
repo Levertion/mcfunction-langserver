@@ -68,7 +68,6 @@ export class ItemParser implements Parser {
                                     "minecraft:item"
                                 ]
                             ],
-                            parsed.data.parsed,
                             start
                         )
                     );

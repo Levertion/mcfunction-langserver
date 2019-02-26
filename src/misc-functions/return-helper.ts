@@ -129,14 +129,13 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         kind?: Suggestion["kind"],
         description?: string
     ): this {
-        if (this.suggestMode === undefined || this.suggestMode) {
-            this.addSuggestions({
-                description,
-                kind,
-                start,
-                text
-            });
-        }
+        this.addSuggestions({
+            description,
+            kind,
+            start,
+            text
+        });
+
         return this;
     }
     public addSuggestions(...suggestions: SuggestResult[]): this {

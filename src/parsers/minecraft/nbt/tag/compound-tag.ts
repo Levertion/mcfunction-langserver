@@ -167,20 +167,17 @@ export class NBTTagCompound extends NBTTag {
             const key = part.key || "";
             if (part.closeIdx === undefined) {
                 for (const childName of Object.keys(children)) {
-                    if (childName.startsWith(key)) {
-                        const thisChild = children[childName];
-                        const text =
-                            thisChild && getStartSuggestion(thisChild.node);
-                        keyHelper.addSuggestions({
-                            description: getHoverText(children[childName].node),
-                            kind: CompletionItemKind.Field,
-                            label: childName,
-                            start: part.keyRange.start,
-                            text:
-                                quoteIfNeeded(childName) +
-                                (text ? `: ${text}` : "")
-                        });
-                    }
+                    const thisChild = children[childName];
+                    const text =
+                        thisChild && getStartSuggestion(thisChild.node);
+                    keyHelper.addSuggestions({
+                        description: getHoverText(children[childName].node),
+                        kind: CompletionItemKind.Field,
+                        label: childName,
+                        start: part.keyRange.start,
+                        text:
+                            quoteIfNeeded(childName) + (text ? `: ${text}` : "")
+                    });
                 }
             }
             const child = children[key];

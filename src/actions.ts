@@ -17,10 +17,8 @@ import { DataManager } from "./data/manager";
 import { CommandNode, CommandTree, MCNode, Resources } from "./data/types";
 import {
     buildPath,
-    convertToNamespace,
     followPath,
     getNextNode,
-    namespaceStart,
     stringifyNamespace
 } from "./misc-functions";
 import { typed_keys } from "./misc-functions/third_party/typed-keys";
@@ -345,13 +343,9 @@ function getNodeTree(line: CommandLine): IntervalTree<ParseNode> | undefined {
     return undefined;
 }
 
-export function getWorkspaceSymbols(
-    manager: DataManager,
-    query: string
-): SymbolInformation[] {
+export function getWorkspaceSymbols(manager: DataManager): SymbolInformation[] {
     const result: SymbolInformation[] = [];
     const worlds = manager.packData;
-    const namespace = convertToNamespace(query);
     for (const worldPath of Object.keys(worlds)) {
         const world = worlds[worldPath];
         for (const packID in world.packs) {
@@ -361,20 +355,18 @@ export function getWorkspaceSymbols(
                     const val = pack.data[type];
                     if (val) {
                         for (const item of val) {
-                            if (namespaceStart(item, namespace)) {
-                                result.push({
-                                    kind: symbolKindForResource(type),
-                                    location: {
-                                        range: blankRange,
-                                        uri: URI.file(buildPath(
-                                            item,
-                                            world,
-                                            type
-                                        ) as any).toString()
-                                    },
-                                    name: stringifyNamespace(item)
-                                });
-                            }
+                            result.push({
+                                kind: symbolKindForResource(type),
+                                location: {
+                                    range: blankRange,
+                                    uri: URI.file(buildPath(
+                                        item,
+                                        world,
+                                        type
+                                    ) as any).toString()
+                                },
+                                name: stringifyNamespace(item)
+                            });
                         }
                     }
                 }

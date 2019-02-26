@@ -172,7 +172,6 @@ export function parseBlockArgument(
                 helper.addSuggestions(
                     ...namespaceSuggestionString(
                         Object.keys(info.data.globalData.blocks),
-                        parsed.data.parsed,
                         start
                     )
                 );

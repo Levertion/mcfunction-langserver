@@ -9,12 +9,6 @@ export const literalParser: Parser = {
         const helper = new ReturnHelper(properties);
         const begin = reader.cursor;
         const literal = properties.path[properties.path.length - 1];
-        if (
-            properties.suggesting &&
-            literal.startsWith(reader.getRemaining())
-        ) {
-            helper.addSuggestions(literal);
-        }
         if (reader.canRead(literal.length)) {
             const end = begin + literal.length;
             if (reader.string.substring(begin, end) === literal) {
@@ -23,6 +17,8 @@ export const literalParser: Parser = {
                     return helper.succeed();
                 }
             }
+        } else {
+            helper.addSuggestion(begin, literal);
         }
         return helper.fail();
     }

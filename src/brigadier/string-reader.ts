@@ -95,12 +95,10 @@ export class StringReader {
      */
     public expect(str: string): ReturnedInfo<undefined> {
         const helper = new ReturnHelper();
-        if (str.startsWith(this.getRemaining())) {
-            helper.addSuggestions({
-                start: this.cursor,
-                text: str
-            });
-        }
+        helper.addSuggestions({
+            start: this.cursor,
+            text: str
+        });
         const sub = this.string.substr(this.cursor, str.length);
         if (sub !== str) {
             return helper.fail(
@@ -275,13 +273,10 @@ export class StringReader {
         // Reading failed, which must be due to an invalid quoted string
         if (!helper.merge(result, { suggestions: false })) {
             if (result.data && !this.canRead()) {
-                const bestEffort = result.data;
                 helper.addSuggestions(
-                    ...options
-                        .filter(option => option.startsWith(bestEffort))
-                        .map<Suggestion>(v =>
-                            completionForString(v, start, quoteKind, completion)
-                        )
+                    ...options.map<Suggestion>(v =>
+                        completionForString(v, start, quoteKind, completion)
+                    )
                 );
             }
             return helper.fail();
@@ -289,26 +284,14 @@ export class StringReader {
         const valid = options.some(opt => opt === result.data);
         if (!this.canRead()) {
             helper.addSuggestions(
-                ...options
-                    .filter(opt => opt.startsWith(result.data))
-                    .map<Suggestion>(v =>
-                        completionForString(v, start, quoteKind, completion)
-                    )
+                ...options.map<Suggestion>(v =>
+                    completionForString(v, start, quoteKind, completion)
+                )
             );
         }
         if (valid) {
             return helper.succeed(result.data as T);
         } else {
-            /* if (addError) {
-                helper.addErrors(
-                    EXCEPTIONS.EXPECTED_STRING_FROM.create(
-                        start,
-                        this.cursor,
-                        JSON.stringify(options),
-                        result.data
-                    )
-                );
-            } */
             return helper.failWithData(result.data);
         }
     }

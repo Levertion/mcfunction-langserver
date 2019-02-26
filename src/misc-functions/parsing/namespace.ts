@@ -11,7 +11,6 @@ import { StringReader } from "../../brigadier/string-reader";
 import { NAMESPACE } from "../../consts";
 import { NamespacedName } from "../../data/types";
 import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
-import { isNamespaceDefault, namesEqual } from "../namespace";
 
 const NAMESPACEEXCEPTIONS = {
     invalid_id: new CommandErrorBuilder(
@@ -46,43 +45,22 @@ export function readNamespaceText(
     });
 }
 
-/**
- * Does `base`(eg minecraft:stone) start with `test` (e.g. sto) [Y]
- */
-export function namespaceStart(
-    base: NamespacedName,
-    test: NamespacedName
-): boolean {
-    if (test.namespace === undefined) {
-        return (
-            (isNamespaceDefault(base) && base.path.startsWith(test.path)) ||
-            (!!base.namespace && base.namespace.startsWith(test.path))
-        );
-    } else {
-        return namesEqual(base, test) && base.path.startsWith(test.path);
-    }
-}
-
 export function namespaceSuggestions(
     options: NamespacedName[],
-    value: NamespacedName,
     start: number
 ): Suggestion[] {
     const result: Suggestion[] = [];
     for (const option of options) {
-        if (namespaceStart(option, value)) {
-            result.push({ text: stringifyNamespace(option), start });
-        }
+        result.push({ text: stringifyNamespace(option), start });
     }
     return result;
 }
 
 export function namespaceSuggestionString(
     options: string[],
-    value: NamespacedName,
     start: number
 ): Suggestion[] {
-    return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
+    return namespaceSuggestions(stringArrayToNamespaces(options), start);
 }
 
 export function parseNamespace(
@@ -173,7 +151,7 @@ export function processParsedNamespaceOption<T extends NamespacedName>(
         if (namespacesEqual(val, namespace)) {
             results.push(val);
         }
-        if (suggest && namespaceStart(val, namespace)) {
+        if (suggest) {
             helper.addSuggestion(
                 start,
                 stringifyNamespace(val, seperator),

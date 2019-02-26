@@ -407,8 +407,6 @@ const errors_1 = require("../../brigadier/errors");
 
 const consts_1 = require("../../consts");
 
-const namespace_1 = require("../namespace");
-
 const NAMESPACEEXCEPTIONS = {
   invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "The seperator '%s' should not be repeated in the ID '%s'")
 };
@@ -439,30 +437,15 @@ function readNamespaceText(reader, seperator = consts_1.NAMESPACE, stopAfterFirs
 }
 
 exports.readNamespaceText = readNamespaceText;
-/**
- * Does `base`(eg minecraft:stone) start with `test` (e.g. sto) [Y]
- */
 
-function namespaceStart(base, test) {
-  if (test.namespace === undefined) {
-    return namespace_1.isNamespaceDefault(base) && base.path.startsWith(test.path) || !!base.namespace && base.namespace.startsWith(test.path);
-  } else {
-    return namespace_1.namesEqual(base, test) && base.path.startsWith(test.path);
-  }
-}
-
-exports.namespaceStart = namespaceStart;
-
-function namespaceSuggestions(options, value, start) {
+function namespaceSuggestions(options, start) {
   const result = [];
 
   for (const option of options) {
-    if (namespaceStart(option, value)) {
-      result.push({
-        text: __1.stringifyNamespace(option),
-        start
-      });
-    }
+    result.push({
+      text: __1.stringifyNamespace(option),
+      start
+    });
   }
 
   return result;
@@ -470,8 +453,8 @@ function namespaceSuggestions(options, value, start) {
 
 exports.namespaceSuggestions = namespaceSuggestions;
 
-function namespaceSuggestionString(options, value, start) {
-  return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
+function namespaceSuggestionString(options, start) {
+  return namespaceSuggestions(stringArrayToNamespaces(options), start);
 }
 
 exports.namespaceSuggestionString = namespaceSuggestionString;
@@ -540,7 +523,7 @@ function processParsedNamespaceOption(namespace, options, suggest, start, comple
       results.push(val);
     }
 
-    if (suggest && namespaceStart(val, namespace)) {
+    if (suggest) {
       helper.addSuggestion(start, __1.stringifyNamespace(val, seperator), completionKind);
     }
   }
@@ -549,7 +532,7 @@ function processParsedNamespaceOption(namespace, options, suggest, start, comple
 }
 
 exports.processParsedNamespaceOption = processParsedNamespaceOption;
-},{"..":"KBGm","../../brigadier/errors":"aP4V","../../consts":"xb+0","../namespace":"CWtC"}],"cNAA":[function(require,module,exports) {
+},{"..":"KBGm","../../brigadier/errors":"aP4V","../../consts":"xb+0"}],"cNAA":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -702,15 +685,12 @@ class ReturnHelper {
   }
 
   addSuggestion(start, text, kind, description) {
-    if (this.suggestMode === undefined || this.suggestMode) {
-      this.addSuggestions({
-        description,
-        kind,
-        start,
-        text
-      });
-    }
-
+    this.addSuggestions({
+      description,
+      kind,
+      start,
+      text
+    });
     return this;
   }
 
@@ -1725,14 +1705,10 @@ class StringReader {
 
   expect(str) {
     const helper = new misc_functions_1.ReturnHelper();
-
-    if (str.startsWith(this.getRemaining())) {
-      helper.addSuggestions({
-        start: this.cursor,
-        text: str
-      });
-    }
-
+    helper.addSuggestions({
+      start: this.cursor,
+      text: str
+    });
     const sub = this.string.substr(this.cursor, str.length);
 
     if (sub !== str) {
@@ -1880,8 +1856,7 @@ class StringReader {
       suggestions: false
     })) {
       if (result.data && !this.canRead()) {
-        const bestEffort = result.data;
-        helper.addSuggestions(...options.filter(option => option.startsWith(bestEffort)).map(v => completionForString(v, start, quoteKind, completion)));
+        helper.addSuggestions(...options.map(v => completionForString(v, start, quoteKind, completion)));
       }
 
       return helper.fail();
@@ -1890,22 +1865,12 @@ class StringReader {
     const valid = options.some(opt => opt === result.data);
 
     if (!this.canRead()) {
-      helper.addSuggestions(...options.filter(opt => opt.startsWith(result.data)).map(v => completionForString(v, start, quoteKind, completion)));
+      helper.addSuggestions(...options.map(v => completionForString(v, start, quoteKind, completion)));
     }
 
     if (valid) {
       return helper.succeed(result.data);
     } else {
-      /* if (addError) {
-          helper.addErrors(
-              EXCEPTIONS.EXPECTED_STRING_FROM.create(
-                  start,
-                  this.cursor,
-                  JSON.stringify(options),
-                  result.data
-              )
-          );
-      } */
       return helper.failWithData(result.data);
     }
   }
@@ -2320,10 +2285,6 @@ exports.literalParser = {
     const begin = reader.cursor;
     const literal = properties.path[properties.path.length - 1];
 
-    if (properties.suggesting && literal.startsWith(reader.getRemaining())) {
-      helper.addSuggestions(literal);
-    }
-
     if (reader.canRead(literal.length)) {
       const end = begin + literal.length;
 
@@ -2334,6 +2295,8 @@ exports.literalParser = {
           return helper.succeed();
         }
       }
+    } else {
+      helper.addSuggestion(begin, literal);
     }
 
     return helper.fail();
@@ -3151,17 +3114,15 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
 
       if (part.closeIdx === undefined) {
         for (const childName of Object.keys(children)) {
-          if (childName.startsWith(key)) {
-            const thisChild = children[childName];
-            const text = thisChild && nbt_util_1.getStartSuggestion(thisChild.node);
-            keyHelper.addSuggestions({
-              description: nbt_util_1.getHoverText(children[childName].node),
-              kind: vscode_languageserver_1.CompletionItemKind.Field,
-              label: childName,
-              start: part.keyRange.start,
-              text: string_reader_1.quoteIfNeeded(childName) + (text ? `: ${text}` : "")
-            });
-          }
+          const thisChild = children[childName];
+          const text = thisChild && nbt_util_1.getStartSuggestion(thisChild.node);
+          keyHelper.addSuggestions({
+            description: nbt_util_1.getHoverText(children[childName].node),
+            kind: vscode_languageserver_1.CompletionItemKind.Field,
+            label: childName,
+            start: part.keyRange.start,
+            text: string_reader_1.quoteIfNeeded(childName) + (text ? `: ${text}` : "")
+          });
         }
       }
 
@@ -3648,9 +3609,7 @@ class NBTTagTypedList extends lists_1.BaseList {
       const toCheck = `[${type["0"]};`;
 
       if (this.remaining) {
-        if (toCheck.startsWith(this.remaining)) {
-          helper.addSuggestion(this.startIndex, toCheck);
-        }
+        helper.addSuggestion(this.startIndex, toCheck);
       }
     }
 
@@ -4027,370 +3986,7 @@ class NBTWalker {
 }
 
 NBTWalker.root = "root.json";
-exports.NBTWalker = NBTWalker; // Old version
-// #interface ContextData<
-// #    N extends NBTNode = NBTNode,
-// #    T extends NBTTag<any> = NBTTag<any>
-// #> {
-// #    readonly finalValidation: boolean;
-// #    readonly node: N;
-// #    readonly path: string;
-// #    readonly reader: ArrayReader;
-// #    readonly tag?: T;
-// #    readonly useReferences: boolean;
-// #}
-// #
-// #// tslint:disable:cyclomatic-complexity
-// #// tslint:disable-next-line:max-classes-per-file
-// #export class NBTValidator {
-// #    private readonly docs: NBTDocs;
-// #    private readonly extraChildren: boolean;
-// #    private readonly parsed: NBTTag<any>;
-// #    private readonly root: string;
-// #    private readonly validateNBT: boolean;
-// #
-// #    public constructor(
-// #        parsed: NBTTag<any>,
-// #        docs: NBTDocs,
-// #        extraChild: boolean,
-// #        nbtvalidation: boolean = true,
-// #        root: string = "root.json"
-// #    ) {
-// #        this.docs = docs;
-// #        this.parsed = parsed;
-// #        this.extraChildren = extraChild;
-// #        this.root = root;
-// #        this.validateNBT = nbtvalidation;
-// #    }
-// #
-// #    public walkThenValidate(nbtpath: string[]): ReturnedInfo<NBTNode> {
-// #        const node = this.docs.get(this.root) as RootNode;
-// #        const reader = new ArrayReader(nbtpath);
-// #        // tslint:disable-next-line:helper-return
-// #        return this.walkNextNode({
-// #            finalValidation: true,
-// #            node,
-// #            path: this.root,
-// #            reader,
-// #            tag: this.validateNBT ? this.parsed : undefined,
-// #            useReferences: false
-// #        });
-// #    }
-// #
-// #    private mergeChildRef(data: ContextData<CompoundNode>): CompoundNode {
-// #        const { node, path: currentPath } = data;
-// #        if (!node.child_ref) {
-// #            return node;
-// #        }
-// #        const helper = new ReturnHelper();
-// #        const newChildren = JSON.parse(
-// #            JSON.stringify(node.children || {})
-// #        ) as Exclude<CompoundNode["children"], undefined>;
-// #        for (const ref of node.child_ref) {
-// #            const [nextPath] = parseRefPath(ref, currentPath);
-// #            const refNode = this.walkRef(ref, currentPath, data);
-// #            if (!helper.merge(refNode)) {
-// #                continue;
-// #            } else if (isCompoundNode(refNode.data)) {
-// #                const evalNode = this.mergeChildRef({
-// #                    ...data,
-// #                    node: refNode.data,
-// #                    path: nextPath
-// #                });
-// #                if (evalNode.children) {
-// #                    for (const child of Object.keys(evalNode.children)) {
-// #                        newChildren[child] = evalNode.children[child];
-// #                    }
-// #                }
-// #            }
-// #        }
-// #        return {
-// #            children: newChildren,
-// #            description: node.description,
-// #            suggestions: node.suggestions,
-// #            type: "compound"
-// #        };
-// #    }
-// #
-// #    private walkCompoundNode(
-// #        data: ContextData<CompoundNode, NBTTagCompound>
-// #    ): ReturnedInfo<NBTNode> {
-// #        const { node, reader, path, tag } = data;
-// #        const helper = new ReturnHelper();
-// #        const next = reader.read();
-// #        if (node.children && next in node.children) {
-// #            /*
-// #             * It is safe to assume that next is in the tag
-// #             * val because the path is based off of the tag
-// #             */
-// #            return helper.return(
-// #                this.walkNextNode({
-// #                    ...data,
-// #                    node: node.children[next],
-// #                    tag: tag ? tag.getVal()[next] : undefined
-// #                })
-// #            );
-// #        } else if (node.child_ref) {
-// #            for (const c of node.child_ref) {
-// #                const [nextPath] = parseRefPath(c, path);
-// #                const cnode = this.walkRef(c, path, data);
-// #                if (
-// #                    helper.merge(cnode) &&
-// #                    isCompoundNode(cnode.data) &&
-// #                    cnode.data.children &&
-// #                    next in cnode.data.children
-// #                ) {
-// #                    return helper.return(
-// #                        this.walkNextNode({
-// #                            ...data,
-// #                            node: cnode.data.children[next],
-// #                            path: nextPath,
-// #                            tag: tag ? tag.getVal()[next] : undefined
-// #                        })
-// #                    );
-// #                }
-// #            }
-// #        }
-// #        return helper.fail();
-// #    }
-// #
-// #    private walkFunctionNode(
-// #        data: ContextData<FunctionNode>
-// #    ): ReturnedInfo<NBTNode> {
-// #        const { node, reader, path } = data;
-// #        const helper = new ReturnHelper();
-// #        const ref = runNodeFunction(this.parsed, reader.getRead(), node);
-// #        const [nextPath] = parseRefPath(ref, path);
-// #        const newNode = this.walkRef(ref, path, data);
-// #        if (!helper.merge(newNode)) {
-// #            return helper.fail();
-// #        }
-// #        return helper.return(
-// #            this.walkNextNode({
-// #                ...data,
-// #                node: newNode.data,
-// #                path: nextPath
-// #            })
-// #        );
-// #    }
-// #
-// #    private walkListNode(
-// #        data: ContextData<ListNode, NBTTagList>
-// #    ): ReturnedInfo<NBTNode> {
-// #        const { node, reader, tag } = data;
-// #        const next = reader.read();
-// #        const helper = new ReturnHelper();
-// #        if (!/\d+/.test(next)) {
-// #            return helper.fail(
-// #                tag
-// #                    ? VALIDATION_ERRORS.badIndex.create(
-// #                          tag.getRange().start,
-// #                          tag.getRange().end
-// #                      )
-// #                    : undefined
-// #            );
-// #        }
-// #        const nextTag = tag
-// #            ? tag.getVal()[Number.parseInt(next, 10)]
-// #            : undefined;
-// #        return helper.return(
-// #            this.walkNextNode({
-// #                ...data,
-// #                node: node.item,
-// #                tag: nextTag
-// #            })
-// #        );
-// #    }
-// #
-// #    private walkNextNode(data: ContextData): ReturnedInfo<NBTNode> {
-// #        const { reader, node, tag, useReferences, finalValidation } = data;
-// #        const helper = new ReturnHelper();
-// #        if (reader.onLast()) {
-// #            if (isRefNode(node)) {
-// #                return helper.return(
-// #                    this.walkRefNode(data as ContextData<RefNode>)
-// #                );
-// #            } else if (isFunctionNode(node)) {
-// #                return helper.return(
-// #                    this.walkFunctionNode(data as ContextData<FunctionNode>)
-// #                );
-// #            } else if (isCompoundNode(node)) {
-// #                if (finalValidation && this.validateNBT && tag) {
-// #                    const valres = tag.valideAgainst(node, {
-// #                        compoundMerge: () =>
-// #                            this.mergeChildRef(data as ContextData<
-// #                                CompoundNode,
-// #                                NBTTagCompound
-// #                            >),
-// #                        extraChildren: this.extraChildren
-// #                    });
-// #                    if (!helper.merge(valres)) {
-// #                        return helper.fail();
-// #                    }
-// #                }
-// #                return helper.succeed(
-// #                    finalValidation
-// #                        ? this.mergeChildRef(data as ContextData<CompoundNode>)
-// #                        : node
-// #                );
-// #            } else {
-// #                if (finalValidation && this.validateNBT && tag) {
-// #                    const valres = tag.valideAgainst(node);
-// #                    if (!helper.merge(valres)) {
-// #                        return helper.fail();
-// #                    }
-// #                }
-// #                return helper.succeed(node);
-// #            }
-// #        } else if (
-// #            useReferences &&
-// #            node.references &&
-// #            reader.peek() in node.references
-// #        ) {
-// #            const next = reader.read();
-// #            return helper.return(
-// #                this.walkNextNode({
-// #                    ...data,
-// #                    node: node.references[next]
-// #                })
-// #            );
-// #        } else if (isTypedNode(node)) {
-// #            if (isCompoundNode(node)) {
-// #                if (this.validateNBT && tag) {
-// #                    const valres = tag.valideAgainst(node, {
-// #                        compoundMerge: () =>
-// #                            this.mergeChildRef(data as ContextData<
-// #                                CompoundNode
-// #                            >),
-// #                        extraChildren: this.extraChildren
-// #                    });
-// #                    if (!helper.merge(valres)) {
-// #                        return helper.fail();
-// #                    }
-// #                }
-// #                if (tag && !(tag instanceof NBTTagCompound)) {
-// #                    return helper.fail();
-// #                }
-// #                return helper.return(
-// #                    this.walkCompoundNode(data as ContextData<
-// #                        CompoundNode,
-// #                        NBTTagCompound
-// #                    >)
-// #                );
-// #            } else if (isListNode(node)) {
-// #                if (this.validateNBT && tag) {
-// #                    const valres = tag.valideAgainst(node);
-// #                    if (!helper.merge(valres)) {
-// #                        return helper.fail();
-// #                    }
-// #                }
-// #                if (tag && !(tag instanceof NBTTagList)) {
-// #                    return helper.fail();
-// #                }
-// #                return helper.return(
-// #                    this.walkListNode(data as ContextData<ListNode, NBTTagList>)
-// #                );
-// #            } else if (isRootNode(node)) {
-// #                return helper.return(
-// #                    this.walkRootNode(data as ContextData<RootNode>)
-// #                );
-// #            } else {
-// #                if (tag) {
-// #                    const valres = tag.valideAgainst(node);
-// #                    helper.merge(valres);
-// #                }
-// #                return helper.fail();
-// #            }
-// #        } else {
-// #            if (isRefNode(node)) {
-// #                return helper.return(
-// #                    this.walkRefNode(data as ContextData<RefNode>)
-// #                );
-// #            } else if (isFunctionNode(node)) {
-// #                return helper.return(
-// #                    this.walkFunctionNode(data as ContextData<FunctionNode>)
-// #                );
-// #            }
-// #        }
-// #        return helper.fail();
-// #    }
-// #
-// #    private walkRef(
-// #        ref: string,
-// #        path: string,
-// #        data: ContextData
-// #    ): ReturnedInfo<NBTNode> {
-// #        const [nextPath, fragPath] = parseRefPath(ref, path);
-// #        const reader = new ArrayReader(fragPath);
-// #        const node = this.docs.get(nextPath) as NBTNode;
-// #        // tslint:disable-next-line:helper-return
-// #        return this.walkNextNode({
-// #            useReferences: true,
-// #            finalValidation: false,
-// #            node,
-// #            path: nextPath,
-// #            reader,
-// #            tag: data.tag
-// #        });
-// #    }
-// #
-// #    private walkRefNode(data: ContextData<RefNode>): ReturnedInfo<NBTNode> {
-// #        const { node, path } = data;
-// #        const helper = new ReturnHelper();
-// #        const [nextPath] = parseRefPath(node.ref, path);
-// #        const nnode = this.walkRef(node.ref, path, data);
-// #        if (helper.merge(nnode)) {
-// #            const out = this.walkNextNode({
-// #                ...data,
-// #                node: nnode.data,
-// #                path: nextPath
-// #            });
-// #            if (helper.merge(out)) {
-// #                return helper.succeed(out.data);
-// #            } else {
-// #                return helper.fail();
-// #            }
-// #        } else {
-// #            return helper.fail();
-// #        }
-// #    }
-// #
-// #    private walkRootNode(data: ContextData<RootNode>): ReturnedInfo<NBTNode> {
-// #        const { node, reader, path } = data;
-// #        const next = reader.read();
-// #        const helper = new ReturnHelper();
-// #        if (next in node.children) {
-// #            return helper.return(
-// #                this.walkNextNode({
-// #                    ...data,
-// #                    node: node.children[next]
-// #                })
-// #            );
-// #        } else {
-// #            for (const key of Object.keys(node.children)) {
-// #                if (key.startsWith("$")) {
-// #                    const ref = key.substring(1);
-// #                    const [nextPath] = parseRefPath(ref, path);
-// #                    const list = (this.docs.get(nextPath) as any) as ValueList;
-// #                    if (
-// #                        list.find(
-// #                            v => (isString(v) ? v === next : v.value === next)
-// #                        )
-// #                    ) {
-// #                        return helper.return(
-// #                            this.walkNextNode({
-// #                                ...data,
-// #                                node: node.children[key]
-// #                            })
-// #                        );
-// #                    }
-// #                }
-// #            }
-// #        }
-// #        return helper.fail();
-// #    }
-// #}
-// #
+exports.NBTWalker = NBTWalker;
 },{"./doc-walker-func":"51vC","./util/array-reader":"PoZp","./util/doc-walker-util":"km+2"}],"JpDU":[function(require,module,exports) {
 "use strict";
 
@@ -4653,7 +4249,7 @@ function parseBlockArgument(reader, info, tags) {
       stringifiedName = misc_functions_1.stringifyNamespace(parsed.data.parsed);
 
       if (info.suggesting && !reader.canRead()) {
-        helper.addSuggestions(...misc_functions_1.namespaceSuggestionString(Object.keys(info.data.globalData.blocks), parsed.data.parsed, start));
+        helper.addSuggestions(...misc_functions_1.namespaceSuggestionString(Object.keys(info.data.globalData.blocks), start));
       }
 
       const props = info.data.globalData.blocks[stringifiedName];
@@ -6185,7 +5781,7 @@ class ItemParser {
         });
       } else {
         if (properties.suggesting && !reader.canRead()) {
-          helper.addSuggestions(...misc_functions_1.namespaceSuggestionString([...properties.data.globalData.registries["minecraft:item"]], parsed.data.parsed, start));
+          helper.addSuggestions(...misc_functions_1.namespaceSuggestionString([...properties.data.globalData.registries["minecraft:item"]], start));
         }
 
         const name = misc_functions_1.stringifyNamespace(parsed.data.parsed);
@@ -7858,10 +7454,9 @@ function getNodeTree(line) {
   return undefined;
 }
 
-function getWorkspaceSymbols(manager, query) {
+function getWorkspaceSymbols(manager) {
   const result = [];
   const worlds = manager.packData;
-  const namespace = misc_functions_1.convertToNamespace(query);
 
   for (const worldPath of Object.keys(worlds)) {
     const world = worlds[worldPath];
@@ -7875,16 +7470,14 @@ function getWorkspaceSymbols(manager, query) {
 
           if (val) {
             for (const item of val) {
-              if (misc_functions_1.namespaceStart(item, namespace)) {
-                result.push({
-                  kind: symbolKindForResource(type),
-                  location: {
-                    range: blanks_1.blankRange,
-                    uri: vscode_uri_1.default.file(misc_functions_1.buildPath(item, world, type)).toString()
-                  },
-                  name: misc_functions_1.stringifyNamespace(item)
-                });
-              }
+              result.push({
+                kind: symbolKindForResource(type),
+                location: {
+                  range: blanks_1.blankRange,
+                  uri: vscode_uri_1.default.file(misc_functions_1.buildPath(item, world, type)).toString()
+                },
+                name: misc_functions_1.stringifyNamespace(item)
+              });
             }
           }
         }
@@ -9498,8 +9091,8 @@ connection.onCompletion(params => {
 connection.onDefinition(prepare(actions_1.definitionProvider, [])); // #connection.onDocumentHighlight();
 // #connection.onDocumentSymbol(); // This is for sections - there are none in mcfunctions
 
-connection.onWorkspaceSymbol(query => actions_1.getWorkspaceSymbols(manager, query.query));
-connection.onHover(prepare(actions_1.hoverProvider, undefined));
+connection.onWorkspaceSymbol(() => actions_1.getWorkspaceSymbols(manager));
+connection.onHover(prepare(actions_1.hoverProvider));
 connection.onSignatureHelp(prepare(actions_1.signatureHelpProvider));
 
 function prepare(func, fallback) {

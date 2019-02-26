@@ -336,10 +336,8 @@ connection.onCompletion(params => {
 connection.onDefinition(prepare<Location[]>(definitionProvider, []));
 // #connection.onDocumentHighlight();
 // #connection.onDocumentSymbol(); // This is for sections - there are none in mcfunctions
-connection.onWorkspaceSymbol(query =>
-    getWorkspaceSymbols(manager, query.query)
-);
-connection.onHover(prepare(hoverProvider, undefined));
+connection.onWorkspaceSymbol(() => getWorkspaceSymbols(manager));
+connection.onHover(prepare(hoverProvider));
 connection.onSignatureHelp(prepare(signatureHelpProvider));
 
 function prepare<T>(
