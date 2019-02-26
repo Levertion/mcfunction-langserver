@@ -2,7 +2,7 @@ import * as assert from "assert";
 import * as path from "path";
 
 import { getPacksInfo } from "../../data/datapack-resources";
-import { Datapack, MinecraftResource, WorldInfo } from "../../data/types";
+import { Datapack, ResourceID, WorldInfo } from "../../data/types";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
 import {
     assertMembers,
@@ -70,8 +70,8 @@ function assertPacksInfo(
         assertMembers(keys, Object.keys(actual.data), (a, b) => a === b);
 
         for (const kind of keys) {
-            const resources = pack.data[kind] as MinecraftResource[];
-            const actualResources = actual.data[kind] as MinecraftResource[];
+            const resources = pack.data[kind] as ResourceID[];
+            const actualResources = actual.data[kind] as ResourceID[];
             assert(actualResources.every(v => v.pack === id));
             assertNamespaces(resources, actualResources);
         }

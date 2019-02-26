@@ -1,7 +1,7 @@
 import {
     GlobalData,
-    MinecraftResource,
-    NamespacedName,
+    ResourceID,
+    ID,
     Resources,
     WorldInfo
 } from "../data/types";
@@ -9,9 +9,10 @@ import { CommandData } from "../types";
 
 import { namespacesEqual } from "./namespace";
 
-export function getResourcesofType<
-    T extends MinecraftResource = MinecraftResource
->(resources: CommandData, type: keyof Resources): T[] {
+export function getResourcesofType<T extends ResourceID = ResourceID>(
+    resources: CommandData,
+    type: keyof Resources
+): T[] {
     return getResourcesSplit<T>(
         type,
         resources.globalData,
@@ -19,10 +20,12 @@ export function getResourcesofType<
     );
 }
 
-export function getResourcesSplit<
-    T extends MinecraftResource = MinecraftResource
->(type: keyof Resources, globalData: GlobalData, packsInfo?: WorldInfo): T[] {
-    const results: MinecraftResource[] = [];
+export function getResourcesSplit<T extends ResourceID = ResourceID>(
+    type: keyof Resources,
+    globalData: GlobalData,
+    packsInfo?: WorldInfo
+): T[] {
+    const results: ResourceID[] = [];
     const globalResources = globalData.resources[type];
     if (!!globalResources) {
         results.push(...globalResources);
@@ -43,10 +46,7 @@ export function getResourcesSplit<
     return results as T[];
 }
 
-export function getMatching<T extends NamespacedName>(
-    resources: T[],
-    value: T
-): T[] {
+export function getMatching<T extends ID>(resources: T[], value: T): T[] {
     const results: T[] = [];
     for (const resource of resources) {
         if (namespacesEqual(resource, value)) {

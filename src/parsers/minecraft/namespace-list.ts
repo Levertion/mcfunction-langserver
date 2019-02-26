@@ -1,6 +1,6 @@
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { NamespacedName, RegistryNames } from "../../data/types";
+import { ID, RegistryNames } from "../../data/types";
 import {
     parseNamespaceOption,
     ReturnHelper,
@@ -14,7 +14,7 @@ export class NamespaceListParser implements Parser {
     private readonly registryType: RegistryNames;
     private readonly resultFunction?: (
         context: CommandContext,
-        result: NamespacedName[]
+        result: ID[]
     ) => void;
     public constructor(
         registryType: RegistryNames,

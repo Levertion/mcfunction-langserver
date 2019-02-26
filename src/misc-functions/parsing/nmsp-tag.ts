@@ -10,13 +10,7 @@ import {
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { TAG_START } from "../../consts";
-import {
-    DataResource,
-    NamespacedName,
-    Resources,
-    Tag,
-    WorldInfo
-} from "../../data/types";
+import { DataID, ID, Resources, Tag, WorldInfo } from "../../data/types";
 import { CE, ParserInfo, ReturnedInfo, ReturnSuccess } from "../../types";
 
 import {
@@ -26,9 +20,9 @@ import {
 } from "./namespace";
 
 export interface TagParseResult {
-    parsed: NamespacedName;
-    resolved?: NamespacedName[];
-    values?: Array<DataResource<Tag>>;
+    parsed: ID;
+    resolved?: ID[];
+    values?: Array<DataID<Tag>>;
 }
 
 /**
@@ -44,13 +38,13 @@ export function parseNamespaceOrTag(
     reader: StringReader,
     info: ParserInfo,
     taghandling: keyof Resources | CommandErrorBuilder
-): ReturnedInfo<TagParseResult, CE, NamespacedName | undefined> {
+): ReturnedInfo<TagParseResult, CE, ID | undefined> {
     const helper = new ReturnHelper(info);
     const start = reader.cursor;
     if (reader.peek() === TAG_START) {
         reader.skip();
         if (typeof taghandling === "string") {
-            const tags: Array<DataResource<Tag>> = getResourcesofType(
+            const tags: Array<DataID<Tag>> = getResourcesofType(
                 info.data,
                 taghandling
             );
@@ -61,7 +55,7 @@ export function parseNamespaceOrTag(
             );
             if (helper.merge(parsed)) {
                 const values = parsed.data.values;
-                const resolved: NamespacedName[] = [];
+                const resolved: ID[] = [];
                 for (const value of values) {
                     resolved.push(...getLowestForTag(value, tags));
                 }
@@ -94,14 +88,11 @@ export function parseNamespaceOrTag(
     }
 }
 
-function getLowestForTag(
-    tag: DataResource<Tag>,
-    options: Array<DataResource<Tag>>
-): NamespacedName[] {
+function getLowestForTag(tag: DataID<Tag>, options: Array<DataID<Tag>>): ID[] {
     if (!tag.data) {
         return [];
     }
-    const results: NamespacedName[] = [];
+    const results: ID[] = [];
     for (const tagMember of tag.data.values) {
         if (tagMember[0] === TAG_START) {
             const namespace = convertToNamespace(tagMember.substring(1));
@@ -118,7 +109,7 @@ function getLowestForTag(
 }
 
 export function buildTagActions(
-    tags: Array<DataResource<Tag>>,
+    tags: Array<DataID<Tag>>,
     low: number,
     high: number,
     type: keyof Resources,

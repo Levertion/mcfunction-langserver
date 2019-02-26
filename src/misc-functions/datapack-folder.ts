@@ -10,10 +10,10 @@ import {
 } from "../consts";
 import {
     Advancement,
-    DataResource,
+    DataID,
     GlobalData,
-    MinecraftResource,
-    NamespacedName,
+    ResourceID,
+    ID,
     Resources,
     Tag,
     WorldInfo
@@ -115,7 +115,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 return helper.succeed({
                     ...v,
                     data: Object.keys(advancement.criteria)
-                } as DataResource<string[]>);
+                } as DataID<string[]>);
             } catch (e) {
                 return helper.succeed(v);
             }
@@ -209,7 +209,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
 
 interface KindNamespace {
     kind: keyof Resources;
-    location: NamespacedName & { namespace: string };
+    location: ID & { namespace: string };
 }
 
 export function getKindAndNamespace(
@@ -252,7 +252,7 @@ export function getKindAndNamespace(
 }
 
 export function getPath(
-    resource: MinecraftResource,
+    resource: ResourceID,
     packroot: string,
     kind: keyof Resources,
     path: PathModule = defaultPath
@@ -269,7 +269,7 @@ export function getPath(
 }
 
 export function buildPath(
-    resource: MinecraftResource,
+    resource: ResourceID,
     packs: WorldInfo,
     kind: keyof Resources,
     path: PathModule = defaultPath
@@ -288,12 +288,12 @@ export function buildPath(
 }
 
 async function readTag(
-    resource: MinecraftResource,
+    resource: ResourceID,
     packRoot: string,
     type: keyof Resources,
-    options: MinecraftResource[],
+    options: ResourceID[],
     isKnown: (value: string) => boolean
-): Promise<ReturnSuccess<DataResource<Tag> | MinecraftResource>> {
+): Promise<ReturnSuccess<DataID<Tag> | ResourceID>> {
     const helper = new ReturnHelper();
     const filePath = getPath(resource, packRoot, type);
     const tag = await readJSON<Tag>(filePath);

@@ -4,7 +4,7 @@ import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NONWHITESPACE } from "../../consts";
 import { Scoreboard } from "../../data/nbt/nbt-types";
-import { DataResource, NamespacedName } from "../../data/types";
+import { DataID, ID } from "../../data/types";
 import {
     convertToNamespace,
     getResourcesofType,
@@ -379,7 +379,7 @@ export function parseAdvancements(
     while (true) {
         let advname: string;
         const criteriaOptions: string[] = [];
-        const res = parseNamespaceOption<DataResource<string[]>>(
+        const res = parseNamespaceOption<DataID<string[]>>(
             reader,
             advancements
         );
@@ -1021,7 +1021,7 @@ function getContextChange(
     path: string[]
 ): ContextChange | undefined {
     if (context.type) {
-        const result: NamespacedName[] = [];
+        const result: ID[] = [];
         for (const item of context.type.set.values()) {
             if (!context.type.unset.has(item)) {
                 result.push(convertToNamespace(item));

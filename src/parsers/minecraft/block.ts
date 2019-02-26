@@ -7,7 +7,7 @@ import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import {
     BlocksPropertyInfo,
-    NamespacedName,
+    ID,
     SingleBlockPropertyInfo
 } from "../../data/types";
 import {
@@ -354,7 +354,7 @@ function parseProperties(
 }
 
 function constructProperties(
-    options: NamespacedName[],
+    options: ID[],
     blocks: BlocksPropertyInfo
 ): SingleBlockPropertyInfo {
     const result: SingleBlockPropertyInfo = {};

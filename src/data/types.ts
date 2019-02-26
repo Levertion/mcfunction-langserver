@@ -7,7 +7,7 @@ import { Level, Scoreboard } from "./nbt/nbt-types";
  * Types for data
  */
 //#region Namespace
-export interface NamespacedName {
+export interface ID {
     namespace?: string;
     path: string;
 }
@@ -155,7 +155,7 @@ export interface LocalData extends WorldInfo {
     current: DataPackID;
 }
 
-export interface MinecraftResource extends NamespacedName {
+export interface ResourceID extends ID {
     /**
      * Namespace will be defined for a MinecraftResource
      */
@@ -168,19 +168,19 @@ export interface MinecraftResource extends NamespacedName {
 }
 
 export interface Resources {
-    advancements?: MinecraftResource[];
-    block_tags?: MinecraftResource[];
-    entity_tags?: MinecraftResource[];
-    fluid_tags?: MinecraftResource[];
-    function_tags?: MinecraftResource[];
-    functions?: MinecraftResource[];
-    item_tags?: MinecraftResource[];
-    loot_tables?: MinecraftResource[];
-    recipes?: MinecraftResource[];
-    structures?: MinecraftResource[];
+    advancements?: ResourceID[];
+    block_tags?: ResourceID[];
+    entity_tags?: ResourceID[];
+    fluid_tags?: ResourceID[];
+    function_tags?: ResourceID[];
+    functions?: ResourceID[];
+    item_tags?: ResourceID[];
+    loot_tables?: ResourceID[];
+    recipes?: ResourceID[];
+    structures?: ResourceID[];
 }
 
-export interface DataResource<T> extends MinecraftResource {
+export interface DataID<T> extends ResourceID {
     data?: T;
 }
 

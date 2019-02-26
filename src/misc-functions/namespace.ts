@@ -1,29 +1,23 @@
 import { DEFAULT_NAMESPACE, NAMESPACE } from "../consts";
-import { NamespacedName } from "../data/types";
+import { ID } from "../data/types";
 
-export function namespacesEqual(
-    first: NamespacedName,
-    second: NamespacedName
-): boolean {
+export function namespacesEqual(first: ID, second: ID): boolean {
     return namesEqual(first, second) && first.path === second.path;
 }
 
-export function namesEqual(
-    first: NamespacedName,
-    second: NamespacedName
-): boolean {
+export function namesEqual(first: ID, second: ID): boolean {
     return (
         first.namespace === second.namespace ||
         (isNamespaceDefault(first) && isNamespaceDefault(second))
     );
 }
 
-export function isNamespaceDefault(name: NamespacedName): boolean {
+export function isNamespaceDefault(name: ID): boolean {
     return name.namespace === undefined || name.namespace === DEFAULT_NAMESPACE;
 }
 
 export function stringifyNamespace(
-    namespace: NamespacedName,
+    namespace: ID,
     seperator: string = NAMESPACE
 ): string {
     return (
@@ -40,7 +34,7 @@ export function stringifyNamespace(
 export function convertToNamespace(
     input: string,
     splitChar: string = NAMESPACE
-): NamespacedName {
+): ID {
     const index = input.indexOf(splitChar);
     if (index >= 0) {
         const pathContents = input.substring(

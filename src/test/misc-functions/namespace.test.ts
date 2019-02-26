@@ -1,6 +1,5 @@
 import * as assert from "assert";
-
-import { NamespacedName } from "../../data/types";
+import { ID } from "../../data/types";
 import {
     convertToNamespace,
     namespacesEqual,
@@ -10,7 +9,7 @@ import {
 describe("Namespace Functions (Misc)", () => {
     describe("namespacesEqual()", () => {
         it("should return true if the names are equal", () => {
-            const name: NamespacedName = {
+            const name: ID = {
                 namespace: "namespace",
                 path: "testpath"
             };
@@ -22,7 +21,7 @@ describe("Namespace Functions (Misc)", () => {
             );
         });
         it("should return false if the namespaces aren't equal", () => {
-            const name: NamespacedName = {
+            const name: ID = {
                 namespace: "namespace1",
                 path: "testpath"
             };
@@ -34,7 +33,7 @@ describe("Namespace Functions (Misc)", () => {
             );
         });
         it("should return false if the paths aren't equal", () => {
-            const name: NamespacedName = {
+            const name: ID = {
                 namespace: "namespace",
                 path: "testpath1"
             };
@@ -48,7 +47,7 @@ describe("Namespace Functions (Misc)", () => {
     });
     describe("convertToNamespace()", () => {
         it("should convert a regular namespaced name", () => {
-            const expected: NamespacedName = {
+            const expected: ID = {
                 namespace: "namespace",
                 path: "path"
             };
@@ -58,12 +57,12 @@ describe("Namespace Functions (Misc)", () => {
             );
         });
         it("should have no namespace if there is no namespace", () => {
-            const expected: NamespacedName = { path: "pathonly" };
+            const expected: ID = { path: "pathonly" };
             assert.deepStrictEqual(convertToNamespace("pathonly"), expected);
         });
         it("should have no namespace if the namespace is empty", () => {
             // This bug/feature(?): https://bugs.mojang.com/browse/MC-125100
-            const expected: NamespacedName = { path: "pathonly" };
+            const expected: ID = { path: "pathonly" };
             assert.deepStrictEqual(convertToNamespace(":pathonly"), expected);
         });
     });
@@ -84,19 +83,19 @@ describe("Namespace Functions (Misc)", () => {
 });
 describe("convertToNamespace()", () => {
     it("should convert a regular namespaced name", () => {
-        const expected: NamespacedName = {
+        const expected: ID = {
             namespace: "namespace",
             path: "path"
         };
         assert.deepStrictEqual(convertToNamespace("namespace:path"), expected);
     });
     it("should have no namespace if there is no namespace", () => {
-        const expected: NamespacedName = { path: "pathonly" };
+        const expected: ID = { path: "pathonly" };
         assert.deepStrictEqual(convertToNamespace("pathonly"), expected);
     });
     it("should have no namespace if the namespace is empty", () => {
         // This bug/feature(?): https://bugs.mojang.com/browse/MC-125100
-        const expected: NamespacedName = { path: "pathonly" };
+        const expected: ID = { path: "pathonly" };
         assert.deepStrictEqual(convertToNamespace(":pathonly"), expected);
     });
 });
@@ -116,19 +115,19 @@ describe("stringifyNamespace()", () => {
 });
 describe("convertToNamespace()", () => {
     it("should convert a regular namespaced name", () => {
-        const expected: NamespacedName = {
+        const expected: ID = {
             namespace: "namespace",
             path: "path"
         };
         assert.deepStrictEqual(convertToNamespace("namespace:path"), expected);
     });
     it("should have no namespace if there is no namespace", () => {
-        const expected: NamespacedName = { path: "pathonly" };
+        const expected: ID = { path: "pathonly" };
         assert.deepStrictEqual(convertToNamespace("pathonly"), expected);
     });
     it("should have no namespace if the namespace is empty", () => {
         // This bug/feature(?): https://bugs.mojang.com/browse/MC-125100
-        const expected: NamespacedName = { path: "pathonly" };
+        const expected: ID = { path: "pathonly" };
         assert.deepStrictEqual(convertToNamespace(":pathonly"), expected);
     });
 });

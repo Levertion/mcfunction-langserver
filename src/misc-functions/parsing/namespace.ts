@@ -9,7 +9,7 @@ import {
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NAMESPACE } from "../../consts";
-import { NamespacedName } from "../../data/types";
+import { ID } from "../../data/types";
 import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
 
 const NAMESPACEEXCEPTIONS = {
@@ -22,7 +22,7 @@ const NAMESPACEEXCEPTIONS = {
 export const namespaceChars = /^[0-9a-z_:/\.-]$/;
 const allowedInSections = /^[0-9a-z_/\.-]$/;
 
-export function stringArrayToNamespaces(strings: string[]): NamespacedName[] {
+export function stringArrayToNamespaces(strings: string[]): ID[] {
     // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
     return strings.map(v => convertToNamespace(v));
 }
@@ -46,7 +46,7 @@ export function readNamespaceText(
 }
 
 export function namespaceSuggestions(
-    options: NamespacedName[],
+    options: ID[],
     start: number
 ): Suggestion[] {
     const result: Suggestion[] = [];
@@ -67,7 +67,7 @@ export function parseNamespace(
     reader: StringReader,
     seperator: string = NAMESPACE,
     stopAfterFirst: boolean = false
-): ReturnedInfo<NamespacedName> {
+): ReturnedInfo<ID> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const text = readNamespaceText(reader, seperator, stopAfterFirst);
@@ -100,17 +100,17 @@ export function parseNamespace(
 }
 
 interface OptionResult<T> {
-    literal: NamespacedName;
+    literal: ID;
     values: T[];
 }
 
-export function parseNamespaceOption<T extends NamespacedName>(
+export function parseNamespaceOption<T extends ID>(
     reader: StringReader,
     options: T[],
     completionKind?: CompletionItemKind,
     seperator: string = NAMESPACE,
     stopAfterFirst: boolean = false
-): ReturnedInfo<OptionResult<T>, CE, NamespacedName | undefined> {
+): ReturnedInfo<OptionResult<T>, CE, ID | undefined> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const namespace = parseNamespace(reader, seperator, stopAfterFirst);
@@ -137,8 +137,8 @@ export function parseNamespaceOption<T extends NamespacedName>(
     }
 }
 
-export function processParsedNamespaceOption<T extends NamespacedName>(
-    namespace: NamespacedName,
+export function processParsedNamespaceOption<T extends ID>(
+    namespace: ID,
     options: T[],
     suggest: boolean,
     start: number,

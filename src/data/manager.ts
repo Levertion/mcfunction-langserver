@@ -28,7 +28,7 @@ import {
     GlobalData,
     LocalData,
     McmetaFile,
-    MinecraftResource,
+    ResourceID,
     WorldInfo
 } from "./types";
 
@@ -154,7 +154,7 @@ export class DataManager {
                                             namespace.kind
                                         ] = [];
                                     }
-                                    const newResource: MinecraftResource = {
+                                    const newResource: ResourceID = {
                                         ...namespace.location,
                                         pack: packID
                                     };

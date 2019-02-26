@@ -3,7 +3,7 @@ import { AssertionError, notStrictEqual, strictEqual } from "assert";
 import { CommandError } from "../brigadier/errors";
 import { StringReader } from "../brigadier/string-reader";
 import { NAMESPACE } from "../consts";
-import { DataResource, MinecraftResource, NamespacedName } from "../data/types";
+import { DataID, ResourceID, ID } from "../data/types";
 import {
     convertToNamespace,
     isSuccessful,
@@ -196,8 +196,8 @@ export function assertSuggestions(
 }
 
 export function assertNamespaces(
-    expected: NamespacedName[],
-    actual: NamespacedName[] | undefined
+    expected: ID[],
+    actual: ID[] | undefined
 ): void {
     assertMembers(
         actual,
@@ -289,11 +289,11 @@ export function convertToResource<T>(
     input: string,
     data?: T,
     splitChar: string = NAMESPACE
-): DataResource<T> {
+): DataID<T> {
     const result = convertToNamespace(input, splitChar);
     notStrictEqual(result.namespace, undefined);
     if (data) {
-        return { ...(result as MinecraftResource), data };
+        return { ...(result as ResourceID), data };
     }
-    return result as MinecraftResource;
+    return result as ResourceID;
 }

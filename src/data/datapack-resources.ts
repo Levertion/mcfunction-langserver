@@ -19,7 +19,7 @@ import {
     DataPackID,
     GlobalData,
     McmetaFile,
-    MinecraftResource,
+    ResourceID,
     Resources,
     WorldInfo
 } from "./types";
@@ -61,7 +61,7 @@ export async function getNamespaceResources(
                         );
                     }
                     const internalUri = path.relative(dataContents, file);
-                    const newResource: MinecraftResource = {
+                    const newResource: ResourceID = {
                         namespace,
                         pack: id,
                         path: internalUri
