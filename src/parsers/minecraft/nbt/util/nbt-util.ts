@@ -1,9 +1,11 @@
 import { NBTNode } from "mc-nbt-paths";
+
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
 import { ReturnedInfo, ReturnSuccess } from "../../../../types";
 import { runSuggestFunction } from "../doc-walker-func";
 import { TagType } from "../tag/nbt-tag";
+
 import {
     isNoNBTNode,
     isRootNode,

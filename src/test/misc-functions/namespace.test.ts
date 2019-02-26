@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { NamespacedName } from "../../data/types";
 import {
     convertToNamespace,

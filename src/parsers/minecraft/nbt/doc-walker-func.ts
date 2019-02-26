@@ -1,6 +1,7 @@
 import { FunctionNode } from "mc-nbt-paths";
 import * as path from "path";
 import { sprintf } from "sprintf-js";
+
 import { NBTTag } from "./tag/nbt-tag";
 import { NBTTagString } from "./tag/string-tag";
 import { getNBTTagFromTree } from "./util/doc-walker-util";

@@ -1,4 +1,5 @@
 import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
+
 import { MCFormat } from "../misc-functions";
 import { LineRange } from "../types";
 

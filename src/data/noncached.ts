@@ -4,6 +4,7 @@ import {
     getLanguageService,
     SchemaRequestService
 } from "vscode-json-languageservice";
+
 import { NBTDocs, NonCacheable } from "./types";
 
 export function loadNBTDocs(): NBTDocs {

@@ -6,7 +6,9 @@ import {
     RootNode,
     ValueList
 } from "mc-nbt-paths";
+
 import { NBTDocs } from "../../../data/types";
+
 import { runNodeFunction } from "./doc-walker-func";
 import { NBTTag } from "./tag/nbt-tag";
 import { ArrayReader } from "./util/array-reader";

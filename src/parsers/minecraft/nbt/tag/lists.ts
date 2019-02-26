@@ -11,6 +11,7 @@ import {
     LIST_VALUE_SEP
 } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
+
 import { NBTTag } from "./nbt-tag";
 
 const NOVAL = new CommandErrorBuilder(

@@ -1,4 +1,5 @@
 import { DiagnosticSeverity } from "vscode-languageserver";
+
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { READER_EXCEPTIONS, StringReader } from "../../brigadier/string-reader";
 import { ReturnHelper } from "../../misc-functions";

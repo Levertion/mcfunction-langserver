@@ -1,6 +1,7 @@
 import { CompoundNode, NBTNode } from "mc-nbt-paths";
 import { __values } from "tslib";
 import { CompletionItemKind } from "vscode-languageserver";
+
 import {
     CommandError,
     CommandErrorBuilder
@@ -24,6 +25,7 @@ import {
     getStartSuggestion
 } from "../util/nbt-util";
 import { NBTWalker } from "../walker";
+
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 const NO_KEY = new CommandErrorBuilder(

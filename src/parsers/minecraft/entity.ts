@@ -1,4 +1,5 @@
 import { CompletionItemKind, DiagnosticSeverity } from "vscode-languageserver";
+
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NONWHITESPACE } from "../../consts";
@@ -18,6 +19,7 @@ import {
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
 import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
+
 import { summonError } from "./namespace-list";
 import { validateParse } from "./nbt/nbt";
 import { MCRange, parseRange } from "./range";

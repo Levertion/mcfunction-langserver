@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { StringReader } from "../../../brigadier/string-reader";
 import { messageParser } from "../../../parsers/minecraft/message";
 import { ParserInfo } from "../../../types";

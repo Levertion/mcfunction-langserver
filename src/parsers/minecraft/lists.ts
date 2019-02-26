@@ -1,4 +1,5 @@
 import { CompletionItemKind } from "vscode-languageserver";
+
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { COLORS } from "../../colors";

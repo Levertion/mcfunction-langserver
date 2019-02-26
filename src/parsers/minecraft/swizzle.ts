@@ -1,4 +1,5 @@
 import { power } from "js-combinatorics";
+
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { ReturnHelper } from "../../misc-functions";

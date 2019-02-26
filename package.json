@@ -44,7 +44,6 @@
         "sprintf-js": "^1.1.2",
         "synchronous-promise": "^2.0.6",
         "tslib": "^1.9.3",
-        "util.promisify": "^1.0.0",
         "vscode-json-languageservice": "^3.2.0",
         "vscode-languageserver": "^5.2.1",
         "vscode-uri": "^1.0.6"
@@ -64,9 +63,9 @@
         "pretty-quick": "1.10.0",
         "rimraf": "2.6.3",
         "ts-mocha": "6.0.0",
-        "tslint": "5.12.1",
+        "tslint": "5.13.0",
         "tslint-config-prettier": "1.18.0",
-        "typescript": "3.3.3",
+        "typescript": "3.3.3333",
         "vscode-languageserver-types": "3.14.0"
     }
 }

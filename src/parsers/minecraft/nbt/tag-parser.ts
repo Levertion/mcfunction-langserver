@@ -1,6 +1,7 @@
 import { StringReader } from "../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../misc-functions";
 import { CE, ReturnedInfo } from "../../../types";
+
 import { NBTTagCompound } from "./tag/compound-tag";
 import { NBTTagList } from "./tag/list-tag";
 import { NBTTag, ParseReturn } from "./tag/nbt-tag";

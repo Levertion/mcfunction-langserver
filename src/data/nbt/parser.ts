@@ -1,5 +1,6 @@
 import { promisify } from "util";
 import * as zlib from "zlib";
+
 import { BufferStream } from "./buffer-stream";
 
 const unzipAsync = promisify<zlib.InputType, Buffer>(zlib.unzip);

@@ -1,4 +1,5 @@
 import { AssertionError, notStrictEqual, strictEqual } from "assert";
+
 import { CommandError } from "../brigadier/errors";
 import { StringReader } from "../brigadier/string-reader";
 import { NAMESPACE } from "../consts";
@@ -20,6 +21,7 @@ import {
     SubAction,
     SuggestResult
 } from "../types";
+
 import { blankproperties } from "./blanks";
 
 export type TestParserInfo = Pick<

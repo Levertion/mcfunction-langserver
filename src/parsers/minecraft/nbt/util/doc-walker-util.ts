@@ -8,9 +8,9 @@ import {
     RootNode
 } from "mc-nbt-paths";
 import * as path from "path";
-
 import * as url from "url";
 import { DiagnosticSeverity } from "vscode-languageserver/lib/main";
+
 import { CommandErrorBuilder } from "../../../../brigadier/errors";
 import { NBTTagCompound } from "../tag/compound-tag";
 import { BaseList } from "../tag/lists";

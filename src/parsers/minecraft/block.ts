@@ -20,6 +20,7 @@ import {
     parseNamespaceOrTag
 } from "../../misc-functions/parsing/nmsp-tag";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
+
 import { validateParse } from "./nbt/nbt";
 
 export const predicateParser: Parser = {

@@ -1,4 +1,5 @@
 import { IConnection } from "vscode-languageserver/lib/main";
+
 import { storeSecurity } from "../data/cache";
 import { WorkspaceSecurity } from "../types";
 

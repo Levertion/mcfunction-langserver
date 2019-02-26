@@ -8,10 +8,9 @@ branches:
         - master
 sudo: false
 node_js:
-    - stable
-    # Needs to support node 7 for vscode
-    # Possibly irrelevant as of ~1.27
-    - "7"
+    # - stable
+    # For vscode - same as stable
+    - "10"
 before_install:
     - npm install -g npm@6
 install:

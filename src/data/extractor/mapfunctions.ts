@@ -1,7 +1,7 @@
+import { join } from "path";
+
 import { resourceTypes, ReturnHelper } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-
-import { join } from "path";
 import { ReturnSuccess } from "../../types";
 import { GlobalData, Resources, WorldInfo } from "../types";
 

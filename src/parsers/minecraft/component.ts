@@ -1,5 +1,6 @@
 import { TextDocument } from "vscode-json-languageservice";
 import { DiagnosticSeverity } from "vscode-languageserver";
+
 import { CommandError } from "../../brigadier/errors";
 import { ReturnHelper } from "../../misc-functions";
 import { Parser } from "../../types";

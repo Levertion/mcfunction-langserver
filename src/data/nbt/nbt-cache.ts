@@ -1,6 +1,8 @@
 import * as path from "path";
+
 import { readFileAsync } from "../../misc-functions";
 import { WorldNBT } from "../types";
+
 import { Level, Scoreboard } from "./nbt-types";
 import { parse } from "./parser";
 

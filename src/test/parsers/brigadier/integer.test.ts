@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { intParser } from "../../../parsers/brigadier";
 import { testParser } from "../../assertions";
 

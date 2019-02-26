@@ -1,8 +1,9 @@
 import * as assert from "assert";
+
 import { stringParser } from "../../parsers/brigadier";
 import { getParser } from "../../parsers/get-parser";
-
 import { literalParser } from "../../parsers/literal";
+
 import { dummyParser } from "./tests/dummy1";
 
 describe("getParser()", () => {

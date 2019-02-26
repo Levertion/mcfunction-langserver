@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { StringReader } from "../../../brigadier/string-reader";
 import { swizzleParer } from "../../../parsers/minecraft/swizzle";
 import { ParserInfo, Suggestion } from "../../../types";

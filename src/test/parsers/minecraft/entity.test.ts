@@ -1,4 +1,5 @@
 import { NBTNode } from "mc-nbt-paths";
+
 import { EntityBase } from "../../../parsers/minecraft/entity";
 import { CommandData } from "../../../types";
 import { testParser } from "../../assertions";

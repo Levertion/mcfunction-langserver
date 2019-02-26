@@ -1,5 +1,6 @@
 // tslint:disable:helper-return
 import * as defaultPath from "path";
+
 import {
     DATAFOLDER,
     SLASH,
@@ -18,6 +19,7 @@ import {
     WorldInfo
 } from "../data/types";
 import { ReturnSuccess } from "../types";
+
 import { getMatching, getResourcesSplit } from "./group-resources";
 import { convertToNamespace, stringifyNamespace } from "./namespace";
 import { stringArrayToNamespaces } from "./parsing/namespace";

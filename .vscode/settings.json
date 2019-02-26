@@ -6,7 +6,6 @@
     "editor.formatOnSave": true,
     // Allow use of prettier extension solely
     "typescript.format.enable": false,
-    "tslint.autoFixOnSave": true,
     // Consistent finalNewLine
     "files.insertFinalNewline": true,
     // Use of node_modules folder typescript version
@@ -15,5 +14,8 @@
         "**/node_modules": true,
         "**/bower_components": true,
         "**/dist": true
+    },
+    "editor.codeActionsOnSave": {
+        "source.fixAll.tslint": true
     }
 }

@@ -3,8 +3,10 @@ import {
     DidChangeTextDocumentParams,
     Range
 } from "vscode-languageserver/lib/main";
+
 import { CommandError } from "../brigadier/errors";
 import { FunctionInfo } from "../types";
+
 import { splitLines } from "./creators";
 import { shouldTranslate } from "./translation";
 
