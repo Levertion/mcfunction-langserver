@@ -23,6 +23,7 @@ const manager = DataManager.newWithData({
     ...emptyGlobal,
     commands: tree
 });
+
 describe("signatureHelpProvider()", () => {
     it("should give results for every command when no text is specified", () => {
         const result = unwrap(
