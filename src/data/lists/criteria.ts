@@ -1,4 +1,4 @@
-import { stringArrayToNamespaces } from "../../misc-functions";
+import { stringArrayToIDs } from "../../misc-functions";
 
 export const verbatimCriteria = new Set([
     "air",
@@ -16,7 +16,7 @@ export const verbatimCriteria = new Set([
 
 export const colorCriteria = ["teamkill.", "killedByTeam."];
 
-export const itemCriteria = stringArrayToNamespaces([
+export const itemCriteria = stringArrayToIDs([
     "minecraft:broken",
     "minecraft:crafted",
     "minecraft:dropped",
@@ -24,9 +24,9 @@ export const itemCriteria = stringArrayToNamespaces([
     "minecraft:used"
 ]);
 
-export const blockCriteria = stringArrayToNamespaces(["minecraft:mined"]);
+export const blockCriteria = stringArrayToIDs(["minecraft:mined"]);
 
-export const entityCriteria = stringArrayToNamespaces([
+export const entityCriteria = stringArrayToIDs([
     "minecraft:killed_by",
     "minecraft:killed"
 ]);

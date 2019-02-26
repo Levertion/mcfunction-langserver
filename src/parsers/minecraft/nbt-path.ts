@@ -9,7 +9,7 @@ import {
     ContextPath,
     ReturnHelper,
     startPaths,
-    stringifyNamespace
+    stringifyID
 } from "../../misc-functions";
 import {
     CommandContext,
@@ -75,7 +75,7 @@ function entityDataPath(
                     (c.otherEntity &&
                         c.otherEntity.ids &&
                         // tslint:disable-next-line:no-unnecessary-callback-wrapper
-                        c.otherEntity.ids.map(v => stringifyNamespace(v))) ||
+                        c.otherEntity.ids.map(v => stringifyID(v))) ||
                     "none",
                 kind: "entity"
             },

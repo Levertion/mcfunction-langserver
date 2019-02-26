@@ -8,7 +8,7 @@ import {
 import { MCMETAFILE } from "../consts";
 import {
     getKindAndNamespace,
-    namespacesEqual,
+    idsEqual,
     PackLocationSegments,
     parseDataPath,
     resourceTypes,
@@ -135,7 +135,7 @@ export class DataManager {
                                     for (let i = 0; i < contents.length; i++) {
                                         const element = contents[i];
                                         if (
-                                            namespacesEqual(
+                                            idsEqual(
                                                 element,
                                                 namespace.location
                                             )

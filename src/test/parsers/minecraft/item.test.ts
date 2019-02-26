@@ -1,5 +1,5 @@
 import { GlobalData } from "../../../data/types";
-import { convertToNamespace } from "../../../misc-functions";
+import { convertToID } from "../../../misc-functions";
 import {
     predicate as predicateParser,
     stack as stackParser
@@ -23,9 +23,9 @@ const global: GlobalData = {
     },
     resources: {
         item_tags: [
-            convertToNamespace("test:item_tag_one"),
-            convertToNamespace("test:item_tag_two"),
-            convertToNamespace("test:item_tag_two_one")
+            convertToID("test:item_tag_one"),
+            convertToID("test:item_tag_two"),
+            convertToID("test:item_tag_two_one")
         ]
     }
 } as any;

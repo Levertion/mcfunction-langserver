@@ -1,7 +1,7 @@
 import * as assert from "assert";
 
 import { StringReader } from "../../../brigadier/string-reader";
-import { convertToNamespace } from "../../../misc-functions";
+import { convertToID } from "../../../misc-functions";
 import {
     parseNamespace,
     parseNamespaceOption,
@@ -22,7 +22,7 @@ describe("Namespace Parsing Functions", () => {
         it("should allow a parsed option, suggesting that option", () => {
             const reader = new StringReader("mc:succeeds");
             const result = parseNamespaceOption(reader, [
-                convertToNamespace("mc:succeeds")
+                convertToID("mc:succeeds")
             ]);
             if (
                 returnAssert(result, {
@@ -47,7 +47,7 @@ describe("Namespace Parsing Functions", () => {
         it("should reject it if it's an invalid option", () => {
             const reader = new StringReader("mc:fails");
             const result = parseNamespaceOption(reader, [
-                convertToNamespace("mc:succeeds")
+                convertToID("mc:succeeds")
             ]);
             if (!returnAssert(result, { succeeds: false })) {
                 assert.deepStrictEqual(result.data, {

@@ -2,9 +2,9 @@ import { CompletionItemKind } from "vscode-languageserver/lib/main";
 
 import {
     buildPath,
-    convertToNamespace,
+    convertToID,
     getResourcesofType,
-    namespacesEqual,
+    idsEqual,
     ReturnHelper
 } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
@@ -95,14 +95,14 @@ function getLowestForTag(tag: DataID<Tag>, options: Array<DataID<Tag>>): ID[] {
     const results: ID[] = [];
     for (const tagMember of tag.data.values) {
         if (tagMember[0] === TAG_START) {
-            const namespace = convertToNamespace(tagMember.substring(1));
+            const namespace = convertToID(tagMember.substring(1));
             for (const option of options) {
-                if (namespacesEqual(namespace, option)) {
+                if (idsEqual(namespace, option)) {
                     results.push(...getLowestForTag(option, options));
                 }
             }
         } else {
-            results.push(convertToNamespace(tagMember));
+            results.push(convertToID(tagMember));
         }
     }
     return results;

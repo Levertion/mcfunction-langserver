@@ -6,7 +6,7 @@ import { NONWHITESPACE } from "../../consts";
 import { Scoreboard } from "../../data/nbt/nbt-types";
 import { DataID, ID } from "../../data/types";
 import {
-    convertToNamespace,
+    convertToID,
     getResourcesofType,
     getReturned,
     parseNamespaceOption,
@@ -14,8 +14,8 @@ import {
     processParsedNamespaceOption,
     ReturnHelper,
     stringArrayEqual,
-    stringArrayToNamespaces,
-    stringifyNamespace
+    stringArrayToIDs,
+    stringifyID
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
 import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
@@ -387,10 +387,10 @@ export function parseAdvancements(
             if (!res.data) {
                 return helper.fail();
             } else {
-                advname = stringifyNamespace(res.data);
+                advname = stringifyID(res.data);
             }
         } else {
-            advname = stringifyNamespace(res.data.literal);
+            advname = stringifyID(res.data.literal);
             res.data.values
                 .map(v => v.data)
                 .filter(v => !!v)
@@ -760,7 +760,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
                     errors.unknown_tag.create(
                         start,
                         reader.cursor,
-                        stringifyNamespace(parsedType.data)
+                        stringifyID(parsedType.data)
                     )
                 );
                 return helper.succeed();
@@ -770,7 +770,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
         if (!parsedType.data.resolved) {
             const postProcess = processParsedNamespaceOption(
                 parsedType.data.parsed,
-                stringArrayToNamespaces([
+                stringArrayToIDs([
                     ...info.data.globalData.registries["minecraft:entity_type"]
                 ]),
                 info.suggesting && !reader.canRead(),
@@ -783,7 +783,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
                     summonError.create(
                         start,
                         reader.cursor,
-                        stringifyNamespace(parsedType.data.parsed)
+                        stringifyID(parsedType.data.parsed)
                     )
                 );
             }
@@ -794,7 +794,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
         const typeInfo = context.type || { set: new Set(), unset: new Set() };
         const { set, unset } = typeInfo;
         // tslint:disable-next-line:no-unnecessary-callback-wrapper
-        const stringifiedTypes = parsedTypes.map(v => stringifyNamespace(v));
+        const stringifiedTypes = parsedTypes.map(v => stringifyID(v));
         if (!negated) {
             if (stringifiedTypes.every(set.has.bind(set))) {
                 helper.addErrors(
@@ -876,7 +876,7 @@ export class EntityBase implements Parser {
                         set: new Set(
                             // tslint:disable-next-line:no-unnecessary-callback-wrapper
                             ((info.context.executor || {}).ids || []).map(v =>
-                                stringifyNamespace(v)
+                                stringifyID(v)
                             )
                         ),
                         unset: blankSet
@@ -1024,7 +1024,7 @@ function getContextChange(
         const result: ID[] = [];
         for (const item of context.type.set.values()) {
             if (!context.type.unset.has(item)) {
-                result.push(convertToNamespace(item));
+                result.push(convertToID(item));
             }
         }
         if (stringArrayEqual(path, ["execute", "as", "entity"])) {

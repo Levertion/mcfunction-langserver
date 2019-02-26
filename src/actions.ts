@@ -19,7 +19,7 @@ import {
     buildPath,
     followPath,
     getNextNode,
-    stringifyNamespace
+    stringifyID
 } from "./misc-functions";
 import { typed_keys } from "./misc-functions/third_party/typed-keys";
 import { blankRange } from "./test/blanks";
@@ -365,7 +365,7 @@ export function getWorkspaceSymbols(manager: DataManager): SymbolInformation[] {
                                         type
                                     ) as any).toString()
                                 },
-                                name: stringifyNamespace(item)
+                                name: stringifyID(item)
                             });
                         }
                     }

@@ -4,8 +4,8 @@ import { ID, RegistryNames } from "../../data/types";
 import {
     parseNamespaceOption,
     ReturnHelper,
-    stringArrayToNamespaces,
-    stringifyNamespace
+    stringArrayToIDs,
+    stringifyID
 } from "../../misc-functions";
 import { CommandContext, Parser, ParserInfo, ReturnedInfo } from "../../types";
 
@@ -33,7 +33,7 @@ export class NamespaceListParser implements Parser {
         const start = reader.cursor;
         const result = parseNamespaceOption(
             reader,
-            stringArrayToNamespaces([
+            stringArrayToIDs([
                 ...info.data.globalData.registries[this.registryType]
             ])
         );
@@ -51,7 +51,7 @@ export class NamespaceListParser implements Parser {
                         this.error.create(
                             start,
                             reader.cursor,
-                            stringifyNamespace(result.data)
+                            stringifyID(result.data)
                         )
                     )
                     .succeed();

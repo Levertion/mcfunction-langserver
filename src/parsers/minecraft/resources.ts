@@ -14,8 +14,8 @@ import {
     processParsedNamespaceOption,
     ReturnHelper,
     startPaths,
-    stringArrayToNamespaces,
-    stringifyNamespace
+    stringArrayToIDs,
+    stringifyID
 } from "../../misc-functions";
 import { Parser } from "../../types";
 
@@ -79,7 +79,7 @@ export const functionParser: Parser = {
                         exceptions.unknown_function.create(
                             start,
                             reader.cursor,
-                            stringifyNamespace(data.parsed)
+                            stringifyID(data.parsed)
                         )
                     );
                 }
@@ -111,7 +111,7 @@ export const functionParser: Parser = {
                         exceptions.unknown_tag.create(
                             start,
                             reader.cursor,
-                            stringifyNamespace(parsed.data)
+                            stringifyID(parsed.data)
                         )
                     )
                     .succeed();
@@ -130,7 +130,7 @@ const bossbarParser: Parser = {
         if (info.data.localData && info.data.localData.nbt.level) {
             const start = reader.cursor;
             const bars = info.data.localData.nbt.level.Data.CustomBossEvents;
-            const options = stringArrayToNamespaces(Object.keys(bars));
+            const options = stringArrayToIDs(Object.keys(bars));
             const result = parseNamespaceOption(reader, options);
             if (helper.merge(result)) {
                 return helper.succeed();
@@ -141,7 +141,7 @@ const bossbarParser: Parser = {
                             exceptions.nobossbar.create(
                                 start,
                                 reader.cursor,
-                                stringifyNamespace(result.data)
+                                stringifyID(result.data)
                             )
                         )
                         .succeed();
@@ -220,7 +220,7 @@ export const resourceParser: Parser = {
                                 (kind.issue as CommandErrorBuilder).create(
                                     start,
                                     reader.cursor,
-                                    stringifyNamespace(result.data)
+                                    stringifyID(result.data)
                                 )
                             )
                             .succeed();

@@ -4,7 +4,7 @@ export * from "./datapack-folder";
 export * from "./file-errors";
 export * from "./group-resources";
 export * from "./lsp-conversions";
-export * from "./namespace";
+export * from "./id";
 export * from "./node-tree";
 export * from "./promisified-fs";
 export * from "./return-helper";

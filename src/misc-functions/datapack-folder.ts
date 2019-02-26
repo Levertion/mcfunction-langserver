@@ -12,8 +12,8 @@ import {
     Advancement,
     DataID,
     GlobalData,
-    ResourceID,
     ID,
+    ResourceID,
     Resources,
     Tag,
     WorldInfo
@@ -21,8 +21,7 @@ import {
 import { ReturnSuccess } from "../types";
 
 import { getMatching, getResourcesSplit } from "./group-resources";
-import { convertToNamespace, stringifyNamespace } from "./namespace";
-import { stringArrayToNamespaces } from "./parsing/namespace";
+import { convertToID, stringArrayToIDs, stringifyID } from "./id";
 import { readJSON, readJSONRaw } from "./promisified-fs";
 import { ReturnHelper } from "./return-helper";
 import { typed_keys } from "./third_party/typed-keys";
@@ -145,10 +144,10 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 s =>
                     getMatching(
                         // TODO: This is horrifically inefficient
-                        stringArrayToNamespaces([
+                        stringArrayToIDs([
                             ...globalData.registries["minecraft:entity_type"]
                         ]),
-                        convertToNamespace(s)
+                        convertToID(s)
                     ).length > 0
             ),
         path: ["tags", "entity_types"]
@@ -163,10 +162,10 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 getResourcesSplit("fluid_tags", globalData, packsInfo),
                 s =>
                     getMatching(
-                        stringArrayToNamespaces([
+                        stringArrayToIDs([
                             ...globalData.registries["minecraft:entity_type"]
                         ]),
-                        convertToNamespace(s)
+                        convertToID(s)
                     ).length > 0
             ),
         path: ["tags", "fluids"]
@@ -184,7 +183,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 packroot,
                 "function_tags",
                 getResourcesSplit("function_tags", globalData, packsInfo),
-                s => getMatching(functions, convertToNamespace(s)).length > 0
+                s => getMatching(functions, convertToID(s)).length > 0
             );
         },
         path: ["tags", "functions"]
@@ -333,8 +332,8 @@ async function readTag(
                     for (const v of tag.data.values) {
                         if (v.startsWith(TAG_START)) {
                             const tagText = v.slice(1);
-                            const tagNamespace = convertToNamespace(tagText);
-                            const tagName = stringifyNamespace(tagNamespace);
+                            const tagNamespace = convertToID(tagText);
+                            const tagName = stringifyID(tagNamespace);
                             const tagString = `#${tagName}`;
                             const result = getMatching(options, tagNamespace);
                             if (result.length === 0) {
@@ -345,8 +344,8 @@ async function readTag(
                             }
                             seen.add(tagString);
                         } else {
-                            const valueNamespace = convertToNamespace(v);
-                            const value = stringifyNamespace(valueNamespace);
+                            const valueNamespace = convertToID(v);
+                            const value = stringifyID(valueNamespace);
                             if (seen.has(value)) {
                                 duplicates.add(value);
                             }

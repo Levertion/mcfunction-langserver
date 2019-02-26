@@ -13,7 +13,7 @@ import {
 import {
     namespaceSuggestionString,
     ReturnHelper,
-    stringifyNamespace
+    stringifyID
 } from "../../misc-functions";
 import {
     buildTagActions,
@@ -129,7 +129,7 @@ export function parseBlockArgument(
     if (helper.merge(parsed)) {
         const parsedResult = parsed.data;
         if (parsedResult.resolved && parsedResult.values) {
-            stringifiedName = `#${stringifyNamespace(parsedResult.parsed)}`;
+            stringifiedName = `#${stringifyID(parsedResult.parsed)}`;
             helper.merge(
                 buildTagActions(
                     parsedResult.values,
@@ -155,9 +155,7 @@ export function parseBlockArgument(
             if (reader.peek() === "{") {
                 const nbt = validateParse(reader, info, {
                     // tslint:disable-next-line:no-unnecessary-callback-wrapper
-                    ids: (parsedResult.resolved || []).map(v =>
-                        stringifyNamespace(v)
-                    ),
+                    ids: (parsedResult.resolved || []).map(v => stringifyID(v)),
                     kind: "block"
                 });
                 if (!helper.merge(nbt)) {
@@ -167,7 +165,7 @@ export function parseBlockArgument(
                 helper.addSuggestion(reader.cursor, "{");
             }
         } else {
-            stringifiedName = stringifyNamespace(parsed.data.parsed);
+            stringifiedName = stringifyID(parsed.data.parsed);
             if (info.suggesting && !reader.canRead()) {
                 helper.addSuggestions(
                     ...namespaceSuggestionString(
@@ -209,10 +207,10 @@ export function parseBlockArgument(
                 exceptions.unknown_tag.create(
                     start,
                     reader.cursor,
-                    stringifyNamespace(parsed.data)
+                    stringifyID(parsed.data)
                 )
             );
-            stringifiedName = `#${stringifyNamespace(parsed.data)}`;
+            stringifiedName = `#${stringifyID(parsed.data)}`;
             const propsResult = parseProperties(
                 reader,
                 {},
@@ -359,7 +357,7 @@ function constructProperties(
 ): SingleBlockPropertyInfo {
     const result: SingleBlockPropertyInfo = {};
     for (const blockName of options) {
-        const stringified = stringifyNamespace(blockName);
+        const stringified = stringifyID(blockName);
         const block = blocks[stringified];
         if (block) {
             for (const prop in block) {

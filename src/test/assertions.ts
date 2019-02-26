@@ -3,12 +3,8 @@ import { AssertionError, notStrictEqual, strictEqual } from "assert";
 import { CommandError } from "../brigadier/errors";
 import { StringReader } from "../brigadier/string-reader";
 import { NAMESPACE } from "../consts";
-import { DataID, ResourceID, ID } from "../data/types";
-import {
-    convertToNamespace,
-    isSuccessful,
-    namespacesEqual
-} from "../misc-functions";
+import { DataID, ID, ResourceID } from "../data/types";
+import { convertToID, idsEqual, isSuccessful } from "../misc-functions";
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import {
     CE,
@@ -202,7 +198,7 @@ export function assertNamespaces(
     assertMembers(
         actual,
         expected,
-        namespacesEqual,
+        idsEqual,
         expectation =>
             `Expected to find a path with namespace '${
                 expectation.namespace
@@ -290,7 +286,7 @@ export function convertToResource<T>(
     data?: T,
     splitChar: string = NAMESPACE
 ): DataID<T> {
-    const result = convertToNamespace(input, splitChar);
+    const result = convertToID(input, splitChar);
     notStrictEqual(result.namespace, undefined);
     if (data) {
         return { ...(result as ResourceID), data };

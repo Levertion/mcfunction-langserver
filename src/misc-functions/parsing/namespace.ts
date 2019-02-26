@@ -1,16 +1,11 @@
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
-
-import {
-    convertToNamespace,
-    namespacesEqual,
-    ReturnHelper,
-    stringifyNamespace
-} from "..";
+import { convertToID, idsEqual, ReturnHelper, stringifyID } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NAMESPACE } from "../../consts";
 import { ID } from "../../data/types";
 import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
+import { stringArrayToIDs } from "../id";
 
 const NAMESPACEEXCEPTIONS = {
     invalid_id: new CommandErrorBuilder(
@@ -21,11 +16,6 @@ const NAMESPACEEXCEPTIONS = {
 
 export const namespaceChars = /^[0-9a-z_:/\.-]$/;
 const allowedInSections = /^[0-9a-z_/\.-]$/;
-
-export function stringArrayToNamespaces(strings: string[]): ID[] {
-    // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
-    return strings.map(v => convertToNamespace(v));
-}
 
 export function readNamespaceText(
     reader: StringReader,
@@ -51,7 +41,7 @@ export function namespaceSuggestions(
 ): Suggestion[] {
     const result: Suggestion[] = [];
     for (const option of options) {
-        result.push({ text: stringifyNamespace(option), start });
+        result.push({ text: stringifyID(option), start });
     }
     return result;
 }
@@ -60,7 +50,7 @@ export function namespaceSuggestionString(
     options: string[],
     start: number
 ): Suggestion[] {
-    return namespaceSuggestions(stringArrayToNamespaces(options), start);
+    return namespaceSuggestions(stringArrayToIDs(options), start);
 }
 
 export function parseNamespace(
@@ -71,7 +61,7 @@ export function parseNamespace(
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const text = readNamespaceText(reader, seperator, stopAfterFirst);
-    const namespace = convertToNamespace(text, seperator);
+    const namespace = convertToID(text, seperator);
     let next = 0;
     let failed = false;
     // Give an error for each invalid character
@@ -148,13 +138,13 @@ export function processParsedNamespaceOption<T extends ID>(
     const results: T[] = [];
     const helper = new ReturnHelper();
     for (const val of options) {
-        if (namespacesEqual(val, namespace)) {
+        if (idsEqual(val, namespace)) {
             results.push(val);
         }
         if (suggest) {
             helper.addSuggestion(
                 start,
-                stringifyNamespace(val, seperator),
+                stringifyID(val, seperator),
                 completionKind
             );
         }

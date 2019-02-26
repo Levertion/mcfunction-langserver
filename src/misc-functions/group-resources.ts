@@ -1,13 +1,13 @@
 import {
     GlobalData,
-    ResourceID,
     ID,
+    ResourceID,
     Resources,
     WorldInfo
 } from "../data/types";
 import { CommandData } from "../types";
+import { idsEqual } from './id';
 
-import { namespacesEqual } from "./namespace";
 
 export function getResourcesofType<T extends ResourceID = ResourceID>(
     resources: CommandData,
@@ -49,7 +49,7 @@ export function getResourcesSplit<T extends ResourceID = ResourceID>(
 export function getMatching<T extends ID>(resources: T[], value: T): T[] {
     const results: T[] = [];
     for (const resource of resources) {
-        if (namespacesEqual(resource, value)) {
+        if (idsEqual(resource, value)) {
             results.push(resource);
         }
     }
