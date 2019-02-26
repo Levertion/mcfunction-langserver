@@ -428,8 +428,8 @@ describe("string-reader", () => {
             const reader = new StringReader("'single quoted'");
             const result = reader.readQuotedString();
             if (returnAssert(result, succeeds)) {
-                assert.equal(result.data, "single quoted");
-                assert.equal(reader.getRemainingLength(), 0);
+                assert.strictEqual(result.data, "single quoted");
+                assert.strictEqual(reader.getRemainingLength(), 0);
             }
         });
     });
