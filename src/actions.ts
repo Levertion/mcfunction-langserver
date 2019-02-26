@@ -9,8 +9,8 @@ import {
     SymbolInformation,
     SymbolKind
 } from "vscode-languageserver";
-
 import URI from "vscode-uri";
+
 import { getAllNodes } from "./completions";
 import { COMMENT_START } from "./consts";
 import { DataManager } from "./data/manager";

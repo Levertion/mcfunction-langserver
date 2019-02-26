@@ -7792,11 +7792,11 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+const path_1 = require("path");
+
 const misc_functions_1 = require("../../misc-functions");
 
 const typed_keys_1 = require("../../misc-functions/third_party/typed-keys");
-
-const path_1 = require("path");
 
 async function runMapFunctions(resources, globalData, packRoot, localData) {
   const result = {};
@@ -8564,11 +8564,11 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-const vscode_languageserver_1 = require("vscode-languageserver");
-
 const assert_1 = require("assert");
 
 const path_1 = require("path");
+
+const vscode_languageserver_1 = require("vscode-languageserver");
 
 const consts_1 = require("../consts");
 
@@ -9065,10 +9065,6 @@ const tslib_1 = require("tslib");
 const events_1 = require("events");
 
 const util_1 = require("util");
-
-const util_promisify_1 = require("util.promisify");
-
-util_promisify_1.shim();
 
 const main_1 = require("vscode-languageserver/lib/main");
 

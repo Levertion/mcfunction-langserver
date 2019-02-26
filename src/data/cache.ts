@@ -8,6 +8,7 @@ import {
 } from "../misc-functions/promisified-fs";
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import { WorkspaceSecurity } from "../types";
+
 import { Cacheable, RegistriesData } from "./types";
 
 if (!process.env.MCFUNCTION_CACHE_DIR) {

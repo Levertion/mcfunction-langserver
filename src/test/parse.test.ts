@@ -1,7 +1,9 @@
 import * as assert from "assert";
+
 import { GlobalData } from "../data/types";
 import { parseCommand } from "../parse";
 import { ParseNode, StoredParseResult } from "../types";
+
 import { assertErrors, ErrorInfo } from "./assertions";
 import { dummyParser } from "./parsers/tests/dummy1";
 

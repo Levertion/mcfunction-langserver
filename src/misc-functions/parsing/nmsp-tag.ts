@@ -1,4 +1,5 @@
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
+
 import {
     buildPath,
     convertToNamespace,
@@ -17,6 +18,7 @@ import {
     WorldInfo
 } from "../../data/types";
 import { CE, ParserInfo, ReturnedInfo, ReturnSuccess } from "../../types";
+
 import {
     parseNamespace,
     parseNamespaceOption,

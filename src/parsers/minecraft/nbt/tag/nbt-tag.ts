@@ -1,4 +1,5 @@
 import { NBTNode, NoPropertyNode } from "mc-nbt-paths";
+
 import { StringReader } from "../../../../brigadier/string-reader";
 import { ReturnHelper } from "../../../../misc-functions";
 import { emptyRange } from "../../../../test/blanks";

@@ -10,6 +10,7 @@ import {
     testParser
 } from "../../assertions";
 import { blankproperties } from "../../blanks";
+
 import { snbtTestData } from "./nbt/test-data";
 
 const parser: Parser = {

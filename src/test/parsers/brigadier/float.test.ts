@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { floatParser } from "../../../parsers/brigadier";
 import { testParser } from "../../assertions";
 import { blankproperties } from "../../blanks";

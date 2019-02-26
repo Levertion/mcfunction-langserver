@@ -1,6 +1,5 @@
-import * as Long from "long";
-
 import * as assert from "assert";
+import * as Long from "long";
 
 import { loadNBT } from "../../data/nbt/nbt-cache";
 import { LevelData } from "../../data/nbt/nbt-types";

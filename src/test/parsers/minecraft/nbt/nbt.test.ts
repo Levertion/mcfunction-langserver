@@ -10,6 +10,7 @@ import {
     SuggestedOption,
     testParser
 } from "../../../assertions";
+
 import { testDocs } from "./test-data";
 
 describe("nbt parser test", () => {

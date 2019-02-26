@@ -1,10 +1,10 @@
+import { ok } from "assert";
+import { extname, join } from "path";
 import {
     DidChangeWatchedFilesParams,
     FileChangeType
 } from "vscode-languageserver";
 
-import { ok } from "assert";
-import { extname, join } from "path";
 import { MCMETAFILE } from "../consts";
 import {
     getKindAndNamespace,
@@ -17,6 +17,7 @@ import {
 import { createExtensionFileError } from "../misc-functions/file-errors";
 import { readJSON } from "../misc-functions/promisified-fs";
 import { ReturnedInfo, ReturnSuccess } from "../types";
+
 import { readCache } from "./cache";
 import { getPacksInfo } from "./datapack-resources";
 import { collectGlobalData } from "./extractor";

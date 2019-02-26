@@ -4,8 +4,10 @@ import {
     CompletionList,
     InsertTextFormat
 } from "vscode-languageserver/lib/main";
+
 import { computeCompletions } from "../completions";
 import { DataManager } from "../data/manager";
+
 import { pack_segments } from "./blanks";
 import { dummyParser } from "./parsers/tests/dummy1";
 

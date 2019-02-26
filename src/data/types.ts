@@ -1,5 +1,6 @@
 import { NBTNode, ValueList } from "mc-nbt-paths";
 import { LanguageService } from "vscode-json-languageservice";
+
 import { Level, Scoreboard } from "./nbt/nbt-types";
 
 /**

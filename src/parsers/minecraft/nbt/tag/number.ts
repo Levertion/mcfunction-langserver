@@ -5,6 +5,7 @@ import { typed_keys } from "../../../../misc-functions/third_party/typed-keys";
 import { ReturnSuccess } from "../../../../types";
 import { isTypedInfo, NodeInfo } from "../util/doc-walker-util";
 import { Correctness, tryExponential } from "../util/nbt-util";
+
 import { NBTTag, ParseReturn } from "./nbt-tag";
 
 const exceptions = {

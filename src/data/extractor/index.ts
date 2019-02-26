@@ -7,6 +7,7 @@ import { ReturnHelper } from "../../misc-functions";
 import { ReturnSuccess } from "../../types";
 import { cacheData } from "../cache";
 import { Cacheable } from "../types";
+
 import { collectData } from "./collect-data";
 import { getPathToJar } from "./download";
 import { checkJavaPath, runGenerator } from "./extract-data";

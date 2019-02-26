@@ -8,6 +8,7 @@ import {
     stringifyNamespace
 } from "../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
+
 import { validateParse } from "./nbt/nbt";
 
 const NOTAG = new CommandErrorBuilder(

@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { CommandNode, CommandTree } from "../../data/types";
 import { followPath, getNextNode } from "../../misc-functions/node-tree";
 

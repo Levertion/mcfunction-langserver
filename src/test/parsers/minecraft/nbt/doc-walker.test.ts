@@ -1,9 +1,11 @@
 import * as assert from "assert";
 import { CompoundNode } from "mc-nbt-paths";
+
 import { NBTTagCompound } from "../../../../parsers/minecraft/nbt/tag/compound-tag";
 import { NBTTagString } from "../../../../parsers/minecraft/nbt/tag/string-tag";
 import { NodeInfo } from "../../../../parsers/minecraft/nbt/util/doc-walker-util";
 import { NBTWalker } from "../../../../parsers/minecraft/nbt/walker";
+
 import { testDocs } from "./test-data";
 
 const test = (walker: NBTWalker, name: string, extpath: string[] = []) => {

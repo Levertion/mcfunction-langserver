@@ -14,6 +14,7 @@ import {
     RegistriesData,
     RegistryNames
 } from "../types";
+
 import { runMapFunctions } from "./mapfunctions";
 const readFileAsync = promisify(fs.readFile);
 

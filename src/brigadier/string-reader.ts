@@ -1,7 +1,9 @@
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
+
 import { getReturned, ReturnHelper } from "../misc-functions";
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
 import { CE, ReturnedInfo, Suggestion } from "../types";
+
 import { CommandErrorBuilder } from "./errors";
 
 const EXCEPTIONS = {

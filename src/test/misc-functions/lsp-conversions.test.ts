@@ -3,6 +3,7 @@ import {
     DiagnosticSeverity,
     VersionedTextDocumentIdentifier
 } from "vscode-languageserver/lib/main";
+
 import {
     commandErrorToDiagnostic,
     runChanges

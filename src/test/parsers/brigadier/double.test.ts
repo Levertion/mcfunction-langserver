@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { doubleParser } from "../../../parsers/brigadier/double";
 import { testParser } from "../../assertions";
 import { blankproperties } from "../../blanks";

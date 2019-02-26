@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { StringReader } from "../../brigadier/string-reader";
 import { returnAssert } from "../assertions";
 import { succeeds } from "../blanks";

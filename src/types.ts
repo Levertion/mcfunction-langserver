@@ -6,6 +6,7 @@ import {
     MarkupContent,
     TextDocument
 } from "vscode-languageserver/lib/main";
+
 import { BlankCommandError, CommandError } from "./brigadier/errors";
 import { StringReader } from "./brigadier/string-reader";
 import {
