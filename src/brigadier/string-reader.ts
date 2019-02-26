@@ -53,7 +53,8 @@ const EXCEPTIONS = {
     )
 };
 
-export const QUOTE = '"';
+const QUOTE = '"';
+const SINGLE_QUOTE = "'";
 const ESCAPE = "\\";
 export type QuotingKind = "both" | "yes" | RegExp;
 
@@ -74,8 +75,12 @@ export class StringReader {
         quote: true,
         unquoted: StringReader.charAllowedInUnquotedString
     };
+    public static isQuotedStringStart(char: string): boolean {
+        return char === QUOTE || char === SINGLE_QUOTE;
+    }
 
     private static readonly bools = { true: true, false: false };
+
     public cursor = 0;
     public readonly string: string;
 
@@ -317,7 +322,8 @@ export class StringReader {
         if (!this.canRead()) {
             return helper.succeed("");
         }
-        if (this.peek() !== QUOTE) {
+        const terminator = this.peek();
+        if (!StringReader.isQuotedStringStart(terminator)) {
             return helper.fail(
                 EXCEPTIONS.EXPECTED_START_OF_QUOTE.create(
                     this.cursor,
@@ -331,7 +337,7 @@ export class StringReader {
             this.skip();
             const char: string = this.peek();
             if (escaped) {
-                if (char === QUOTE || char === ESCAPE) {
+                if (char === terminator || char === ESCAPE) {
                     result += char;
                     escaped = false;
                 } else {
@@ -346,7 +352,7 @@ export class StringReader {
                 }
             } else if (char === ESCAPE) {
                 escaped = true;
-            } else if (char === QUOTE) {
+            } else if (char === terminator) {
                 this.skip();
                 return helper.succeed(result);
             } else {
@@ -354,7 +360,7 @@ export class StringReader {
             }
         }
         return helper
-            .addSuggestion(this.cursor, QUOTE) // Always cannot read at this point
+            .addSuggestion(this.cursor, terminator) // Always cannot read at this point
             .addErrors(
                 EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(
                     start,
@@ -371,7 +377,7 @@ export class StringReader {
         unquotedRegex: RegExp = StringReader.charAllowedInUnquotedString
     ): ReturnedInfo<string, CE, string | undefined> {
         const helper = new ReturnHelper();
-        if (this.canRead() && this.peek() === QUOTE) {
+        if (this.canRead() && StringReader.isQuotedStringStart(this.peek())) {
             return helper.return(this.readQuotedString());
         } else {
             if (!this.canRead()) {

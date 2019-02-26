@@ -1700,13 +1700,18 @@ const EXCEPTIONS = {
   INVALID_FLOAT: new errors_1.CommandErrorBuilder("parsing.float.invalid", "Invalid float '%s'"),
   INVALID_INT: new errors_1.CommandErrorBuilder("parsing.int.invalid", "Invalid integer '%s'")
 };
-exports.QUOTE = '"';
+const QUOTE = '"';
+const SINGLE_QUOTE = "'";
 const ESCAPE = "\\";
 
 class StringReader {
   constructor(stringToRead) {
     this.cursor = 0;
     this.string = stringToRead;
+  }
+
+  static isQuotedStringStart(char) {
+    return char === QUOTE || char === SINGLE_QUOTE;
   }
 
   canRead(length = 1) {
@@ -1917,7 +1922,9 @@ class StringReader {
       return helper.succeed("");
     }
 
-    if (this.peek() !== exports.QUOTE) {
+    const terminator = this.peek();
+
+    if (!StringReader.isQuotedStringStart(terminator)) {
       return helper.fail(EXCEPTIONS.EXPECTED_START_OF_QUOTE.create(this.cursor, this.string.length));
     }
 
@@ -1929,7 +1936,7 @@ class StringReader {
       const char = this.peek();
 
       if (escaped) {
-        if (char === exports.QUOTE || char === ESCAPE) {
+        if (char === terminator || char === ESCAPE) {
           result += char;
           escaped = false;
         } else {
@@ -1938,7 +1945,7 @@ class StringReader {
         }
       } else if (char === ESCAPE) {
         escaped = true;
-      } else if (char === exports.QUOTE) {
+      } else if (char === terminator) {
         this.skip();
         return helper.succeed(result);
       } else {
@@ -1946,7 +1953,7 @@ class StringReader {
       }
     }
 
-    return helper.addSuggestion(this.cursor, exports.QUOTE) // Always cannot read at this point
+    return helper.addSuggestion(this.cursor, terminator) // Always cannot read at this point
     .addErrors(EXCEPTIONS.EXPECTED_END_OF_QUOTE.create(start, this.string.length)).failWithData(result);
   }
   /**
@@ -1958,13 +1965,13 @@ class StringReader {
   readString(unquotedRegex = StringReader.charAllowedInUnquotedString) {
     const helper = new misc_functions_1.ReturnHelper();
 
-    if (this.canRead() && this.peek() === exports.QUOTE) {
+    if (this.canRead() && StringReader.isQuotedStringStart(this.peek())) {
       return helper.return(this.readQuotedString());
     } else {
       if (!this.canRead()) {
         helper.addSuggestions({
           start: this.cursor,
-          text: exports.QUOTE
+          text: QUOTE
         });
       }
 
@@ -2074,14 +2081,14 @@ function quoteIfNeeded(value, quoting = StringReader.defaultQuotingInfo) {
     if (quoting.unquoted) {
       for (const char of value) {
         if (!char.match(quoting.unquoted)) {
-          return exports.QUOTE + escapeQuotes(value) + exports.QUOTE;
+          return QUOTE + escapeQuotes(value) + QUOTE;
         }
       }
 
       return value;
     }
 
-    return exports.QUOTE + escapeQuotes(value) + exports.QUOTE;
+    return QUOTE + escapeQuotes(value) + QUOTE;
   }
 }
 
@@ -2750,7 +2757,7 @@ class NBTTagString extends nbt_tag_1.NBTTag {
 
   readTag(reader) {
     const helper = new misc_functions_1.ReturnHelper();
-    const quoted = reader.peek() === string_reader_1.QUOTE;
+    const quoted = string_reader_1.StringReader.isQuotedStringStart(reader.peek());
     const str = reader.readString();
 
     if (helper.merge(str)) {
@@ -3707,7 +3714,7 @@ const typed_list_tag_1 = require("./tag/typed-list-tag");
 
 const nbt_util_1 = require("./util/nbt-util");
 
-const parsers = [path => new number_1.NBTTagNumber(path), path => new typed_list_tag_1.NBTTagTypedList(path), path => new compound_tag_1.NBTTagCompound(path), path => new list_tag_1.NBTTagList(path), path => new string_tag_1.NBTTagString(path)];
+const parsers = [number_1.NBTTagNumber, typed_list_tag_1.NBTTagTypedList, compound_tag_1.NBTTagCompound, list_tag_1.NBTTagList, string_tag_1.NBTTagString];
 
 function parseAnyNBTTag(reader, path) {
   let info;
@@ -3715,9 +3722,9 @@ function parseAnyNBTTag(reader, path) {
   const helper = new misc_functions_1.ReturnHelper();
   const start = reader.cursor;
 
-  for (const parserFunc of parsers) {
+  for (const parserContructor of parsers) {
     reader.cursor = start;
-    const tag = parserFunc(path);
+    const tag = new parserContructor(path);
     const out = tag.parse(reader);
 
     if (out.data === nbt_util_1.Correctness.CERTAIN || out.data > (info && info.correctness || nbt_util_1.Correctness.NO)) {
@@ -6389,11 +6396,17 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+const vscode_languageserver_1 = require("vscode-languageserver");
+
 const errors_1 = require("../../brigadier/errors");
+
+const string_reader_1 = require("../../brigadier/string-reader");
 
 const misc_functions_1 = require("../../misc-functions");
 
 const tag_parser_1 = require("./nbt/tag-parser");
+
+const doc_walker_util_1 = require("./nbt/util/doc-walker-util");
 
 const nbt_util_1 = require("./nbt/util/nbt-util");
 
@@ -6404,9 +6417,10 @@ const ARROPEN = "[";
 const ARRCLOSE = "]";
 const exceptions = {
   BAD_CHAR: new errors_1.CommandErrorBuilder("argument.nbt_path.badchar", "Bad character '%s'"),
-  INCORRECT_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Unknown segment '%s'"),
+  INCORRECT_PROPERTY: new errors_1.CommandErrorBuilder("argument.nbt_path.incorrect", "Unknown property '%s'"),
   START_SEGMENT: new errors_1.CommandErrorBuilder("argument.nbt_path.array_start", "Cannot start an nbt path with an array reference"),
-  UNEXPECTED_ARRAY: new errors_1.CommandErrorBuilder("argument.nbt_path.unknown", "Path segment should not be array"),
+  UNEXPECTED_INDEX: new errors_1.CommandErrorBuilder("argument.nbt_path.index", "Path segment should not be array, expected type is '%s'"),
+  UNEXPECTED_PROPERTY: new errors_1.CommandErrorBuilder("argument.nbt_path.property", "Node of type '%s' cannot have string properties, but one is here"),
   WRONG_TYPE: new errors_1.CommandErrorBuilder("argument.nbt_path.type", "Expected node to have type %s, actual is %s")
 };
 
@@ -6425,156 +6439,279 @@ function entityDataPath(path) {
 }
 
 const pathInfo = [entityDataPath(["execute", "if", "data", "entity"]), entityDataPath(["execute", "store", "result", "entity"]), entityDataPath(["execute", "store", "success", "entity"]), entityDataPath(["execute", "unless", "data", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath"]), entityDataPath(["data", "remove", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "insert", "before", "index", "from", "entity"]), entityDataPath(["data", "get", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "set", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "prepend", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "merge", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "insert", "before", "index", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "set", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "prepend", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "merge", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "append", "from", "entity"]), entityDataPath(["data", "modify", "block", "targetPos", "targetPath", "insert", "after", "index", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "insert", "after", "index", "from", "entity"]), entityDataPath(["data", "modify", "entity", "target", "targetPath", "append", "from", "entity"])]; // We do not currently support blocks with autocomplete/validation
-// @ts-ignore It is unused - it is just here to record what we currently do not use
 
-const unvalidatedPaths = [[//#region /data
+const unvalidatedPaths = [//#region /data
 ["data", "get", "block"], ["data", "modify", "block", "targetPos", "targetPath"], ["data", "modify", "block", "targetPos", "targetPath", "append", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "insert", "after", "index", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "insert", "before", "index", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "merge", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "prepend", "from", "block"], ["data", "modify", "block", "targetPos", "targetPath", "set", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "append", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "insert", "after", "index", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "insert", "before", "index", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "merge", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "prepend", "from", "block"], ["data", "modify", "entity", "target", "targetPath", "set", "from", "block"], ["data", "remove", "block"], //#endregion /data
 //#region /execute
 ["execute", "if", "data", "block"], ["execute", "store", "result", "block"], ["execute", "store", "success", "block"], ["execute", "unless", "data", "block"] //#endregion /execute
-]];
-var SuggestionKind;
+].map(v => ({
+  path: v,
+  data: {}
+}));
+const typedArrayTypes = new Set(["byte_array", "int_array", "long_array"]);
+var SegmentKind;
 
-(function (SuggestionKind) {
-  SuggestionKind[SuggestionKind["BOTH"] = 0] = "BOTH";
-  SuggestionKind[SuggestionKind["KEYONLY"] = 1] = "KEYONLY";
-})(SuggestionKind || (SuggestionKind = {}));
+(function (SegmentKind) {
+  SegmentKind[SegmentKind["NBT"] = 0] = "NBT";
+  SegmentKind[SegmentKind["INDEX"] = 1] = "INDEX";
+  SegmentKind[SegmentKind["STRING"] = 2] = "STRING";
+})(SegmentKind || (SegmentKind = {}));
 
-exports.nbtPathParser = {
-  // tslint:disable-next-line:cyclomatic-complexity
+exports.pathParser = {
   parse: (reader, info) => {
     const helper = new misc_functions_1.ReturnHelper();
-    const out = [];
-    let first = true;
-    const pathFunc = misc_functions_1.startPaths(pathInfo, info.path);
-    const context = pathFunc && pathFunc(info.context);
+    const path = parsePath(reader);
 
-    while (true) {
-      // Whitespace
-      const start = reader.cursor;
+    if (helper.merge(path)) {
+      const contextFunction = misc_functions_1.startPaths(pathInfo, info.path);
+      const context = contextFunction && contextFunction(info.context);
 
-      if (reader.peek() === ARROPEN) {
-        const range = {
-          start,
-          end: 0
-        };
-        reader.skip();
+      if (context) {
+        const walker = new walker_1.NBTWalker(info.data.globalData.nbt_docs);
 
-        if (reader.peek() === nbt_util_1.COMPOUND_START) {
-          const val = tag_parser_1.parseAnyNBTTag(reader, []);
+        if (Array.isArray(context.contextInfo.ids)) {
+          for (const id of context.contextInfo.ids) {
+            const result = validatePath(path.data, [context.contextInfo.kind, id], walker, reader.cursor, info.context.nbt_path);
+            helper.merge(result);
+          }
 
-          if (helper.merge(val)) {
-            out.push({
-              range,
-              value: val.data.tag
-            });
-          } else {
-            if (val.data) {
-              out.push({
-                range,
-                value: val.data.tag
-              });
+          const errors = helper.getShared().errors;
+
+          for (let i = 0; i < errors.length; i++) {
+            const error = errors[i];
+            const sliced = [...errors.slice(i).entries()];
+
+            for (const [index, followingError] of sliced) {
+              if (followingError.range.start === error.range.start && followingError.range.end === error.range.end && followingError.text === error.text) {
+                errors.splice(index, 1);
+              }
             }
-
-            range.end = reader.cursor;
-            helper.merge(validatePath(info, out, context, undefined));
-            return helper.fail();
           }
         } else {
-          const int = reader.readInt();
-          range.end = reader.cursor;
-
-          if (helper.merge(int)) {
-            out.push({
-              range,
-              value: int.data
-            });
-          } else {
-            range.end = reader.cursor;
-            helper.merge(validatePath(info, out, context, undefined));
-            return helper.fail();
-          }
+          const result = validatePath(path.data, [context.contextInfo.kind, context.contextInfo.ids || "none"], walker, reader.cursor, info.context.nbt_path);
+          helper.merge(result);
         }
-
-        if (!helper.merge(reader.expect(ARRCLOSE))) {
-          range.end = reader.cursor;
-          helper.merge(validatePath(info, out, context, undefined));
-          return helper.fail();
-        }
-
-        range.end = reader.cursor;
-      } else if (!first && reader.peek() === DOT || first) {
-        if (!first) {
-          reader.skip();
-        }
-
-        const range = {
-          start: reader.cursor,
-          end: 0
-        };
-        const res = reader.readString(/^[0-9A-Za-z_\-+]$/);
-
-        if (helper.merge(res)) {
-          out.push({
-            range,
-            value: res.data
-          });
-        } else {
-          if (res.data !== undefined) {
-            range.end = reader.cursor;
-            out.push({
-              range,
-              value: res.data
-            });
-          }
-
-          helper.merge(validatePath(info, out, context, res.data !== undefined ? SuggestionKind.KEYONLY : undefined));
-          return helper.fail();
-        }
-
-        range.end = reader.cursor;
       } else {
-        return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
-      }
+        const unvalidatedInfo = misc_functions_1.startPaths(unvalidatedPaths, info.path);
 
-      first = false;
-
-      if (!reader.canRead()) {
-        const type = validatePath(info, out, context, SuggestionKind.BOTH);
-        return helper.mergeChain(type).succeed({
-          nbt_path: type.data
-        });
-      }
-
-      if (/\s/.test(reader.peek())) {
-        const type = validatePath(info, out, context, undefined);
-
-        if (context && type.data && context.resultType !== type.data) {
-          helper.addErrors(exceptions.WRONG_TYPE.create(start, reader.cursor, context.resultType, type.data));
+        if (typeof unvalidatedInfo === "undefined") {
+          // TODO: Centralise this checking
+          mcLangLog(`Unexpected unsupported nbt path '${info.path}'. Please report this error at https://github.com/levertion/mcfunction-langserver/issues`);
         }
-
-        return helper.mergeChain(type).succeed({
-          nbt_path: type.data
-        });
       }
+
+      return helper.succeed();
     }
+
+    return helper.fail();
   }
 };
+const unquotedNBTStringRegex = /^[0-9A-Za-z_\-+]$/; // tslint:disable-next-line:cyclomatic-complexity TODO: Fix or disable globally
 
-function validatePath(info, // @ts-ignore Unused - TODO
-path, context, // @ts-ignore Unused - TODO
-suggest) {
+function validatePath(path, nbtPath, walker, // tslint:disable-next-line:variable-name underscore name as a temp measure
+cursor, expectedType) {
   const helper = new misc_functions_1.ReturnHelper();
-  const walker = new walker_1.NBTWalker(info.data.globalData.nbt_docs);
+  let node = walker.getInitialNode(nbtPath);
 
-  if (context) {
-    if (context.contextInfo) {// TODO
+  if (path.length === 0) {
+    if (doc_walker_util_1.isCompoundInfo(node)) {
+      helper.addSuggestions(...Object.keys(walker.getChildren(node)).map(v => string_reader_1.completionForString(v, cursor, {
+        quote: true,
+        unquoted: unquotedNBTStringRegex
+      }, vscode_languageserver_1.CompletionItemKind.Field)));
+    }
+
+    return helper.succeed();
+  }
+
+  for (const segment of path) {
+    const {
+      value,
+      range
+    } = segment;
+
+    switch (value.kind) {
+      case SegmentKind.INDEX:
+        if (node) {
+          if (doc_walker_util_1.isListInfo(node)) {
+            node = walker.getItem(node);
+          } else if (doc_walker_util_1.isTypedInfo(node) && typedArrayTypes.has(node.node.type)) {
+            node = undefined;
+          } else {
+            const toDisplay = doc_walker_util_1.isTypedInfo(node) ? node.node.type : "unknown";
+            helper.addErrors(exceptions.UNEXPECTED_INDEX.create(range.start, range.end, toDisplay));
+            node = undefined;
+          }
+        }
+
+        break;
+
+      case SegmentKind.NBT:
+        if (node) {
+          if (doc_walker_util_1.isListInfo(node)) {
+            node = walker.getItem(node);
+            helper.merge(value.tag.validate(node, walker));
+          } else {
+            const toDisplay = doc_walker_util_1.isTypedInfo(node) ? node.node.type : "unknown";
+            helper.addErrors(exceptions.UNEXPECTED_INDEX.create(range.start, range.end, toDisplay));
+            node = undefined;
+          }
+        }
+
+        break;
+
+      case SegmentKind.STRING:
+        if (node) {
+          if (doc_walker_util_1.isCompoundInfo(node)) {
+            const children = walker.getChildren(node);
+
+            if (range.end === cursor) {
+              helper.addSuggestions(...Object.keys(children).filter(opt => opt.startsWith(value.string)).map(v => string_reader_1.completionForString(v, range.start, {
+                quote: true,
+                unquoted: unquotedNBTStringRegex
+              }, vscode_languageserver_1.CompletionItemKind.Field)));
+            }
+
+            if (children.hasOwnProperty(value.string)) {
+              node = children[value.string];
+            } else {
+              if (!node.node.additionalChildren) {
+                helper.addErrors(exceptions.INCORRECT_PROPERTY.create(range.start, range.end, value.string));
+              }
+
+              node = undefined;
+            }
+          } else {
+            const toDisplay = doc_walker_util_1.isTypedInfo(node) ? node.node.type : "unknown";
+            helper.addErrors(exceptions.UNEXPECTED_PROPERTY.create(range.start, range.end, toDisplay));
+            node = undefined;
+          }
+        }
+
+        break;
+
+      default:
+    }
+
+    if (cursor === segment.range.end && node && (doc_walker_util_1.isListInfo(node) || doc_walker_util_1.isTypedInfo(node) && typedArrayTypes.has(node.node.type))) {
+      helper.addSuggestion(cursor, "[", vscode_languageserver_1.CompletionItemKind.Operator);
     }
   }
 
-  walker.getInitialNode([]);
+  if (node && expectedType && !(doc_walker_util_1.isTypedInfo(node) && node.node.type === expectedType)) {
+    helper.addErrors(exceptions.WRONG_TYPE.create(path[0].range.start, path[path.length - 1].range.end, expectedType));
+  }
+
   return helper.succeed();
 }
-},{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm","./nbt/tag-parser":"4pIN","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
+
+function parsePath(reader) {
+  const helper = new misc_functions_1.ReturnHelper();
+  const result = [];
+  let first = true;
+
+  while (reader.canRead()) {
+    const start = reader.cursor;
+
+    if (reader.peek() === ARROPEN) {
+      const range = {
+        start,
+        end: 0
+      };
+      reader.skip();
+
+      if (reader.peek() === nbt_util_1.COMPOUND_START) {
+        const val = tag_parser_1.parseAnyNBTTag(reader, []);
+        range.end = reader.cursor;
+
+        if (helper.merge(val)) {
+          result.push({
+            range,
+            value: {
+              tag: val.data.tag,
+              kind: SegmentKind.NBT
+            }
+          });
+        } else {
+          if (val.data) {
+            result.push({
+              range,
+              value: {
+                tag: val.data.tag,
+                kind: SegmentKind.NBT
+              }
+            });
+          }
+
+          return helper.fail();
+        }
+      } else {
+        const int = reader.readInt();
+        range.end = reader.cursor;
+
+        if (helper.merge(int)) {
+          result.push({
+            range,
+            value: {
+              number: int.data,
+              kind: SegmentKind.INDEX
+            }
+          });
+        } else {
+          return helper.fail();
+        }
+      }
+
+      if (!helper.merge(reader.expect(ARRCLOSE))) {
+        range.end = reader.cursor;
+        return helper.fail();
+      }
+
+      range.end = reader.cursor;
+    } else if (!first && reader.peek() === DOT || first) {
+      if (!first) {
+        reader.skip();
+      }
+
+      const range = {
+        start: reader.cursor,
+        end: 0
+      };
+      const res = reader.readString( // = StringReader.charAllowedInUnquotedString without '\.'
+      unquotedNBTStringRegex);
+      range.end = reader.cursor;
+
+      if (helper.merge(res)) {
+        result.push({
+          range,
+          value: {
+            kind: SegmentKind.STRING,
+            string: res.data
+          }
+        });
+      } else {
+        if (res.data !== undefined) {
+          result.push({
+            range,
+            value: {
+              kind: SegmentKind.STRING,
+              string: res.data
+            }
+          });
+        }
+
+        return helper.fail();
+      }
+    } else {
+      return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
+    }
+
+    first = false;
+  }
+
+  return helper.succeed(result);
+}
+},{"../../brigadier/errors":"aP4V","../../brigadier/string-reader":"iLhI","../../misc-functions":"KBGm","./nbt/tag-parser":"4pIN","./nbt/util/doc-walker-util":"km+2","./nbt/util/nbt-util":"OoHl","./nbt/walker":"YMNQ"}],"ELUu":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -7183,7 +7320,6 @@ const implementedParsers = {
   "minecraft:entity": entityParser.entity,
   "minecraft:entity_anchor": listParsers.entityAnchorParser,
   "minecraft:entity_summon": namespaceParsers.summonParser,
-  "minecraft:float_range": range_1.floatRange,
   "minecraft:function": resources_1.functionParser,
   "minecraft:game_profile": entityParser.gameProfile,
   "minecraft:int_range": range_1.intRange,
@@ -7193,11 +7329,8 @@ const implementedParsers = {
   "minecraft:item_stack": itemParsers.stack,
   "minecraft:message": message_1.messageParser,
   "minecraft:mob_effect": namespaceParsers.mobEffectParser,
-  "minecraft:nbt": nbt_1.nbtParser,
-  // TODO: determine if nbt-path is ever used
-  "minecraft:nbt-path": nbt_path_1.nbtPathParser,
   "minecraft:nbt_compound_tag": nbt_1.nbtParser,
-  "minecraft:nbt_path": nbt_path_1.nbtPathParser,
+  "minecraft:nbt_path": nbt_path_1.pathParser,
   "minecraft:nbt_tag": nbt_1.nbtParser,
   "minecraft:objective": scoreboard_1.objectiveParser,
   "minecraft:objective_criteria": scoreboard_1.criteriaParser,
@@ -8531,7 +8664,7 @@ const textComponentSchema = "https://raw.githubusercontent.com/Levertion/minecra
 
 async function loadNonCached() {
   const schemas = {
-    [textComponentSchema]: JSON.stringify( // FIXME: prettier breaks require.resolve so we need to use plain require to get the correct path
+    [textComponentSchema]: JSON.stringify( // FIXME: parcel breaks require.resolve so we need to use plain require to get the correct path
     // tslint:disable-next-line:no-require-imports
     require("minecraft-json-schemas/java/shared/text_component"))
   };

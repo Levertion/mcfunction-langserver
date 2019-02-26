@@ -14,7 +14,7 @@ node_js:
 before_install:
     - npm install -g npm@6
 install:
-    - npm ci
+    - npm install
 script:
     - npm run check
     - npm test

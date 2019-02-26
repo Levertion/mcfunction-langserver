@@ -424,6 +424,14 @@ describe("string-reader", () => {
                 suggestions: [{ start: 9, text: '"' }]
             });
         });
+        it("should allow a single quoted string", () => {
+            const reader = new StringReader("'single quoted'");
+            const result = reader.readQuotedString();
+            if (returnAssert(result, succeeds)) {
+                assert.strictEqual(result.data, "single quoted");
+                assert.strictEqual(reader.getRemainingLength(), 0);
+            }
+        });
     });
     describe("readString()", () => {
         it("should use readQuotedString if it starts with a quote", () => {
