@@ -4,7 +4,7 @@ import { GlobalData } from "../data/types";
 import { PackLocationSegments } from "../misc-functions";
 import { CommandData, LineRange } from "../types";
 
-import { ReturnAssertionInfo, TestParserInfo } from "./assertions";
+import { TestParserInfo } from "./assertions";
 
 /**
  * Blank items for testing
@@ -16,8 +16,6 @@ export const pack_segments: PackLocationSegments = {
     packsFolder: "",
     rest: ""
 };
-
-export const succeeds: ReturnAssertionInfo = { succeeds: true };
 
 export const emptyRange = (): LineRange => ({ start: 0, end: 0 });
 export const blankproperties: TestParserInfo = {

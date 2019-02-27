@@ -2317,9 +2317,6 @@ exports.pack_segments = {
   packsFolder: "",
   rest: ""
 };
-exports.succeeds = {
-  succeeds: true
-};
 
 exports.emptyRange = () => ({
   start: 0,
