@@ -127,7 +127,7 @@ describe("sharedBlockParser", () => {
 });
 
 function plainBlockTests(test: ReturnType<typeof blockArgumentTester>): void {
-    it("should work correctly for various inputs involving plainblocks", () => {
+    it("should work correctly for various inputs involving plain blocks", () => {
         snapshot(
             test,
             "langserver:noprops",
