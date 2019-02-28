@@ -6,7 +6,6 @@ import { NBTTag, TagType } from "../../../../parsers/minecraft/nbt/tag/nbt-tag";
 import { NBTTagNumber } from "../../../../parsers/minecraft/nbt/tag/number";
 import { Correctness } from "../../../../parsers/minecraft/nbt/util/nbt-util";
 import { NBTWalker } from "../../../../parsers/minecraft/nbt/walker";
-import { returnAssert, ReturnAssertionInfo } from "../../../assertions";
 
 interface ParseTest {
     expected: ReturnAssertionInfo;

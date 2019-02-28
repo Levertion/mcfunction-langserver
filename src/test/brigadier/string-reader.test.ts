@@ -1,8 +1,7 @@
 import * as assert from "assert";
-import * as snapshot from "snap-shot-it";
 
 import { StringReader } from "../../brigadier/string-reader";
-import { testFunction } from "../assertions";
+import { snapshot } from "../assertions";
 
 describe("string-reader", () => {
     describe("constructor()", () => {

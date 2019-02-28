@@ -1,6 +1,4 @@
-import * as snapshot from "snap-shot-it";
-
-import { testParser } from "../../assertions";
+import { testParser, snapshot } from "../../assertions";
 
 import { dummyParser } from "./dummy1";
 

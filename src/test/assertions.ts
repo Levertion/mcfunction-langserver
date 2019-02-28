@@ -6,25 +6,16 @@ import {
 } from "assert";
 import * as snapshot from "snap-shot-it";
 
-import { CommandError } from "../brigadier/errors";
 import { StringReader } from "../brigadier/string-reader";
 import { NAMESPACE } from "../consts";
-import { DataID, ID, ResourceID } from "../data/types";
-import { convertToID, idsEqual, isSuccessful } from "../misc-functions";
-import { typed_keys } from "../misc-functions/third_party/typed-keys";
-import {
-    CE,
-    ContextChange,
-    LineRange,
-    Parser,
-    ParserInfo,
-    ReturnedInfo,
-    ReturnSuccess,
-    SubAction,
-    SuggestResult
-} from "../types";
+import { DataID, ResourceID } from "../data/types";
+import { convertToID } from "../misc-functions";
+import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../types";
 
 import { blankproperties } from "./blanks";
+
+// To allow for auto-import
+export { snapshot };
 
 export type TestParserInfo = Pick<
     ParserInfo,

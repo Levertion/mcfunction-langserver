@@ -4665,7 +4665,7 @@ const errors_1 = require("../../brigadier/errors");
 
 const misc_functions_1 = require("../../misc-functions");
 
-class NamespaceListParser {
+class RegistryListParser {
   constructor(registryType, errorBuilder, context) {
     this.registryType = registryType;
     this.error = errorBuilder;
@@ -4695,19 +4695,19 @@ class NamespaceListParser {
 
 }
 
-exports.NamespaceListParser = NamespaceListParser;
+exports.RegistryListParser = RegistryListParser;
 exports.summonError = new errors_1.CommandErrorBuilder("entity.notFound", "Unknown entity: %s");
-exports.summonParser = new NamespaceListParser("minecraft:entity_type", exports.summonError, (context, ids) => context.otherEntity = {
+exports.summonParser = new RegistryListParser("minecraft:entity_type", exports.summonError, (context, ids) => context.otherEntity = {
   ids
 });
 const enchantmentError = new errors_1.CommandErrorBuilder("enchantment.unknown", "Unknown enchantment: %s");
-exports.enchantmentParser = new NamespaceListParser("minecraft:enchantment", enchantmentError);
+exports.enchantmentParser = new RegistryListParser("minecraft:enchantment", enchantmentError);
 const mobEffectError = new errors_1.CommandErrorBuilder("effect.effectNotFound", "Unknown effect: %s");
-exports.mobEffectParser = new NamespaceListParser("minecraft:mob_effect", mobEffectError);
+exports.mobEffectParser = new RegistryListParser("minecraft:mob_effect", mobEffectError);
 const particleError = new errors_1.CommandErrorBuilder("particle.notFound", "Unknown particle: %s");
-exports.particleParser = new NamespaceListParser("minecraft:particle_type", particleError);
+exports.particleParser = new RegistryListParser("minecraft:particle_type", particleError);
 const dimensionError = new errors_1.CommandErrorBuilder("argument.dimension.invalid", "Unknown dimension: '%s'");
-exports.dimensionParser = new NamespaceListParser("minecraft:dimension_type", dimensionError);
+exports.dimensionParser = new RegistryListParser("minecraft:dimension_type", dimensionError);
 },{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"1Kfp":[function(require,module,exports) {
 "use strict";
 

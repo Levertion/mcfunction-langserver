@@ -1,7 +1,5 @@
-import * as snapshot from "snap-shot-it";
-
 import { criteriaParser } from "../../../parsers/minecraft/scoreboard";
-import { testParser } from "../../assertions";
+import { testParser, snapshot } from "../../assertions";
 
 describe("criterion parser", () => {
     const test = testParser(criteriaParser)({
