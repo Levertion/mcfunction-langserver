@@ -1,40 +1,23 @@
-import * as assert from "assert";
-
 import { stringParser } from "../../../parsers/brigadier";
-import { testParser } from "../../assertions";
-import { succeeds } from "../../blanks";
+import { snapshot, testParser } from "../../assertions";
 
 const stringTest = testParser(stringParser);
 
 describe("String Argument Parser", () => {
-    describe("parse()", () => {
-        it("should read to the end with a greedy string", () => {
-            const result = stringTest({
+    it("should work with a greedy string", () => {
+        snapshot(
+            stringTest({
                 node_properties: { type: "greedy" }
-            })('test space :"-)(*', succeeds);
-            assert.strictEqual(result[1].cursor, 17);
-        });
-        describe("Phrase String", () => {
-            const tester = stringTest({ node_properties: { type: "phrase" } });
-            it("should read an unquoted string section", () => {
-                const result = tester('test space :"-)(*', succeeds);
-                assert.strictEqual(result[1].cursor, 4);
-            });
-            it("should read a quoted string section", () => {
-                const result = tester('"quote test" :"-)(*', succeeds);
-                assert.strictEqual(result[1].cursor, 12);
-            });
-        });
-        describe("Word String", () => {
-            const tester = stringTest({ node_properties: { type: "word" } });
-            it("should read only an unquoted string section", () => {
-                const result = tester('test space :"-)(*', succeeds);
-                assert.strictEqual(result[1].cursor, 4);
-            });
-            it("should not read a quoted string section", () => {
-                const result = tester('"quote test" :"-)(*', succeeds);
-                assert.strictEqual(result[1].cursor, 0);
-            });
-        });
+            }),
+            'test space :"-)(*'
+        );
+    });
+    it("should work for a phrase string", () => {
+        const tester = stringTest({ node_properties: { type: "phrase" } });
+        snapshot(tester, 'test space :"-)(*', '"quote test" :"-)(*');
+    });
+    it("should work for a word string", () => {
+        const tester = stringTest({ node_properties: { type: "word" } });
+        snapshot(tester, 'test space :"-)(*', '"quote test" :"-)(*');
     });
 });
