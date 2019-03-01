@@ -1,3 +1,5 @@
+/* 
+// TODO: This will be rewritten to use IdMap/IdSet
 import * as assert from "assert";
 
 import { CommandErrorBuilder } from "../../../brigadier/errors";
@@ -5,12 +7,8 @@ import { StringReader } from "../../../brigadier/string-reader";
 import { convertToID, idsEqual } from "../../../misc-functions";
 import { parseNamespaceOrTag } from "../../../misc-functions/parsing/nmsp-tag";
 import { ParserInfo } from "../../../types";
-import {
-    assertNamespaces,
-    convertToResource,
-    returnAssert
-} from "../../assertions";
-import { blankproperties, succeeds } from "../../blanks";
+import { convertToResource } from "../../assertions";
+import { blankproperties } from "../../blanks";
 
 const data: ParserInfo = {
     ...blankproperties,
@@ -140,3 +138,4 @@ describe("parseNamespaceOrTag", () => {
         }
     });
 });
+ */

@@ -1,3 +1,5 @@
+/*
+// TODO: This will be rewritten to use IdMap/IdSet
 import * as assert from "assert";
 
 import { StringReader } from "../../../brigadier/string-reader";
@@ -7,8 +9,6 @@ import {
     parseNamespaceOption,
     readNamespaceText
 } from "../../../misc-functions/parsing/namespace";
-import { returnAssert } from "../../assertions";
-import { succeeds } from "../../blanks";
 
 describe("Namespace Parsing Functions", () => {
     describe("readNamespaceText()", () => {
@@ -127,3 +127,4 @@ describe("Namespace Parsing Functions", () => {
         });
     });
 });
+ */

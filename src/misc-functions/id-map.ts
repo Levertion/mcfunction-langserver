@@ -1,24 +1,26 @@
 import { DEFAULT_NAMESPACE } from "../consts";
 import { ID } from "../data/types";
+
 import { stringArrayToIDs } from "./id";
 
 export class IDMap<T> {
-    public static fromIDs(...ids: ID[]): IDMap<undefined> {
+    public static fromIDs(...ids: ID[]): IdSet {
         const result = new IDMap<undefined>();
         for (const id of ids) {
-            result.add(id, undefined);
+            result.add(id);
         }
         return result;
     }
-    public static fromStringArray(strings: string[]): IDMap<undefined> {
+    public static fromStringArray(strings: string[]): IdSet {
         return IDMap.fromIDs(...stringArrayToIDs(strings));
     }
 
     private readonly map: Map<string, Map<string, T>> = new Map();
 
-    public add(id: ID, value: T): void {
+    public add(id: ID, ...value: T extends undefined ? [] : [T]): void {
         const innerMap = this.namespaceMap(id.namespace);
-        innerMap.set(id.path, value);
+        // Hack to improve the ergonomics of IdSet
+        innerMap.set(id.path, value[0] as T);
     }
     public get(id: ID): T | undefined {
         const innerMap = this.namespaceMap(id.namespace);
@@ -35,3 +37,6 @@ export class IDMap<T> {
         return newMap;
     }
 }
+
+// TODO: Make this its own class
+export type IdSet = IDMap<undefined>;
