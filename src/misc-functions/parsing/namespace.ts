@@ -1,4 +1,5 @@
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
+
 import { convertToID, idsEqual, ReturnHelper, stringifyID } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";

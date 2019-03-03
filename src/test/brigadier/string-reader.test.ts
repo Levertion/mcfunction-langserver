@@ -174,8 +174,10 @@ describe("string-reader", () => {
     });
     describe("readInt()", () => {
         it("should have the correct behaviour for various inputs", () => {
+            const intReader = (text: string) =>
+                new StringReader(text).readInt();
             snapshot(
-                (text: string) => new StringReader(text).readInt(),
+                intReader,
                 "1000.",
                 "-1000",
                 "1000test",
@@ -193,8 +195,10 @@ describe("string-reader", () => {
     });
     describe("readFloat()", () => {
         it("should have the correct behaviour for various inputs", () => {
+            const floatReader = (text: string) =>
+                new StringReader(text).readInt();
             snapshot(
-                (text: string) => new StringReader(text).readInt(),
+                floatReader,
                 "-1000",
                 "1000.",
                 "1000test",
@@ -234,8 +238,10 @@ describe("string-reader", () => {
     });
     describe("readQuotedString()", () => {
         it("should have the correct behaviour on various inputs", () => {
+            const quotedStringReader = (text: string) =>
+                new StringReader(text).readQuotedString();
             snapshot(
-                (text: string) => new StringReader(text).readQuotedString(),
+                quotedStringReader,
                 "test",
                 ...[
                     '"hello"',
@@ -271,19 +277,17 @@ describe("string-reader", () => {
     });
     describe("readBoolean()", () => {
         it("should work correctly for various inputs", () => {
-            snapshot(
-                (text: string) => new StringReader(text).readBoolean(),
-                "true",
-                "false",
-                "nonBoolean"
-            );
+            const boolRead = (text: string) =>
+                new StringReader(text).readBoolean();
+            snapshot(boolRead, "true", "false", "nonBoolean");
         });
     });
     describe("expect()", () => {
         it("should work correctly for various inputs", () => {
+            const expectRead = (text: string, expected: string) =>
+                new StringReader(text).expect(expected);
             snapshot(
-                (text: string, expected: string) =>
-                    new StringReader(text).expect(expected),
+                expectRead,
                 ["test", "t"],
                 ["test", "n"],
                 ["test", "tes"],
@@ -294,9 +298,10 @@ describe("string-reader", () => {
     });
     describe("readOption", () => {
         it("should work correctly for various inputs", () => {
+            const optionRead = (text: string, options: string[]) =>
+                new StringReader(text).expectOption(...options);
             snapshot(
-                (text: string, options: string[]) =>
-                    new StringReader(text).expectOption(...options),
+                optionRead,
                 ["test", ["test", "other"]],
                 ["test", ["nottest", "other"]]
             );

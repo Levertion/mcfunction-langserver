@@ -7,6 +7,7 @@ import { Level, Scoreboard } from "./nbt/nbt-types";
  * Types for data
  */
 //#region Namespace
+// tslint:disable-next-line: interface-name
 export interface ID {
     namespace?: string;
     path: string;

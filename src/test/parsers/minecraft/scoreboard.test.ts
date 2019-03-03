@@ -1,5 +1,5 @@
 import { criteriaParser } from "../../../parsers/minecraft/scoreboard";
-import { testParser, snapshot } from "../../assertions";
+import { snapshot, testParser } from "../../assertions";
 
 describe("criterion parser", () => {
     const test = testParser(criteriaParser)({

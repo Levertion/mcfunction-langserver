@@ -1,4 +1,5 @@
 import * as assert from "assert";
+
 import { ID } from "../../data/types";
 import { convertToID, idsEqual, stringifyID } from "../../misc-functions/id";
 

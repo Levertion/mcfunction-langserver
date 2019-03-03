@@ -1,4 +1,4 @@
-import { testParser, snapshot } from "../../assertions";
+import { snapshot, testParser } from "../../assertions";
 
 import { dummyParser } from "./dummy1";
 

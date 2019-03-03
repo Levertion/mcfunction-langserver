@@ -1,5 +1,5 @@
 import * as resourceParsers from "../../../parsers/minecraft/resources";
-import { convertToResource, testParser, snapshot } from "../../assertions";
+import { convertToResource, snapshot, testParser } from "../../assertions";
 
 const testFunction = testParser(resourceParsers.functionParser)({
     data: {

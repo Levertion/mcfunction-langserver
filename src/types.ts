@@ -9,7 +9,7 @@ import {
 
 import { BlankCommandError, CommandError } from "./brigadier/errors";
 import { StringReader } from "./brigadier/string-reader";
-import { CommandNodePath, GlobalData, LocalData, ID } from "./data/types";
+import { CommandNodePath, GlobalData, ID, LocalData } from "./data/types";
 import { PackLocationSegments } from "./misc-functions";
 import { TypedNode } from "./parsers/minecraft/nbt/util/doc-walker-util";
 

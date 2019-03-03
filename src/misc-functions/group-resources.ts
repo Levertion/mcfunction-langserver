@@ -6,6 +6,7 @@ import {
     WorldInfo
 } from "../data/types";
 import { CommandData } from "../types";
+
 import { idsEqual } from "./id";
 
 export function getResourcesofType<T extends ResourceID = ResourceID>(

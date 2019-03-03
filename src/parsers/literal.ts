@@ -13,7 +13,11 @@ export const literalParser: Parser = {
             const end = begin + literal.length;
             if (reader.string.substring(begin, end) === literal) {
                 reader.cursor = end;
-                if (reader.peek() === " " || !reader.canRead()) {
+                if (reader.peek() === " ") {
+                    return helper.succeed();
+                }
+                if (!reader.canRead()) {
+                    helper.addSuggestion(begin, literal);
                     return helper.succeed();
                 }
             }
