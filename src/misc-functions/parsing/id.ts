@@ -4,8 +4,7 @@ import { convertToID, idsEqual, ReturnHelper, stringifyID } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NAMESPACE } from "../../consts";
-import { ID } from "../../data/types";
-import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
+import { CE, ID, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
 import { stringArrayToIDs } from "../id";
 
 const NAMESPACEEXCEPTIONS = {
@@ -17,6 +16,18 @@ const NAMESPACEEXCEPTIONS = {
 
 export const namespaceChars = /^[0-9a-z_:/\.-]$/;
 const allowedInSections = /^[0-9a-z_/\.-]$/;
+
+export function readNamespaceSegment(
+    reader: StringReader,
+    seperator: string = NAMESPACE
+): string {
+    return reader.readWhileFunction(c => {
+        if (c === seperator) {
+            return false;
+        }
+        return allowedInSections.test(c);
+    });
+}
 
 export function readNamespaceText(
     reader: StringReader,

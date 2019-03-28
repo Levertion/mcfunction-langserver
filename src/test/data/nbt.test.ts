@@ -1,13 +1,13 @@
 import * as assert from "assert";
 import * as Long from "long";
 
-import { loadNBT } from "../../data/nbt/nbt-cache";
+import { loadWorldNBT } from "../../data/nbt/nbt-cache";
 import { LevelData } from "../../data/nbt/nbt-types";
 import { parse } from "../../data/nbt/parser";
 import { readFileAsync } from "../../misc-functions";
 
+// This is a description of the nbt specification test file
 interface BigTest {
-    // This name is from the test file provided by Notch
     "byteArrayTest (the first 1000 values of (n*n*255+n*7)%100, starting with n=0 (0, 62, 34, 16, 8, ...))": number[];
     byteTest: number;
     doubleTest: number;
@@ -34,7 +34,6 @@ interface BigTest {
 }
 
 const bigtest: BigTest = {
-    // *thanks notch*
     "byteArrayTest (the first 1000 values of (n*n*255+n*7)%100, starting with n=0 (0, 62, 34, 16, 8, ...))": new Array<
         number
     >(1000)
@@ -91,7 +90,7 @@ describe("(binary) nbt parser tests", () => {
     });
 
     it("should parse level.dat", async () => {
-        const nbt = await loadNBT("test_data/test_world");
+        const nbt = await loadWorldNBT("test_data/test_world");
         if (!!nbt.level) {
             const data = nbt.level.Data;
             assert.strictEqual(data.version, 19133);

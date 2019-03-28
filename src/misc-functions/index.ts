@@ -12,5 +12,5 @@ export * from "./security";
 export * from "./setup";
 export * from "./translation";
 
-export * from "./parsing/namespace";
+export * from "./parsing/id";
 export * from "./parsing/nmsp-tag";

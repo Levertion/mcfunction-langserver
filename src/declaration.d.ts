@@ -9,6 +9,9 @@ declare namespace NodeJS {
 }
 /**
  * The settings which this server has been run with.
+ *
+ * @todo Pass this down the stack rather than storing globally.
+ * Each file should have different settings
  */
 declare const mcLangSettings: McFunctionSettings;
 

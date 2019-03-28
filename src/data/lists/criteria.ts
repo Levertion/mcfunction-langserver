@@ -16,6 +16,9 @@ export const verbatimCriteria = new Set([
 
 export const colorCriteria = ["teamkill.", "killedByTeam."];
 
+/**
+ * @todo - Move to IDMap
+ */
 export const itemCriteria = stringArrayToIDs([
     "minecraft:broken",
     "minecraft:crafted",

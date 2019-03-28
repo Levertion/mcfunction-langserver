@@ -1,4 +1,4 @@
-import { CommandNodePath } from "../data/types";
+import { CommandNodePath } from "../types";
 
 export interface ContextPath<T> {
     data: T;

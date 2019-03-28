@@ -3,49 +3,50 @@ import * as path from "path";
 import { promisify } from "util";
 
 import { DATAFOLDER } from "../../consts";
-import { ReturnHelper } from "../../misc-functions";
+import { convertToID, ReturnHelper } from "../../misc-functions";
+import { IDMap } from "../../misc-functions/id-map";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import { ReturnSuccess } from "../../types";
-import { getNamespaceResources } from "../datapack-resources";
 import {
-    BlocksPropertyInfo,
     CommandTree,
-    GlobalData,
-    RegistriesData,
-    RegistryNames
-} from "../types";
+    RegistryNames,
+    Resources,
+    ReturnSuccess
+} from "../../types";
+import { CacheHandled } from "../cache";
+import { getNamespaceResources } from "../datapack-resources";
+import { createRegistryMap, createResourceMap, createTagMap } from "../maps";
 
 import { runMapFunctions } from "./mapfunctions";
 const readFileAsync = promisify(fs.readFile);
 
-type DataSaveResult<T extends keyof GlobalData> = [T, GlobalData[T]];
-
+/**
+ * Extract the globally useful data from the minecraft jar in the directory datadir
+ */
 export async function collectData(
     version: string,
     dataDir: string
-): Promise<ReturnSuccess<GlobalData>> {
+): Promise<ReturnSuccess<CacheHandled>> {
     const helper = new ReturnHelper();
-    const result: GlobalData = { meta_info: { version } } as GlobalData;
-    const cleanups = await Promise.all([
-        getBlocks(dataDir),
-        getRegistries(dataDir),
-        getCommands(dataDir),
-        getResources(dataDir)
+    const result: CacheHandled = { data_info: { version } } as CacheHandled;
+    await Promise.all([
+        getBlocks(dataDir).then(blocks => (result.blocks = blocks)),
+        getRegistries(dataDir).then(
+            registries => (result.registries = registries)
+        ),
+        getCommands(dataDir).then(commands => (result.commands = commands)),
+        getResources(dataDir).then(
+            resourceInfo => (result.resources = resourceInfo)
+        )
     ]);
-    for (const dataType of cleanups) {
-        result[dataType[0]] = dataType[1];
-    }
     const resources = await runMapFunctions(result.resources, result, dataDir);
     return helper
         .mergeChain(resources)
         .succeed({ ...result, resources: resources.data });
 }
 
-//#region Resources
-
 async function getRegistries(
     dataDir: string
-): Promise<DataSaveResult<"registries">> {
+): Promise<CacheHandled["registries"]> {
     interface ProtocolID {
         protocol_id: number;
     }
@@ -62,46 +63,50 @@ async function getRegistries(
             path.join(dataDir, "reports", "registries.json")
         )).toString()
     );
-    const result = {} as RegistriesData;
+    const result = {} as CacheHandled["registries"];
     for (const key of typed_keys(registries)) {
         const registry = registries[key];
         if (registry.entries) {
-            const set = new Set<string>();
+            const set = createRegistryMap();
             for (const entry of Object.keys(registry.entries)) {
-                set.add(entry);
+                set.add(convertToID(entry));
             }
             result[key] = set;
         }
     }
-    return ["registries", result];
+    return result;
 }
 
 async function getResources(
     dataDir: string
-): Promise<DataSaveResult<"resources">> {
+): Promise<CacheHandled["resources"]> {
     const dataFolder = path.join(dataDir, DATAFOLDER);
-    const resources = await getNamespaceResources(
-        "minecraft",
-        dataFolder,
-        undefined
-    );
-    return ["resources", resources.data];
+    const resources: Resources = {
+        advancements: createResourceMap("Advancement"),
+        block_tags: createTagMap("Block tag"),
+        entity_tags: createTagMap("Entity tag"),
+        fluid_tags: createTagMap("Fluid tags"),
+        function_tags: createTagMap("Function Tags"),
+        functions: createResourceMap("Function"),
+        item_tags: createTagMap("Item Tag"),
+        loot_tables: createResourceMap("Loot Table"),
+        recipes: createResourceMap("Recipe"),
+        structures: createResourceMap("Structure")
+    };
+    await getNamespaceResources("minecraft", dataFolder, undefined, resources);
+    return resources;
 }
-//#endregion
 
-async function getCommands(
-    dataDir: string
-): Promise<DataSaveResult<"commands">> {
+async function getCommands(dataDir: string): Promise<CacheHandled["commands"]> {
     const tree: CommandTree = JSON.parse(
         (await readFileAsync(
             path.join(dataDir, "reports", "commands.json")
         )).toString()
     );
-    return ["commands", tree];
+    return tree;
 }
 
-//#region Blocks
-async function getBlocks(dataDir: string): Promise<DataSaveResult<"blocks">> {
+async function getBlocks(dataDir: string): Promise<CacheHandled["blocks"]> {
     interface BlocksJson {
         [id: string]: {
             properties?: {
@@ -110,26 +115,20 @@ async function getBlocks(dataDir: string): Promise<DataSaveResult<"blocks">> {
         };
     }
 
-    function cleanBlocks(blocks: BlocksJson): BlocksPropertyInfo {
-        const result: BlocksPropertyInfo = {};
-        for (const blockName in blocks) {
-            if (blocks.hasOwnProperty(blockName)) {
-                const blockInfo = blocks[blockName];
-                result[blockName] = {};
-                if (!!blockInfo.properties) {
-                    Object.assign(result[blockName], blockInfo.properties);
-                }
-            }
-        }
-        return result;
-    }
-
     const blocksData: BlocksJson = JSON.parse(
         (await readFileAsync(
             path.join(dataDir, "reports", "blocks.json")
         )).toString()
     );
-    return ["blocks", cleanBlocks(blocksData)];
+    const result: CacheHandled["blocks"] = new IDMap();
+    for (const block of Object.keys(blocksData)) {
+        const props = blocksData[block];
+        if (props.properties) {
+            const propsMap = Object.entries(props.properties).map<
+                [string, Set<string>]
+            >(v => [v[0], new Set(v[1])]);
+            result.add(convertToID(block), new Map(propsMap));
+        }
+    }
+    return result;
 }
-
-//#endregion

@@ -5,6 +5,8 @@ import { WorkspaceSecurity } from "../types";
 
 /**
  * Check if the given change requires security confirmation
+ *
+ * @todo - stop caring about this security - it's safe so long as the dangerous settings are set globally
  */
 export function securityIssues(
     settings: McFunctionSettings,

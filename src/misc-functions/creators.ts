@@ -1,5 +1,11 @@
-import { CommandNode, CommandNodePath } from "../data/types";
-import { CommandContext, CommandData, CommandLine, ParserInfo } from "../types";
+import {
+    CommandContext,
+    CommandData,
+    CommandLine,
+    CommandNode,
+    CommandNodePath,
+    ParserInfo
+} from "../types";
 
 /**
  * Build parser info from the data required

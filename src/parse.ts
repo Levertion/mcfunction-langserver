@@ -241,7 +241,7 @@ export function parseLines(
                 current: packsInfo.packnamesmap[document.pack_segments.pack]
             };
         }
-        const result = parseCommand(line.text, data.globalData, localData);
+        const result = parseCommand(line.text, data.commandData, localData);
         line.parseInfo = result ? result : false;
         line.actions = undefined;
         line.nodes = undefined;

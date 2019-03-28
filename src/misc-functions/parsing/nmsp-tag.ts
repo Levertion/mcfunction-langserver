@@ -5,19 +5,23 @@ import {
     convertToID,
     getResourcesofType,
     idsEqual,
+    parseNamespace,
+    parseNamespaceOption,
+    readNamespaceText,
     ReturnHelper
 } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { TAG_START } from "../../consts";
 import { DataID, ID, Resources, Tag, WorldInfo } from "../../data/types";
-import { CE, ParserInfo, ReturnedInfo, ReturnSuccess } from "../../types";
-
 import {
-    parseNamespace,
-    parseNamespaceOption,
-    readNamespaceText
-} from "./namespace";
+    CE,
+    ParserInfo,
+    ReturnedInfo,
+    ReturnSuccess,
+    TagMap
+} from "../../types";
+import { IDMap, NamespaceMapParseResult } from "../id-map";
 
 export interface TagParseResult {
     parsed: ID;
@@ -37,35 +41,18 @@ export interface TagParseResult {
 export function parseNamespaceOrTag(
     reader: StringReader,
     info: ParserInfo,
-    taghandling: keyof Resources | CommandErrorBuilder
+    taghandling: TagMap | CommandErrorBuilder
 ): ReturnedInfo<TagParseResult, CE, ID | undefined> {
     const helper = new ReturnHelper(info);
     const start = reader.cursor;
     if (reader.peek() === TAG_START) {
         reader.skip();
-        if (typeof taghandling === "string") {
-            const tags: Array<DataID<Tag>> = getResourcesofType(
-                info.data,
-                taghandling
-            );
-            const parsed = parseNamespaceOption(
-                reader,
-                tags,
-                CompletionItemKind.Folder
-            );
-            if (helper.merge(parsed)) {
-                const values = parsed.data.values;
-                const resolved: ID[] = [];
-                for (const value of values) {
-                    resolved.push(...getLowestForTag(value, tags));
-                }
-                return helper.succeed<TagParseResult>({
-                    parsed: parsed.data.literal,
-                    resolved,
-                    values
-                });
-            } else {
-                return helper.failWithData(parsed.data);
+        if (taghandling instanceof IDMap) {
+            const result = taghandling.parse(reader, info.data);
+            if (helper.merge(result)) {
+                const { id, raw, resolved } = result.data;
+
+                return helper.succeed({ parsed: id });
             }
         } else {
             readNamespaceText(reader);
@@ -86,26 +73,6 @@ export function parseNamespaceOrTag(
             return helper.fail();
         }
     }
-}
-
-function getLowestForTag(tag: DataID<Tag>, options: Array<DataID<Tag>>): ID[] {
-    if (!tag.data) {
-        return [];
-    }
-    const results: ID[] = [];
-    for (const tagMember of tag.data.values) {
-        if (tagMember[0] === TAG_START) {
-            const namespace = convertToID(tagMember.substring(1));
-            for (const option of options) {
-                if (idsEqual(namespace, option)) {
-                    results.push(...getLowestForTag(option, options));
-                }
-            }
-        } else {
-            results.push(convertToID(tagMember));
-        }
-    }
-    return results;
 }
 
 export function buildTagActions(

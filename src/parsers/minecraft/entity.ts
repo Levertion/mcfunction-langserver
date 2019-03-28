@@ -4,10 +4,8 @@ import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NONWHITESPACE } from "../../consts";
 import { Scoreboard } from "../../data/nbt/nbt-types";
-import { DataID, ID } from "../../data/types";
 import {
     convertToID,
-    getResourcesofType,
     getReturned,
     parseNamespaceOption,
     parseNamespaceOrTag,
@@ -18,7 +16,13 @@ import {
     stringifyID
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
+import {
+    Advancement,
+    ContextChange,
+    Parser,
+    ParserInfo,
+    ReturnedInfo
+} from "../../types";
 
 import { summonError } from "./namespace-list";
 import { validateParse } from "./nbt/nbt";
@@ -370,7 +374,6 @@ export function parseAdvancements(
     reader: StringReader,
     info: ParserInfo
 ): ReturnedInfo<Dictionary<AdvancementOption>> {
-    const advancements = getResourcesofType(info.data, "advancements");
     const helper = new ReturnHelper();
     if (!helper.merge(reader.expect("{"))) {
         return helper.fail();
@@ -379,22 +382,15 @@ export function parseAdvancements(
     while (true) {
         let advname: string;
         const criteriaOptions: string[] = [];
-        const res = parseNamespaceOption<DataID<string[]>>(
-            reader,
-            advancements
-        );
+        const res = info.data.resources.advancements.parse(reader, info.data);
         if (!helper.merge(res)) {
-            if (!res.data) {
-                return helper.fail();
-            } else {
-                advname = stringifyID(res.data);
-            }
+            advname = stringifyID(res.data);
         } else {
-            advname = stringifyID(res.data.literal);
-            res.data.values
-                .map(v => v.data)
-                .filter(v => !!v)
-                .forEach(v => criteriaOptions.push(...(v as string[])));
+            advname = stringifyID(res.data.id);
+            [...res.data.raw]
+                .map(v => v[1])
+                .filter((v): v is Advancement => !!v)
+                .forEach(v => criteriaOptions.push(...v.criteria));
         }
         if (!helper.merge(reader.expect("="))) {
             return helper.fail();
@@ -753,6 +749,21 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const negated = isNegated(reader, helper);
+        if (reader.peek() === "#") {
+            reader.skip();
+            const tagResult = info.data.resources.entity_tags.parse(
+                reader,
+                info.data
+            );
+            if (helper.merge(tagResult)) {
+                tagResult.data.resolved.resolved;
+            }
+        } else {
+            const notTagResult = info.data.registries[
+                "minecraft:entity_type"
+            ].parse(reader, undefined);
+            notTagResult;
+        }
         const parsedType = parseNamespaceOrTag(reader, info, "entity_tags");
         if (!helper.merge(parsedType)) {
             if (parsedType.data) {

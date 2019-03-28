@@ -1,9 +1,4 @@
-import {
-    CommandNode,
-    CommandNodePath,
-    CommandTree,
-    MCNode
-} from "../data/types";
+import { CommandNode, CommandNodePath, CommandTree, MCNode } from "../types";
 
 export function followPath<T extends MCNode<T>>(
     tree: MCNode<T>,

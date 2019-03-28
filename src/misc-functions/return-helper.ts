@@ -196,13 +196,15 @@ export class ReturnHelper<Errorkind extends BlankCommandError = CommandError> {
         return this;
     }
 
-    public return<T, E>(
-        other: ReturnedInfo<T, Errorkind, E>
-    ): ReturnedInfo<T, Errorkind, E> {
+    public return<
+        T = undefined,
+        E = undefined,
+        R extends ReturnedInfo<T, Errorkind, E> = ReturnedInfo<T, Errorkind, E>
+    >(other: R): R {
         if (this.merge(other)) {
-            return this.succeed(other.data);
+            return this.succeed(other.data) as R;
         } else {
-            return this.failWithData(other.data);
+            return this.failWithData(other.data) as R;
         }
     }
 

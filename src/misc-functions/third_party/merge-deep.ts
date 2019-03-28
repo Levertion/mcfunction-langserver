@@ -18,6 +18,8 @@ export function isObject(item: any): item is AnyDict {
 
 /**
  * Deep merge two objects.
+ *
+ * @todo: Stop using this and just use workspace/configuration request
  */
 export function mergeDeep(target: AnyDict, ...sources: AnyDict[]): AnyDict {
     if (!sources.length) {

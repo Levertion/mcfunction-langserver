@@ -8,17 +8,15 @@ import {
     SLASHREPLACEREGEX,
     TAG_START
 } from "../consts";
+
 import {
+    ReturnSuccess,
     Advancement,
-    DataID,
-    GlobalData,
     ID,
-    ResourceID,
     Resources,
     Tag,
     WorldInfo
-} from "../data/types";
-import { ReturnSuccess } from "../types";
+} from "../types";
 
 import { getMatching, getResourcesSplit } from "./group-resources";
 import { convertToID, stringArrayToIDs, stringifyID } from "./id";
@@ -277,7 +275,7 @@ export function buildPath(
         const pack = packs.packs[resource.pack];
         return getPath(
             resource,
-            path.join(packs.location, pack.name),
+            path.join(packs.datapacksFolder, pack.name),
             kind,
             path
         );
