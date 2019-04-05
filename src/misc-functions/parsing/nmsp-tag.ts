@@ -2,33 +2,31 @@ import { CompletionItemKind } from "vscode-languageserver/lib/main";
 
 import {
     buildPath,
-    convertToNamespace,
+    convertToID,
     getResourcesofType,
-    namespacesEqual,
+    idsEqual,
+    parseNamespace,
+    parseNamespaceOption,
+    readNamespaceText,
     ReturnHelper
 } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { TAG_START } from "../../consts";
+import { DataID, ID, Resources, Tag, WorldInfo } from "../../data/types";
 import {
-    DataResource,
-    NamespacedName,
-    Resources,
-    Tag,
-    WorldInfo
-} from "../../data/types";
-import { CE, ParserInfo, ReturnedInfo, ReturnSuccess } from "../../types";
-
-import {
-    parseNamespace,
-    parseNamespaceOption,
-    readNamespaceText
-} from "./namespace";
+    CE,
+    ParserInfo,
+    ReturnedInfo,
+    ReturnSuccess,
+    TagMap
+} from "../../types";
+import { IDMap, NamespaceMapParseResult } from "../id-map";
 
 export interface TagParseResult {
-    parsed: NamespacedName;
-    resolved?: NamespacedName[];
-    values?: Array<DataResource<Tag>>;
+    parsed: ID;
+    resolved?: ID[];
+    values?: Array<DataID<Tag>>;
 }
 
 /**
@@ -43,35 +41,18 @@ export interface TagParseResult {
 export function parseNamespaceOrTag(
     reader: StringReader,
     info: ParserInfo,
-    taghandling: keyof Resources | CommandErrorBuilder
-): ReturnedInfo<TagParseResult, CE, NamespacedName | undefined> {
+    taghandling: TagMap | CommandErrorBuilder
+): ReturnedInfo<TagParseResult, CE, ID | undefined> {
     const helper = new ReturnHelper(info);
     const start = reader.cursor;
     if (reader.peek() === TAG_START) {
         reader.skip();
-        if (typeof taghandling === "string") {
-            const tags: Array<DataResource<Tag>> = getResourcesofType(
-                info.data,
-                taghandling
-            );
-            const parsed = parseNamespaceOption(
-                reader,
-                tags,
-                CompletionItemKind.Folder
-            );
-            if (helper.merge(parsed)) {
-                const values = parsed.data.values;
-                const resolved: NamespacedName[] = [];
-                for (const value of values) {
-                    resolved.push(...getLowestForTag(value, tags));
-                }
-                return helper.succeed<TagParseResult>({
-                    parsed: parsed.data.literal,
-                    resolved,
-                    values
-                });
-            } else {
-                return helper.failWithData(parsed.data);
+        if (taghandling instanceof IDMap) {
+            const result = taghandling.parse(reader, info.data);
+            if (helper.merge(result)) {
+                const { id, raw, resolved } = result.data;
+
+                return helper.succeed({ parsed: id });
             }
         } else {
             readNamespaceText(reader);
@@ -94,31 +75,8 @@ export function parseNamespaceOrTag(
     }
 }
 
-function getLowestForTag(
-    tag: DataResource<Tag>,
-    options: Array<DataResource<Tag>>
-): NamespacedName[] {
-    if (!tag.data) {
-        return [];
-    }
-    const results: NamespacedName[] = [];
-    for (const tagMember of tag.data.values) {
-        if (tagMember[0] === TAG_START) {
-            const namespace = convertToNamespace(tagMember.substring(1));
-            for (const option of options) {
-                if (namespacesEqual(namespace, option)) {
-                    results.push(...getLowestForTag(option, options));
-                }
-            }
-        } else {
-            results.push(convertToNamespace(tagMember));
-        }
-    }
-    return results;
-}
-
 export function buildTagActions(
-    tags: Array<DataResource<Tag>>,
+    tags: Array<DataID<Tag>>,
     low: number,
     high: number,
     type: keyof Resources,

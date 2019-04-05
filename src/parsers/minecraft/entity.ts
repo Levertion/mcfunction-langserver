@@ -4,21 +4,25 @@ import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NONWHITESPACE } from "../../consts";
 import { Scoreboard } from "../../data/nbt/nbt-types";
-import { DataResource, NamespacedName } from "../../data/types";
 import {
-    convertToNamespace,
-    getResourcesofType,
+    convertToID,
     getReturned,
     parseNamespaceOption,
     parseNamespaceOrTag,
     processParsedNamespaceOption,
     ReturnHelper,
     stringArrayEqual,
-    stringArrayToNamespaces,
-    stringifyNamespace
+    stringArrayToIDs,
+    stringifyID
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../../types";
+import {
+    Advancement,
+    ContextChange,
+    Parser,
+    ParserInfo,
+    ReturnedInfo
+} from "../../types";
 
 import { summonError } from "./namespace-list";
 import { validateParse } from "./nbt/nbt";
@@ -370,7 +374,6 @@ export function parseAdvancements(
     reader: StringReader,
     info: ParserInfo
 ): ReturnedInfo<Dictionary<AdvancementOption>> {
-    const advancements = getResourcesofType(info.data, "advancements");
     const helper = new ReturnHelper();
     if (!helper.merge(reader.expect("{"))) {
         return helper.fail();
@@ -379,22 +382,15 @@ export function parseAdvancements(
     while (true) {
         let advname: string;
         const criteriaOptions: string[] = [];
-        const res = parseNamespaceOption<DataResource<string[]>>(
-            reader,
-            advancements
-        );
+        const res = info.data.resources.advancements.parse(reader, info.data);
         if (!helper.merge(res)) {
-            if (!res.data) {
-                return helper.fail();
-            } else {
-                advname = stringifyNamespace(res.data);
-            }
+            advname = stringifyID(res.data);
         } else {
-            advname = stringifyNamespace(res.data.literal);
-            res.data.values
-                .map(v => v.data)
-                .filter(v => !!v)
-                .forEach(v => criteriaOptions.push(...(v as string[])));
+            advname = stringifyID(res.data.id);
+            [...res.data.raw]
+                .map(v => v[1])
+                .filter((v): v is Advancement => !!v)
+                .forEach(v => criteriaOptions.push(...v.criteria));
         }
         if (!helper.merge(reader.expect("="))) {
             return helper.fail();
@@ -753,6 +749,21 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
         const helper = new ReturnHelper();
         const start = reader.cursor;
         const negated = isNegated(reader, helper);
+        if (reader.peek() === "#") {
+            reader.skip();
+            const tagResult = info.data.resources.entity_tags.parse(
+                reader,
+                info.data
+            );
+            if (helper.merge(tagResult)) {
+                tagResult.data.resolved.resolved;
+            }
+        } else {
+            const notTagResult = info.data.registries[
+                "minecraft:entity_type"
+            ].parse(reader, undefined);
+            notTagResult;
+        }
         const parsedType = parseNamespaceOrTag(reader, info, "entity_tags");
         if (!helper.merge(parsedType)) {
             if (parsedType.data) {
@@ -760,7 +771,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
                     errors.unknown_tag.create(
                         start,
                         reader.cursor,
-                        stringifyNamespace(parsedType.data)
+                        stringifyID(parsedType.data)
                     )
                 );
                 return helper.succeed();
@@ -770,7 +781,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
         if (!parsedType.data.resolved) {
             const postProcess = processParsedNamespaceOption(
                 parsedType.data.parsed,
-                stringArrayToNamespaces([
+                stringArrayToIDs([
                     ...info.data.globalData.registries["minecraft:entity_type"]
                 ]),
                 info.suggesting && !reader.canRead(),
@@ -783,7 +794,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
                     summonError.create(
                         start,
                         reader.cursor,
-                        stringifyNamespace(parsedType.data.parsed)
+                        stringifyID(parsedType.data.parsed)
                     )
                 );
             }
@@ -794,7 +805,7 @@ export const argParsers: { [K in ArgumentType]: OptionParser } = {
         const typeInfo = context.type || { set: new Set(), unset: new Set() };
         const { set, unset } = typeInfo;
         // tslint:disable-next-line:no-unnecessary-callback-wrapper
-        const stringifiedTypes = parsedTypes.map(v => stringifyNamespace(v));
+        const stringifiedTypes = parsedTypes.map(v => stringifyID(v));
         if (!negated) {
             if (stringifiedTypes.every(set.has.bind(set))) {
                 helper.addErrors(
@@ -876,7 +887,7 @@ export class EntityBase implements Parser {
                         set: new Set(
                             // tslint:disable-next-line:no-unnecessary-callback-wrapper
                             ((info.context.executor || {}).ids || []).map(v =>
-                                stringifyNamespace(v)
+                                stringifyID(v)
                             )
                         ),
                         unset: blankSet
@@ -1021,10 +1032,10 @@ function getContextChange(
     path: string[]
 ): ContextChange | undefined {
     if (context.type) {
-        const result: NamespacedName[] = [];
+        const result: ID[] = [];
         for (const item of context.type.set.values()) {
             if (!context.type.unset.has(item)) {
-                result.push(convertToNamespace(item));
+                result.push(convertToID(item));
             }
         }
         if (stringArrayEqual(path, ["execute", "as", "entity"])) {

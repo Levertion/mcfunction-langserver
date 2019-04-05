@@ -1,53 +1,36 @@
-import { ok } from "assert";
-import { extname, join } from "path";
-import {
-    DidChangeWatchedFilesParams,
-    FileChangeType
-} from "vscode-languageserver";
+import * as assert from "assert";
+import { DidChangeWatchedFilesParams } from "vscode-languageserver";
 
-import { MCMETAFILE } from "../consts";
+import { PackLocationSegments, ReturnHelper } from "../misc-functions";
 import {
-    getKindAndNamespace,
-    namespacesEqual,
-    PackLocationSegments,
-    parseDataPath,
-    resourceTypes,
-    ReturnHelper
-} from "../misc-functions";
-import { createExtensionFileError } from "../misc-functions/file-errors";
-import { readJSON } from "../misc-functions/promisified-fs";
-import { ReturnedInfo, ReturnSuccess } from "../types";
+    CommandData,
+    LocalData,
+    ReturnedInfo,
+    ReturnSuccess,
+    WorldInfo
+} from "../types";
 
 import { readCache } from "./cache";
 import { getPacksInfo } from "./datapack-resources";
 import { collectGlobalData } from "./extractor";
 import { loadNonCached } from "./noncached";
-import {
-    Datapack,
-    DataPackID,
-    GlobalData,
-    LocalData,
-    McmetaFile,
-    MinecraftResource,
-    WorldInfo
-} from "./types";
 
 export class DataManager {
     /**
      * Create a datamanager using Dummy Data for running tests.
      */
     public static newWithData(
-        dummyGlobal?: DataManager["globalDataInternal"],
+        dummyData?: DataManager["_commandData"],
         dummyPacks?: DataManager["packDataComplete"]
     ): DataManager {
         const manager = new DataManager();
 
-        manager.globalDataInternal = dummyGlobal || manager.globalDataInternal;
+        manager._commandData = dummyData || manager._commandData;
         Object.assign(manager.packDataComplete, dummyPacks);
         return manager;
     }
-    //#region Data Management
-    private globalDataInternal: GlobalData = {} as GlobalData;
+
+    private _commandData: CommandData = {} as CommandData;
 
     private readonly packDataComplete: { [root: string]: WorldInfo } = {};
 
@@ -55,15 +38,13 @@ export class DataManager {
         [root: string]: Promise<ReturnSuccess<WorldInfo>>;
     } = {};
 
-    public get globalData(): GlobalData {
-        return this.globalDataInternal;
+    public get commandData(): CommandData {
+        return this._commandData;
     }
     public get packData(): DataManager["packDataComplete"] {
         return this.packDataComplete;
     }
-    //#endregion
-    //#region Constructor
-    //#endregion
+
     public getPackFolderData(
         folder: PackLocationSegments | undefined
     ): LocalData | undefined {
@@ -73,14 +54,20 @@ export class DataManager {
         ) {
             const info = this.packDataComplete[folder.packsFolder];
 
-            return { ...info, current: info.packnamesmap[folder.pack] };
+            return { ...info, current: info.packnamesmap.get(folder.pack) };
         }
         return undefined;
     }
 
+    // tslint:disable-next-line: prefer-function-over-method
     public async handleChanges(
-        event: DidChangeWatchedFilesParams
+        _event: DidChangeWatchedFilesParams
     ): Promise<ReturnedInfo<undefined>> {
+        return new ReturnHelper().succeed();
+        /*  TODO - this is not an MVP feature.
+         We have also received reports that this doesn't work, so it needs some debugging
+         or implementation work. The original implementation is below: */
+        /* 
         const helper = new ReturnHelper(false);
         const firsts = new Set<string>();
         const promises = event.changes.map(async change => {
@@ -135,7 +122,7 @@ export class DataManager {
                                     for (let i = 0; i < contents.length; i++) {
                                         const element = contents[i];
                                         if (
-                                            namespacesEqual(
+                                            idsEqual(
                                                 element,
                                                 namespace.location
                                             )
@@ -154,7 +141,7 @@ export class DataManager {
                                             namespace.kind
                                         ] = [];
                                     }
-                                    const newResource: MinecraftResource = {
+                                    const newResource = {
                                         ...namespace.location,
                                         pack: packID
                                     };
@@ -173,7 +160,7 @@ export class DataManager {
                                                     parsedPath.packsFolder,
                                                     parsedPath.pack
                                                 ),
-                                                this.globalData,
+                                                this._commandData,
                                                 data
                                             );
                                             if (helper.merge(result)) {
@@ -208,31 +195,32 @@ export class DataManager {
         });
         await Promise.all(promises);
         return helper.succeed();
+     */
     }
 
     public async loadGlobalData(): Promise<boolean | string> {
         let version: string | undefined;
-        if (!!this.globalData.meta_info) {
-            version = this.globalData.meta_info.version;
+        if (!!this._commandData.data_info) {
+            version = this._commandData.data_info.version;
         }
         try {
             const helper = new ReturnHelper();
             const data = await collectGlobalData(version);
             if (data) {
                 helper.merge(data);
-                if (this.globalDataInternal) {
-                    this.globalDataInternal = {
-                        ...this.globalDataInternal,
+                if (this._commandData) {
+                    this._commandData = {
+                        ...this._commandData,
                         ...data.data
                     };
                 } else {
-                    this.globalDataInternal = {
+                    this._commandData = {
                         ...(await loadNonCached()),
                         ...data.data
                     };
                 }
             }
-            ok(this.globalDataInternal);
+            assert.ok(this._commandData);
             return false;
         } catch (error) {
             return `Error loading global data: ${error.stack ||
@@ -244,7 +232,7 @@ export class DataManager {
         try {
             const cache = await readCache();
             const noncache = await loadNonCached();
-            this.globalDataInternal = { ...cache, ...noncache };
+            this._commandData = { ...cache, ...noncache };
             mcLangLog("Cache Successfully read");
             return true;
         } catch (error) {
@@ -265,7 +253,7 @@ export class DataManager {
         if (!this.packDataPromises.hasOwnProperty(folder)) {
             this.packDataPromises[folder] = getPacksInfo(
                 folder,
-                this.globalData
+                this._commandData.resources
             );
             const result = await this.packDataPromises[folder];
             this.packDataComplete[folder] = result.data;

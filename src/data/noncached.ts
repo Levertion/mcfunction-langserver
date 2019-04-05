@@ -5,7 +5,9 @@ import {
     SchemaRequestService
 } from "vscode-json-languageservice";
 
-import { NBTDocs, NonCacheable } from "./types";
+import { CommandData, NBTDocs } from "../types";
+
+import { CacheHandled } from "./cache";
 
 export function loadNBTDocs(): NBTDocs {
     const nbtData = new Map<string, NBTNode | ValueList>();
@@ -15,7 +17,12 @@ export function loadNBTDocs(): NBTDocs {
 const textComponentSchema =
     "https://raw.githubusercontent.com/Levertion/minecraft-json-schema/master/java/shared/text_component.json";
 
-export async function loadNonCached(): Promise<NonCacheable> {
+export type NotCached = Pick<
+    CommandData,
+    Exclude<keyof CommandData, keyof CacheHandled>
+>;
+
+export async function loadNonCached(): Promise<NotCached> {
     const schemas: { [key: string]: string } = {
         [textComponentSchema]: JSON.stringify(
             // FIXME: parcel breaks require.resolve so we need to use plain require to get the correct path

@@ -1,29 +1,23 @@
 import { DEFAULT_NAMESPACE, NAMESPACE } from "../consts";
-import { NamespacedName } from "../data/types";
+import { ID } from "../types";
 
-export function namespacesEqual(
-    first: NamespacedName,
-    second: NamespacedName
-): boolean {
-    return namesEqual(first, second) && first.path === second.path;
+export function idsEqual(first: ID, second: ID): boolean {
+    return sameNamespace(first, second) && first.path === second.path;
 }
 
-export function namesEqual(
-    first: NamespacedName,
-    second: NamespacedName
-): boolean {
+function sameNamespace(first: ID, second: ID): boolean {
     return (
         first.namespace === second.namespace ||
         (isNamespaceDefault(first) && isNamespaceDefault(second))
     );
 }
 
-export function isNamespaceDefault(name: NamespacedName): boolean {
+export function isNamespaceDefault(name: ID): boolean {
     return name.namespace === undefined || name.namespace === DEFAULT_NAMESPACE;
 }
 
-export function stringifyNamespace(
-    namespace: NamespacedName,
+export function stringifyID(
+    namespace: ID,
     seperator: string = NAMESPACE
 ): string {
     return (
@@ -34,23 +28,18 @@ export function stringifyNamespace(
 }
 
 /**
- * Convert a string into a `NamespacedName`. This should only be called directly on strings which are known to be valid
- * The behaviour on invalid strings is to leave the second seperator in the path
+ * Convert a string into an `ID`. This should only be called directly on valid, static strings.
+ * This does not do any error reporting
  */
-export function convertToNamespace(
-    input: string,
-    splitChar: string = NAMESPACE
-): NamespacedName {
+export function convertToID(input: string, splitChar: string = NAMESPACE): ID {
     const index = input.indexOf(splitChar);
     if (index >= 0) {
         const pathContents = input.substring(
             index + splitChar.length,
             input.length
         );
-        // Path contents should not have a : in the contents, however this is to be checked higher up.
+        // Path contents should not have a splitChar in the contents, however this is unchecked
         // This simplifies using the parsed result when parsing known statics
-
-        // Related: https://bugs.mojang.com/browse/MC-91245 (Fixed)
         if (index >= 1) {
             return { namespace: input.substring(0, index), path: pathContents };
         } else {
@@ -59,4 +48,10 @@ export function convertToNamespace(
     } else {
         return { path: input };
     }
+}
+
+// TODO: Prefer `IDMap.fromStringArray(strings)` in almost all cases
+export function stringArrayToIDs(strings: string[]): ID[] {
+    // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
+    return strings.map(v => convertToID(v));
 }

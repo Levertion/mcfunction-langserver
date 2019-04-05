@@ -2,14 +2,9 @@ import * as assert from "assert";
 import * as path from "path";
 
 import { getPacksInfo } from "../../data/datapack-resources";
-import { Datapack, MinecraftResource, WorldInfo } from "../../data/types";
+import { Datapack, ResourceID, WorldInfo } from "../../data/types";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import {
-    assertMembers,
-    assertNamespaces,
-    convertToResource,
-    returnAssert
-} from "../assertions";
+import { assertMembers, convertToResource, snapshot } from "../assertions";
 import { emptyGlobal } from "../blanks";
 
 // Tests are run from within the lib folder, but data is in the root
@@ -44,7 +39,7 @@ describe("Datapack Resource Testing", () => {
             path.join(rootFolder, "test_world", "datapacks"),
             emptyGlobal
         );
-        returnAssert(result, { succeeds: true, numMisc: 5 });
+        snapshot(result);
         assert(result.misc.every(v => v.kind === "ClearError"));
         assertPacksInfo(result.data, datapacks, expected);
     });
@@ -70,10 +65,10 @@ function assertPacksInfo(
         assertMembers(keys, Object.keys(actual.data), (a, b) => a === b);
 
         for (const kind of keys) {
-            const resources = pack.data[kind] as MinecraftResource[];
-            const actualResources = actual.data[kind] as MinecraftResource[];
+            const resources = pack.data[kind] as ResourceID[];
+            const actualResources = actual.data[kind] as ResourceID[];
             assert(actualResources.every(v => v.pack === id));
-            assertNamespaces(resources, actualResources);
+            snapshot(resources);
         }
     }
 }

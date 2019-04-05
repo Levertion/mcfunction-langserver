@@ -212,7 +212,7 @@ exports.TAG_START = "#"; // Misc
 exports.JAVAMAXINT = 2147483647;
 exports.JAVAMININT = -2147483648;
 exports.NONWHITESPACE = /\S/;
-},{}],"CWtC":[function(require,module,exports) {
+},{}],"SoFr":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -221,17 +221,17 @@ Object.defineProperty(exports, "__esModule", {
 
 const consts_1 = require("../consts");
 
-function namespacesEqual(first, second) {
-  return namesEqual(first, second) && first.path === second.path;
+function idsEqual(first, second) {
+  return namespacesEqual(first, second) && first.path === second.path;
 }
 
-exports.namespacesEqual = namespacesEqual;
+exports.idsEqual = idsEqual;
 
-function namesEqual(first, second) {
+function namespacesEqual(first, second) {
   return first.namespace === second.namespace || isNamespaceDefault(first) && isNamespaceDefault(second);
 }
 
-exports.namesEqual = namesEqual;
+exports.namespacesEqual = namespacesEqual;
 
 function isNamespaceDefault(name) {
   return name.namespace === undefined || name.namespace === consts_1.DEFAULT_NAMESPACE;
@@ -239,23 +239,22 @@ function isNamespaceDefault(name) {
 
 exports.isNamespaceDefault = isNamespaceDefault;
 
-function stringifyNamespace(namespace, seperator = consts_1.NAMESPACE) {
+function stringifyID(namespace, seperator = consts_1.NAMESPACE) {
   return (namespace.namespace ? namespace.namespace : consts_1.DEFAULT_NAMESPACE) + seperator + namespace.path;
 }
 
-exports.stringifyNamespace = stringifyNamespace;
+exports.stringifyID = stringifyID;
 /**
- * Convert a string into a `NamespacedName`. This should only be called directly on strings which are known to be valid
+ * Convert a string into an `ID`. This should only be called directly on strings which are known to be valid
  * The behaviour on invalid strings is to leave the second seperator in the path
  */
 
-function convertToNamespace(input, splitChar = consts_1.NAMESPACE) {
+function convertToID(input, splitChar = consts_1.NAMESPACE) {
   const index = input.indexOf(splitChar);
 
   if (index >= 0) {
     const pathContents = input.substring(index + splitChar.length, input.length); // Path contents should not have a : in the contents, however this is to be checked higher up.
     // This simplifies using the parsed result when parsing known statics
-    // Related: https://bugs.mojang.com/browse/MC-91245 (Fixed)
 
     if (index >= 1) {
       return {
@@ -274,7 +273,14 @@ function convertToNamespace(input, splitChar = consts_1.NAMESPACE) {
   }
 }
 
-exports.convertToNamespace = convertToNamespace;
+exports.convertToID = convertToID;
+
+function stringArrayToIDs(strings) {
+  // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
+  return strings.map(v => convertToID(v));
+}
+
+exports.stringArrayToIDs = stringArrayToIDs;
 },{"../consts":"xb+0"}],"23cw":[function(require,module,exports) {
 "use strict";
 
@@ -282,7 +288,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-const namespace_1 = require("./namespace");
+const id_1 = require("./id");
 
 function getResourcesofType(resources, type) {
   return getResourcesSplit(type, resources.globalData, resources.localData);
@@ -323,7 +329,7 @@ function getMatching(resources, value) {
   const results = [];
 
   for (const resource of resources) {
-    if (namespace_1.namespacesEqual(resource, value)) {
+    if (id_1.idsEqual(resource, value)) {
       results.push(resource);
     }
   }
@@ -332,7 +338,45 @@ function getMatching(resources, value) {
 }
 
 exports.getMatching = getMatching;
-},{"./namespace":"CWtC"}],"aP4V":[function(require,module,exports) {
+},{"./id":"SoFr"}],"cNAA":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+function createExtensionFileError(filePath, expected, actual) {
+  return {
+    filePath,
+    group: "extension",
+    kind: "FileError",
+    message: `File has incorrect extension: Expected ${expected}, got ${actual}.`
+  };
+}
+
+exports.createExtensionFileError = createExtensionFileError;
+
+function createJSONFileError(filePath, error) {
+  return {
+    filePath,
+    group: "json",
+    kind: "FileError",
+    message: `JSON parsing failed: '${error}'`
+  };
+}
+
+exports.createJSONFileError = createJSONFileError;
+
+function createFileClear(filePath, group) {
+  return {
+    kind: "ClearError",
+    filePath,
+    group
+  };
+}
+
+exports.createFileClear = createFileClear;
+},{}],"aP4V":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -394,200 +438,7 @@ function fillBlankError(err, start, end) {
 }
 
 exports.fillBlankError = fillBlankError;
-},{"../misc-functions":"KBGm"}],"AgEN":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-const __1 = require("..");
-
-const errors_1 = require("../../brigadier/errors");
-
-const consts_1 = require("../../consts");
-
-const namespace_1 = require("../namespace");
-
-const NAMESPACEEXCEPTIONS = {
-  invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "The seperator '%s' should not be repeated in the ID '%s'")
-};
-exports.namespaceChars = /^[0-9a-z_:/\.-]$/;
-const allowedInSections = /^[0-9a-z_/\.-]$/;
-
-function stringArrayToNamespaces(strings) {
-  // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
-  return strings.map(v => __1.convertToNamespace(v));
-}
-
-exports.stringArrayToNamespaces = stringArrayToNamespaces;
-
-function readNamespaceText(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
-  let found = false;
-  return reader.readWhileFunction(c => {
-    if (c === seperator) {
-      if (found && stopAfterFirst) {
-        return false;
-      }
-
-      found = true;
-      return true;
-    }
-
-    return allowedInSections.test(c);
-  });
-}
-
-exports.readNamespaceText = readNamespaceText;
-/**
- * Does `base`(eg minecraft:stone) start with `test` (e.g. sto) [Y]
- */
-
-function namespaceStart(base, test) {
-  if (test.namespace === undefined) {
-    return namespace_1.isNamespaceDefault(base) && base.path.startsWith(test.path) || !!base.namespace && base.namespace.startsWith(test.path);
-  } else {
-    return namespace_1.namesEqual(base, test) && base.path.startsWith(test.path);
-  }
-}
-
-exports.namespaceStart = namespaceStart;
-
-function namespaceSuggestions(options, value, start) {
-  const result = [];
-
-  for (const option of options) {
-    if (namespaceStart(option, value)) {
-      result.push({
-        text: __1.stringifyNamespace(option),
-        start
-      });
-    }
-  }
-
-  return result;
-}
-
-exports.namespaceSuggestions = namespaceSuggestions;
-
-function namespaceSuggestionString(options, value, start) {
-  return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
-}
-
-exports.namespaceSuggestionString = namespaceSuggestionString;
-
-function parseNamespace(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
-  const helper = new __1.ReturnHelper();
-  const start = reader.cursor;
-  const text = readNamespaceText(reader, seperator, stopAfterFirst);
-
-  const namespace = __1.convertToNamespace(text, seperator);
-
-  let next = 0;
-  let failed = false; // Give an error for each invalid character
-
-  while (true) {
-    next = namespace.path.indexOf(seperator, next + 1);
-
-    if (next !== -1) {
-      const i = text.indexOf(seperator) + 1 + next + start;
-      failed = true;
-      helper.addErrors(NAMESPACEEXCEPTIONS.invalid_id.create(i, i + seperator.length, seperator, text));
-    } else {
-      break;
-    }
-  }
-
-  if (failed) {
-    return helper.fail();
-  } else {
-    return helper.succeed(namespace);
-  }
-}
-
-exports.parseNamespace = parseNamespace;
-
-function parseNamespaceOption(reader, options, completionKind, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
-  const helper = new __1.ReturnHelper();
-  const start = reader.cursor;
-  const namespace = parseNamespace(reader, seperator, stopAfterFirst);
-
-  if (helper.merge(namespace)) {
-    const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind, seperator);
-    helper.merge(results);
-
-    if (results.data.length > 0) {
-      return helper.succeed({
-        literal: namespace.data,
-        values: results.data
-      });
-    } else {
-      return helper.failWithData(namespace.data);
-    }
-  } else {
-    return helper.failWithData(undefined);
-  }
-}
-
-exports.parseNamespaceOption = parseNamespaceOption;
-
-function processParsedNamespaceOption(namespace, options, suggest, start, completionKind, seperator = consts_1.NAMESPACE) {
-  const results = [];
-  const helper = new __1.ReturnHelper();
-
-  for (const val of options) {
-    if (__1.namespacesEqual(val, namespace)) {
-      results.push(val);
-    }
-
-    if (suggest && namespaceStart(val, namespace)) {
-      helper.addSuggestion(start, __1.stringifyNamespace(val, seperator), completionKind);
-    }
-  }
-
-  return helper.succeed(results);
-}
-
-exports.processParsedNamespaceOption = processParsedNamespaceOption;
-},{"..":"KBGm","../../brigadier/errors":"aP4V","../../consts":"xb+0","../namespace":"CWtC"}],"cNAA":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-function createExtensionFileError(filePath, expected, actual) {
-  return {
-    filePath,
-    group: "extension",
-    kind: "FileError",
-    message: `File has incorrect extension: Expected ${expected}, got ${actual}.`
-  };
-}
-
-exports.createExtensionFileError = createExtensionFileError;
-
-function createJSONFileError(filePath, error) {
-  return {
-    filePath,
-    group: "json",
-    kind: "FileError",
-    message: `JSON parsing failed: '${error}'`
-  };
-}
-
-exports.createJSONFileError = createJSONFileError;
-
-function createFileClear(filePath, group) {
-  return {
-    kind: "ClearError",
-    filePath,
-    group
-  };
-}
-
-exports.createFileClear = createFileClear;
-},{}],"UL96":[function(require,module,exports) {
+},{"../misc-functions":"KBGm"}],"UL96":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -702,15 +553,12 @@ class ReturnHelper {
   }
 
   addSuggestion(start, text, kind, description) {
-    if (this.suggestMode === undefined || this.suggestMode) {
-      this.addSuggestions({
-        description,
-        kind,
-        start,
-        text
-      });
-    }
-
+    this.addSuggestions({
+      description,
+      kind,
+      start,
+      text
+    });
     return this;
   }
 
@@ -938,9 +786,7 @@ const consts_1 = require("../consts");
 
 const group_resources_1 = require("./group-resources");
 
-const namespace_1 = require("./namespace");
-
-const namespace_2 = require("./parsing/namespace");
+const id_1 = require("./id");
 
 const promisified_fs_1 = require("./promisified-fs");
 
@@ -1037,19 +883,19 @@ exports.resourceTypes = {
   entity_tags: {
     extension: ".json",
     mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "entity_tags", group_resources_1.getResourcesSplit("entity_tags", globalData, packsInfo), s => group_resources_1.getMatching( // TODO: This is horrifically inefficient
-    namespace_2.stringArrayToNamespaces([...globalData.registries["minecraft:entity_type"]]), namespace_1.convertToNamespace(s)).length > 0),
+    id_1.stringArrayToIDs([...globalData.registries["minecraft:entity_type"]]), id_1.convertToID(s)).length > 0),
     path: ["tags", "entity_types"]
   },
   fluid_tags: {
     extension: ".json",
-    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "fluid_tags", group_resources_1.getResourcesSplit("fluid_tags", globalData, packsInfo), s => group_resources_1.getMatching(namespace_2.stringArrayToNamespaces([...globalData.registries["minecraft:entity_type"]]), namespace_1.convertToNamespace(s)).length > 0),
+    mapFunction: async (v, packroot, globalData, packsInfo) => readTag(v, packroot, "fluid_tags", group_resources_1.getResourcesSplit("fluid_tags", globalData, packsInfo), s => group_resources_1.getMatching(id_1.stringArrayToIDs([...globalData.registries["minecraft:entity_type"]]), id_1.convertToID(s)).length > 0),
     path: ["tags", "fluids"]
   },
   function_tags: {
     extension: ".json",
     mapFunction: async (v, packroot, globalData, packsInfo) => {
       const functions = group_resources_1.getResourcesSplit("functions", globalData, packsInfo);
-      return readTag(v, packroot, "function_tags", group_resources_1.getResourcesSplit("function_tags", globalData, packsInfo), s => group_resources_1.getMatching(functions, namespace_1.convertToNamespace(s)).length > 0);
+      return readTag(v, packroot, "function_tags", group_resources_1.getResourcesSplit("function_tags", globalData, packsInfo), s => group_resources_1.getMatching(functions, id_1.convertToID(s)).length > 0);
     },
     path: ["tags", "functions"]
   },
@@ -1147,8 +993,8 @@ async function readTag(resource, packRoot, type, options, isKnown) {
           for (const v of tag.data.values) {
             if (v.startsWith(consts_1.TAG_START)) {
               const tagText = v.slice(1);
-              const tagNamespace = namespace_1.convertToNamespace(tagText);
-              const tagName = namespace_1.stringifyNamespace(tagNamespace);
+              const tagNamespace = id_1.convertToID(tagText);
+              const tagName = id_1.stringifyID(tagNamespace);
               const tagString = `#${tagName}`;
               const result = group_resources_1.getMatching(options, tagNamespace);
 
@@ -1162,8 +1008,8 @@ async function readTag(resource, packRoot, type, options, isKnown) {
 
               seen.add(tagString);
             } else {
-              const valueNamespace = namespace_1.convertToNamespace(v);
-              const value = namespace_1.stringifyNamespace(valueNamespace);
+              const valueNamespace = id_1.convertToID(v);
+              const value = id_1.stringifyID(valueNamespace);
 
               if (seen.has(value)) {
                 duplicates.add(value);
@@ -1189,7 +1035,7 @@ async function readTag(resource, packRoot, type, options, isKnown) {
 
   return helper.succeed(resource);
 }
-},{"../consts":"xb+0","./group-resources":"23cw","./namespace":"CWtC","./parsing/namespace":"AgEN","./promisified-fs":"tSk9","./return-helper":"p3gl","./third_party/typed-keys":"kca+"}],"4xli":[function(require,module,exports) {
+},{"../consts":"xb+0","./group-resources":"23cw","./id":"SoFr","./promisified-fs":"tSk9","./return-helper":"p3gl","./third_party/typed-keys":"kca+"}],"4xli":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1503,7 +1349,140 @@ function setup_logging(connection) {
 }
 
 exports.setup_logging = setup_logging;
-},{}],"lcVC":[function(require,module,exports) {
+},{}],"AgEN":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+const __1 = require("..");
+
+const errors_1 = require("../../brigadier/errors");
+
+const consts_1 = require("../../consts");
+
+const id_1 = require("../id");
+
+const NAMESPACEEXCEPTIONS = {
+  invalid_id: new errors_1.CommandErrorBuilder("argument.id.invalid", "The seperator '%s' should not be repeated in the ID '%s'")
+};
+exports.namespaceChars = /^[0-9a-z_:/\.-]$/;
+const allowedInSections = /^[0-9a-z_/\.-]$/;
+
+function readNamespaceText(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
+  let found = false;
+  return reader.readWhileFunction(c => {
+    if (c === seperator) {
+      if (found && stopAfterFirst) {
+        return false;
+      }
+
+      found = true;
+      return true;
+    }
+
+    return allowedInSections.test(c);
+  });
+}
+
+exports.readNamespaceText = readNamespaceText;
+
+function namespaceSuggestions(options, start) {
+  const result = [];
+
+  for (const option of options) {
+    result.push({
+      text: __1.stringifyID(option),
+      start
+    });
+  }
+
+  return result;
+}
+
+exports.namespaceSuggestions = namespaceSuggestions;
+
+function namespaceSuggestionString(options, start) {
+  return namespaceSuggestions(id_1.stringArrayToIDs(options), start);
+}
+
+exports.namespaceSuggestionString = namespaceSuggestionString;
+
+function parseNamespace(reader, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
+  const helper = new __1.ReturnHelper();
+  const start = reader.cursor;
+  const text = readNamespaceText(reader, seperator, stopAfterFirst);
+
+  const namespace = __1.convertToID(text, seperator);
+
+  let next = 0;
+  let failed = false; // Give an error for each invalid character
+
+  while (true) {
+    next = namespace.path.indexOf(seperator, next + 1);
+
+    if (next !== -1) {
+      const i = text.indexOf(seperator) + 1 + next + start;
+      failed = true;
+      helper.addErrors(NAMESPACEEXCEPTIONS.invalid_id.create(i, i + seperator.length, seperator, text));
+    } else {
+      break;
+    }
+  }
+
+  if (failed) {
+    return helper.fail();
+  } else {
+    return helper.succeed(namespace);
+  }
+}
+
+exports.parseNamespace = parseNamespace;
+
+function parseNamespaceOption(reader, options, completionKind, seperator = consts_1.NAMESPACE, stopAfterFirst = false) {
+  const helper = new __1.ReturnHelper();
+  const start = reader.cursor;
+  const namespace = parseNamespace(reader, seperator, stopAfterFirst);
+
+  if (helper.merge(namespace)) {
+    const results = processParsedNamespaceOption(namespace.data, options, !reader.canRead(), start, completionKind, seperator);
+    helper.merge(results);
+
+    if (results.data.length > 0) {
+      return helper.succeed({
+        literal: namespace.data,
+        values: results.data
+      });
+    } else {
+      return helper.failWithData(namespace.data);
+    }
+  } else {
+    return helper.failWithData(undefined);
+  }
+}
+
+exports.parseNamespaceOption = parseNamespaceOption;
+
+function processParsedNamespaceOption(namespace, options, suggest, start, completionKind, seperator = consts_1.NAMESPACE) {
+  const results = [];
+  const helper = new __1.ReturnHelper();
+
+  for (const val of options) {
+    if (__1.idsEqual(val, namespace)) {
+      results.push(val);
+    }
+
+    if (suggest) {
+      helper.addSuggestion(start, __1.stringifyID(val, seperator), completionKind);
+    }
+  }
+
+  return helper.succeed(results);
+}
+
+exports.processParsedNamespaceOption = processParsedNamespaceOption;
+},{"..":"KBGm","../../brigadier/errors":"aP4V","../../consts":"xb+0","../id":"SoFr"}],"lcVC":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1588,15 +1567,15 @@ function getLowestForTag(tag, options) {
 
   for (const tagMember of tag.data.values) {
     if (tagMember[0] === consts_1.TAG_START) {
-      const namespace = __1.convertToNamespace(tagMember.substring(1));
+      const namespace = __1.convertToID(tagMember.substring(1));
 
       for (const option of options) {
-        if (__1.namespacesEqual(namespace, option)) {
+        if (__1.idsEqual(namespace, option)) {
           results.push(...getLowestForTag(option, options));
         }
       }
     } else {
-      results.push(__1.convertToNamespace(tagMember));
+      results.push(__1.convertToID(tagMember));
     }
   }
 
@@ -1657,7 +1636,7 @@ tslib_1.__exportStar(require("./group-resources"), exports);
 
 tslib_1.__exportStar(require("./lsp-conversions"), exports);
 
-tslib_1.__exportStar(require("./namespace"), exports);
+tslib_1.__exportStar(require("./id"), exports);
 
 tslib_1.__exportStar(require("./node-tree"), exports);
 
@@ -1674,7 +1653,7 @@ tslib_1.__exportStar(require("./translation"), exports);
 tslib_1.__exportStar(require("./parsing/namespace"), exports);
 
 tslib_1.__exportStar(require("./parsing/nmsp-tag"), exports);
-},{"./context":"UbUk","./creators":"NmKP","./datapack-folder":"MG6C","./file-errors":"cNAA","./group-resources":"23cw","./lsp-conversions":"BiFC","./namespace":"CWtC","./node-tree":"H7Mf","./promisified-fs":"tSk9","./return-helper":"p3gl","./security":"tvqu","./setup":"8ePp","./translation":"4xli","./parsing/namespace":"AgEN","./parsing/nmsp-tag":"lcVC"}],"iLhI":[function(require,module,exports) {
+},{"./context":"UbUk","./creators":"NmKP","./datapack-folder":"MG6C","./file-errors":"cNAA","./group-resources":"23cw","./lsp-conversions":"BiFC","./id":"SoFr","./node-tree":"H7Mf","./promisified-fs":"tSk9","./return-helper":"p3gl","./security":"tvqu","./setup":"8ePp","./translation":"4xli","./parsing/namespace":"AgEN","./parsing/nmsp-tag":"lcVC"}],"iLhI":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -1725,14 +1704,10 @@ class StringReader {
 
   expect(str) {
     const helper = new misc_functions_1.ReturnHelper();
-
-    if (str.startsWith(this.getRemaining())) {
-      helper.addSuggestions({
-        start: this.cursor,
-        text: str
-      });
-    }
-
+    helper.addSuggestions({
+      start: this.cursor,
+      text: str
+    });
     const sub = this.string.substr(this.cursor, str.length);
 
     if (sub !== str) {
@@ -1880,8 +1855,7 @@ class StringReader {
       suggestions: false
     })) {
       if (result.data && !this.canRead()) {
-        const bestEffort = result.data;
-        helper.addSuggestions(...options.filter(option => option.startsWith(bestEffort)).map(v => completionForString(v, start, quoteKind, completion)));
+        helper.addSuggestions(...options.map(v => completionForString(v, start, quoteKind, completion)));
       }
 
       return helper.fail();
@@ -1890,22 +1864,12 @@ class StringReader {
     const valid = options.some(opt => opt === result.data);
 
     if (!this.canRead()) {
-      helper.addSuggestions(...options.filter(opt => opt.startsWith(result.data)).map(v => completionForString(v, start, quoteKind, completion)));
+      helper.addSuggestions(...options.map(v => completionForString(v, start, quoteKind, completion)));
     }
 
     if (valid) {
       return helper.succeed(result.data);
     } else {
-      /* if (addError) {
-          helper.addErrors(
-              EXCEPTIONS.EXPECTED_STRING_FROM.create(
-                  start,
-                  this.cursor,
-                  JSON.stringify(options),
-                  result.data
-              )
-          );
-      } */
       return helper.failWithData(result.data);
     }
   }
@@ -2320,20 +2284,23 @@ exports.literalParser = {
     const begin = reader.cursor;
     const literal = properties.path[properties.path.length - 1];
 
-    if (properties.suggesting && literal.startsWith(reader.getRemaining())) {
-      helper.addSuggestions(literal);
-    }
-
     if (reader.canRead(literal.length)) {
       const end = begin + literal.length;
 
       if (reader.string.substring(begin, end) === literal) {
         reader.cursor = end;
 
-        if (reader.peek() === " " || !reader.canRead()) {
+        if (reader.peek() === " ") {
+          return helper.succeed();
+        }
+
+        if (!reader.canRead()) {
+          helper.addSuggestion(begin, literal);
           return helper.succeed();
         }
       }
+    } else {
+      helper.addSuggestion(begin, literal);
     }
 
     return helper.fail();
@@ -2354,9 +2321,6 @@ exports.pack_segments = {
   pack: "",
   packsFolder: "",
   rest: ""
-};
-exports.succeeds = {
-  succeeds: true
 };
 
 exports.emptyRange = () => ({
@@ -3151,17 +3115,15 @@ class NBTTagCompound extends nbt_tag_1.NBTTag {
 
       if (part.closeIdx === undefined) {
         for (const childName of Object.keys(children)) {
-          if (childName.startsWith(key)) {
-            const thisChild = children[childName];
-            const text = thisChild && nbt_util_1.getStartSuggestion(thisChild.node);
-            keyHelper.addSuggestions({
-              description: nbt_util_1.getHoverText(children[childName].node),
-              kind: vscode_languageserver_1.CompletionItemKind.Field,
-              label: childName,
-              start: part.keyRange.start,
-              text: string_reader_1.quoteIfNeeded(childName) + (text ? `: ${text}` : "")
-            });
-          }
+          const thisChild = children[childName];
+          const text = thisChild && nbt_util_1.getStartSuggestion(thisChild.node);
+          keyHelper.addSuggestions({
+            description: nbt_util_1.getHoverText(children[childName].node),
+            kind: vscode_languageserver_1.CompletionItemKind.Field,
+            label: childName,
+            start: part.keyRange.start,
+            text: string_reader_1.quoteIfNeeded(childName) + (text ? `: ${text}` : "")
+          });
         }
       }
 
@@ -3648,9 +3610,7 @@ class NBTTagTypedList extends lists_1.BaseList {
       const toCheck = `[${type["0"]};`;
 
       if (this.remaining) {
-        if (toCheck.startsWith(this.remaining)) {
-          helper.addSuggestion(this.startIndex, toCheck);
-        }
+        helper.addSuggestion(this.startIndex, toCheck);
       }
     }
 
@@ -4027,370 +3987,7 @@ class NBTWalker {
 }
 
 NBTWalker.root = "root.json";
-exports.NBTWalker = NBTWalker; // Old version
-// #interface ContextData<
-// #    N extends NBTNode = NBTNode,
-// #    T extends NBTTag<any> = NBTTag<any>
-// #> {
-// #    readonly finalValidation: boolean;
-// #    readonly node: N;
-// #    readonly path: string;
-// #    readonly reader: ArrayReader;
-// #    readonly tag?: T;
-// #    readonly useReferences: boolean;
-// #}
-// #
-// #// tslint:disable:cyclomatic-complexity
-// #// tslint:disable-next-line:max-classes-per-file
-// #export class NBTValidator {
-// #    private readonly docs: NBTDocs;
-// #    private readonly extraChildren: boolean;
-// #    private readonly parsed: NBTTag<any>;
-// #    private readonly root: string;
-// #    private readonly validateNBT: boolean;
-// #
-// #    public constructor(
-// #        parsed: NBTTag<any>,
-// #        docs: NBTDocs,
-// #        extraChild: boolean,
-// #        nbtvalidation: boolean = true,
-// #        root: string = "root.json"
-// #    ) {
-// #        this.docs = docs;
-// #        this.parsed = parsed;
-// #        this.extraChildren = extraChild;
-// #        this.root = root;
-// #        this.validateNBT = nbtvalidation;
-// #    }
-// #
-// #    public walkThenValidate(nbtpath: string[]): ReturnedInfo<NBTNode> {
-// #        const node = this.docs.get(this.root) as RootNode;
-// #        const reader = new ArrayReader(nbtpath);
-// #        // tslint:disable-next-line:helper-return
-// #        return this.walkNextNode({
-// #            finalValidation: true,
-// #            node,
-// #            path: this.root,
-// #            reader,
-// #            tag: this.validateNBT ? this.parsed : undefined,
-// #            useReferences: false
-// #        });
-// #    }
-// #
-// #    private mergeChildRef(data: ContextData<CompoundNode>): CompoundNode {
-// #        const { node, path: currentPath } = data;
-// #        if (!node.child_ref) {
-// #            return node;
-// #        }
-// #        const helper = new ReturnHelper();
-// #        const newChildren = JSON.parse(
-// #            JSON.stringify(node.children || {})
-// #        ) as Exclude<CompoundNode["children"], undefined>;
-// #        for (const ref of node.child_ref) {
-// #            const [nextPath] = parseRefPath(ref, currentPath);
-// #            const refNode = this.walkRef(ref, currentPath, data);
-// #            if (!helper.merge(refNode)) {
-// #                continue;
-// #            } else if (isCompoundNode(refNode.data)) {
-// #                const evalNode = this.mergeChildRef({
-// #                    ...data,
-// #                    node: refNode.data,
-// #                    path: nextPath
-// #                });
-// #                if (evalNode.children) {
-// #                    for (const child of Object.keys(evalNode.children)) {
-// #                        newChildren[child] = evalNode.children[child];
-// #                    }
-// #                }
-// #            }
-// #        }
-// #        return {
-// #            children: newChildren,
-// #            description: node.description,
-// #            suggestions: node.suggestions,
-// #            type: "compound"
-// #        };
-// #    }
-// #
-// #    private walkCompoundNode(
-// #        data: ContextData<CompoundNode, NBTTagCompound>
-// #    ): ReturnedInfo<NBTNode> {
-// #        const { node, reader, path, tag } = data;
-// #        const helper = new ReturnHelper();
-// #        const next = reader.read();
-// #        if (node.children && next in node.children) {
-// #            /*
-// #             * It is safe to assume that next is in the tag
-// #             * val because the path is based off of the tag
-// #             */
-// #            return helper.return(
-// #                this.walkNextNode({
-// #                    ...data,
-// #                    node: node.children[next],
-// #                    tag: tag ? tag.getVal()[next] : undefined
-// #                })
-// #            );
-// #        } else if (node.child_ref) {
-// #            for (const c of node.child_ref) {
-// #                const [nextPath] = parseRefPath(c, path);
-// #                const cnode = this.walkRef(c, path, data);
-// #                if (
-// #                    helper.merge(cnode) &&
-// #                    isCompoundNode(cnode.data) &&
-// #                    cnode.data.children &&
-// #                    next in cnode.data.children
-// #                ) {
-// #                    return helper.return(
-// #                        this.walkNextNode({
-// #                            ...data,
-// #                            node: cnode.data.children[next],
-// #                            path: nextPath,
-// #                            tag: tag ? tag.getVal()[next] : undefined
-// #                        })
-// #                    );
-// #                }
-// #            }
-// #        }
-// #        return helper.fail();
-// #    }
-// #
-// #    private walkFunctionNode(
-// #        data: ContextData<FunctionNode>
-// #    ): ReturnedInfo<NBTNode> {
-// #        const { node, reader, path } = data;
-// #        const helper = new ReturnHelper();
-// #        const ref = runNodeFunction(this.parsed, reader.getRead(), node);
-// #        const [nextPath] = parseRefPath(ref, path);
-// #        const newNode = this.walkRef(ref, path, data);
-// #        if (!helper.merge(newNode)) {
-// #            return helper.fail();
-// #        }
-// #        return helper.return(
-// #            this.walkNextNode({
-// #                ...data,
-// #                node: newNode.data,
-// #                path: nextPath
-// #            })
-// #        );
-// #    }
-// #
-// #    private walkListNode(
-// #        data: ContextData<ListNode, NBTTagList>
-// #    ): ReturnedInfo<NBTNode> {
-// #        const { node, reader, tag } = data;
-// #        const next = reader.read();
-// #        const helper = new ReturnHelper();
-// #        if (!/\d+/.test(next)) {
-// #            return helper.fail(
-// #                tag
-// #                    ? VALIDATION_ERRORS.badIndex.create(
-// #                          tag.getRange().start,
-// #                          tag.getRange().end
-// #                      )
-// #                    : undefined
-// #            );
-// #        }
-// #        const nextTag = tag
-// #            ? tag.getVal()[Number.parseInt(next, 10)]
-// #            : undefined;
-// #        return helper.return(
-// #            this.walkNextNode({
-// #                ...data,
-// #                node: node.item,
-// #                tag: nextTag
-// #            })
-// #        );
-// #    }
-// #
-// #    private walkNextNode(data: ContextData): ReturnedInfo<NBTNode> {
-// #        const { reader, node, tag, useReferences, finalValidation } = data;
-// #        const helper = new ReturnHelper();
-// #        if (reader.onLast()) {
-// #            if (isRefNode(node)) {
-// #                return helper.return(
-// #                    this.walkRefNode(data as ContextData<RefNode>)
-// #                );
-// #            } else if (isFunctionNode(node)) {
-// #                return helper.return(
-// #                    this.walkFunctionNode(data as ContextData<FunctionNode>)
-// #                );
-// #            } else if (isCompoundNode(node)) {
-// #                if (finalValidation && this.validateNBT && tag) {
-// #                    const valres = tag.valideAgainst(node, {
-// #                        compoundMerge: () =>
-// #                            this.mergeChildRef(data as ContextData<
-// #                                CompoundNode,
-// #                                NBTTagCompound
-// #                            >),
-// #                        extraChildren: this.extraChildren
-// #                    });
-// #                    if (!helper.merge(valres)) {
-// #                        return helper.fail();
-// #                    }
-// #                }
-// #                return helper.succeed(
-// #                    finalValidation
-// #                        ? this.mergeChildRef(data as ContextData<CompoundNode>)
-// #                        : node
-// #                );
-// #            } else {
-// #                if (finalValidation && this.validateNBT && tag) {
-// #                    const valres = tag.valideAgainst(node);
-// #                    if (!helper.merge(valres)) {
-// #                        return helper.fail();
-// #                    }
-// #                }
-// #                return helper.succeed(node);
-// #            }
-// #        } else if (
-// #            useReferences &&
-// #            node.references &&
-// #            reader.peek() in node.references
-// #        ) {
-// #            const next = reader.read();
-// #            return helper.return(
-// #                this.walkNextNode({
-// #                    ...data,
-// #                    node: node.references[next]
-// #                })
-// #            );
-// #        } else if (isTypedNode(node)) {
-// #            if (isCompoundNode(node)) {
-// #                if (this.validateNBT && tag) {
-// #                    const valres = tag.valideAgainst(node, {
-// #                        compoundMerge: () =>
-// #                            this.mergeChildRef(data as ContextData<
-// #                                CompoundNode
-// #                            >),
-// #                        extraChildren: this.extraChildren
-// #                    });
-// #                    if (!helper.merge(valres)) {
-// #                        return helper.fail();
-// #                    }
-// #                }
-// #                if (tag && !(tag instanceof NBTTagCompound)) {
-// #                    return helper.fail();
-// #                }
-// #                return helper.return(
-// #                    this.walkCompoundNode(data as ContextData<
-// #                        CompoundNode,
-// #                        NBTTagCompound
-// #                    >)
-// #                );
-// #            } else if (isListNode(node)) {
-// #                if (this.validateNBT && tag) {
-// #                    const valres = tag.valideAgainst(node);
-// #                    if (!helper.merge(valres)) {
-// #                        return helper.fail();
-// #                    }
-// #                }
-// #                if (tag && !(tag instanceof NBTTagList)) {
-// #                    return helper.fail();
-// #                }
-// #                return helper.return(
-// #                    this.walkListNode(data as ContextData<ListNode, NBTTagList>)
-// #                );
-// #            } else if (isRootNode(node)) {
-// #                return helper.return(
-// #                    this.walkRootNode(data as ContextData<RootNode>)
-// #                );
-// #            } else {
-// #                if (tag) {
-// #                    const valres = tag.valideAgainst(node);
-// #                    helper.merge(valres);
-// #                }
-// #                return helper.fail();
-// #            }
-// #        } else {
-// #            if (isRefNode(node)) {
-// #                return helper.return(
-// #                    this.walkRefNode(data as ContextData<RefNode>)
-// #                );
-// #            } else if (isFunctionNode(node)) {
-// #                return helper.return(
-// #                    this.walkFunctionNode(data as ContextData<FunctionNode>)
-// #                );
-// #            }
-// #        }
-// #        return helper.fail();
-// #    }
-// #
-// #    private walkRef(
-// #        ref: string,
-// #        path: string,
-// #        data: ContextData
-// #    ): ReturnedInfo<NBTNode> {
-// #        const [nextPath, fragPath] = parseRefPath(ref, path);
-// #        const reader = new ArrayReader(fragPath);
-// #        const node = this.docs.get(nextPath) as NBTNode;
-// #        // tslint:disable-next-line:helper-return
-// #        return this.walkNextNode({
-// #            useReferences: true,
-// #            finalValidation: false,
-// #            node,
-// #            path: nextPath,
-// #            reader,
-// #            tag: data.tag
-// #        });
-// #    }
-// #
-// #    private walkRefNode(data: ContextData<RefNode>): ReturnedInfo<NBTNode> {
-// #        const { node, path } = data;
-// #        const helper = new ReturnHelper();
-// #        const [nextPath] = parseRefPath(node.ref, path);
-// #        const nnode = this.walkRef(node.ref, path, data);
-// #        if (helper.merge(nnode)) {
-// #            const out = this.walkNextNode({
-// #                ...data,
-// #                node: nnode.data,
-// #                path: nextPath
-// #            });
-// #            if (helper.merge(out)) {
-// #                return helper.succeed(out.data);
-// #            } else {
-// #                return helper.fail();
-// #            }
-// #        } else {
-// #            return helper.fail();
-// #        }
-// #    }
-// #
-// #    private walkRootNode(data: ContextData<RootNode>): ReturnedInfo<NBTNode> {
-// #        const { node, reader, path } = data;
-// #        const next = reader.read();
-// #        const helper = new ReturnHelper();
-// #        if (next in node.children) {
-// #            return helper.return(
-// #                this.walkNextNode({
-// #                    ...data,
-// #                    node: node.children[next]
-// #                })
-// #            );
-// #        } else {
-// #            for (const key of Object.keys(node.children)) {
-// #                if (key.startsWith("$")) {
-// #                    const ref = key.substring(1);
-// #                    const [nextPath] = parseRefPath(ref, path);
-// #                    const list = (this.docs.get(nextPath) as any) as ValueList;
-// #                    if (
-// #                        list.find(
-// #                            v => (isString(v) ? v === next : v.value === next)
-// #                        )
-// #                    ) {
-// #                        return helper.return(
-// #                            this.walkNextNode({
-// #                                ...data,
-// #                                node: node.children[key]
-// #                            })
-// #                        );
-// #                    }
-// #                }
-// #            }
-// #        }
-// #        return helper.fail();
-// #    }
-// #}
-// #
+exports.NBTWalker = NBTWalker;
 },{"./doc-walker-func":"51vC","./util/array-reader":"PoZp","./util/doc-walker-util":"km+2"}],"JpDU":[function(require,module,exports) {
 "use strict";
 
@@ -4425,7 +4022,7 @@ const paths = [{
 }, {
   data: args => ({
     ids: args.otherEntity && args.otherEntity.ids && // tslint:disable-next-line:no-unnecessary-callback-wrapper
-    args.otherEntity.ids.map(v => misc_functions_1.stringifyNamespace(v)) || [],
+    args.otherEntity.ids.map(v => misc_functions_1.stringifyID(v)) || [],
     kind: "entity"
   }),
   path: ["summon", "entity"] // TODO - handle nbt_tag in /data modify
@@ -4627,7 +4224,7 @@ function parseBlockArgument(reader, info, tags) {
     const parsedResult = parsed.data;
 
     if (parsedResult.resolved && parsedResult.values) {
-      stringifiedName = `#${misc_functions_1.stringifyNamespace(parsedResult.parsed)}`;
+      stringifiedName = `#${misc_functions_1.stringifyID(parsedResult.parsed)}`;
       helper.merge(nmsp_tag_1.buildTagActions(parsedResult.values, start + 1, reader.cursor, "block_tags", info.data.localData));
       const props = constructProperties(parsedResult.resolved, info.data.globalData.blocks);
       const propsResult = parseProperties(reader, props || {}, exceptions.tag_properties, stringifiedName);
@@ -4639,7 +4236,7 @@ function parseBlockArgument(reader, info, tags) {
       if (reader.peek() === "{") {
         const nbt = nbt_1.validateParse(reader, info, {
           // tslint:disable-next-line:no-unnecessary-callback-wrapper
-          ids: (parsedResult.resolved || []).map(v => misc_functions_1.stringifyNamespace(v)),
+          ids: (parsedResult.resolved || []).map(v => misc_functions_1.stringifyID(v)),
           kind: "block"
         });
 
@@ -4650,10 +4247,10 @@ function parseBlockArgument(reader, info, tags) {
         helper.addSuggestion(reader.cursor, "{");
       }
     } else {
-      stringifiedName = misc_functions_1.stringifyNamespace(parsed.data.parsed);
+      stringifiedName = misc_functions_1.stringifyID(parsed.data.parsed);
 
       if (info.suggesting && !reader.canRead()) {
-        helper.addSuggestions(...misc_functions_1.namespaceSuggestionString(Object.keys(info.data.globalData.blocks), parsed.data.parsed, start));
+        helper.addSuggestions(...misc_functions_1.namespaceSuggestionString(Object.keys(info.data.globalData.blocks), start));
       }
 
       const props = info.data.globalData.blocks[stringifiedName];
@@ -4683,8 +4280,8 @@ function parseBlockArgument(reader, info, tags) {
     }
   } else {
     if (parsed.data) {
-      helper.addErrors(exceptions.unknown_tag.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsed.data)));
-      stringifiedName = `#${misc_functions_1.stringifyNamespace(parsed.data)}`;
+      helper.addErrors(exceptions.unknown_tag.create(start, reader.cursor, misc_functions_1.stringifyID(parsed.data)));
+      stringifiedName = `#${misc_functions_1.stringifyID(parsed.data)}`;
       const propsResult = parseProperties(reader, {}, exceptions.unknown_properties, stringifiedName);
 
       if (!helper.merge(propsResult)) {
@@ -4809,7 +4406,7 @@ function constructProperties(options, blocks) {
   const result = {};
 
   for (const blockName of options) {
-    const stringified = misc_functions_1.stringifyNamespace(blockName);
+    const stringified = misc_functions_1.stringifyID(blockName);
     const block = blocks[stringified];
 
     if (block) {
@@ -5073,7 +4670,7 @@ const errors_1 = require("../../brigadier/errors");
 
 const misc_functions_1 = require("../../misc-functions");
 
-class NamespaceListParser {
+class RegistryListParser {
   constructor(registryType, errorBuilder, context) {
     this.registryType = registryType;
     this.error = errorBuilder;
@@ -5083,7 +4680,7 @@ class NamespaceListParser {
   parse(reader, info) {
     const helper = new misc_functions_1.ReturnHelper(info);
     const start = reader.cursor;
-    const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries[this.registryType]]));
+    const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToIDs([...info.data.globalData.registries[this.registryType]]));
 
     if (helper.merge(result)) {
       if (this.resultFunction) {
@@ -5094,7 +4691,7 @@ class NamespaceListParser {
       }
     } else {
       if (result.data) {
-        return helper.addErrors(this.error.create(start, reader.cursor, misc_functions_1.stringifyNamespace(result.data))).succeed();
+        return helper.addErrors(this.error.create(start, reader.cursor, misc_functions_1.stringifyID(result.data))).succeed();
       } else {
         return helper.fail();
       }
@@ -5103,19 +4700,19 @@ class NamespaceListParser {
 
 }
 
-exports.NamespaceListParser = NamespaceListParser;
+exports.RegistryListParser = RegistryListParser;
 exports.summonError = new errors_1.CommandErrorBuilder("entity.notFound", "Unknown entity: %s");
-exports.summonParser = new NamespaceListParser("minecraft:entity_type", exports.summonError, (context, ids) => context.otherEntity = {
+exports.summonParser = new RegistryListParser("minecraft:entity_type", exports.summonError, (context, ids) => context.otherEntity = {
   ids
 });
 const enchantmentError = new errors_1.CommandErrorBuilder("enchantment.unknown", "Unknown enchantment: %s");
-exports.enchantmentParser = new NamespaceListParser("minecraft:enchantment", enchantmentError);
+exports.enchantmentParser = new RegistryListParser("minecraft:enchantment", enchantmentError);
 const mobEffectError = new errors_1.CommandErrorBuilder("effect.effectNotFound", "Unknown effect: %s");
-exports.mobEffectParser = new NamespaceListParser("minecraft:mob_effect", mobEffectError);
+exports.mobEffectParser = new RegistryListParser("minecraft:mob_effect", mobEffectError);
 const particleError = new errors_1.CommandErrorBuilder("particle.notFound", "Unknown particle: %s");
-exports.particleParser = new NamespaceListParser("minecraft:particle_type", particleError);
+exports.particleParser = new RegistryListParser("minecraft:particle_type", particleError);
 const dimensionError = new errors_1.CommandErrorBuilder("argument.dimension.invalid", "Unknown dimension: '%s'");
-exports.dimensionParser = new NamespaceListParser("minecraft:dimension_type", dimensionError);
+exports.dimensionParser = new RegistryListParser("minecraft:dimension_type", dimensionError);
 },{"../../brigadier/errors":"aP4V","../../misc-functions":"KBGm"}],"1Kfp":[function(require,module,exports) {
 "use strict";
 
@@ -5508,10 +5105,10 @@ function parseAdvancements(reader, info) {
       if (!res.data) {
         return helper.fail();
       } else {
-        advname = misc_functions_1.stringifyNamespace(res.data);
+        advname = misc_functions_1.stringifyID(res.data);
       }
     } else {
-      advname = misc_functions_1.stringifyNamespace(res.data.literal);
+      advname = misc_functions_1.stringifyID(res.data.literal);
       res.data.values.map(v => v.data).filter(v => !!v).forEach(v => criteriaOptions.push(...v));
     }
 
@@ -5862,7 +5459,7 @@ exports.argParsers = {
 
     if (!helper.merge(parsedType)) {
       if (parsedType.data) {
-        helper.addErrors(errors.unknown_tag.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsedType.data)));
+        helper.addErrors(errors.unknown_tag.create(start, reader.cursor, misc_functions_1.stringifyID(parsedType.data)));
         return helper.succeed();
       }
 
@@ -5870,11 +5467,11 @@ exports.argParsers = {
     }
 
     if (!parsedType.data.resolved) {
-      const postProcess = misc_functions_1.processParsedNamespaceOption(parsedType.data.parsed, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:entity_type"]]), info.suggesting && !reader.canRead(), start, vscode_languageserver_1.CompletionItemKind.Event);
+      const postProcess = misc_functions_1.processParsedNamespaceOption(parsedType.data.parsed, misc_functions_1.stringArrayToIDs([...info.data.globalData.registries["minecraft:entity_type"]]), info.suggesting && !reader.canRead(), start, vscode_languageserver_1.CompletionItemKind.Event);
       helper.merge(postProcess);
 
       if (postProcess.data.length === 0) {
-        helper.addErrors(namespace_list_1.summonError.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsedType.data.parsed)));
+        helper.addErrors(namespace_list_1.summonError.create(start, reader.cursor, misc_functions_1.stringifyID(parsedType.data.parsed)));
       }
     }
 
@@ -5888,7 +5485,7 @@ exports.argParsers = {
       unset
     } = typeInfo; // tslint:disable-next-line:no-unnecessary-callback-wrapper
 
-    const stringifiedTypes = parsedTypes.map(v => misc_functions_1.stringifyNamespace(v));
+    const stringifiedTypes = parsedTypes.map(v => misc_functions_1.stringifyID(v));
 
     if (!negated) {
       if (stringifiedTypes.every(set.has.bind(set))) {
@@ -5974,7 +5571,7 @@ class EntityBase {
           limit: 1,
           type: {
             set: new Set( // tslint:disable-next-line:no-unnecessary-callback-wrapper
-            ((info.context.executor || {}).ids || []).map(v => misc_functions_1.stringifyNamespace(v))),
+            ((info.context.executor || {}).ids || []).map(v => misc_functions_1.stringifyID(v))),
             unset: blankSet
           }
         }
@@ -6121,7 +5718,7 @@ function getContextChange(context, path) {
 
     for (const item of context.type.set.values()) {
       if (!context.type.unset.has(item)) {
-        result.push(misc_functions_1.convertToNamespace(item));
+        result.push(misc_functions_1.convertToID(item));
       }
     }
 
@@ -6185,10 +5782,10 @@ class ItemParser {
         });
       } else {
         if (properties.suggesting && !reader.canRead()) {
-          helper.addSuggestions(...misc_functions_1.namespaceSuggestionString([...properties.data.globalData.registries["minecraft:item"]], parsed.data.parsed, start));
+          helper.addSuggestions(...misc_functions_1.namespaceSuggestionString([...properties.data.globalData.registries["minecraft:item"]], start));
         }
 
-        const name = misc_functions_1.stringifyNamespace(parsed.data.parsed);
+        const name = misc_functions_1.stringifyID(parsed.data.parsed);
 
         if (!properties.data.globalData.registries["minecraft:item"].has(name)) {
           helper.addErrors(UNKNOWNITEM.create(start, reader.cursor, name));
@@ -6208,7 +5805,7 @@ class ItemParser {
       }
     } else {
       if (parsed.data) {
-        helper.addErrors(UNKNOWNTAG.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsed.data)));
+        helper.addErrors(UNKNOWNTAG.create(start, reader.cursor, misc_functions_1.stringifyID(parsed.data)));
 
         if (reader.peek() === "{") {
           const nbt = nbt_1.validateParse(reader, properties, {
@@ -6429,7 +6026,7 @@ function entityDataPath(path) {
     data: c => ({
       contextInfo: {
         ids: c.otherEntity && c.otherEntity.ids && // tslint:disable-next-line:no-unnecessary-callback-wrapper
-        c.otherEntity.ids.map(v => misc_functions_1.stringifyNamespace(v)) || "none",
+        c.otherEntity.ids.map(v => misc_functions_1.stringifyID(v)) || "none",
         kind: "entity"
       },
       resultType: c.nbt_path
@@ -6750,7 +6347,7 @@ exports.functionParser = {
         const postProcess = misc_functions_1.processParsedNamespaceOption(data.parsed, options, info.suggesting && !reader.canRead(), start, vscode_languageserver_1.CompletionItemKind.Method);
 
         if (postProcess.data.length === 0) {
-          helper.addErrors(exceptions.unknown_function.create(start, reader.cursor, misc_functions_1.stringifyNamespace(data.parsed)));
+          helper.addErrors(exceptions.unknown_function.create(start, reader.cursor, misc_functions_1.stringifyID(data.parsed)));
         }
 
         if (localData) {
@@ -6774,7 +6371,7 @@ exports.functionParser = {
       if (!parsed.data) {
         return helper.fail();
       } else {
-        return helper.addErrors(exceptions.unknown_tag.create(start, reader.cursor, misc_functions_1.stringifyNamespace(parsed.data))).succeed();
+        return helper.addErrors(exceptions.unknown_tag.create(start, reader.cursor, misc_functions_1.stringifyID(parsed.data))).succeed();
       }
     }
   }
@@ -6789,14 +6386,14 @@ const bossbarParser = {
     if (info.data.localData && info.data.localData.nbt.level) {
       const start = reader.cursor;
       const bars = info.data.localData.nbt.level.Data.CustomBossEvents;
-      const options = misc_functions_1.stringArrayToNamespaces(Object.keys(bars));
+      const options = misc_functions_1.stringArrayToIDs(Object.keys(bars));
       const result = misc_functions_1.parseNamespaceOption(reader, options);
 
       if (helper.merge(result)) {
         return helper.succeed();
       } else {
         if (result.data) {
-          return helper.addErrors(exceptions.nobossbar.create(start, reader.cursor, misc_functions_1.stringifyNamespace(result.data))).succeed();
+          return helper.addErrors(exceptions.nobossbar.create(start, reader.cursor, misc_functions_1.stringifyID(result.data))).succeed();
         } else {
           return helper.fail();
         }
@@ -6869,7 +6466,7 @@ exports.resourceParser = {
         } else {
           if (result.data) {
             return helper.addErrors( // @ts-ignore type inference failure
-            kind.issue.create(start, reader.cursor, misc_functions_1.stringifyNamespace(result.data))).succeed();
+            kind.issue.create(start, reader.cursor, misc_functions_1.stringifyID(result.data))).succeed();
           } else {
             return helper.fail();
           }
@@ -6891,9 +6488,9 @@ const misc_functions_1 = require("../../misc-functions");
 
 exports.verbatimCriteria = new Set(["air", "armor", "deathCount", "dummy", "food", "health", "level", "playerKillCount", "totalKillCount", "trigger", "xp"]);
 exports.colorCriteria = ["teamkill.", "killedByTeam."];
-exports.itemCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft:broken", "minecraft:crafted", "minecraft:dropped", "minecraft:picked_up", "minecraft:used"]);
-exports.blockCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft:mined"]);
-exports.entityCriteria = misc_functions_1.stringArrayToNamespaces(["minecraft:killed_by", "minecraft:killed"]);
+exports.itemCriteria = misc_functions_1.stringArrayToIDs(["minecraft:broken", "minecraft:crafted", "minecraft:dropped", "minecraft:picked_up", "minecraft:used"]);
+exports.blockCriteria = misc_functions_1.stringArrayToIDs(["minecraft:mined"]);
+exports.entityCriteria = misc_functions_1.stringArrayToIDs(["minecraft:killed_by", "minecraft:killed"]);
 },{"../../misc-functions":"KBGm"}],"tZ+1":[function(require,module,exports) {
 "use strict";
 
@@ -7047,7 +6644,7 @@ ${JSON.stringify(team, undefined, 4)}
   }
 };
 const UNKNOWN_CRITERIA = new errors_1.CommandErrorBuilder("argument.criteria.invalid", "Unknown criteria '%s'");
-const customPrefix = misc_functions_1.convertToNamespace("minecraft:custom");
+const customPrefix = misc_functions_1.convertToID("minecraft:custom");
 exports.criteriaParser = {
   parse: (reader, info) => {
     // tslint:disable:no-shadowed-variable
@@ -7106,8 +6703,8 @@ exports.criteriaParser = {
     for (const choice of criteria_1.entityCriteria) {
       reader.cursor = postStart;
 
-      if (misc_functions_1.namespacesEqual(data.literal, choice)) {
-        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:entity_type"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
+      if (misc_functions_1.idsEqual(data.literal, choice)) {
+        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToIDs([...info.data.globalData.registries["minecraft:entity_type"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -7118,8 +6715,8 @@ exports.criteriaParser = {
     for (const choice of criteria_1.blockCriteria) {
       reader.cursor = postStart;
 
-      if (misc_functions_1.namespacesEqual(data.literal, choice)) {
-        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:block"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
+      if (misc_functions_1.idsEqual(data.literal, choice)) {
+        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToIDs([...info.data.globalData.registries["minecraft:block"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -7130,8 +6727,8 @@ exports.criteriaParser = {
     for (const choice of criteria_1.itemCriteria) {
       reader.cursor = postStart;
 
-      if (misc_functions_1.namespacesEqual(data.literal, choice)) {
-        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:entity_type"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
+      if (misc_functions_1.idsEqual(data.literal, choice)) {
+        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToIDs([...info.data.globalData.registries["minecraft:entity_type"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
 
         if (helper.merge(result)) {
           return helper.succeed();
@@ -7139,8 +6736,8 @@ exports.criteriaParser = {
       }
     }
 
-    if (misc_functions_1.namespacesEqual(data.literal, customPrefix)) {
-      const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:custom_stat"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
+    if (misc_functions_1.idsEqual(data.literal, customPrefix)) {
+      const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToIDs([...info.data.globalData.registries["minecraft:custom_stat"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
 
       if (helper.merge(result)) {
         return helper.succeed();
@@ -7858,10 +7455,9 @@ function getNodeTree(line) {
   return undefined;
 }
 
-function getWorkspaceSymbols(manager, query) {
+function getWorkspaceSymbols(manager) {
   const result = [];
   const worlds = manager.packData;
-  const namespace = misc_functions_1.convertToNamespace(query);
 
   for (const worldPath of Object.keys(worlds)) {
     const world = worlds[worldPath];
@@ -7875,16 +7471,14 @@ function getWorkspaceSymbols(manager, query) {
 
           if (val) {
             for (const item of val) {
-              if (misc_functions_1.namespaceStart(item, namespace)) {
-                result.push({
-                  kind: symbolKindForResource(type),
-                  location: {
-                    range: blanks_1.blankRange,
-                    uri: vscode_uri_1.default.file(misc_functions_1.buildPath(item, world, type)).toString()
-                  },
-                  name: misc_functions_1.stringifyNamespace(item)
-                });
-              }
+              result.push({
+                kind: symbolKindForResource(type),
+                location: {
+                  range: blanks_1.blankRange,
+                  uri: vscode_uri_1.default.file(misc_functions_1.buildPath(item, world, type)).toString()
+                },
+                name: misc_functions_1.stringifyID(item)
+              });
             }
           }
         }
@@ -8817,7 +8411,7 @@ class DataManager {
                   for (let i = 0; i < contents.length; i++) {
                     const element = contents[i];
 
-                    if (misc_functions_1.namespacesEqual(element, namespace.location)) {
+                    if (misc_functions_1.idsEqual(element, namespace.location)) {
                       contents.splice(i, 1);
                       break;
                     }
@@ -9498,8 +9092,8 @@ connection.onCompletion(params => {
 connection.onDefinition(prepare(actions_1.definitionProvider, [])); // #connection.onDocumentHighlight();
 // #connection.onDocumentSymbol(); // This is for sections - there are none in mcfunctions
 
-connection.onWorkspaceSymbol(query => actions_1.getWorkspaceSymbols(manager, query.query));
-connection.onHover(prepare(actions_1.hoverProvider, undefined));
+connection.onWorkspaceSymbol(() => actions_1.getWorkspaceSymbols(manager));
+connection.onHover(prepare(actions_1.hoverProvider));
 connection.onSignatureHelp(prepare(actions_1.signatureHelpProvider));
 
 function prepare(func, fallback) {

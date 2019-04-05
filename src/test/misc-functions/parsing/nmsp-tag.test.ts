@@ -1,16 +1,14 @@
+/* 
+// TODO: This will be rewritten to use IdMap/IdSet
 import * as assert from "assert";
 
 import { CommandErrorBuilder } from "../../../brigadier/errors";
 import { StringReader } from "../../../brigadier/string-reader";
-import { convertToNamespace, namespacesEqual } from "../../../misc-functions";
+import { convertToID, idsEqual } from "../../../misc-functions";
 import { parseNamespaceOrTag } from "../../../misc-functions/parsing/nmsp-tag";
 import { ParserInfo } from "../../../types";
-import {
-    assertNamespaces,
-    convertToResource,
-    returnAssert
-} from "../../assertions";
-import { blankproperties, succeeds } from "../../blanks";
+import { convertToResource } from "../../assertions";
+import { blankproperties } from "../../blanks";
 
 const data: ParserInfo = {
     ...blankproperties,
@@ -58,10 +56,7 @@ describe("parseNamespaceOrTag", () => {
         );
         if (returnAssert(result, succeeds)) {
             assert(
-                namespacesEqual(
-                    result.data.parsed,
-                    convertToNamespace("minecraft:stone")
-                )
+                idsEqual(result.data.parsed, convertToID("minecraft:stone"))
             );
         }
     });
@@ -143,3 +138,4 @@ describe("parseNamespaceOrTag", () => {
         }
     });
 });
+ */

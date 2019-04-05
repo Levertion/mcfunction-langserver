@@ -10,26 +10,27 @@ import {
     walkDir
 } from "../misc-functions/promisified-fs";
 import { typed_keys } from "../misc-functions/third_party/typed-keys";
-import { ReturnSuccess } from "../types";
-
-import { mapPacksInfo } from "./extractor/mapfunctions";
-import { loadNBT } from "./nbt/nbt-cache";
 import {
     Datapack,
     DataPackID,
-    GlobalData,
+    DataPackReference,
     McmetaFile,
-    MinecraftResource,
     Resources,
+    ReturnSuccess,
     WorldInfo
-} from "./types";
+} from "../types";
+
+import { loadWorldNBT } from "./nbt/nbt-cache";
 
 export async function getNamespaceResources(
     namespace: string,
     dataFolder: string,
-    id: DataPackID | undefined,
-    result: Resources = {}
-): Promise<ReturnSuccess<Resources>> {
+    id: DataPackReference,
+    accumulator: Resources
+): Promise<ReturnSuccess<undefined>> {
+    const initialContents: Array<[DataPackReference, undefined]> = [
+        [id, undefined]
+    ];
     const helper = new ReturnHelper();
     const namespaceFolder = path.join(dataFolder, namespace);
     const subDirs = await subDirectories(namespaceFolder);
@@ -47,7 +48,6 @@ export async function getNamespaceResources(
             if (files.length === 0) {
                 return;
             }
-            const nameSpaceContents = result[type] || [];
             await Promise.all(
                 files.map(async file => {
                     const realExtension = path.extname(file);
@@ -61,21 +61,21 @@ export async function getNamespaceResources(
                         );
                     }
                     const internalUri = path.relative(dataContents, file);
-                    const newResource: MinecraftResource = {
+                    const newResource = {
                         namespace,
-                        pack: id,
                         path: internalUri
                             .slice(0, -realExtension.length)
                             .replace(SLASHREPLACEREGEX, SLASH)
                     };
-                    nameSpaceContents.push(newResource);
+                    accumulator[type].add(
+                        newResource,
+                        new Map(initialContents)
+                    );
                 })
             );
-            result[type] = nameSpaceContents;
         })
     );
-
-    return helper.succeed(result);
+    return helper.succeed();
 }
 
 async function buildDataPack(
@@ -84,13 +84,10 @@ async function buildDataPack(
     packName: string
 ): Promise<ReturnSuccess<Datapack>> {
     const helper = new ReturnHelper();
-    const dataFolder = path.join(packFolder, DATAFOLDER);
-    const [mcmeta, packResources] = await Promise.all([
-        readJSON<McmetaFile>(path.join(packFolder, MCMETAFILE)),
-        getPackResources(dataFolder, id)
-    ]);
-    const result: Datapack = { id, data: packResources.data, name: packName };
-    helper.merge(packResources);
+    const mcmeta = await readJSON<McmetaFile>(
+        path.join(packFolder, MCMETAFILE)
+    );
+    const result: Datapack = { id, name: packName };
     if (helper.merge(mcmeta)) {
         result.mcmeta = mcmeta.data;
     }
@@ -99,47 +96,53 @@ async function buildDataPack(
 
 async function getPackResources(
     dataFolder: string,
-    id: DataPackID
-): Promise<ReturnSuccess<Resources>> {
+    id: DataPackID,
+    resources: Resources
+): Promise<ReturnSuccess<undefined>> {
     const helper = new ReturnHelper();
     const namespaces = await subDirectories(dataFolder);
-    const result: Resources = {};
     await Promise.all(
         namespaces.map(async namespace => {
-            const resources = await getNamespaceResources(
+            const result = await getNamespaceResources(
                 namespace,
                 dataFolder,
                 id,
-                result
+                resources
             );
-            helper.merge(resources);
-            return resources.data;
+            helper.merge(result);
         })
     );
-    return helper.succeed(result);
+    return helper.succeed();
 }
 
 export async function getPacksInfo(
-    location: string,
-    globalData: GlobalData
+    datapacksFolder: string,
+    resources: Resources
 ): Promise<ReturnSuccess<WorldInfo>> {
-    const packNames = await subDirectories(location);
+    const packNames = await subDirectories(datapacksFolder);
     const helper = new ReturnHelper();
     const packs = [...packNames.entries()];
-    const nbt = await loadNBT(path.resolve(location, "../"));
-    const result: WorldInfo = { location, packnamesmap: {}, packs: {}, nbt };
+    const nbt = await loadWorldNBT(path.join(datapacksFolder, ".."));
+    const result: WorldInfo = {
+        datapacksFolder,
+        nbt,
+        packnamesmap: new Map(),
+        packs: new Map()
+    };
     const promises: Array<Promise<void>> = packs.map(
         async ([packID, packName]) => {
-            const loc = path.join(location, packName);
-            const packData = await buildDataPack(loc, packID, packName);
+            const loc = path.join(datapacksFolder, packName);
+            const [packData] = await Promise.all([
+                buildDataPack(loc, packID, packName),
+                getPackResources(path.join(loc, DATAFOLDER), packID, resources)
+            ]);
             helper.merge(packData);
-            result.packs[packID] = packData.data;
-            result.packnamesmap[packName] = packID;
+            result.packs.set(packID, packData.data);
+            result.packnamesmap.set(packName, packID);
         }
     );
     await Promise.all(promises);
-    const otherResult = await mapPacksInfo(result, globalData);
-    return helper.mergeChain(otherResult).succeed(otherResult.data);
+    return helper.succeed(result);
 }
 
 async function subDirectories(baseFolder: string): Promise<string[]> {

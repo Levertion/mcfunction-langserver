@@ -78,6 +78,7 @@ describe("ComputeCompletions()", () => {
             isIncomplete: true,
             items: [
                 {
+                    insertTextFormat: InsertTextFormat.PlainText,
                     kind: CompletionItemKind.Method,
                     label: "nochildren",
                     textEdit: {
@@ -112,7 +113,7 @@ describe("ComputeCompletions()", () => {
                     }
                 }
             ]
-        }; // Default kind // Default kind
+        }; // Default kind
         result.items.sort((a, b) => b.label.length - a.label.length);
         assert.deepStrictEqual(result, expected);
     });
@@ -170,6 +171,7 @@ describe("ComputeCompletions()", () => {
                     }
                 },
                 {
+                    insertTextFormat: InsertTextFormat.PlainText,
                     kind: CompletionItemKind.Method,
                     label: "chil",
                     textEdit: {

@@ -1,29 +1,31 @@
 import * as path from "path";
 
 import { readFileAsync } from "../../misc-functions";
-import { WorldNBT } from "../types";
+import { WorldNBT } from "../../types";
 
 import { Level, Scoreboard } from "./nbt-types";
 import { parse } from "./parser";
 
-export async function loadNBT(worldLoc: string): Promise<WorldNBT> {
-    const nbt: WorldNBT = {} as WorldNBT;
+export async function loadWorldNBT(worldLoc: string): Promise<WorldNBT> {
+    const nbt: WorldNBT = {};
 
-    const levelpath = path.resolve(worldLoc, "./level.dat");
-    try {
-        const levelbuf: Buffer = await readFileAsync(levelpath);
-        nbt.level = await parse<Level>(levelbuf);
-    } catch (e) {
-        // Level doesn't exist
-    }
-
-    const scpath = path.resolve(worldLoc, "./data/scoreboard.dat");
-    try {
-        const scoreboardbuf: Buffer = await readFileAsync(scpath);
-        nbt.scoreboard = await parse<Scoreboard>(scoreboardbuf);
-    } catch (e) {
-        // Scoreboard file doesn't exist
-    }
+    await Promise.all([
+        loadNBT<Level>(path.join(worldLoc, "./level.dat")).then(
+            level => (nbt.level = level)
+        ),
+        loadNBT<Scoreboard>(path.join(worldLoc, "./data/scoreboard.dat")).then(
+            scoreboard => (nbt.scoreboard = scoreboard)
+        )
+    ]);
 
     return nbt;
+}
+
+async function loadNBT<T>(loc: string): Promise<T | undefined> {
+    try {
+        const data: Buffer = await readFileAsync(loc);
+        return await parse<T>(data);
+    } catch (e) {
+        return undefined;
+    }
 }

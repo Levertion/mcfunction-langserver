@@ -8,21 +8,18 @@ import {
     SLASHREPLACEREGEX,
     TAG_START
 } from "../consts";
+
 import {
+    ReturnSuccess,
     Advancement,
-    DataResource,
-    GlobalData,
-    MinecraftResource,
-    NamespacedName,
+    ID,
     Resources,
     Tag,
     WorldInfo
-} from "../data/types";
-import { ReturnSuccess } from "../types";
+} from "../types";
 
 import { getMatching, getResourcesSplit } from "./group-resources";
-import { convertToNamespace, stringifyNamespace } from "./namespace";
-import { stringArrayToNamespaces } from "./parsing/namespace";
+import { convertToID, stringArrayToIDs, stringifyID } from "./id";
 import { readJSON, readJSONRaw } from "./promisified-fs";
 import { ReturnHelper } from "./return-helper";
 import { typed_keys } from "./third_party/typed-keys";
@@ -115,7 +112,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 return helper.succeed({
                     ...v,
                     data: Object.keys(advancement.criteria)
-                } as DataResource<string[]>);
+                } as DataID<string[]>);
             } catch (e) {
                 return helper.succeed(v);
             }
@@ -145,10 +142,10 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 s =>
                     getMatching(
                         // TODO: This is horrifically inefficient
-                        stringArrayToNamespaces([
+                        stringArrayToIDs([
                             ...globalData.registries["minecraft:entity_type"]
                         ]),
-                        convertToNamespace(s)
+                        convertToID(s)
                     ).length > 0
             ),
         path: ["tags", "entity_types"]
@@ -163,10 +160,10 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 getResourcesSplit("fluid_tags", globalData, packsInfo),
                 s =>
                     getMatching(
-                        stringArrayToNamespaces([
+                        stringArrayToIDs([
                             ...globalData.registries["minecraft:entity_type"]
                         ]),
-                        convertToNamespace(s)
+                        convertToID(s)
                     ).length > 0
             ),
         path: ["tags", "fluids"]
@@ -184,7 +181,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
                 packroot,
                 "function_tags",
                 getResourcesSplit("function_tags", globalData, packsInfo),
-                s => getMatching(functions, convertToNamespace(s)).length > 0
+                s => getMatching(functions, convertToID(s)).length > 0
             );
         },
         path: ["tags", "functions"]
@@ -209,7 +206,7 @@ export const resourceTypes: { [T in keyof Resources]-?: ResourceInfo<T> } = {
 
 interface KindNamespace {
     kind: keyof Resources;
-    location: NamespacedName & { namespace: string };
+    location: ID & { namespace: string };
 }
 
 export function getKindAndNamespace(
@@ -252,7 +249,7 @@ export function getKindAndNamespace(
 }
 
 export function getPath(
-    resource: MinecraftResource,
+    resource: ResourceID,
     packroot: string,
     kind: keyof Resources,
     path: PathModule = defaultPath
@@ -269,7 +266,7 @@ export function getPath(
 }
 
 export function buildPath(
-    resource: MinecraftResource,
+    resource: ResourceID,
     packs: WorldInfo,
     kind: keyof Resources,
     path: PathModule = defaultPath
@@ -278,7 +275,7 @@ export function buildPath(
         const pack = packs.packs[resource.pack];
         return getPath(
             resource,
-            path.join(packs.location, pack.name),
+            path.join(packs.datapacksFolder, pack.name),
             kind,
             path
         );
@@ -288,12 +285,12 @@ export function buildPath(
 }
 
 async function readTag(
-    resource: MinecraftResource,
+    resource: ResourceID,
     packRoot: string,
     type: keyof Resources,
-    options: MinecraftResource[],
+    options: ResourceID[],
     isKnown: (value: string) => boolean
-): Promise<ReturnSuccess<DataResource<Tag> | MinecraftResource>> {
+): Promise<ReturnSuccess<DataID<Tag> | ResourceID>> {
     const helper = new ReturnHelper();
     const filePath = getPath(resource, packRoot, type);
     const tag = await readJSON<Tag>(filePath);
@@ -333,8 +330,8 @@ async function readTag(
                     for (const v of tag.data.values) {
                         if (v.startsWith(TAG_START)) {
                             const tagText = v.slice(1);
-                            const tagNamespace = convertToNamespace(tagText);
-                            const tagName = stringifyNamespace(tagNamespace);
+                            const tagNamespace = convertToID(tagText);
+                            const tagName = stringifyID(tagNamespace);
                             const tagString = `#${tagName}`;
                             const result = getMatching(options, tagNamespace);
                             if (result.length === 0) {
@@ -345,8 +342,8 @@ async function readTag(
                             }
                             seen.add(tagString);
                         } else {
-                            const valueNamespace = convertToNamespace(v);
-                            const value = stringifyNamespace(valueNamespace);
+                            const valueNamespace = convertToID(v);
+                            const value = stringifyID(valueNamespace);
                             if (seen.has(value)) {
                                 duplicates.add(value);
                             }

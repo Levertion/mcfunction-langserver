@@ -1,6 +1,8 @@
+/*
+// TODO: This will be rewritten to use IdMap/IdSet
 import { getResourcesofType } from "../../misc-functions/group-resources";
 import { CommandData } from "../../types";
-import { assertNamespaces, convertToResource } from "../assertions";
+import { convertToResource, snapshot } from "../assertions";
 
 const dummyData: CommandData = {
     globalData: {
@@ -71,3 +73,4 @@ describe("Group Resources (Misc)", () => {
         );
     });
 });
+ */

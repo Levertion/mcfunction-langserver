@@ -2,7 +2,7 @@ import { join } from "path";
 
 import { resourceTypes, ReturnHelper } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
-import { ReturnSuccess } from "../../types";
+import { Resources, ReturnSuccess } from "../../types";
 import { GlobalData, Resources, WorldInfo } from "../types";
 
 export async function runMapFunctions(
@@ -17,7 +17,7 @@ export async function runMapFunctions(
     for (const type of typed_keys(resources)) {
         type resourcesType = NonNullable<Resources[typeof type]>;
         const val = (result[type] = [] as resourcesType);
-        const data = resources[type] as resourcesType;
+        const data = resources[type];
         // tslint:disable-next-line:no-unbound-method We control this function, so we know it won't use the this keyword.
         const mapFunction = resourceTypes[type].mapFunction;
         if (mapFunction) {

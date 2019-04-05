@@ -5,7 +5,7 @@ import {
     namespaceSuggestionString,
     parseNamespaceOrTag,
     ReturnHelper,
-    stringifyNamespace
+    stringifyID
 } from "../../misc-functions";
 import { Parser, ParserInfo, ReturnedInfo } from "../../types";
 
@@ -68,12 +68,11 @@ export class ItemParser implements Parser {
                                     "minecraft:item"
                                 ]
                             ],
-                            parsed.data.parsed,
                             start
                         )
                     );
                 }
-                const name = stringifyNamespace(parsed.data.parsed);
+                const name = stringifyID(parsed.data.parsed);
                 if (
                     !properties.data.globalData.registries[
                         "minecraft:item"
@@ -100,7 +99,7 @@ export class ItemParser implements Parser {
                     UNKNOWNTAG.create(
                         start,
                         reader.cursor,
-                        stringifyNamespace(parsed.data)
+                        stringifyID(parsed.data)
                     )
                 );
                 if (reader.peek() === "{") {

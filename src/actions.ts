@@ -14,22 +14,17 @@ import URI from "vscode-uri";
 import { getAllNodes } from "./completions";
 import { COMMENT_START } from "./consts";
 import { DataManager } from "./data/manager";
-import { CommandNode, CommandTree, MCNode, Resources } from "./data/types";
-import {
-    buildPath,
-    convertToNamespace,
-    followPath,
-    getNextNode,
-    namespaceStart,
-    stringifyNamespace
-} from "./misc-functions";
+import { followPath, getNextNode } from "./misc-functions";
 import { typed_keys } from "./misc-functions/third_party/typed-keys";
-import { blankRange } from "./test/blanks";
 import {
     CommandLine,
+    CommandNode,
+    CommandTree,
     FunctionInfo,
     JSONDocInfo,
+    MCNode,
     ParseNode,
+    Resources,
     SubAction
 } from "./types";
 
@@ -66,7 +61,7 @@ export function hoverProvider(
             character: pos.character - json[0].low,
             line: 0
         };
-        manager.globalData.jsonService
+        manager.commandData.jsonService
             .doHover(doc.text, position, doc.json)
             .then(v => (result = v));
         if (result) {
@@ -99,7 +94,7 @@ export function hoverProvider(
                         value: i
                             .map<string>(node => {
                                 const data = followPath(
-                                    manager.globalData.commands,
+                                    manager.commandData.commands,
                                     node.path
                                 ) as CommandNode;
                                 return `${
@@ -274,7 +269,7 @@ function getSignatureHelp(
     path: string[],
     manager: DataManager
 ): SignatureInformation[] {
-    const commands = manager.globalData.commands;
+    const commands = manager.commandData.commands;
     const next = getNextNode(followPath(commands, path), path, commands);
     const options = buildSignatureHelpForChildren(
         next.node,
@@ -345,38 +340,28 @@ function getNodeTree(line: CommandLine): IntervalTree<ParseNode> | undefined {
     return undefined;
 }
 
-export function getWorkspaceSymbols(
-    manager: DataManager,
-    query: string
-): SymbolInformation[] {
+export function getWorkspaceSymbols(manager: DataManager): SymbolInformation[] {
     const result: SymbolInformation[] = [];
-    const worlds = manager.packData;
-    const namespace = convertToNamespace(query);
-    for (const worldPath of Object.keys(worlds)) {
-        const world = worlds[worldPath];
-        for (const packID in world.packs) {
-            if (world.packs.hasOwnProperty(packID)) {
-                const pack = world.packs[packID];
-                for (const type of typed_keys(pack.data)) {
-                    const val = pack.data[type];
-                    if (val) {
-                        for (const item of val) {
-                            if (namespaceStart(item, namespace)) {
-                                result.push({
-                                    kind: symbolKindForResource(type),
-                                    location: {
-                                        range: blankRange,
-                                        uri: URI.file(buildPath(
-                                            item,
-                                            world,
-                                            type
-                                        ) as any).toString()
-                                    },
-                                    name: stringifyNamespace(item)
-                                });
-                            }
-                        }
-                    }
+    const resources = manager.commandData.resources;
+    for (const type of typed_keys(resources)) {
+        const map = resources[type];
+        for (const [, /* name */ resource] of map) {
+            if (resource.has(undefined) ? resource.size > 1 : true) {
+                for (const _pack of resource.keys()) {
+                    // TODO: reorganise to key all packs on a unique DatapackReference.
+                    // I.e. a world stores a Map<string, DatapackID> and we store a central Map<DatapackID, Datapack>
+                    /* result.push({
+                        kind: symbolKindForResource(type),
+                        location: {
+                            range: blankRange,
+                            uri: URI.file(buildPath(
+                                name,
+                                world,
+                                type
+                            ) as any).toString()
+                        },
+                        name: stringifyID(name)
+                    }); */
                 }
             }
         }

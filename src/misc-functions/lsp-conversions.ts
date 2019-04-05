@@ -38,11 +38,12 @@ export function runChanges(
     changes: DidChangeTextDocumentParams,
     functionInfo: FunctionInfo
 ): number[] {
-    const changed: number[] = [];
+    const changedLines: number[] = [];
     for (const change of changes.contentChanges) {
-        if (!!change.range) {
+        const range = change.range;
+        if (range) {
             // Appease the compiler, as the change interface seems to have range optional
-            const { start, end }: Range = change.range;
+            const { start, end }: Range = range;
             const newLineContent = functionInfo.lines[start.line].text
                 .substring(0, start.character)
                 .concat(
@@ -52,12 +53,12 @@ export function runChanges(
             const difference = end.line - start.line + 1;
             const newLines = splitLines(newLineContent);
             functionInfo.lines.splice(start.line, difference, ...newLines);
-            changed.forEach((v, i) => {
+            changedLines.forEach((v, i) => {
                 if (v > start.line) {
-                    changed[i] = v - difference + newLines.length;
+                    changedLines[i] = v - difference + newLines.length;
                 }
             });
-            changed.push(
+            changedLines.push(
                 ...Array.from(
                     new Array(newLines.length),
                     (_, i) => start.line + i
@@ -65,7 +66,7 @@ export function runChanges(
             );
         }
     }
-    const unique = changed.filter(
+    const unique = changedLines.filter(
         (value, index, self) => self.indexOf(value) === index
     );
     unique.sort((a, b) => a - b);

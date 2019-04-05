@@ -5,8 +5,7 @@ import { promisify } from "util";
 
 import { ReturnHelper } from "../../misc-functions";
 import { ReturnSuccess } from "../../types";
-import { cacheData } from "../cache";
-import { Cacheable } from "../types";
+import { cacheData, CacheHandled } from "../cache";
 
 import { collectData } from "./collect-data";
 import { getPathToJar } from "./download";
@@ -34,7 +33,7 @@ const mkdtmpAsync = promisify(fs.mkdtemp);
  */
 export async function collectGlobalData(
     currentversion: string = ""
-): Promise<ReturnSuccess<Cacheable> | undefined> {
+): Promise<ReturnSuccess<CacheHandled> | undefined> {
     if (mcLangSettings.data.enabled) {
         const javaPath = await checkJavaPath();
         mcLangLog(`Using java at path ${javaPath}`);
@@ -49,7 +48,7 @@ export async function collectGlobalData(
             mcLangLog("Data collected, caching data");
             await cacheData(data.data);
             mcLangLog("Caching complete");
-            return helper.mergeChain(data).succeed(data.data);
+            return helper.return(data);
         } else {
             return undefined;
         }

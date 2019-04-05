@@ -20,7 +20,7 @@ export const jsonParser: Parser = {
             uri: "file://text-component.json",
             version: 0
         };
-        const service = info.data.globalData.jsonService;
+        const service = info.data.jsonService;
         // tslint:disable-next-line:no-inferred-empty-object-type
         const json = service.parseJSONDocument(text);
         service.doValidation(text, json).then(diagnostics => {

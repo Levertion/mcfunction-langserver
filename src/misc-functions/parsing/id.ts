@@ -1,17 +1,11 @@
 import { CompletionItemKind } from "vscode-languageserver/lib/main";
 
-import {
-    convertToNamespace,
-    namespacesEqual,
-    ReturnHelper,
-    stringifyNamespace
-} from "..";
+import { convertToID, idsEqual, ReturnHelper, stringifyID } from "..";
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
 import { NAMESPACE } from "../../consts";
-import { NamespacedName } from "../../data/types";
-import { CE, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
-import { isNamespaceDefault, namesEqual } from "../namespace";
+import { CE, ID, ReturnedInfo, ReturnSuccess, Suggestion } from "../../types";
+import { stringArrayToIDs } from "../id";
 
 const NAMESPACEEXCEPTIONS = {
     invalid_id: new CommandErrorBuilder(
@@ -23,9 +17,16 @@ const NAMESPACEEXCEPTIONS = {
 export const namespaceChars = /^[0-9a-z_:/\.-]$/;
 const allowedInSections = /^[0-9a-z_/\.-]$/;
 
-export function stringArrayToNamespaces(strings: string[]): NamespacedName[] {
-    // tslint:disable-next-line:no-unnecessary-callback-wrapper this is a false positive - see https://github.com/palantir/tslint/issues/2430
-    return strings.map(v => convertToNamespace(v));
+export function readNamespaceSegment(
+    reader: StringReader,
+    seperator: string = NAMESPACE
+): string {
+    return reader.readWhileFunction(c => {
+        if (c === seperator) {
+            return false;
+        }
+        return allowedInSections.test(c);
+    });
 }
 
 export function readNamespaceText(
@@ -46,54 +47,33 @@ export function readNamespaceText(
     });
 }
 
-/**
- * Does `base`(eg minecraft:stone) start with `test` (e.g. sto) [Y]
- */
-export function namespaceStart(
-    base: NamespacedName,
-    test: NamespacedName
-): boolean {
-    if (test.namespace === undefined) {
-        return (
-            (isNamespaceDefault(base) && base.path.startsWith(test.path)) ||
-            (!!base.namespace && base.namespace.startsWith(test.path))
-        );
-    } else {
-        return namesEqual(base, test) && base.path.startsWith(test.path);
-    }
-}
-
 export function namespaceSuggestions(
-    options: NamespacedName[],
-    value: NamespacedName,
+    options: ID[],
     start: number
 ): Suggestion[] {
     const result: Suggestion[] = [];
     for (const option of options) {
-        if (namespaceStart(option, value)) {
-            result.push({ text: stringifyNamespace(option), start });
-        }
+        result.push({ text: stringifyID(option), start });
     }
     return result;
 }
 
 export function namespaceSuggestionString(
     options: string[],
-    value: NamespacedName,
     start: number
 ): Suggestion[] {
-    return namespaceSuggestions(stringArrayToNamespaces(options), value, start);
+    return namespaceSuggestions(stringArrayToIDs(options), start);
 }
 
 export function parseNamespace(
     reader: StringReader,
     seperator: string = NAMESPACE,
     stopAfterFirst: boolean = false
-): ReturnedInfo<NamespacedName> {
+): ReturnedInfo<ID> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const text = readNamespaceText(reader, seperator, stopAfterFirst);
-    const namespace = convertToNamespace(text, seperator);
+    const namespace = convertToID(text, seperator);
     let next = 0;
     let failed = false;
     // Give an error for each invalid character
@@ -122,17 +102,17 @@ export function parseNamespace(
 }
 
 interface OptionResult<T> {
-    literal: NamespacedName;
+    literal: ID;
     values: T[];
 }
 
-export function parseNamespaceOption<T extends NamespacedName>(
+export function parseNamespaceOption<T extends ID>(
     reader: StringReader,
     options: T[],
     completionKind?: CompletionItemKind,
     seperator: string = NAMESPACE,
     stopAfterFirst: boolean = false
-): ReturnedInfo<OptionResult<T>, CE, NamespacedName | undefined> {
+): ReturnedInfo<OptionResult<T>, CE, ID | undefined> {
     const helper = new ReturnHelper();
     const start = reader.cursor;
     const namespace = parseNamespace(reader, seperator, stopAfterFirst);
@@ -159,8 +139,8 @@ export function parseNamespaceOption<T extends NamespacedName>(
     }
 }
 
-export function processParsedNamespaceOption<T extends NamespacedName>(
-    namespace: NamespacedName,
+export function processParsedNamespaceOption<T extends ID>(
+    namespace: ID,
     options: T[],
     suggest: boolean,
     start: number,
@@ -170,13 +150,13 @@ export function processParsedNamespaceOption<T extends NamespacedName>(
     const results: T[] = [];
     const helper = new ReturnHelper();
     for (const val of options) {
-        if (namespacesEqual(val, namespace)) {
+        if (idsEqual(val, namespace)) {
             results.push(val);
         }
-        if (suggest && namespaceStart(val, namespace)) {
+        if (suggest) {
             helper.addSuggestion(
                 start,
-                stringifyNamespace(val, seperator),
+                stringifyID(val, seperator),
                 completionKind
             );
         }

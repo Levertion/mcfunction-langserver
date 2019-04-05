@@ -1,25 +1,10 @@
-import {
-    CompletionItemKind,
-    DiagnosticSeverity
-} from "vscode-languageserver/lib/main";
+import { CompletionItemKind } from "vscode-languageserver/lib/main";
 
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import {
-    BlocksPropertyInfo,
-    NamespacedName,
-    SingleBlockPropertyInfo
-} from "../../data/types";
-import {
-    namespaceSuggestionString,
-    ReturnHelper,
-    stringifyNamespace
-} from "../../misc-functions";
-import {
-    buildTagActions,
-    parseNamespaceOrTag
-} from "../../misc-functions/parsing/nmsp-tag";
-import { Parser, ParserInfo, ReturnedInfo } from "../../types";
+import { TAG_START } from "../../consts";
+import { ReturnHelper, stringifyID } from "../../misc-functions";
+import { ID, Parser, ParserInfo, ReturnedInfo } from "../../types";
 
 import { validateParse } from "./nbt/nbt";
 
@@ -33,9 +18,9 @@ export const stateParser: Parser = {
 
 interface PropertyExceptions {
     duplicate: CommandErrorBuilder;
-    invalid: CommandErrorBuilder;
-    novalue: CommandErrorBuilder;
-    unknown: CommandErrorBuilder;
+    invalid?: CommandErrorBuilder;
+    novalue?: CommandErrorBuilder;
+    unknown?: CommandErrorBuilder;
 }
 
 const exceptions = {
@@ -86,21 +71,7 @@ const exceptions = {
     unknown_properties: {
         duplicate: new CommandErrorBuilder(
             "argument.unknown_block_tag.property.duplicate",
-            "Property '%s' can only be set once for unknown block tag %s"
-        ),
-        invalid: new CommandErrorBuilder(
-            "argument.unknown_block_tag.property.invalid",
-            "Unknown block tag %s might not accept '%s' for %s property",
-            DiagnosticSeverity.Warning
-        ),
-        novalue: new CommandErrorBuilder(
-            "argument.unknown_block_tag.property.novalue",
-            "Expected value for property '%s' on unknown block tag %s"
-        ),
-        unknown: new CommandErrorBuilder(
-            "argument.unknown_block_tag.property.unknown",
-            "Unknown block tag %s might not have property '%s'",
-            DiagnosticSeverity.Warning
+            "Property '%s' can only be set once for unrecognised block tag '%s'"
         )
     },
 
@@ -123,130 +94,113 @@ export function parseBlockArgument(
 ): ReturnedInfo<undefined> {
     const helper = new ReturnHelper(info);
     const start = reader.cursor;
-    const tagHandling = tags ? "block_tags" : exceptions.no_tags;
-    const parsed = parseNamespaceOrTag(reader, info, tagHandling);
-    let stringifiedName: string | undefined;
-    if (helper.merge(parsed)) {
-        const parsedResult = parsed.data;
-        if (parsedResult.resolved && parsedResult.values) {
-            stringifiedName = `#${stringifyNamespace(parsedResult.parsed)}`;
-            helper.merge(
-                buildTagActions(
-                    parsedResult.values,
-                    start + 1,
-                    reader.cursor,
-                    "block_tags",
-                    info.data.localData
-                )
-            );
-            const props = constructProperties(
-                parsedResult.resolved,
-                info.data.globalData.blocks
-            );
-            const propsResult = parseProperties(
+    const properties: Map<string, Set<string>> = new Map();
+    const ids: ID[] = [];
+    let parseBlocks = true;
+    let knownTag = false;
+    // Always reassigned - used for tag error reporting
+    let fullName = "";
+    if (reader.peek() === TAG_START) {
+        parseBlocks = false;
+        reader.skip();
+        if (!tags) {
+            helper.addErrors(exceptions.no_tags.create(start, reader.cursor));
+            // Error case - we continue parsing as if the # wasn't there
+            parseBlocks = true;
+        } else {
+            const result = info.data.resources.block_tags.parse(
                 reader,
-                props || {},
-                exceptions.tag_properties,
-                stringifiedName
+                info.data
             );
-            if (!helper.merge(propsResult)) {
-                return helper.fail();
-            }
-            if (reader.peek() === "{") {
-                const nbt = validateParse(reader, info, {
-                    // tslint:disable-next-line:no-unnecessary-callback-wrapper
-                    ids: (parsedResult.resolved || []).map(v =>
-                        stringifyNamespace(v)
-                    ),
-                    kind: "block"
-                });
-                if (!helper.merge(nbt)) {
-                    return helper.fail();
+            if (helper.merge(result)) {
+                knownTag = true;
+                fullName = `#${stringifyID(result.data.id)}`;
+                for (const [id] of result.data.resolved.finals) {
+                    ids.push(id);
+                    const block = info.data.blocks.get(id);
+                    if (block) {
+                        mergeProps(properties, block);
+                    }
                 }
             } else {
-                helper.addSuggestion(reader.cursor, "{");
-            }
-        } else {
-            stringifiedName = stringifyNamespace(parsed.data.parsed);
-            if (info.suggesting && !reader.canRead()) {
-                helper.addSuggestions(
-                    ...namespaceSuggestionString(
-                        Object.keys(info.data.globalData.blocks),
-                        parsed.data.parsed,
-                        start
+                fullName = `#${stringifyID(result.data)}`;
+                helper.addErrors(
+                    exceptions.unknown_tag.create(
+                        start,
+                        reader.cursor,
+                        fullName
                     )
                 );
             }
-            const props = info.data.globalData.blocks[stringifiedName];
-            if (!props) {
-                helper.addErrors(
-                    exceptions.invalid_block.create(start, reader.cursor)
-                );
-            }
-            const result = parseProperties(
-                reader,
-                props || {},
-                exceptions.block_properties,
-                stringifiedName
-            );
-            if (!helper.merge(result)) {
-                return helper.fail();
-            }
-            if (reader.peek() === "{") {
-                const nbt = validateParse(reader, info, {
-                    ids: props ? stringifiedName : "none",
-                    kind: "block"
-                });
-                if (!helper.merge(nbt)) {
-                    return helper.fail();
-                }
-            } else {
-                helper.addSuggestion(reader.cursor, "{");
-            }
-        }
-    } else {
-        if (parsed.data) {
-            helper.addErrors(
-                exceptions.unknown_tag.create(
-                    start,
-                    reader.cursor,
-                    stringifyNamespace(parsed.data)
-                )
-            );
-            stringifiedName = `#${stringifyNamespace(parsed.data)}`;
-            const propsResult = parseProperties(
-                reader,
-                {},
-                exceptions.unknown_properties,
-                stringifiedName
-            );
-            if (!helper.merge(propsResult)) {
-                return helper.fail();
-            }
-            if (reader.peek() === "{") {
-                const nbt = validateParse(reader, info, {
-                    ids: "none",
-                    kind: "block"
-                });
-                if (!helper.merge(nbt)) {
-                    return helper.fail();
-                }
-            } else {
-                helper.addSuggestion(reader.cursor, "{");
-            }
-        } else {
-            // Parsing of the namespace failed
-            return helper.fail();
         }
     }
+    if (parseBlocks) {
+        const result = info.data.blocks.parse(reader, undefined);
+        if (helper.merge(result)) {
+            fullName = stringifyID(result.data.id);
+            for (const [key, value] of result.data.raw) {
+                // Properties is never otherwise edited, so this does not lose data
+                properties.set(key, value);
+            }
+            ids.push(result.data.id);
+        } else {
+            fullName = stringifyID(result.data);
+            helper.addErrors(
+                exceptions.invalid_block.create(start, reader.cursor, fullName)
+            );
+        }
+    }
+
+    const propsResult = parseProperties(
+        reader,
+        properties,
+        parseBlocks
+            ? exceptions.block_properties
+            : knownTag
+            ? exceptions.tag_properties
+            : exceptions.unknown_properties,
+        fullName
+    );
+    if (!helper.merge(propsResult)) {
+        return helper.fail();
+    }
+
+    if (reader.peek() === "{") {
+        const nbt = validateParse(reader, info, {
+            // tslint:disable-next-line:no-unnecessary-callback-wrapper
+            ids: ids.map(v => stringifyID(v)),
+            kind: "block"
+        });
+        if (!helper.merge(nbt)) {
+            return helper.fail();
+        }
+    } else {
+        helper.addSuggestion(reader.cursor, "{");
+    }
     return helper.succeed();
+}
+
+function mergeProps(
+    current: Map<string, Set<string>>,
+    additions: Map<string, Set<string>>
+): void {
+    for (const [key, value] of additions) {
+        const set = current.get(key);
+        if (typeof set === "undefined") {
+            current.set(key, value);
+        } else {
+            for (const propValue of value) {
+                set.add(propValue);
+            }
+        }
+    }
 }
 
 // Ugly call signature. Need to see how upstream handles tag properties.
 // At the moment, it is very broken
 function parseProperties(
     reader: StringReader,
-    options: SingleBlockPropertyInfo,
+    options: Map<string, Set<string>>,
     errors: PropertyExceptions,
     name: string
 ): ReturnedInfo<Map<string, string>> {
@@ -254,7 +208,7 @@ function parseProperties(
     const result = new Map<string, string>();
     const start = reader.cursor;
     if (helper.merge(reader.expect("["), { errors: false })) {
-        const props = Object.keys(options);
+        const props = [...options.keys()];
         reader.skipWhitespace();
         if (helper.merge(reader.expectOption("]"), { errors: false })) {
             return helper.succeed(result);
@@ -280,7 +234,7 @@ function parseProperties(
                     exceptions.unclosed_props.create(start, reader.cursor)
                 );
             }
-            if (!propSuccessful) {
+            if (!propSuccessful && errors.unknown) {
                 helper.addErrors(
                     errors.unknown.create(
                         propStart,
@@ -304,18 +258,19 @@ function parseProperties(
             reader.skipWhitespace();
             if (!helper.merge(reader.expect("="), { errors: false })) {
                 return helper.fail(
-                    errors.novalue.create(
-                        propStart,
-                        reader.cursor,
-                        propKey,
-                        name
-                    )
+                    errors.novalue &&
+                        errors.novalue.create(
+                            propStart,
+                            reader.cursor,
+                            propKey,
+                            name
+                        )
                 );
             }
             reader.skipWhitespace();
             const valueStart = reader.cursor;
             const valueParse = reader.readOption(
-                options[propKey] || [],
+                [...(options.get(propKey) || [])],
                 undefined,
                 CompletionItemKind.EnumMember
             );
@@ -324,16 +279,20 @@ function parseProperties(
             if (value === undefined) {
                 return helper.fail();
             }
-            const error = errors.invalid.create(
-                valueStart,
-                reader.cursor,
-                name,
-                value,
-                propKey
-            );
+            const error =
+                (errors.invalid && [
+                    errors.invalid.create(
+                        valueStart,
+                        reader.cursor,
+                        name,
+                        value,
+                        propKey
+                    )
+                ]) ||
+                [];
             const adderrorIf = (b: boolean) =>
                 b && propSuccessful && !valueSuccessful
-                    ? helper.addErrors(error)
+                    ? helper.addErrors(...error)
                     : undefined;
             adderrorIf(value.length > 0);
             result.set(propKey, value);
@@ -352,25 +311,4 @@ function parseProperties(
         }
     }
     return helper.succeed(result);
-}
-
-function constructProperties(
-    options: NamespacedName[],
-    blocks: BlocksPropertyInfo
-): SingleBlockPropertyInfo {
-    const result: SingleBlockPropertyInfo = {};
-    for (const blockName of options) {
-        const stringified = stringifyNamespace(blockName);
-        const block = blocks[stringified];
-        if (block) {
-            for (const prop in block) {
-                if (block.hasOwnProperty(prop)) {
-                    result[prop] = Array.from(
-                        new Set((result[prop] || []).concat(block[prop]))
-                    );
-                }
-            }
-        }
-    }
-    return result;
 }

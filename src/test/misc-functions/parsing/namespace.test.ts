@@ -1,80 +1,16 @@
+/*
+// TODO: This will be rewritten to use IdMap/IdSet
 import * as assert from "assert";
 
 import { StringReader } from "../../../brigadier/string-reader";
-import { convertToNamespace } from "../../../misc-functions";
+import { convertToID } from "../../../misc-functions";
 import {
-    namespaceStart,
     parseNamespace,
     parseNamespaceOption,
     readNamespaceText
 } from "../../../misc-functions/parsing/namespace";
-import { returnAssert } from "../../assertions";
-import { succeeds } from "../../blanks";
 
 describe("Namespace Parsing Functions", () => {
-    describe("namespaceStarts()", () => {
-        describe("test namespace defined", () => {
-            it("should allow same namespace, starting path", () => {
-                assert(
-                    namespaceStart(
-                        convertToNamespace("test:testing"),
-                        convertToNamespace("test:test")
-                    )
-                );
-            });
-            it("should disallow different namespace, starting path", () => {
-                assert(
-                    !namespaceStart(
-                        convertToNamespace("test:testing"),
-                        convertToNamespace("other:test")
-                    )
-                );
-            });
-        });
-        describe("test namespace undefined", () => {
-            it("should allow a starting path with the default namespace", () => {
-                assert(
-                    namespaceStart(
-                        convertToNamespace("minecraft:testing"),
-                        convertToNamespace("test")
-                    )
-                );
-            });
-            it("should disallow a starting path with a non-default namespace", () => {
-                assert(
-                    !namespaceStart(
-                        convertToNamespace("other:testing"),
-                        convertToNamespace("test")
-                    )
-                );
-            });
-            it("should allow a namespace starting with the path", () => {
-                assert(
-                    namespaceStart(
-                        convertToNamespace("testing:path"),
-                        convertToNamespace("test")
-                    )
-                );
-            });
-        });
-
-        describe("base namespace undefined", () => {
-            it("should act as if there was a minecraft namespace", () => {
-                assert(
-                    namespaceStart(
-                        convertToNamespace("hello"),
-                        convertToNamespace("minecraft:he")
-                    )
-                );
-                assert(
-                    namespaceStart(
-                        convertToNamespace("hello"),
-                        convertToNamespace("he")
-                    )
-                );
-            });
-        });
-    });
     describe("readNamespaceText()", () => {
         it("should read the namespace text", () => {
             const reader = new StringReader("mc:test[]");
@@ -86,7 +22,7 @@ describe("Namespace Parsing Functions", () => {
         it("should allow a parsed option, suggesting that option", () => {
             const reader = new StringReader("mc:succeeds");
             const result = parseNamespaceOption(reader, [
-                convertToNamespace("mc:succeeds")
+                convertToID("mc:succeeds")
             ]);
             if (
                 returnAssert(result, {
@@ -111,7 +47,7 @@ describe("Namespace Parsing Functions", () => {
         it("should reject it if it's an invalid option", () => {
             const reader = new StringReader("mc:fails");
             const result = parseNamespaceOption(reader, [
-                convertToNamespace("mc:succeeds")
+                convertToID("mc:succeeds")
             ]);
             if (!returnAssert(result, { succeeds: false })) {
                 assert.deepStrictEqual(result.data, {
@@ -191,3 +127,4 @@ describe("Namespace Parsing Functions", () => {
         });
     });
 });
+ */

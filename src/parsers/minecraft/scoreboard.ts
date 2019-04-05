@@ -13,11 +13,11 @@ import {
 } from "../../data/lists/criteria";
 import { DisplaySlots } from "../../data/nbt/nbt-types";
 import {
-    convertToNamespace,
-    namespacesEqual,
+    convertToID,
+    idsEqual,
     parseNamespaceOption,
     ReturnHelper,
-    stringArrayToNamespaces
+    stringArrayToIDs
 } from "../../misc-functions";
 import { typed_keys } from "../../misc-functions/third_party/typed-keys";
 import { Parser } from "../../types";
@@ -174,7 +174,7 @@ const UNKNOWN_CRITERIA = new CommandErrorBuilder(
     "Unknown criteria '%s'"
 );
 
-const customPrefix = convertToNamespace("minecraft:custom");
+const customPrefix = convertToID("minecraft:custom");
 export const criteriaParser: Parser = {
     parse: (reader, info) => {
         // tslint:disable:no-shadowed-variable
@@ -247,10 +247,10 @@ export const criteriaParser: Parser = {
         const postStart = reader.cursor;
         for (const choice of entityCriteria) {
             reader.cursor = postStart;
-            if (namespacesEqual(data.literal, choice)) {
+            if (idsEqual(data.literal, choice)) {
                 const result = parseNamespaceOption(
                     reader,
-                    stringArrayToNamespaces([
+                    stringArrayToIDs([
                         ...info.data.globalData.registries[
                             "minecraft:entity_type"
                         ]
@@ -265,10 +265,10 @@ export const criteriaParser: Parser = {
         }
         for (const choice of blockCriteria) {
             reader.cursor = postStart;
-            if (namespacesEqual(data.literal, choice)) {
+            if (idsEqual(data.literal, choice)) {
                 const result = parseNamespaceOption(
                     reader,
-                    stringArrayToNamespaces([
+                    stringArrayToIDs([
                         ...info.data.globalData.registries["minecraft:block"]
                     ]),
                     CompletionItemKind.Reference,
@@ -281,10 +281,10 @@ export const criteriaParser: Parser = {
         }
         for (const choice of itemCriteria) {
             reader.cursor = postStart;
-            if (namespacesEqual(data.literal, choice)) {
+            if (idsEqual(data.literal, choice)) {
                 const result = parseNamespaceOption(
                     reader,
-                    stringArrayToNamespaces([
+                    stringArrayToIDs([
                         ...info.data.globalData.registries[
                             "minecraft:entity_type"
                         ]
@@ -297,10 +297,10 @@ export const criteriaParser: Parser = {
                 }
             }
         }
-        if (namespacesEqual(data.literal, customPrefix)) {
+        if (idsEqual(data.literal, customPrefix)) {
             const result = parseNamespaceOption(
                 reader,
-                stringArrayToNamespaces([
+                stringArrayToIDs([
                     ...info.data.globalData.registries["minecraft:custom_stat"]
                 ]),
                 CompletionItemKind.Reference,

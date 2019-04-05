@@ -1,25 +1,25 @@
 import { CommandErrorBuilder } from "../../brigadier/errors";
 import { StringReader } from "../../brigadier/string-reader";
-import { NamespacedName, RegistryNames } from "../../data/types";
+import { ID, RegistryNames } from "../../data/types";
 import {
     parseNamespaceOption,
     ReturnHelper,
-    stringArrayToNamespaces,
-    stringifyNamespace
+    stringArrayToIDs,
+    stringifyID
 } from "../../misc-functions";
 import { CommandContext, Parser, ParserInfo, ReturnedInfo } from "../../types";
 
-export class NamespaceListParser implements Parser {
+export class RegistryListParser implements Parser {
     private readonly error: CommandErrorBuilder;
     private readonly registryType: RegistryNames;
     private readonly resultFunction?: (
         context: CommandContext,
-        result: NamespacedName[]
+        result: ID[]
     ) => void;
     public constructor(
         registryType: RegistryNames,
         errorBuilder: CommandErrorBuilder,
-        context?: NamespaceListParser["resultFunction"]
+        context?: RegistryListParser["resultFunction"]
     ) {
         this.registryType = registryType;
         this.error = errorBuilder;
@@ -33,7 +33,7 @@ export class NamespaceListParser implements Parser {
         const start = reader.cursor;
         const result = parseNamespaceOption(
             reader,
-            stringArrayToNamespaces([
+            stringArrayToIDs([
                 ...info.data.globalData.registries[this.registryType]
             ])
         );
@@ -51,7 +51,7 @@ export class NamespaceListParser implements Parser {
                         this.error.create(
                             start,
                             reader.cursor,
-                            stringifyNamespace(result.data)
+                            stringifyID(result.data)
                         )
                     )
                     .succeed();
@@ -66,7 +66,7 @@ export const summonError = new CommandErrorBuilder(
     "entity.notFound",
     "Unknown entity: %s"
 );
-export const summonParser = new NamespaceListParser(
+export const summonParser = new RegistryListParser(
     "minecraft:entity_type",
     summonError,
     (context, ids) => (context.otherEntity = { ids })
@@ -76,7 +76,7 @@ const enchantmentError = new CommandErrorBuilder(
     "enchantment.unknown",
     "Unknown enchantment: %s"
 );
-export const enchantmentParser = new NamespaceListParser(
+export const enchantmentParser = new RegistryListParser(
     "minecraft:enchantment",
     enchantmentError
 );
@@ -85,7 +85,7 @@ const mobEffectError = new CommandErrorBuilder(
     "effect.effectNotFound",
     "Unknown effect: %s"
 );
-export const mobEffectParser = new NamespaceListParser(
+export const mobEffectParser = new RegistryListParser(
     "minecraft:mob_effect",
     mobEffectError
 );
@@ -94,7 +94,7 @@ const particleError = new CommandErrorBuilder(
     "particle.notFound",
     "Unknown particle: %s"
 );
-export const particleParser = new NamespaceListParser(
+export const particleParser = new RegistryListParser(
     "minecraft:particle_type",
     particleError
 );
@@ -104,7 +104,7 @@ const dimensionError = new CommandErrorBuilder(
     "Unknown dimension: '%s'"
 );
 
-export const dimensionParser = new NamespaceListParser(
+export const dimensionParser = new RegistryListParser(
     "minecraft:dimension_type",
     dimensionError
 );

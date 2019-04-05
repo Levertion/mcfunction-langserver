@@ -1,244 +1,69 @@
-import { AssertionError, notStrictEqual, strictEqual } from "assert";
+import {
+    AssertionError,
+    deepStrictEqual,
+    notStrictEqual,
+    strictEqual
+} from "assert";
+import * as snapshot from "snap-shot-it";
 
-import { CommandError } from "../brigadier/errors";
 import { StringReader } from "../brigadier/string-reader";
 import { NAMESPACE } from "../consts";
-import { DataResource, MinecraftResource, NamespacedName } from "../data/types";
-import {
-    convertToNamespace,
-    isSuccessful,
-    namespacesEqual
-} from "../misc-functions";
-import { typed_keys } from "../misc-functions/third_party/typed-keys";
-import {
-    CE,
-    ContextChange,
-    LineRange,
-    Parser,
-    ParserInfo,
-    ReturnedInfo,
-    ReturnSuccess,
-    SubAction,
-    SuggestResult
-} from "../types";
+import { DataID, ResourceID } from "../data/types";
+import { convertToID } from "../misc-functions";
+import { ContextChange, Parser, ParserInfo, ReturnedInfo } from "../types";
 
 import { blankproperties } from "./blanks";
+
+// To allow for auto-import
+export { snapshot };
 
 export type TestParserInfo = Pick<
     ParserInfo,
     "context" | "data" | "node_properties" | "path"
 >;
 
+export interface ParserTestResult {
+    cursor: number;
+    parsing: ReturnedInfo<ContextChange | undefined>;
+    suggesting: ReturnedInfo<ContextChange | undefined>;
+}
+
 export const testParser = (parser: Parser) => (
     data: Partial<TestParserInfo> = {}
-) => (
-    text: string,
-    expected: ReturnAssertionInfo
-): [ReturnedInfo<ContextChange | undefined>, StringReader] => {
-    let cursorPos: number;
-    {
+) => {
+    function runParsertest(
+        text: string,
+        startingPos: number = 0
+    ): ParserTestResult {
         const reader = new StringReader(text);
-        const result = parser.parse(reader, {
+        reader.cursor = startingPos;
+        const suggesting = parser.parse(reader, {
             ...blankproperties,
             ...data,
             suggesting: true
         });
-        returnAssert(result, {
-            start: expected.start,
-            succeeds: expected.succeeds,
-            suggestions: expected.suggestions
-        }); // There should be no non-suggestions when suggesting
-        cursorPos = reader.cursor;
-    }
-    {
-        const reader = new StringReader(text);
-        const result = parser.parse(reader, {
+        const cursor = reader.cursor;
+        reader.cursor = startingPos;
+        const parsing = parser.parse(reader, {
             ...blankproperties,
             ...data,
             suggesting: false
         });
-        returnAssert(result, { ...expected, suggestions: [] }); // There should be no suggestions when not suggesting
-        strictEqual(reader.cursor, cursorPos);
-        return [result, reader];
+        strictEqual(reader.cursor, cursor);
+        deepStrictEqual(parsing.suggestions, []);
+        return { cursor, parsing, suggesting };
     }
+    return runParsertest;
 };
 
-export interface ReturnAssertionInfo {
-    actions?: SubAction[];
-    errors?: ErrorInfo[];
-    numActions?: number;
-    numMisc?: number;
-    start?: number;
-    succeeds: boolean;
-    suggestions?: SuggestedOption[];
-}
-
-export function returnAssert<T>(
-    actual: ReturnedInfo<T, CE, any>,
-    {
-        errors = [],
-        numActions = 0,
-        numMisc = 0,
-        start = 0,
-        succeeds,
-        suggestions = [],
-        actions
-    }: ReturnAssertionInfo
-): actual is ReturnSuccess<T> {
-    if (isSuccessful(actual) === succeeds) {
-        assertErrors(errors, actual.errors);
-        assertSuggestions(suggestions, actual.suggestions, start);
-        if (actions) {
-            assertMembers(actual.actions, actions, (expected, real) =>
-                typed_keys(expected).every(k => real[k] === expected[k])
-            );
-        } else {
-            strictEqual(actual.actions.length, numActions);
-        }
-        strictEqual(actual.misc.length, numMisc);
-    } else {
-        throw new AssertionError({
-            message: `Expected value given to ${
-                succeeds ? "succeed" : "fail"
-            }, but it didn't. Value is: '${JSON.stringify(actual)}'`
-        });
-    }
-    return true;
-}
-
-/**
- * Information about a single expected error
- */
-export interface ErrorInfo {
-    code: string;
-    range: LineRange;
-}
-
-/**
- * Ensures that the right errors from `expected` are in `realErrors`s
- * @param expected The errors which are expected
- * @param actual The actual errors
- */
-export function assertErrors(
-    expected: ErrorInfo[],
-    actual: CommandError[] | undefined
-): void {
-    assertMembers(
-        actual,
-        expected,
-        errorMatches,
-        info =>
-            `Expected errors to contain an error with code '${
-                info.code
-            }' and range ${info.range.start}...${
-                info.range.end
-            }, but none met this. The errors were ${JSON.stringify(actual)}`
-    );
-}
-
-function errorMatches(error: CommandError, expected: ErrorInfo): boolean {
-    return (
-        expected.code === error.code &&
-        expected.range.start === error.range.start &&
-        expected.range.end === error.range.end
-    );
-}
-
-/**
- * Information about a single expected suggestion
- */
-export interface SuggestionInfo {
-    start: number;
-    text: string;
-}
-
-/**
- * Information about a single expected suggestion.
- * If a string is given, the start is taken to be `start`
- */
-export type SuggestedOption = SuggestionInfo | string;
-
-/**
- * Ensure that the suggestions match the assertion about them
- */
-export function assertSuggestions(
-    expected: SuggestedOption[],
-    actual: SuggestResult[] | undefined,
-    start: number = 0
-): void {
-    assertMembers(
-        actual,
-        expected,
-        (suggestion, expectation) => {
-            const [startText, position]: [string, number] =
-                typeof expectation === "string"
-                    ? [expectation, start]
-                    : [expectation.text, expectation.start];
-            if (typeof suggestion === "string") {
-                return position === 0 && suggestion === startText;
-            } else {
-                return (
-                    suggestion.text === startText &&
-                    suggestion.start === position
-                );
-            }
-        },
-        expectation => {
-            const [startText, position]: [string, number] =
-                typeof expectation === "string"
-                    ? [expectation, start]
-                    : [expectation.text, expectation.start];
-            return `Expected suggestions to contain a suggestion starting with text '${startText}' at position ${position}, but this was not found: got ${JSON.stringify(
-                actual
-            )} instead`;
-        }
-    );
-}
-
-export function assertNamespaces(
-    expected: NamespacedName[],
-    actual: NamespacedName[] | undefined
-): void {
-    assertMembers(
-        actual,
-        expected,
-        namespacesEqual,
-        expectation =>
-            `Expected to find a path with namespace '${
-                expectation.namespace
-            }' and path ${expectation.path}, but none matched`
-    );
-}
-
-/* 
-export function assertReturn<T>(
-    val: ReturnedInfo<T, CE, any>,
-    shouldSucceed: boolean,
-    errors: ErrorInfo[] = [],
-    suggestions: Array<SuggestionInfo | string> = [],
-    numActions: number = 0,
-    suggestStart: number = 0
-): val is ReturnSuccess<T> {
-    if (isSuccessful(val) === shouldSucceed) {
-        assertErrors(errors, val.errors);
-        assertSuggestions(suggestions, val.suggestions, suggestStart);
-        strictEqual(
-            val.actions.length,
-            numActions,
-            `incorrect Number of expected actions: '${JSON.stringify(
-                val.actions
-            )}'`
-        );
-        return shouldSucceed;
-    } else {
-        throw new AssertionError({
-            message: `Expected value given to ${
-                shouldSucceed ? "succeed" : "fail"
-            }, but it didn't. Value is: '${JSON.stringify(val)}'`
-        });
-    }
-}
- */
+export const testFunction = <A extends any[], T>(
+    func: (reader: StringReader, ...args: A) => T,
+    ...args: A
+) => (text: string, startingPos = 0) => {
+    const reader = new StringReader(text);
+    reader.cursor = startingPos;
+    return func(reader, ...args);
+};
 export function unwrap<T>(val: T | undefined): T {
     if (val === undefined) {
         throw new AssertionError({
@@ -289,11 +114,11 @@ export function convertToResource<T>(
     input: string,
     data?: T,
     splitChar: string = NAMESPACE
-): DataResource<T> {
-    const result = convertToNamespace(input, splitChar);
+): DataID<T> {
+    const result = convertToID(input, splitChar);
     notStrictEqual(result.namespace, undefined);
     if (data) {
-        return { ...(result as MinecraftResource), data };
+        return { ...(result as ResourceID), data };
     }
-    return result as MinecraftResource;
+    return result as ResourceID;
 }

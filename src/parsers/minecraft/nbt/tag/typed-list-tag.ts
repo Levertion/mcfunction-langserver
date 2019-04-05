@@ -48,9 +48,7 @@ export class NBTTagTypedList extends BaseList {
             );
             const toCheck = `[${type["0"]};`;
             if (this.remaining) {
-                if (toCheck.startsWith(this.remaining)) {
-                    helper.addSuggestion(this.startIndex, toCheck);
-                }
+                helper.addSuggestion(this.startIndex, toCheck);
             }
         }
         return helper.succeed();

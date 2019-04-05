@@ -1,2 +1,0 @@
-The Data Folder is the only folder which should contains references to accessing the file system.
-Because of this, the `resources` folder contains example data for use with testing

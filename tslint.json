@@ -21,7 +21,9 @@
         "helper-return": true,
         "max-file-line-count": false,
         "ban-ts-ignore": false,
-        "increment-decrement": false
+        "increment-decrement": false,
+        "max-classes-per-file": false,
+        "variable-name": { "options": "allow-leading-underscore" }
     },
     "linterOptions": {
         "exclude": ["lintrules/**"]
