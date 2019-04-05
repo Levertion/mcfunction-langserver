@@ -62,7 +62,7 @@
         "prettier": "1.16.4",
         "pretty-quick": "1.10.0",
         "ts-mocha": "6.0.0",
-        "tslint": "5.13.0",
+        "tslint": "5.14.0",
         "tslint-config-prettier": "1.18.0",
         "typescript": "3.3.3333",
         "vscode-languageserver-types": "3.14.0"

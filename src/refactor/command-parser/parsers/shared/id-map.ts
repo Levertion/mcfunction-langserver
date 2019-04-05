@@ -1,12 +1,3 @@
-import { CompletionItemKind } from "vscode-languageserver";
-
-import { StringReader } from "../brigadier/string-reader";
-import { DEFAULT_NAMESPACE, NAMESPACE } from "../consts";
-import { CE, ID, ReturnedInfo } from "../types";
-
-import { readNamespaceSegment, ReturnHelper } from ".";
-import { stringArrayToIDs, stringifyID } from "./id";
-
 export type SerializedIDMap<T> = Array<[string, Array<[string, T]>]>;
 
 export interface MaybeResolved<T, R> {
