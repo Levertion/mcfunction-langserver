@@ -285,9 +285,7 @@ export const criteriaParser: Parser = {
                 const result = parseNamespaceOption(
                     reader,
                     stringArrayToNamespaces([
-                        ...info.data.globalData.registries[
-                            "minecraft:entity_type"
-                        ]
+                        ...info.data.globalData.registries["minecraft:item"]
                     ]),
                     CompletionItemKind.Reference,
                     "."

@@ -6702,6 +6702,8 @@ function parsePath(reader) {
 
         return helper.fail();
       }
+    } else if (reader.peek() == " ") {
+      return helper.succeed(result);
     } else {
       return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));
     }
@@ -7131,7 +7133,7 @@ exports.criteriaParser = {
       reader.cursor = postStart;
 
       if (misc_functions_1.namespacesEqual(data.literal, choice)) {
-        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:entity_type"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
+        const result = misc_functions_1.parseNamespaceOption(reader, misc_functions_1.stringArrayToNamespaces([...info.data.globalData.registries["minecraft:item"]]), vscode_languageserver_1.CompletionItemKind.Reference, ".");
 
         if (helper.merge(result)) {
           return helper.succeed();
