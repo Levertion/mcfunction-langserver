@@ -6702,7 +6702,7 @@ function parsePath(reader) {
 
         return helper.fail();
       }
-    } else if (reader.peek() == " ") {
+    } else if (reader.peek() === " ") {
       return helper.succeed(result);
     } else {
       return helper.fail(exceptions.BAD_CHAR.create(reader.cursor - 1, reader.cursor, reader.peek()));

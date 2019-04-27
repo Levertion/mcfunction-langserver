@@ -683,7 +683,7 @@ function parsePath(reader: StringReader): ReturnedInfo<PathParseResult> {
                 }
                 return helper.fail();
             }
-        } else if (reader.peek() == " ") {
+        } else if (reader.peek() === " ") {
             return helper.succeed(result);
         } else {
             return helper.fail(
